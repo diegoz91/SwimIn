@@ -142,6 +142,9 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
     
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('Tutti');
+    const [contractFilter, setContractFilter] = useState('');
+    const [nearMe, setNearMe] = useState(false);
+    const [sortBy, setSortBy] = useState<'recent' | 'salary'>('recent');
 
     const isStructure = user?.userType === 'structure';
 
@@ -167,8 +170,16 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
         { label: 'Reception', icon: '🖥️' }
     ];
 
+    const contractTypes = useMemo(
+        () => [...new Set(jobs.map(j => j.contractType).filter((c): c is string => !!c))].sort(),
+        [jobs]
+    );
+    const myCity = (user?.city || '').trim().toLowerCase();
+    const myProvince = (user?.province || '').trim().toLowerCase();
+    const canFilterNearMe = !!(myCity || myProvince);
+
     const filteredJobs = useMemo(() => {
-        return jobs.filter(job => {
+        const list = jobs.filter(job => {
             // Ricerca Fuzzy intelligente
             const q = searchQuery.toLowerCase();
             const matchesSearch = !q || 
@@ -178,9 +189,17 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 fuzzyMatch(q, job.title);
 
             const matchesFilter = activeFilter === 'Tutti' || job.role.toLowerCase().includes(activeFilter.toLowerCase());
-            return matchesSearch && matchesFilter;
+            const matchesContract = !contractFilter || job.contractType === contractFilter;
+            const matchesArea = !nearMe || (myCity && job.city.toLowerCase() === myCity) || (myProvince && (job.province || '').toLowerCase() === myProvince);
+            return matchesSearch && matchesFilter && matchesContract && matchesArea;
         });
-    }, [jobs, searchQuery, activeFilter]);
+        if (sortBy === 'salary') {
+            return [...list].sort((a, b) => (b.salaryMax || b.salaryMin || 0) - (a.salaryMax || a.salaryMin || 0));
+        }
+        return list;
+    }, [jobs, searchQuery, activeFilter, contractFilter, nearMe, myCity, myProvince, sortBy]);
+    const hasActiveFilters = !!searchQuery || activeFilter !== 'Tutti' || !!contractFilter || nearMe;
+    const resetFilters = () => { setSearchQuery(''); setActiveFilter('Tutti'); setContractFilter(''); setNearMe(false); };
 
     const sosJobs = filteredJobs.filter(j => j.isSOS);
     const regularJobs = filteredJobs.filter(j => !j.isSOS);
@@ -235,7 +254,8 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 <div className="pl-4 pr-2 text-slate-400"><Icon type="search" className="w-5 h-5" /></div>
                 <input 
                     type="text" 
-                    placeholder="Cerca per qualifica, ruolo o città (La ricerca corregge da sola gli errori di battitura)..."
+                    placeholder="Cerca per qualifica, ruolo o città…"
+                    aria-label="Cerca offerte di lavoro"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1 py-3 px-2 text-slate-700 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-slate-400"
@@ -259,7 +279,45 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 ))}
             </div>
 
-            <div className="mt-8">
+            <div className="flex flex-wrap items-center gap-3 -mt-2 mb-2">
+                {contractTypes.length > 0 && (
+                    <select
+                        value={contractFilter}
+                        onChange={(e) => setContractFilter(e.target.value)}
+                        aria-label="Tipo di contratto"
+                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                        <option value="">Tutti i contratti</option>
+                        {contractTypes.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                )}
+                <button
+                    onClick={() => setNearMe((v) => !v)}
+                    disabled={!canFilterNearMe}
+                    aria-pressed={nearMe}
+                    title={canFilterNearMe ? 'Mostra solo offerte nella tua città o provincia' : 'Aggiungi la tua città al profilo per usare questo filtro'}
+                    className={`px-3 py-2 rounded-xl border text-sm font-semibold flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed ${nearMe ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                    <Icon type="location" className="w-4 h-4" /> Nella mia zona
+                </button>
+                <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'recent' | 'salary')}
+                    aria-label="Ordina offerte"
+                    className="ml-auto px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                    <option value="recent">Più recenti</option>
+                    <option value="salary">Retribuzione più alta</option>
+                </select>
+            </div>
+            {!isLoading && (
+                <p className="text-sm text-slate-500" aria-live="polite">
+                    {filteredJobs.length} {filteredJobs.length === 1 ? 'offerta' : 'offerte'}
+                    {hasActiveFilters && <> · <button onClick={resetFilters} className="font-semibold text-blue-600 hover:underline">azzera filtri</button></>}
+                </p>
+            )}
+
+            <div className="mt-6">
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[1,2,3,4].map(n => (
@@ -342,13 +400,13 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun lavoro trovato</h3>
                         <p className="text-slate-500 max-w-md mx-auto">
-                            {searchQuery 
-                                ? `Non ci sono risultati per "${searchQuery}". Il motore Fuzzy ha corretto la ricerca ma non ci sono annunci attivi corrispondenti.` 
-                                : 'Non ci sono annunci attivi in questa categoria al momento.'}
+                            {hasActiveFilters
+                                ? 'Nessun annuncio corrisponde ai filtri scelti. Prova ad allargare la ricerca.'
+                                : 'Non ci sono annunci attivi al momento. Torna a trovarci presto!'}
                         </p>
-                        {searchQuery && (
+                        {hasActiveFilters && (
                             <button 
-                                onClick={() => { setSearchQuery(''); setActiveFilter('Tutti'); }}
+                                onClick={resetFilters}
                                 className="mt-6 font-semibold text-blue-600 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-blue-200 rounded"
                             >
                                 Azzera ricerca

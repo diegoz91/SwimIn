@@ -122,8 +122,20 @@ assert.deepEqual(await api.reportContent('bob',{targetType:'post',targetId:'p3',
 assert.deepEqual(await api.reportContent('bob',{targetType:'post',targetId:'p3',reason:'spam'}),{reported:true,duplicate:true});
 assert.deepEqual(Object.values(col('reports'))[0].$permissions,[]);
 
+// Competenze ed endorsement
+col('profiles').eve.skills=['Salvamento','Aquagym']; col('profiles').eve.connections=['bob'];
+col('profiles').bob.connections=[...(col('profiles').bob.connections||[]),'eve'];
+await rejects(api.toggleEndorsement('eve',{profileId:'eve',skill:'Salvamento'}),400);
+await rejects(api.toggleEndorsement('bob',{profileId:'eve',skill:'Pallanuoto'}),404);
+P('anna2'); // utente non collegato a eve
+await rejects(api.toggleEndorsement('anna2',{profileId:'eve',skill:'Salvamento'}),403);
+assert.deepEqual(await api.toggleEndorsement('bob',{profileId:'eve',skill:'Salvamento'}),{endorsed:true});
+assert.equal(notifs('eve','endorsement').length,1);
+assert.deepEqual(await api.toggleEndorsement('bob',{profileId:'eve',skill:'Salvamento'}),{endorsed:false});
+assert.equal(Object.values(col('endorsements')).length,0);
+await api.toggleEndorsement('bob',{profileId:'eve',skill:'Aquagym'});
+
 // Eliminazione account di anna
-P('anna2'); // utente estraneo
 col('profiles').anna.avatar='https://cloud.appwrite.io/v1/storage/buckets/avatars/files/avatarAnna/view?project=x';
 col('profiles').anna.connections=['bob']; col('profiles').bob.connections=['anna','eve'];
 col('posts').pa={$id:'pa',authorId:'anna',likesCount:0,commentsCount:0,media:[JSON.stringify({type:'image',url:'https://cloud.appwrite.io/v1/storage/buckets/post_media/files/fotoAnna/view'})],$permissions:['update("user:anna")']};

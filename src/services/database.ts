@@ -21,6 +21,7 @@ import type {
     LiveRoom,
     SwimMeet,
     AppwriteDocument,
+    Endorsement,
 } from '@/types/types';
 
 const { databaseId, collections } = APPWRITE_CONFIG;
@@ -231,6 +232,21 @@ export const databaseService = {
     /** Elimina definitivamente l'account e i dati collegati (lato server). */
     async deleteAccount(confirmation: string) {
         return await callApi<{ deleted: boolean }>('deleteAccount', { confirmation });
+    },
+
+    // ==========================================
+    // COMPETENZE
+    // ==========================================
+    async getEndorsements(profileId: string) {
+        const res = await databases.listDocuments<Endorsement>(databaseId, collections.endorsements, [
+            Query.equal('profileId', profileId),
+            Query.limit(500),
+        ]);
+        return res.documents;
+    },
+
+    async toggleEndorsement(profileId: string, skill: string) {
+        return await callApi<{ endorsed: boolean }>('toggleEndorsement', { profileId, skill });
     },
 
     async markNotificationAsRead(notificationId: string) {

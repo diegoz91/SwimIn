@@ -11,6 +11,7 @@ import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
+import { SkillsSection } from './SkillsSection';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -80,16 +81,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const experiences = profUser ? safeParse<Experience>(profUser.experienceList) : [];
     const certifications = profUser ? safeParse<Certification>(profUser.certificationsList) : [];
 
-    const completionScore = useMemo(() => {
-        if (!isProfessional || !profUser) return 0;
-        let score = 0;
-        if (profUser.firstName && profUser.lastName) score += 20;
-        if (profUser.avatar) score += 10;
-        if (profUser.bio) score += 20;
-        if (experiences.length > 0) score += 25;
-        if (certifications.length > 0) score += 25;
-        return score;
+    /** Passi per completare il profilo: punteggio e cosa manca ancora. */
+    const completionSteps = useMemo(() => {
+        if (!isProfessional || !profUser) return [];
+        return [
+            { label: 'Nome e cognome', done: !!(profUser.firstName && profUser.lastName), weight: 10 },
+            { label: 'Foto profilo', done: !!profUser.avatar, weight: 10 },
+            { label: 'Qualifica', done: !!profUser.title, weight: 10 },
+            { label: 'Città', done: !!profUser.city, weight: 10 },
+            { label: 'Presentazione', done: !!profUser.bio, weight: 10 },
+            { label: 'Esperienze', done: experiences.length > 0, weight: 20 },
+            { label: 'Brevetti', done: certifications.length > 0, weight: 20 },
+            { label: 'Competenze', done: (profUser.skills || []).length > 0, weight: 10 },
+        ];
     }, [profUser, experiences, certifications, isProfessional]);
+    const completionScore = completionSteps.reduce((sum, s) => sum + (s.done ? s.weight : 0), 0);
+    const missingSteps = completionSteps.filter((s) => !s.done);
 
     useEffect(() => {
         if (completionScore === 100 && !confettiFired && isOwnProfile) {
@@ -272,6 +279,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         {/* 💡 NUOVI BOTTONI AZIONE HEADER */}
         <div className="flex items-center gap-3">
+            <button
+                onClick={async () => {
+                    const url = `${window.location.origin}/profile/${user.userId || user.$id}`;
+                    try {
+                        if (navigator.share) await navigator.share({ title: `${displayName} su SwimIn`, url });
+                        else { await navigator.clipboard.writeText(url); showToast('Link del profilo copiato.', 'success'); }
+                    } catch { /* condivisione annullata */ }
+                }}
+                className="bg-white border border-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                aria-label="Condividi profilo"
+            >
+                <Icon type="share" className="w-4 h-4" /> <span className="hidden sm:inline">Condividi</span>
+            </button>
             {isOwnProfile && isProfessional && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
@@ -348,6 +368,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <div className="absolute top-0 bottom-0 left-0 right-0 opacity-30 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] mix-blend-overlay"></div>
                 </div>
             </div>
+            {isOwnProfile && missingSteps.length > 0 && (
+                <p className="text-sm text-slate-600 mt-4">
+                    <span className="font-semibold">Ti manca:</span> {missingSteps.map((s) => s.label.toLowerCase()).join(', ')}.
+                </p>
+            )}
         </div>
       )}
 
@@ -493,6 +518,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 {user.bio || 'Nessuna presentazione inserita.'}
             </p>
           </div>
+
+          {isProfessional && profUser && (
+            <SkillsSection
+                profile={profUser}
+                isOwnProfile={isOwnProfile}
+                onProfileUpdated={(p) => onUpdateProfile?.(p)}
+            />
+          )}
 
           {isProfessional && (
             <>

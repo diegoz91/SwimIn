@@ -59,6 +59,8 @@ export interface UserProfile extends BaseProfile {
   certificationsList?: string[];
   availableForEmergencies?: boolean;
   managedFacilities?: string[]; 
+  /** Competenze dichiarate, confermabili dai collegamenti. */
+  skills?: string[];
 }
 
 export interface StructureProfile extends BaseProfile {
@@ -201,10 +203,16 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement';
   content: string;
   relatedId?: string;
   isRead: boolean;
+}
+
+export interface Endorsement extends AppwriteDocument {
+  profileId: string;
+  endorserId: string;
+  skill: string;
 }
 
 // ----------------------------------------------------

@@ -75,6 +75,7 @@ const schema = [
             bool('isOnline', { default: false }), str('lastActive', 100),
             bool('availableForEmergencies', { default: false }),
             str('managedFacilities', 36, { array: true }),
+            str('skills', 60, { array: true }), // competenze (max 20), confermabili dai collegamenti
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -176,6 +177,15 @@ const schema = [
             str('content', 255, { required: true }), str('relatedId', 36), bool('isRead', { default: false }),
         ],
         indexes: [idx('by_user_read', ['userId', 'isRead'])],
+    },
+    {
+        // Conferme di competenze tra collegamenti: scritte solo dalla Function.
+        id: 'endorsements', name: 'Endorsements', permissions: READ_ONLY,
+        attributes: [
+            str('profileId', 36, { required: true }), str('endorserId', 36, { required: true }),
+            str('skill', 60, { required: true }),
+        ],
+        indexes: [idx('by_profile', ['profileId']), idx('by_endorser', ['endorserId'])],
     },
     {
         // Segnalazioni di contenuti: scritte solo dalla Function, lette solo dalla Console.
