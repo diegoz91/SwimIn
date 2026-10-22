@@ -69,7 +69,8 @@ export interface Post extends AppwriteDocument {
   authorType: UserType;
   content: string;
   postType: 'text' | 'image' | 'video' | 'link' | 'video-analysis';
-  media?: Media[];
+  /** Ogni elemento è un oggetto Media serializzato in JSON: usa getPostContent() per leggerli. */
+  media?: string[];
   category?: string;
   visibility: 'public' | 'connections_only';
   likesCount: number;

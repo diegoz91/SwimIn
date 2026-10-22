@@ -4,7 +4,7 @@
 
 SwimWaveUp connette Istruttori FIN, Assistenti Bagnanti, Allenatori, Direttori Sportivi e Strutture (Piscine e Centri Sportivi) in un'unica piattaforma dinamica. Pensato come il "LinkedIn del nuoto", facilita il networking, la condivisione di competenze e l'incrocio tra domanda e offerta di lavoro nel settore acquatico.
 
-![Stato](https://img.shields.io/badge/Stato-Production_Ready-success)
+![Stato](https://img.shields.io/badge/Stato-In_sviluppo-yellow)
 ![Versione](https://img.shields.io/badge/Versione-1.0.0-blue)
 ![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=white)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite&logoColor=white)
@@ -61,7 +61,43 @@ SwimWaveUp connette Istruttori FIN, Assistenti Bagnanti, Allenatori, Direttori S
 
 ## 🚀 Installazione e Avvio Locale
 
-### 1. Clonare il repository
+Requisiti: Node.js 20+ e un progetto Appwrite (Cloud).
+
 ```bash
-git clone **link**
-cd swimwaveup
+git clone https://github.com/diegoz91/swimwaveup.0.0.1.git
+cd swimwaveup.0.0.1
+npm install
+cp .env.example .env          # inserisci endpoint e project ID di Appwrite
+npm run dev                   # http://localhost:3000
+```
+
+### Backend Appwrite
+
+Database, permessi, storage e la Function `api` si configurano con uno script:
+
+```bash
+cp .env.setup.example .env.setup   # API key di amministrazione, MAI committarla
+npm run setup-db
+```
+
+Guida completa: [`docs/SETUP-APPWRITE.md`](docs/SETUP-APPWRITE.md).
+
+### Comandi utili
+
+| Comando | Cosa fa |
+|---|---|
+| `npm run dev` | Server di sviluppo |
+| `npm run build` | Type-check + build di produzione |
+| `npm run typecheck` | Solo controllo dei tipi |
+| `npm run setup-db` | Crea/aggiorna schema Appwrite e Function |
+| `npm run reset-db -- --yes` | ⚠️ Cancella tutti i dati dell'ambiente di test |
+| `cd functions/api && npm test` | Test della Function server-side |
+
+### Struttura
+
+```
+src/            Frontend React (pages, features, services, hooks)
+functions/api/  Appwrite Function per le operazioni tra più utenti
+setup-db.js     Schema e permessi del database (fonte di verità)
+docs/           Guide operative
+```

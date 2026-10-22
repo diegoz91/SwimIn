@@ -75,6 +75,7 @@ const Header: React.FC = () => {
           }
           setNotifications(prev => prev.filter(n => n.$id !== notif.$id));
       } catch (e) {
+          console.error('markNotificationAsRead:', e);
       }
       
       setIsDropdownOpen(false);

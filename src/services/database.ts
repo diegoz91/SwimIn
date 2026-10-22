@@ -31,6 +31,11 @@ const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_moc
 
 type Profile = UserProfile | StructureProfile;
 
+const profileDisplayName = (p: Profile) =>
+    p.userType === 'professional'
+        ? `${(p as UserProfile).firstName || ''} ${(p as UserProfile).lastName || ''}`.trim() || 'Un utente'
+        : (p as StructureProfile).structureName || 'Una struttura';
+
 // ==========================================
 // FUNCTION "api" (lato server)
 // Le operazioni che modificano dati di altri utenti non sono permesse dal
@@ -173,59 +178,65 @@ export const databaseService = {
         );
     },
 
+    /**
+     * Feed stile LinkedIn, paginato lato server.
+     * - Post dei miei collegamenti e miei (filtro su authorId, ordinati per data).
+     * - Solo in prima pagina: post di altri che un mio collegamento ha consigliato (like).
+     * - Senza collegamenti: post più recenti di tutta la rete, per scoprire persone.
+     */
     async getFeed(currentUserId: string, userConnections: string[], limit = 20, offset = 0): Promise<EnrichedPost[]> {
+        // Appwrite accetta al massimo 100 valori in un filtro equal.
+        const authors = [currentUserId, ...userConnections].slice(0, 100);
+        const hasNetwork = userConnections.length > 0;
+
         const response = await databases.listDocuments<Post>(databaseId, collections.posts, [
+            ...(hasNetwork ? [Query.equal('authorId', authors)] : []),
             Query.orderDesc('$createdAt'),
-            Query.limit(100) 
+            Query.limit(limit),
+            Query.offset(offset),
         ]);
+        const posts: EnrichedPost[] = response.documents;
+        if (offset > 0 || !hasNetwork) return posts;
 
-        const allPosts = response.documents;
-        const postIds = allPosts.map(p => p.$id);
-        let relevantLikes: Like[] = [];
-
-        const safeConnections = userConnections.slice(0, 50);
-        if (postIds.length > 0 && safeConnections.length > 0) {
-            try {
-                const likesRes = await databases.listDocuments<Like>(databaseId, collections.likes, [
-                    Query.equal('userId', safeConnections),
-                    Query.limit(100),
-                    Query.orderDesc('$createdAt')
-                ]);
-                relevantLikes = likesRes.documents;
-            } catch(e) {}
-        }
-
-        const enrichedPosts: EnrichedPost[] = [];
-
-        for (const post of allPosts) {
-            const isMine = post.authorId === currentUserId;
-            const isConnection = userConnections.includes(post.authorId);
-            let recommendedBy: { id: string, name: string } | undefined = undefined;
-
-            if (!isMine && !isConnection) {
-                const connectionLike = relevantLikes.find(l => l.postId === post.$id);
-                if (connectionLike) {
-                    try {
-                        const recommender = await this.getProfile(connectionLike.userId);
-                        const name = recommender.userType === 'professional'
-                            ? `${(recommender as UserProfile).firstName} ${(recommender as UserProfile).lastName}`.trim()
-                            : (recommender as StructureProfile).structureName || 'Una struttura';
-                        recommendedBy = { id: recommender.userId || recommender.$id, name };
-                    } catch (e) {}
-                }
+        try {
+            const likesRes = await databases.listDocuments<Like>(databaseId, collections.likes, [
+                Query.equal('userId', userConnections.slice(0, 100)),
+                Query.orderDesc('$createdAt'),
+                Query.limit(30),
+            ]);
+            const shown = new Set(posts.map(p => p.$id));
+            const likeByPost = new Map<string, Like>();
+            for (const like of likesRes.documents) {
+                if (!shown.has(like.postId) && !likeByPost.has(like.postId)) likeByPost.set(like.postId, like);
             }
+            if (likeByPost.size === 0) return posts;
 
-            if (isMine || isConnection || recommendedBy) {
-                enrichedPosts.push({ ...post, recommendedBy });
-            }
+            const recommendedRes = await databases.listDocuments<Post>(databaseId, collections.posts, [
+                Query.equal('$id', [...likeByPost.keys()].slice(0, 10)),
+                Query.limit(10),
+            ]);
+            const recommenderIds = [...new Set(recommendedRes.documents.map(p => likeByPost.get(p.$id)!.userId))];
+            const recommenders = await this.getConnectionsProfiles(recommenderIds);
+            const nameById = new Map(recommenders.map(p => [p.$id, profileDisplayName(p)]));
+
+            const recommended: EnrichedPost[] = recommendedRes.documents
+                .filter(p => !authors.includes(p.authorId))
+                .map(p => {
+                    const by = likeByPost.get(p.$id)!.userId;
+                    return { ...p, recommendedBy: { id: by, name: nameById.get(by) || 'Un collegamento' } };
+                });
+
+            return [...posts, ...recommended].sort((a, b) => b.$createdAt.localeCompare(a.$createdAt));
+        } catch (error) {
+            // I consigliati sono un extra: se falliscono mostriamo comunque il feed.
+            console.warn('Post consigliati non disponibili:', error);
+            return posts;
         }
-
-        return enrichedPosts.slice(offset, offset + limit);
     },
 
+    /** Restituisce se ora il post è consigliato e il numero aggiornato di like. */
     async toggleLike(postId: string, _userId: string) {
-        const { liked } = await callApi<{ liked: boolean; likesCount: number }>('toggleLike', { postId });
-        return liked;
+        return await callApi<{ liked: boolean; likesCount: number }>('toggleLike', { postId });
     },
 
     async getPostLikers(postId: string): Promise<Profile[]> {
@@ -358,44 +369,43 @@ export const databaseService = {
         }
     },
 
+    /**
+     * Ricerca lato server (sottostringa, case-insensitive) su nome, ruolo e città.
+     * Con più parole usa la più lunga, che è la più selettiva.
+     */
     async searchNetwork(searchQuery: string, currentUserId: string) {
-        if (!searchQuery || searchQuery.trim().length < 2) return { profiles: [], facilities: [] };
-        const q = searchQuery.toLowerCase().trim();
-        
-        try {
-            const profRes = await databases.listDocuments<Profile>(databaseId, collections.profiles, [
-                Query.limit(100), 
-                Query.orderDesc('$createdAt')
-            ]);
-            const facRes = await databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, [
-                Query.limit(50), 
-                Query.orderDesc('$createdAt')
-            ]);
-            
-            const profiles = profRes.documents.filter(p => {
-                if (p.userId === currentUserId || p.$id === currentUserId) return false;
-                const isProf = p.userType === 'professional';
-                const name = isProf 
-                    ? `${(p as UserProfile).firstName || ''} ${(p as UserProfile).lastName || ''}`.trim() 
-                    : (p as StructureProfile).structureName || '';
-                const role = isProf 
-                    ? (p as UserProfile).title || '' 
-                    : (p as StructureProfile).structureType || '';
-                
-                return name.toLowerCase().includes(q) || role.toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q);
-            });
+        const term = (searchQuery || '').trim().split(/\s+/).sort((a, b) => b.length - a.length)[0] || '';
+        if (term.length < 2) return { profiles: [] as Profile[], facilities: [] as Facility[] };
 
-            const facilities = facRes.documents.filter(f => {
-                return (f.name || '').toLowerCase().includes(q) || 
-                       (f.type || '').toLowerCase().includes(q) || 
-                       (f.city || '').toLowerCase().includes(q);
-            });
+        const [profRes, facRes] = await Promise.all([
+            databases.listDocuments<Profile>(databaseId, collections.profiles, [
+                Query.or([
+                    Query.contains('firstName', term),
+                    Query.contains('lastName', term),
+                    Query.contains('structureName', term),
+                    Query.contains('title', term),
+                    Query.contains('structureType', term),
+                    Query.contains('city', term),
+                ]),
+                Query.limit(30),
+            ]),
+            databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, [
+                Query.or([
+                    Query.contains('name', term),
+                    Query.contains('type', term),
+                    Query.contains('city', term),
+                ]),
+                Query.limit(20),
+            ]).catch((error) => {
+                console.warn('Ricerca strutture non disponibile:', error);
+                return { documents: [] as Facility[] };
+            }),
+        ]);
 
-            return { profiles, facilities };
-        } catch (e) {
-            console.error("Search error", e);
-            return { profiles: [], facilities: [] };
-        }
+        return {
+            profiles: profRes.documents.filter(p => p.$id !== currentUserId && p.userId !== currentUserId),
+            facilities: facRes.documents,
+        };
     },
 
     // ==========================================
@@ -438,7 +448,9 @@ export const databaseService = {
     async deleteSquadShift(shiftId: string) {
         try {
             await databases.deleteDocument(databaseId, SHIFTS_COLLECTION, shiftId);
-        } catch(e) {}
+        } catch(e) {
+            console.error('deleteSquadShift:', e);
+        }
     },
 
     // ==========================================

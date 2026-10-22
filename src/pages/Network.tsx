@@ -74,15 +74,21 @@ const Network: React.FC = () => {
         const timer = setTimeout(async () => {
             if (searchQuery.trim().length >= 2) {
                 setIsSearching(true);
-                const results = await databaseService.searchNetwork(searchQuery, currentUser.$id);
-                setSearchResults(results);
-                setIsSearching(false);
+                try {
+                    const results = await databaseService.searchNetwork(searchQuery, currentUser.$id);
+                    setSearchResults(results);
+                } catch (error) {
+                    console.error('Ricerca non riuscita:', error);
+                    showToast('Ricerca non disponibile al momento. Riprova.', 'error');
+                } finally {
+                    setIsSearching(false);
+                }
             } else {
                 setSearchResults({profiles: [], facilities: []});
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchQuery, currentUser]);
+    }, [searchQuery, currentUser, showToast]);
 
     const handleAcceptRequest = async (connectionId: string) => {
         if (!currentUser) return;
