@@ -260,11 +260,14 @@ export const databaseService = {
     // ==========================================
     // 🌊 FEED E POSTS
     // ==========================================
-    async createPost(postData: Partial<Post>) {
-        return await databases.createDocument<Post>(
-            databaseId, collections.posts, ID.unique(), postData, 
-            postData.authorId ? ownedBy(postData.authorId) : undefined
-        );
+    /** Crea un post (lato server: l'autore è sempre l'utente che chiama). */
+    async createPost(postData: Pick<Post, 'content' | 'postType'> & Partial<Pick<Post, 'media' | 'category'>>) {
+        return await callApi<Post>('createPost', {
+            content: postData.content,
+            media: postData.media || [],
+            postType: postData.postType,
+            category: postData.category,
+        });
     },
 
     /**
@@ -402,8 +405,9 @@ export const databaseService = {
     // ==========================================
     // JOBS & APPLICATIONS
     // ==========================================
+    /** Pubblica un annuncio (lato server: verifica che l'utente gestisca la struttura). */
     async createJob(jobData: Partial<Job>) {
-        return await databases.createDocument<Job>(databaseId, collections.jobs, ID.unique(), jobData);
+        return await callApi<Job>('createJob', jobData as Record<string, unknown>);
     },
 
     async getActiveJobs() {

@@ -17,8 +17,11 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
     return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-/** 1200 -> "1.200", 15300 -> "15,3K". */
+/** 1200 -> "1200" (in italiano le migliaia si separano da 10.000), 15300 -> "15,3K", 2500000 -> "2,5 Mln". */
 export function formatCount(n: number): string {
     if (n < 10_000) return n.toLocaleString('it-IT');
-    return new Intl.NumberFormat('it-IT', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+    // In italiano la notazione compatta non abbrevia le migliaia: usiamo "K" come sui social.
+    const short = (value: number) => value.toLocaleString('it-IT', { maximumFractionDigits: 1 });
+    if (n < 1_000_000) return `${short(n / 1000)}K`;
+    return `${short(n / 1_000_000)} Mln`;
 }

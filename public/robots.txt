@@ -1,0 +1,8 @@
+# L'app è riservata agli utenti registrati: indicizziamo solo le pagine pubbliche.
+User-agent: *
+Allow: /login
+Allow: /register
+Allow: /privacy
+Allow: /termini
+Allow: /cookie
+Disallow: /

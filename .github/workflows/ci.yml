@@ -43,6 +43,9 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Test frontend
+        run: npx vitest run
+
       - name: Build
         run: npx vite build
         env:

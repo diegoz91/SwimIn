@@ -55,6 +55,9 @@ const postMediaUrls = (post) => {
 };
 
 const APPLICATION_STATUSES = ['pending', 'reviewed', 'accepted', 'rejected', 'hired'];
+const POST_TYPES = ['text', 'image', 'video', 'link', 'video-analysis'];
+const POST_CATEGORIES = ['generale', 'allenamento', 'gara', 'tecnica', 'normative'];
+const MAX_POST_MEDIA = 10;
 
 /** Errore "atteso": il messaggio viene mostrato all'utente. */
 class HttpError extends Error {
@@ -95,7 +98,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -248,6 +251,33 @@ const createApi = (db, { users = null, storage = null } = {}) => {
     },
 
     // ---------------- FEED ----------------
+    /**
+     * Crea un post a nome dell'utente che chiama: autore e tipo di account sono
+     * decisi qui, così nessuno può pubblicare a nome di altri.
+     */
+    async createPost(me, { content = '', media = [], postType = 'text', category = 'generale' }) {
+      content = typeof content === 'string' ? content.trim() : '';
+      if (content.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
+      if (!Array.isArray(media) || media.length > MAX_POST_MEDIA) fail(400, `Puoi allegare al massimo ${MAX_POST_MEDIA} file.`);
+      const cleanMedia = media.map((raw) => {
+        let m;
+        try { m = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { fail(400, 'Allegato non valido.'); }
+        if (!m || !['image', 'video'].includes(m.type) || typeof m.url !== 'string') fail(400, 'Allegato non valido.');
+        // Solo file caricati nel nostro storage: niente link esterni mascherati da foto.
+        if (endpoint && !m.url.startsWith(endpoint)) fail(400, 'Gli allegati devono essere caricati su SwimIn.');
+        return JSON.stringify({ type: m.type, url: m.url, ...(m.alt ? { alt: String(m.alt).slice(0, 200) } : {}) });
+      });
+      if (!content && cleanMedia.length === 0) fail(400, 'Il post è vuoto.');
+      if (!POST_TYPES.includes(postType)) postType = 'text';
+      if (!POST_CATEGORIES.includes(category)) category = 'generale';
+
+      const author = await get(C.profiles, me);
+      return create(C.posts, {
+        authorId: me, authorType: author.userType, content, media: cleanMedia, postType, category,
+        visibility: 'public', likesCount: 0, commentsCount: 0,
+      }, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+    },
+
     async toggleLike(me, { postId }) {
       postId = requireString(postId, 'postId', 36);
       const post = await get(C.posts, postId);
@@ -336,7 +366,10 @@ const createApi = (db, { users = null, storage = null } = {}) => {
       if (profileId === me) fail(400, 'Non puoi confermare le tue competenze.');
       const [profile, endorser] = await Promise.all([get(C.profiles, profileId), get(C.profiles, me)]);
       if (!(profile.skills || []).includes(skill)) fail(404, 'Competenza non presente nel profilo.');
-      if (!(endorser.connections || []).includes(profileId)) fail(403, 'Puoi confermare le competenze solo dei tuoi collegamenti.');
+      // Controlliamo entrambi i lati: l'elenco del destinatario può modificarlo solo lui o il server.
+      if (!(endorser.connections || []).includes(profileId) || !(profile.connections || []).includes(me)) {
+        fail(403, 'Puoi confermare le competenze solo dei tuoi collegamenti.');
+      }
 
       const existing = await list(C.endorsements, [
         Query.equal('profileId', profileId), Query.equal('endorserId', me), Query.equal('skill', skill), Query.limit(5),
@@ -473,6 +506,55 @@ const createApi = (db, { users = null, storage = null } = {}) => {
     },
 
     // ---------------- LAVORO ----------------
+    /**
+     * Pubblica un annuncio. La struttura deve essere l'utente stesso (account
+     * Struttura) o una Pagina Struttura di cui è amministratore; nome e logo
+     * vengono presi dalla struttura, non dal client.
+     */
+    async createJob(me, data) {
+      const structureId = requireString(data.structureId, 'structureId', 36);
+      let structureName;
+      let facilityLogo;
+      if (structureId === me) {
+        const profile = await get(C.profiles, me);
+        if (profile.userType !== 'structure') fail(403, 'Solo le strutture possono pubblicare annunci.');
+        structureName = profile.structureName;
+        facilityLogo = profile.logo;
+      } else {
+        const facility = await find(C.facilities, structureId);
+        if (!facility || !(facility.admins || []).includes(me)) fail(403, 'Non sei amministratore di questa struttura.');
+        structureName = facility.name;
+        facilityLogo = facility.logo;
+      }
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
+      const int = (v) => (Number.isFinite(Number(v)) && v !== '' && v !== null && v !== undefined ? Math.max(0, Math.min(1_000_000_000, Math.round(Number(v)))) : undefined);
+      const list = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim().slice(0, 500)).filter(Boolean).slice(0, 20) : []);
+
+      const job = {
+        structureId,
+        structureName: str(structureName, 255),
+        facilityLogo: str(facilityLogo, 2048),
+        title: requireString(data.title, 'title', 255),
+        description: requireString(data.description, 'description', 4000),
+        role: requireString(data.role, 'role', 100),
+        contractType: str(data.contractType, 100),
+        city: requireString(data.city, 'city', 255),
+        province: str(data.province, 10)?.toUpperCase(),
+        salaryMin: int(data.salaryMin),
+        salaryMax: int(data.salaryMax),
+        workingHours: str(data.workingHours, 255),
+        requirements: list(data.requirements),
+        qualificationsRequired: list(data.qualificationsRequired),
+        isActive: true,
+        isSOS: !!data.isSOS,
+        sosDate: str(data.sosDate, 100),
+        sosShift: str(data.sosShift, 100),
+        candidates: [],
+      };
+      for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
+      return create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+    },
+
     async applyForJob(me, { jobId, coverLetter = '' }) {
       jobId = requireString(jobId, 'jobId', 36);
       const job = await get(C.jobs, jobId);
@@ -623,7 +705,11 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(req.headers['x-appwrite-key'] || process.env.APPWRITE_API_KEY);
 
-  const api = createApi(new TablesDB(client), { users: new Users(client), storage: new Storage(client) });
+  const api = createApi(new TablesDB(client), {
+    users: new Users(client),
+    storage: new Storage(client),
+    endpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || '',
+  });
   const { action, ...params } = body;
   const handler = Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
   if (!handler) return res.json({ ok: false, error: `Azione sconosciuta: ${action}` }, 400);

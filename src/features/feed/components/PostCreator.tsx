@@ -36,15 +36,10 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         }
 
         await databaseService.createPost({
-            authorId: user.$id,
-            authorType: user.userType,
             content: finalContent,
             media: serializeMedia(media),
             postType: pType,
-            category: category, 
-            visibility: 'public',
-            likesCount: 0,
-            commentsCount: 0
+            category,
         });
         
         onPostCreated();
