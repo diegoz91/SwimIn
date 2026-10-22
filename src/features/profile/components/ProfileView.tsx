@@ -10,6 +10,7 @@ import { CertificationModal } from './CertificationModal';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
+import { ReportModal } from '@/components/common/ReportModal';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -29,6 +30,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
     const [confettiFired, setConfettiFired] = useState(false);
     
     const isProfessional = user.userType === 'professional';
@@ -437,6 +439,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                   </div>
                   {!isOwnProfile && (
+                    <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+                      <button
+                          onClick={() => setIsReportOpen(true)}
+                          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          aria-label="Segnala profilo"
+                          title="Segnala profilo"
+                      >
+                          <Icon type="alert-triangle" className="w-5 h-5" />
+                      </button>
                       <button 
                           onClick={() => onContact(user.userId || user.$id)} 
                           className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
@@ -444,6 +455,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       >
                           <Icon type="chat-bubble" className="w-4 h-4" /> Contatta
                       </button>
+                    </div>
                   )}
               </div>
 
@@ -608,6 +620,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <ExperienceModal isOpen={experienceModal.isOpen} onClose={() => setExperienceModal({ isOpen: false, mode: 'add' })} onSave={handleSaveExperience} experience={experienceModal.experience} mode={experienceModal.mode} />
       <CertificationModal isOpen={certificationModal.isOpen} onClose={() => setCertificationModal({ isOpen: false, mode: 'add' })} onSave={handleSaveCertification} certification={certificationModal.certification} mode={certificationModal.mode} />
       
+      {isReportOpen && <ReportModal targetType="profile" targetId={user.userId || user.$id} onClose={() => setIsReportOpen(false)} />}
+
       {/* 🏢 MODALE CREAZIONE PAGINA STRUTTURA */}
       {isFacilityModalOpen && (
             <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">

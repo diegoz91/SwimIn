@@ -6,6 +6,8 @@ import { client } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { Icon } from '@/components/ui/Icon';
 import type { AppNotification } from '@/types/types';
+import { notificationMeta } from '@/features/notifications/notificationMeta';
+import { formatRelativeTime } from '@/utils/format';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
@@ -39,11 +41,14 @@ const Header: React.FC = () => {
             const notifCollection = (APPWRITE_CONFIG.collections as any).notifications;
             if (notifCollection) {
                 const channel = `databases.${APPWRITE_CONFIG.databaseId}.collections.${notifCollection}.documents`;
-                unsubscribe = client.subscribe(channel, (response: any) => {
+                unsubscribe = client.subscribe(channel, (response) => {
                     const payload = response.payload as AppNotification;
-                    if (payload?.userId === currentUserId && !payload?.isRead) {
-                        setNotifications(prev => [payload, ...prev]);
-                    }
+                    if (payload?.userId !== currentUserId) return;
+                    // Nuova notifica non letta in cima; se diventa letta (anche da un'altra scheda) la togliamo.
+                    setNotifications(prev => {
+                        const others = prev.filter(n => n.$id !== payload.$id);
+                        return payload.isRead ? others : [payload, ...others];
+                    });
                 });
             }
         } catch (error) {
@@ -79,10 +84,7 @@ const Header: React.FC = () => {
       }
       
       setIsDropdownOpen(false);
-      
-      if (notif.type === 'connection') navigate('/network');
-      else if (notif.type === 'hired') navigate(`/profile/${notif.relatedId}`);
-      else navigate('/jobs');
+      navigate(notificationMeta(notif).href);
   };
 
   return (
@@ -141,12 +143,16 @@ const Header: React.FC = () => {
               <div className="relative" ref={dropdownRef}>
                   <button 
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      aria-label={notifications.length ? `Notifiche, ${notifications.length} da leggere` : 'Notifiche'}
+                      aria-expanded={isDropdownOpen}
                       className="relative p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                       <Icon type="bell" className="w-6 h-6" />
                       
                       {notifications.length > 0 && (
-                          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                          <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold border-2 border-white rounded-full flex items-center justify-center">
+                              {notifications.length > 9 ? '9+' : notifications.length}
+                          </span>
                       )}
                   </button>
 
@@ -164,20 +170,26 @@ const Header: React.FC = () => {
                                   </div>
                               ) : (
                                   <div className="divide-y divide-slate-50">
-                                      {notifications.map(n => (
-                                          <div key={n.$id} onClick={() => handleNotificationClick(n)} className="p-4 hover:bg-slate-50 cursor-pointer transition-colors flex gap-3 group">
-                                              <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'hired' ? 'bg-green-100 text-green-600' : n.type === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                  <Icon type={n.type === 'hired' ? 'sparkles' : n.type === 'rejected' ? 'x' : 'users'} className="w-4 h-4" />
-                                              </div>
-                                              <div>
-                                                  <p className="text-sm text-slate-800 font-medium group-hover:text-blue-600 transition-colors line-clamp-2">{n.content}</p>
-                                                  <p className="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">{new Date(n.$createdAt).toLocaleDateString('it-IT')}</p>
-                                              </div>
-                                          </div>
-                                      ))}
+                                      {notifications.slice(0, 8).map(n => {
+                                          const meta = notificationMeta(n);
+                                          return (
+                                          <button key={n.$id} onClick={() => handleNotificationClick(n)} className="w-full text-left p-4 hover:bg-slate-50 transition-colors flex gap-3 group outline-none focus-visible:bg-slate-50">
+                                              <span className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
+                                                  <Icon type={meta.icon} className="w-4 h-4" />
+                                              </span>
+                                              <span>
+                                                  <span className="block text-sm text-slate-800 font-medium group-hover:text-blue-600 transition-colors line-clamp-2">{n.content}</span>
+                                                  <span className="block text-[11px] text-slate-400 mt-1 font-semibold">{formatRelativeTime(n.$createdAt)}</span>
+                                              </span>
+                                          </button>
+                                          );
+                                      })}
                                   </div>
                               )}
                           </div>
+                          <Link to="/notifiche" onClick={() => setIsDropdownOpen(false)} className="block text-center text-sm font-bold text-blue-600 hover:bg-blue-50 py-3 border-t border-slate-100">
+                              Vedi tutte le notifiche
+                          </Link>
                       </div>
                   )}
               </div>
