@@ -25,7 +25,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Entrambi sono in `.gitignore`. Non scrivere mai chiavi nel codice.
 
 ## Struttura
-- `src/pages/` — pagine di route (Home, Jobs, Network, Profile, Chat, Live, PostPage `/post/:id`, Notifications `/notifiche`, Login, Register, ResetPassword, VerifyEmail, NotFound) e `src/pages/legal/` (privacy, termini, cookie). Tutte caricate con `React.lazy` in `App.tsx`
+- `src/pages/` — pagine di route (Landing per i visitatori su `/`, Home, Jobs, Network, Profile, Chat, Live, PostPage `/post/:id`, Notifications `/notifiche`, Search `/cerca`, Saved `/salvati`, Onboarding `/benvenuto`, Login, Register, ResetPassword, VerifyEmail, NotFound) e `src/pages/legal/` (privacy, termini, cookie). Tutte caricate con `React.lazy` in `App.tsx`
 - `src/features/<dominio>/components/` — UI per dominio: auth, feed, jobs, network, messaging, profile
 - `src/services/database.ts` — **unico punto di accesso** alle collezioni Appwrite; i componenti non devono chiamare `databases.*` direttamente
 - `src/services/storage.ts` — upload di immagini (compresse con `utils/image.ts`) e video; `deleteByUrl` per pulire i file sostituiti
@@ -35,6 +35,14 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `setup-db.js` — **fonte di verità dello schema** Appwrite (tabelle, colonne, indici, permessi). Usa l'API **TablesDB** (Appwrite 1.8+); la vecchia API Databases per schema/collezioni è deprecata e la console non offre più i suoi scope
 - `functions/api/` — Appwrite Function per le operazioni che toccano dati di più utenti; il client la chiama con `callApi()` in `database.ts`
 - `.github/workflows/ci.yml` — CI su ogni PR: sincronizza `package-lock.json`, type-check, build, test della Function
+
+## Design system (SwimIn, "acqua premium")
+- Colori (token Tailwind in `tailwind.config.js`): `abisso` #0A2738 testi forti, `corsia-*` azioni (la scala `blue-*` è ricalibrata sullo stesso blu), `cloro-*` accenti, `piastrella` #F2F8FA sfondo, `galleggiante` #E23D3D **solo** SOS ed errori.
+- Font: Figtree (testo) e Barlow Condensed (`font-display`, applicato a h1/h2), ospitati con l'app via @fontsource. Niente Google Fonts o CDN esterni.
+- Elemento distintivo: la corsia. Logo = `<Brand />`/`<BrandMark />` (T di fine corsia), classe `.lane-rope` per il galleggiante. Usarlo con parsimonia (header, landing, live).
+- Avatar: `avatarOf()` / `displayNameOf()` / `headlineOf()` in `utils/profile.ts`; mai servizi esterni per le iniziali.
+- Testi in sentence case, niente maiuscolo per etichette o pulsanti, niente emoji decorative nei controlli.
+- Revisione visiva: il workflow `Schermate` pubblica le schermate (dati di esempio in `scripts/screenshots/fixtures.mjs`) sul branch `ci-screenshots/<branch>`; per vederle `git clone -b ci-screenshots/<branch> …`.
 
 ## Convenzioni
 - UI, testi e messaggi d'errore in **italiano**; nomi di variabili/funzioni in inglese.
