@@ -41,3 +41,5 @@ build
 
 # Vite
 *.local
+# Function Appwrite
+functions/*/node_modules

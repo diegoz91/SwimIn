@@ -1,0 +1,16 @@
+{
+  "name": "swimwaveup-api",
+  "version": "1.0.0",
+  "description": "Appwrite Function: operazioni che coinvolgono dati di più utenti (collegamenti, like, commenti, candidature, messaggi...).",
+  "type": "module",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "node-appwrite": "^31.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/api.test.js"
+  }
+}

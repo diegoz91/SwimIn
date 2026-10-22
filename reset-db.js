@@ -1,65 +1,67 @@
+/**
+ * ⚠️  CANCELLA TUTTO: database, bucket, Function "api" e tutti gli utenti Auth.
+ * Da usare solo sull'ambiente di test. Dopo il reset lancia `npm run setup-db`.
+ *
+ * Uso: npm run reset-db -- --yes
+ */
 import dotenv from 'dotenv';
-import { Client, Databases, Storage, Users } from 'node-appwrite';
+import { Client, Databases, Functions, Query, Storage, Users } from 'node-appwrite';
 
 dotenv.config({ path: '.env.setup' });
 
-if (!process.env.APPWRITE_ENDPOINT || !process.env.APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY) {
-    console.error('❌ ERRORE: Mancano le credenziali nel file .env.setup');
+const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY } = process.env;
+if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
+    console.error('❌ Mancano le credenziali in .env.setup');
+    process.exit(1);
+}
+if (!process.argv.includes('--yes')) {
+    console.error(`⚠️  Questo script cancella TUTTI i dati del progetto ${APPWRITE_PROJECT_ID}.`);
+    console.error('   Per confermare lancia: npm run reset-db -- --yes');
     process.exit(1);
 }
 
-const client = new Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT)
-    .setProject(process.env.APPWRITE_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
-
+const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID).setKey(APPWRITE_API_KEY);
 const databases = new Databases(client);
 const storage = new Storage(client);
+const functions = new Functions(client);
 const users = new Users(client);
 
 const DB_ID = 'swimwaveup_db';
 const BUCKETS = ['avatars', 'post_media'];
+const FUNCTION_ID = 'api';
+
+const ignore404 = (label) => (e) => {
+    if (e?.code === 404) console.log(`⏩ ${label}: non presente`);
+    else console.error(`❌ ${label}: ${e.message}`);
+};
 
 async function reset() {
-    console.log('🧹 INIZIO RESET TOTALE DI SWIMWAVEUP...');
+    console.log('🧹 Reset di SwimWaveUp…');
 
-    try {
-        await databases.delete(DB_ID);
-        console.log(`✅ Database [${DB_ID}] disabilitato e rimosso.`);
-    } catch (e) {
-        if (e.code === 404) console.log(`⏩ Database [${DB_ID}] non trovato, salto.`);
-        else console.error(`❌ Errore eliminazione DB:`, e.message);
+    await databases.delete({ databaseId: DB_ID }).then(() => console.log('✅ Database eliminato'), ignore404('Database'));
+
+    for (const bucketId of BUCKETS) {
+        await storage.deleteBucket({ bucketId }).then(() => console.log(`✅ Bucket ${bucketId} eliminato`), ignore404(`Bucket ${bucketId}`));
     }
 
-    for (const bucket of BUCKETS) {
-        try {
-            await storage.deleteBucket(bucket);
-            console.log(`✅ Bucket Storage [${bucket}] svuotato e rimosso.`);
-        } catch (e) {
-            if (e.code === 404) console.log(`⏩ Bucket [${bucket}] non trovato, salto.`);
-            else console.error(`❌ Errore eliminazione bucket ${bucket}:`, e.message);
+    await functions.delete({ functionId: FUNCTION_ID }).then(() => console.log('✅ Function api eliminata'), ignore404('Function api'));
+
+    // Gli utenti vanno eliminati a pagine: list() ne restituisce al massimo 100 per volta.
+    let deleted = 0;
+    for (;;) {
+        const { users: page } = await users.list({ queries: [Query.limit(100)] });
+        if (page.length === 0) break;
+        for (const user of page) {
+            await users.delete({ userId: user.$id });
+            deleted++;
         }
     }
+    console.log(`✅ Utenti Auth eliminati: ${deleted}`);
 
-    try {
-        console.log('⏳ Ricerca utenti Auth da eliminare...');
-        let allUsers = await users.list();
-        
-        if (allUsers.total === 0) {
-            console.log('⏩ Nessun utente Auth trovato nel sistema.');
-        } else {
-            for (const user of allUsers.users) {
-                await users.delete(user.$id);
-                console.log(`   💀 Profilo Auth eliminato: ${user.email}`);
-            }
-            console.log(`✅ Tutti gli utenti (${allUsers.total}) sono stati disintegrati.`);
-        }
-    } catch (e) {
-        console.error(`❌ Errore durante l'eliminazione degli utenti:`, e.message);
-    }
-
-    console.log('\n🎉 RESET COMPLETATO CON SUCCESSO! L\'ambiente è tornato vergine.');
-    console.log('👉 Prossimo step: lancia "node setup-db.js" per ricostruire le fondamenta.');
+    console.log('\n🎉 Reset completato. Prossimo passo: npm run setup-db');
 }
 
-reset().catch(console.error);
+reset().catch((e) => {
+    console.error('❌ Reset interrotto:', e.message);
+    process.exit(1);
+});
