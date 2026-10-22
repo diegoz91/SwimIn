@@ -9,12 +9,13 @@ import { createApi, ownersOf } from '../src/main.js';
 test('permessi e regole della Function api', async () => {
 const store={};
 const col=c=>(store[c]??={});
+// Finto TablesDB in memoria con la stessa interfaccia usata dalla Function.
 const db={
- async getDocument({collectionId,documentId}){const d=col(collectionId)[documentId]; if(!d){const e=new Error('nf');e.code=404;throw e} return structuredClone(d)},
- async listDocuments({collectionId,queries}){let docs=Object.values(col(collectionId));let lim=25;for(const raw of queries){const q=JSON.parse(raw);if(q.method==='equal')docs=docs.filter(d=>q.values.includes(d[q.attribute]));if(q.method==='limit')lim=q.values[0]}return {total:docs.length,documents:docs.slice(0,lim).map(d=>structuredClone(d))}},
- async createDocument({collectionId,documentId,data,permissions}){const d={$id:documentId,$permissions:permissions||[],...data};col(collectionId)[documentId]=d;return d},
- async updateDocument({collectionId,documentId,data}){Object.assign(col(collectionId)[documentId],data);return structuredClone(col(collectionId)[documentId])},
- async deleteDocument({collectionId,documentId}){delete col(collectionId)[documentId]}};
+ async getRow({tableId,rowId}){const d=col(tableId)[rowId]; if(!d){const e=new Error('nf');e.code=404;throw e} return structuredClone(d)},
+ async listRows({tableId,queries}){let rows=Object.values(col(tableId));let lim=25;for(const raw of queries){const q=JSON.parse(raw);if(q.method==='equal')rows=rows.filter(d=>q.values.includes(d[q.attribute]));if(q.method==='limit')lim=q.values[0]}return {total:rows.length,rows:rows.slice(0,lim).map(d=>structuredClone(d))}},
+ async createRow({tableId,rowId,data,permissions}){const d={$id:rowId,$permissions:permissions||[],...data};col(tableId)[rowId]=d;return d},
+ async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
+ async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
 const api=createApi(db);
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');

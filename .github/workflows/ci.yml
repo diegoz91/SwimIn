@@ -54,6 +54,7 @@ jobs:
         run: |
           node --check setup-db.js
           node --check reset-db.js
+          node --check scripts/check-sdk.js
 
       - name: Test Function "api"
         working-directory: functions/api

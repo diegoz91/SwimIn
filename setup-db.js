@@ -6,20 +6,26 @@
  * Uso:  npm run setup-db            (schema + deploy della Function)
  *       npm run setup-db -- --skip-function
  *
+ * Usa l'API TablesDB (Appwrite 1.8+): tabelle, colonne e righe sono i nuovi
+ * nomi di collezioni, attributi e documenti. I dati restano accessibili anche
+ * dall'API "Databases" usata dal frontend.
+ *
  * Richiede .env.setup (vedi .env.setup.example) con una API key che abbia
- * gli scope: databases.*, collections.*, attributes.*, indexes.*, documents.*,
- * buckets.*, functions.*.
+ * gli scope: databases.*, tables.*, columns.*, indexes.*, rows.*,
+ * buckets.*, files.*, functions.*.
  */
 import dotenv from 'dotenv';
+import { assertNodeAppwriteVersion } from './scripts/check-sdk.js';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Client, Databases, Functions, Permission, Role, Storage, DatabasesIndexType } from 'node-appwrite';
+import { Client, Functions, Permission, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
+assertNodeAppwriteVersion();
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
@@ -28,7 +34,7 @@ if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
 }
 
 const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID).setKey(APPWRITE_API_KEY);
-const databases = new Databases(client);
+const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
 const functions = new Functions(client);
 
@@ -51,7 +57,7 @@ const SERVER_ONLY = []; // lettura solo tramite permessi sul singolo documento
 const str = (key, size, opts = {}) => ({ type: 'string', key, size, ...opts });
 const int = (key, opts = {}) => ({ type: 'integer', key, ...opts });
 const bool = (key, opts = {}) => ({ type: 'boolean', key, ...opts });
-const idx = (key, attributes, type = DatabasesIndexType.Key) => ({ key, attributes, type });
+const idx = (key, columns, type = TablesDBIndexType.Key) => ({ key, columns, type });
 
 const schema = [
     {
@@ -204,69 +210,79 @@ const BUCKET_PERMISSIONS = [Permission.read(Role.any()), Permission.create(Role.
 
 const exists = (e) => e?.code === 409;
 
-async function createAttribute(collectionId, a) {
-    const base = { databaseId: DB_ID, collectionId, key: a.key, required: !!a.required, array: !!a.array };
-    // Appwrite non accetta un default sugli attributi obbligatori o array.
+/**
+ * Le stringhe brevi (≤ 255) diventano `varchar`, indicizzabili e salvate nella
+ * riga; quelle lunghe e gli array diventano `text`, salvati fuori riga, così
+ * non si supera il limite di dimensione di una riga MariaDB (~64 KB).
+ */
+async function createColumn(tableId, a) {
+    const base = { databaseId: DB_ID, tableId, key: a.key, required: !!a.required, array: !!a.array };
+    // Appwrite non accetta un default sulle colonne obbligatorie o array.
     const xdefault = a.required || a.array ? undefined : a.default;
-    if (a.type === 'string') return databases.createStringAttribute({ ...base, size: a.size, xdefault });
-    if (a.type === 'integer') return databases.createIntegerAttribute({ ...base, min: 0, max: 1_000_000_000, xdefault });
-    if (a.type === 'boolean') return databases.createBooleanAttribute({ ...base, xdefault });
-    throw new Error(`Tipo attributo sconosciuto: ${a.type}`);
+    if (a.type === 'string') {
+        return a.size <= 255 && !a.array
+            ? tablesDB.createVarcharColumn({ ...base, size: a.size, xdefault })
+            : tablesDB.createTextColumn({ ...base, xdefault });
+    }
+    if (a.type === 'integer') return tablesDB.createIntegerColumn({ ...base, min: 0, max: 1_000_000_000, xdefault });
+    if (a.type === 'boolean') return tablesDB.createBooleanColumn({ ...base, xdefault });
+    throw new Error(`Tipo colonna sconosciuto: ${a.type}`);
 }
 
-/** Gli attributi vengono creati in modo asincrono: gli indici richiedono che siano pronti. */
-async function waitForAttributes(collectionId) {
-    for (let i = 0; i < 60; i++) {
-        const { attributes } = await databases.listAttributes({ databaseId: DB_ID, collectionId });
-        const failed = attributes.filter((a) => a.status === 'failed');
-        if (failed.length) throw new Error(`Attributi falliti in ${collectionId}: ${failed.map((a) => a.key).join(', ')}`);
-        if (attributes.every((a) => a.status === 'available')) return;
+/** Le colonne vengono create in modo asincrono: gli indici richiedono che siano pronte. */
+async function waitForColumns(tableId) {
+    for (let i = 0; i < 90; i++) {
+        const { columns } = await tablesDB.listColumns({ databaseId: DB_ID, tableId });
+        const failed = columns.filter((c) => c.status === 'failed');
+        if (failed.length) {
+            throw new Error(`Colonne fallite in ${tableId}: ${failed.map((c) => `${c.key} (${c.error || 'errore'})`).join(', ')}`);
+        }
+        if (columns.every((c) => c.status === 'available')) return;
         await sleep(1000);
     }
-    throw new Error(`Timeout in attesa degli attributi di ${collectionId}`);
+    throw new Error(`Timeout in attesa delle colonne di ${tableId}`);
 }
 
 async function setupDatabase() {
     try {
-        await databases.create({ databaseId: DB_ID, name: 'SwimWaveUp DB' });
+        await tablesDB.create({ databaseId: DB_ID, name: 'SwimWaveUp DB' });
         console.log('✅ Database creato');
     } catch (e) {
         if (!exists(e)) throw e;
         console.log('⏩ Database già esistente');
     }
 
-    for (const col of schema) {
-        const collectionArgs = {
-            databaseId: DB_ID, collectionId: col.id, name: col.name,
-            permissions: col.permissions, documentSecurity: true,
+    for (const table of schema) {
+        const tableArgs = {
+            databaseId: DB_ID, tableId: table.id, name: table.name,
+            permissions: table.permissions, rowSecurity: true,
         };
         try {
-            await databases.createCollection(collectionArgs);
-            console.log(`\n✅ Collezione creata: ${col.name}`);
+            await tablesDB.createTable(tableArgs);
+            console.log(`\n✅ Tabella creata: ${table.name}`);
         } catch (e) {
             if (!exists(e)) throw e;
-            await databases.updateCollection(collectionArgs);
-            console.log(`\n🔒 Collezione ${col.name}: permessi riallineati`);
+            await tablesDB.updateTable(tableArgs);
+            console.log(`\n🔒 Tabella ${table.name}: permessi riallineati`);
         }
 
-        for (const attr of col.attributes) {
+        for (const column of table.attributes) {
             try {
-                await createAttribute(col.id, attr);
-                console.log(`   ➕ ${attr.key}`);
+                await createColumn(table.id, column);
+                console.log(`   ➕ ${column.key}`);
             } catch (e) {
-                if (!exists(e)) console.error(`   ❌ Attributo ${attr.key}: ${e.message}`);
+                if (!exists(e)) throw new Error(`Colonna ${table.id}.${column.key}: ${e.message}`);
             }
         }
 
-        if (col.indexes.length) {
-            await waitForAttributes(col.id);
-            for (const index of col.indexes) {
-                try {
-                    await databases.createIndex({ databaseId: DB_ID, collectionId: col.id, ...index });
-                    console.log(`   🔎 indice ${index.key}`);
-                } catch (e) {
-                    if (!exists(e)) console.error(`   ❌ Indice ${index.key}: ${e.message}`);
-                }
+        // Aspettiamo sempre: così un errore su una colonna emerge subito.
+        await waitForColumns(table.id);
+        for (const index of table.indexes) {
+            try {
+                await tablesDB.createIndex({ databaseId: DB_ID, tableId: table.id, ...index });
+                console.log(`   🔎 indice ${index.key}`);
+            } catch (e) {
+                if (!exists(e)) throw new Error(`Indice ${table.id}.${index.key}: ${e.message}`);
             }
         }
     }
@@ -301,7 +317,7 @@ async function deployFunction() {
         timeout: 15,
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',
-        scopes: ['databases.read', 'collections.read', 'attributes.read', 'documents.read', 'documents.write'],
+        scopes: ['databases.read', 'tables.read', 'rows.read', 'rows.write'],
         logging: true,
         enabled: true,
     };

@@ -9,7 +9,7 @@
  * Richiesta: POST con body JSON { "action": "<nome>", ...parametri }
  * Risposta:  { ok: true, data } oppure { ok: false, error } con status HTTP 4xx/5xx
  */
-import { Client, Databases, ID, Permission, Query, Role } from 'node-appwrite';
+import { Client, ID, Permission, Query, Role, TablesDB } from 'node-appwrite';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -64,24 +64,33 @@ const ownersOf = (doc) =>
 
 const conversationIdFor = (a, b) => [a, b].sort().join('_');
 
+/**
+ * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
+ *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
+ */
 const createApi = (db) => {
-  const get = (collectionId, documentId) =>
-    db.getDocument({ databaseId: DB, collectionId, documentId }).catch((e) => {
-      if (e?.code === 404) fail(404, 'Elemento non trovato.');
+  /** Riga o null se non esiste. */
+  const find = (tableId, rowId) =>
+    db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
+      if (e?.code === 404) return null;
       throw e;
     });
 
-  const list = (collectionId, queries) => db.listDocuments({ databaseId: DB, collectionId, queries });
+  const get = async (tableId, rowId) => (await find(tableId, rowId)) ?? fail(404, 'Elemento non trovato.');
 
-  const create = (collectionId, data, permissions, documentId = ID.unique()) =>
-    db.createDocument({ databaseId: DB, collectionId, documentId, data, permissions });
+  const list = async (tableId, queries) => {
+    const res = await db.listRows({ databaseId: DB, tableId, queries });
+    return { total: res.total, documents: res.rows };
+  };
 
-  const update = (collectionId, documentId, data) =>
-    db.updateDocument({ databaseId: DB, collectionId, documentId, data });
+  const create = (tableId, data, permissions, rowId = ID.unique()) =>
+    db.createRow({ databaseId: DB, tableId, rowId, data, permissions });
 
-  const remove = (collectionId, documentId) => db.deleteDocument({ databaseId: DB, collectionId, documentId });
+  const update = (tableId, rowId, data) => db.updateRow({ databaseId: DB, tableId, rowId, data });
 
-  const count = async (collectionId, queries) => (await list(collectionId, [...queries, Query.limit(1)])).total;
+  const remove = (tableId, rowId) => db.deleteRow({ databaseId: DB, tableId, rowId });
+
+  const count = async (tableId, queries) => (await list(tableId, [...queries, Query.limit(1)])).total;
 
   /** Notifica leggibile e aggiornabile (segna come letta) solo dal destinatario. */
   const notify = (userId, type, content, relatedId) =>
@@ -99,9 +108,7 @@ const createApi = (db) => {
   /** Chi gestisce un annuncio: il creatore del job, più gli admin della struttura se è una Facility. */
   const jobManagers = async (job) => {
     const managers = new Set(ownersOf(job));
-    const facility = await db
-      .getDocument({ databaseId: DB, collectionId: C.facilities, documentId: job.structureId })
-      .catch(() => null);
+    const facility = await find(C.facilities, job.structureId);
     (facility?.admins || []).forEach((id) => managers.add(id));
     if (!facility) managers.add(job.structureId); // job pubblicato da un profilo Struttura
     return [...managers];
@@ -282,9 +289,7 @@ const createApi = (db) => {
 
       const applicantId = application.applicantId;
       let structureName = job.structureName || 'Una struttura';
-      const facility = await db
-        .getDocument({ databaseId: DB, collectionId: C.facilities, documentId: job.structureId })
-        .catch(() => null);
+      const facility = await find(C.facilities, job.structureId);
       if (facility) {
         structureName = facility.name;
         await update(C.facilities, facility.$id, { staff: addToArray(facility.staff, applicantId) });
@@ -380,7 +385,7 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(req.headers['x-appwrite-key'] || process.env.APPWRITE_API_KEY);
 
-  const api = createApi(new Databases(client));
+  const api = createApi(new TablesDB(client));
   const { action, ...params } = body;
   const handler = Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
   if (!handler) return res.json({ ok: false, error: `Azione sconosciuta: ${action}` }, 400);
