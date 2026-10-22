@@ -52,6 +52,21 @@ await api.createComment('anna',{postId:'p1',content:'risposta',parentCommentId:c
 assert.equal(col('posts').p1.commentsCount,2);
 await rejects(api.createComment('anna',{postId:'nope',content:'x'}),404);
 
+// Eliminazione commenti e post
+const c2=await api.createComment('anna',{postId:'p1',content:'da cancellare'});
+await rejects(api.deleteComment('bob',{commentId:c2.$id}),403);
+await api.deleteComment('anna',{commentId:c2.$id});
+assert.equal(col('posts').p1.commentsCount,2);
+await api.deleteComment('eve',{commentId:cm.$id}); // autore del post: elimina anche la risposta
+assert.equal(col('posts').p1.commentsCount,0);
+col('posts').p2={$id:'p2',authorId:'anna',likesCount:0,commentsCount:0,$permissions:['update("user:anna")']};
+await api.toggleLike('bob',{postId:'p2'}); await api.createComment('bob',{postId:'p2',content:'ok'});
+await rejects(api.deletePost('bob',{postId:'p2'}),403);
+assert.deepEqual(await api.deletePost('anna',{postId:'p2'}),{deleted:true});
+assert.equal(col('posts').p2,undefined);
+assert.equal(Object.values(col('likes')).filter(l=>l.postId==='p2').length,0);
+assert.equal(Object.values(col('comments')).filter(c=>c.postId==='p2').length,0);
+
 // Lavoro: job pubblicato dalla struttura "piscina"
 col('jobs').j1={$id:'j1',structureId:'piscina',title:'Bagnino',isActive:true,candidates:[],$permissions:['update("user:piscina")']};
 assert.deepEqual(ownersOf(col('jobs').j1),['piscina']);

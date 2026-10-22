@@ -9,6 +9,7 @@ import { ExperienceModal } from './ExperienceModal';
 import { CertificationModal } from './CertificationModal';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
+import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -51,7 +52,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         city: user.city || '',
         province: user.province || '',
         bio: user.bio || '',
-        avatar: profUser?.avatar || ''
     });
 
     useEffect(() => {
@@ -63,7 +63,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 city: user.city || '',
                 province: user.province || '',
                 bio: user.bio || '',
-                avatar: profUser.avatar || ''
             });
         }
     }, [profUser, user]);
@@ -123,7 +122,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const displayAvatar = (isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo) || 
         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8&size=256`;
     
-    const coverImage = "https://images.unsplash.com/photo-1576610616656-d3aa5d1f4534?auto=format&fit=crop&q=80&w=1920";
+    const coverImage = user.cover || null;
+
+    /** Salva avatar o copertina e aggiorna il profilo mostrato. */
+    const saveImage = async (field: 'avatar' | 'logo' | 'cover', url: string) => {
+        const updated = await databaseService.updateProfile(user.userId || user.$id, { [field]: url });
+        if (onUpdateProfile) onUpdateProfile({ ...user, ...updated } as UserProfile);
+    };
 
     const getCertStyles = (cert: Certification) => {
         const str = `${cert.name} ${cert.issuer} ${cert.category}`.toLowerCase();
@@ -400,16 +405,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <div id="passaporto-natatorio" className="bg-slate-50">
           
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative mb-6">
-            <div className="h-32 sm:h-48 relative bg-blue-900">
-                <img src={coverImage} alt="Cover" className="w-full h-full object-cover opacity-50 mix-blend-overlay" />
+            <div className="h-32 sm:h-48 relative bg-gradient-to-br from-blue-800 via-blue-600 to-cyan-500">
+                {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" />}
+                {isOwnProfile && (
+                    <ImageUploadButton
+                        kind="cover"
+                        currentUrl={coverImage}
+                        onUploaded={(url) => saveImage('cover', url)}
+                        label="Cambia immagine di copertina"
+                        className="absolute top-3 right-3 px-3 py-2"
+                    />
+                )}
             </div>
             <div className="px-6 pb-6 relative">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end -mt-16 sm:-mt-20 mb-4 sm:mb-0 gap-4">
-                  <img 
-                      src={displayAvatar} 
-                      alt={displayName} 
-                      className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border-4 border-white shadow-md bg-white relative z-10" 
-                  />
+                  <div className="relative z-10 w-fit">
+                      <img 
+                          src={displayAvatar} 
+                          alt={displayName} 
+                         
+                          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border-4 border-white shadow-md bg-white" 
+                      />
+                      {isOwnProfile && (
+                          <ImageUploadButton
+                              kind="avatar"
+                              currentUrl={isProfessional ? profUser?.avatar : (user as StructureProfile).logo}
+                              onUploaded={(url) => saveImage(isProfessional ? 'avatar' : 'logo', url)}
+                              label="Cambia foto profilo"
+                              className="absolute bottom-2 right-2 w-10 h-10"
+                          />
+                      )}
+                  </div>
                   {!isOwnProfile && (
                       <button 
                           onClick={() => onContact(user.userId || user.$id)} 
@@ -653,10 +679,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <label className="block text-sm font-bold text-slate-700 mb-1">Chi sono (Bio)</label>
                           <textarea rows={4} value={editProfileForm.bio} onChange={e=>setEditProfileForm({...editProfileForm, bio: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Racconta qualcosa di te..." />
                       </div>
-                      <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">URL Foto Profilo (Opzionale)</label>
-                          <input type="url" value={editProfileForm.avatar} onChange={e=>setEditProfileForm({...editProfileForm, avatar: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
-                      </div>
+                      <p className="text-xs text-slate-500">Foto profilo e copertina si cambiano dal pulsante con la fotocamera sul profilo.</p>
                       <div className="pt-4 border-t border-slate-100 flex gap-3">
                           <button type="button" onClick={()=>setIsEditingProfile(false)} className="flex-1 font-bold text-slate-600 bg-slate-100 py-3 rounded-xl hover:bg-slate-200 transition">Annulla</button>
                           <button type="submit" className="flex-1 font-bold text-white bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition shadow-md">Salva Profilo</button>

@@ -92,6 +92,17 @@ const createApi = (db) => {
 
   const count = async (tableId, queries) => (await list(tableId, [...queries, Query.limit(1)])).total;
 
+  /** Elimina tutte le righe che soddisfano le query, a blocchi di 100. */
+  const removeAll = async (tableId, queries) => {
+    let removed = 0;
+    for (;;) {
+      const page = await list(tableId, [...queries, Query.limit(100)]);
+      if (page.documents.length === 0) return removed;
+      await Promise.all(page.documents.map((row) => remove(tableId, row.$id)));
+      removed += page.documents.length;
+    }
+  };
+
   /** Notifica leggibile e aggiornabile (segna come letta) solo dal destinatario. */
   const notify = (userId, type, content, relatedId) =>
     create(C.notifications, { userId, type, content: content.slice(0, 255), relatedId, isRead: false }, [
@@ -232,6 +243,35 @@ const createApi = (db) => {
       const commentsCount = await count(C.comments, [Query.equal('postId', postId)]);
       await update(C.posts, postId, { commentsCount });
       return comment;
+    },
+
+    /** Elimina un post dell'utente insieme a like e commenti collegati. */
+    async deletePost(me, { postId }) {
+      postId = requireString(postId, 'postId', 36);
+      const post = await get(C.posts, postId);
+      if (!ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
+      for (const tableId of [C.likes, C.comments]) {
+        await removeAll(tableId, [Query.equal('postId', postId)]);
+      }
+      await remove(C.posts, postId);
+      return { deleted: true };
+    },
+
+    /** L'autore del commento o l'autore del post possono eliminare un commento (e le sue risposte). */
+    async deleteComment(me, { commentId }) {
+      commentId = requireString(commentId, 'commentId', 36);
+      const comment = await get(C.comments, commentId);
+      const post = await find(C.posts, comment.postId);
+      const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && ownersOf(post).includes(me));
+      if (!allowed) fail(403, 'Non puoi eliminare questo commento.');
+
+      await removeAll(C.comments, [Query.equal('parentCommentId', commentId)]);
+      await remove(C.comments, commentId);
+      if (post) {
+        const commentsCount = await count(C.comments, [Query.equal('postId', post.$id)]);
+        await update(C.posts, post.$id, { commentsCount });
+      }
+      return { deleted: true };
     },
 
     // ---------------- LAVORO ----------------

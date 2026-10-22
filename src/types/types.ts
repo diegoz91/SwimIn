@@ -38,6 +38,8 @@ export interface BaseProfile extends AppwriteDocument {
   userType: UserType;
   email: string;
   bio?: string;
+  /** Immagine di copertina del profilo. */
+  cover?: string;
   city?: string;
   province?: string;
   connections?: string[];
@@ -82,10 +84,14 @@ export interface Post extends AppwriteDocument {
   visibility: 'public' | 'connections_only';
   likesCount: number;
   commentsCount: number;
+  /** ISO date dell'ultima modifica del testo da parte dell'autore. */
+  editedAt?: string | null;
 }
 
 export interface EnrichedPost extends Post {
     recommendedBy?: { id: string; name: string };
+    /** L'utente corrente ha consigliato il post. */
+    likedByMe?: boolean;
 }
 
 // ----------------------------------------------------

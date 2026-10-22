@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
+import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
+import { useNavigate } from 'react-router-dom';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -24,6 +26,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
+    const navigate = useNavigate();
     
     // 💡 LOGICA DI RICONOSCIMENTO ADMIN E STAFF (MODELLO LINKEDIN)
     const isLegacyStructure = 'userType' in facility && facility.userType === 'structure';
@@ -67,7 +70,16 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const logo = facility.logo;
 
     const displayLogo = logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(structureName || 'Struttura')}&background=f1f5f9&color=1d4ed8`;
-    const getCoverImage = (index: number) => (facility as Facility).cover || `https://picsum.photos/seed/${facilityId}${index}/800/400`;
+    const coverImage = (facility as Facility | StructureProfile).cover || null;
+
+    /** Salva logo o copertina sulla pagina (Facility) o sul profilo Struttura. */
+    const saveImage = async (field: 'logo' | 'cover', url: string) => {
+        const updated = isLegacyStructure
+            ? await databaseService.updateProfile(facilityId, { [field]: url })
+            : await databaseService.updateFacility(facilityId, { [field]: url });
+        if (!updated) throw new Error('Salvataggio non riuscito.');
+        if (onUpdateProfile) onUpdateProfile(updated as StructureProfile | Facility);
+    };
 
     const [editForm, setEditForm] = useState({
         name: structureName || '',
@@ -181,12 +193,13 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     city: editForm.city,
                     province: editForm.province,
                     bio: editForm.bio,
-                    logo: editForm.logo
                 };
                 updated = await databaseService.updateProfile(facilityId, dataToSave);
             } else {
-                updated = await databaseService.updateFacility(facilityId, editForm);
+                const { logo: _logo, ...facilityData } = editForm;
+                updated = await databaseService.updateFacility(facilityId, facilityData);
             }
+            if (!updated) throw new Error('Salvataggio non riuscito.');
             if(onUpdateProfile) onUpdateProfile(updated as any);
             setIsEditingProfile(false);
             showToast('Informazioni aggiornate!', 'success');
@@ -285,12 +298,32 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             </button>
             
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                <div className="h-48 sm:h-64 bg-slate-800 relative">
-                    <img src={getCoverImage(1)} alt="Struttura" className="w-full h-full object-cover opacity-60" loading="lazy" />
+                <div className="h-48 sm:h-64 relative bg-gradient-to-br from-blue-700 via-sky-600 to-cyan-500">
+                    {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" loading="lazy" />}
+                    {isAdmin && (
+                        <ImageUploadButton
+                            kind="cover"
+                            currentUrl={coverImage}
+                            onUploaded={(url) => saveImage('cover', url)}
+                            label="Cambia immagine di copertina"
+                            className="absolute top-3 right-3 px-3 py-2"
+                        />
+                    )}
                 </div>
                 <div className="px-6 pb-6 relative">
                     <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-4">
-                        <img src={displayLogo} alt={structureName} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
+                        <div className="relative">
+                            <img src={displayLogo} alt={structureName} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
+                            {isAdmin && (
+                                <ImageUploadButton
+                                    kind="avatar"
+                                    currentUrl={logo}
+                                    onUploaded={(url) => saveImage('logo', url)}
+                                    label="Cambia logo"
+                                    className="absolute -bottom-1 -right-1 w-9 h-9"
+                                />
+                            )}
+                        </div>
                         
                         {/* 💡 PULSANTE "SEGUI PAGINA" FUNZIONANTE */}
                         {!isAdmin && !isLegacyStructure && (
@@ -304,7 +337,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                         {/* Fallback per Profili Struttura Legacy Phase 1 */}
                         {!isAdmin && isLegacyStructure && (
-                            <button className="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                            <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
                                 Contatta
                             </button>
                         )}
@@ -780,10 +813,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Descrizione (Bio)</label>
                                 <textarea rows={4} value={editForm.bio} onChange={e=>setEditForm({...editForm, bio: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Descrivi i tuoi impianti, i servizi offerti..." />
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">URL Logo (Opzionale)</label>
-                                <input type="url" value={editForm.logo} onChange={e=>setEditForm({...editForm, logo: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
-                            </div>
+                            <p className="text-xs text-slate-500">Logo e copertina si cambiano dal pulsante con la fotocamera sulla pagina.</p>
                             <div className="pt-4 border-t border-slate-100 flex gap-3">
                                 <button type="button" onClick={()=>setIsEditingProfile(false)} className="flex-1 font-bold text-slate-600 bg-slate-100 py-3 rounded-xl hover:bg-slate-200 transition">Annulla</button>
                                 <button type="submit" className="flex-1 font-bold text-white bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition shadow-md">Salva Modifiche</button>

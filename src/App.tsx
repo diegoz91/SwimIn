@@ -28,6 +28,7 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const Chat = lazy(() => import('@/pages/Chat'));
 const Live = lazy(() => import('@/pages/Live'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const PostPage = lazy(() => import('@/pages/PostPage'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -82,6 +83,7 @@ const AppContent: React.FC = () => {
               <Route path="/profile/:id?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/messages" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
               <Route path="/live" element={<ProtectedRoute><Live /></ProtectedRoute>} />
+              <Route path="/post/:id" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
