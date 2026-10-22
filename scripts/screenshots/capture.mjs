@@ -82,6 +82,7 @@ const PRIVATE_PAGES = [
     ['cerca', '/cerca?q=mi'],
     ['live', '/live'],
     ['impostazioni', '/profile?tab=impostazioni'],
+    ['benvenuto', '/benvenuto'],
 ];
 
 const VIEWPORTS = [

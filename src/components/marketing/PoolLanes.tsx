@@ -49,8 +49,8 @@ export const PoolLanes: React.FC<{ className?: string }> = ({ className = '' }) 
                         <div className="absolute left-6 right-10 top-1/2 h-[6px] -translate-y-1/2 bg-abisso/25 rounded-full" aria-hidden="true" />
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 w-[6px] h-9 bg-abisso/25 rounded-full" aria-hidden="true" />
                         <div
-                            className="relative bg-white rounded-2xl pl-2 pr-4 py-2 flex items-center gap-3 shadow-card max-w-[85%] motion-safe:animate-[swim_9s_ease-in-out_infinite]"
-                            style={{ marginLeft: lane.offset, animationDelay: `${i * -2.1}s` }}
+                            className="relative bg-white rounded-2xl pl-2 pr-4 py-2 flex items-center gap-3 shadow-card motion-safe:animate-[swim_9s_ease-in-out_infinite]"
+                            style={{ marginLeft: lane.offset, maxWidth: `calc(100% - ${lane.offset} - 2.5rem)`, animationDelay: `${i * -2.1}s` }}
                         >
                             <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${lane.tone}`}>
                                 <Icon type={lane.icon} className="w-5 h-5" />

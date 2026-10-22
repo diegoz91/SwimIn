@@ -10,6 +10,7 @@ import { PostCreator } from '@/features/feed/components/PostCreator';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
+import { CertificationAlert, HomeProfileCard, HomeRightRail } from '@/features/feed/components/HomeSidebars';
 import type { EnrichedPost, Job, Application } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
 
@@ -104,7 +105,7 @@ const Home: React.FC = () => {
         const loadJobs = async () => {
             try {
                 const jobs = await databaseService.getActiveJobs();
-                setLatestJobs(jobs.slice(0, 3));
+                setLatestJobs(jobs.slice(0, 4));
             } catch (error) { console.error("Errore caricamento lavori:", error); }
             finally { setIsLoadingJobs(false); }
         };
@@ -114,9 +115,16 @@ const Home: React.FC = () => {
     if (!authenticated || !user) return null;
 
     return (
-        <div className="w-full pt-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="w-full pt-4 grid grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)_18rem] xl:grid-cols-[16rem_minmax(0,1fr)_20rem] gap-6">
+
+            <aside className="hidden lg:block" aria-label="Il tuo profilo">
+                <div className="sticky top-[5.5rem]">
+                    <HomeProfileCard user={user} />
+                </div>
+            </aside>
+
+            <div className="flex flex-col gap-4 min-w-0">
+                <CertificationAlert user={user} />
                 
                 {/* 💡 IL GOLDEN TICKET! */}
                 {hiredApps.length > 0 && (
@@ -149,10 +157,18 @@ const Home: React.FC = () => {
 
                 <PostCreator onPostCreated={() => loadFeed(0, false)} />
 
-                <div className="flex flex-col gap-5 relative">
+                <div className="flex flex-col gap-4 relative">
                     {isLoading ? (
-                        <div className="flex justify-center items-center py-20">
-                            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 shadow-sm"></div>
+                        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Caricamento del feed">
+                            {[0, 1, 2].map((i) => (
+                                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse">
+                                    <div className="flex gap-3 items-center">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100" />
+                                        <div className="flex-1 space-y-2"><div className="h-3 bg-slate-100 rounded w-1/3" /><div className="h-3 bg-slate-100 rounded w-1/4" /></div>
+                                    </div>
+                                    <div className="mt-5 space-y-2"><div className="h-3 bg-slate-100 rounded" /><div className="h-3 bg-slate-100 rounded w-5/6" /><div className="h-3 bg-slate-100 rounded w-2/3" /></div>
+                                </div>
+                            ))}
                         </div>
                     ) : posts.length > 0 ? (
                         <>
@@ -180,42 +196,19 @@ const Home: React.FC = () => {
                             <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                                 <Icon type="globe" className="w-10 h-10 text-slate-300" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800">Il tuo feed è vuoto</h3>
-                            <p className="text-slate-500 mt-2 max-w-sm mx-auto">Visita la sezione Network per trovare colleghi o scrivi il tuo primo post!</p>
+                            <h3 className="text-xl font-bold text-slate-800">Il tuo feed è ancora vuoto</h3>
+                            <p className="text-slate-500 mt-2 max-w-sm mx-auto">Collegati con colleghi e piscine per vedere qui i loro aggiornamenti, oppure pubblica il tuo primo post.</p>
                             <button onClick={() => navigate('/network')} className="mt-6 bg-blue-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 transition shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                                Esplora il Network
+                                Trova colleghi
                             </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            <aside className="hidden lg:block lg:col-span-4">
-                <div className="sticky top-24 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 overflow-hidden">
-                    <h2 className="text-lg font-extrabold text-slate-800 mb-5 flex items-center gap-2">
-                        <Icon type="briefcase" className="w-5 h-5 text-blue-600" /> Ultime Offerte
-                    </h2>
-                    
-                    {isLoadingJobs ? (
-                        <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-blue-600"></div></div>
-                    ) : latestJobs.length > 0 ? (
-                        <div className="flex flex-col gap-3">
-                            {latestJobs.map(job => (
-                                <div key={job.$id} onClick={() => navigate('/jobs', { state: { selectedJobId: job.$id } })} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors group border border-transparent hover:border-slate-200 outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500" tabIndex={0}>
-                                    <img src={job.facilityLogo || initialsAvatar(job.structureName || 'S')} alt="Logo" className="w-10 h-10 rounded-lg bg-slate-50 object-cover border border-slate-100 flex-shrink-0" />
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors truncate">{job.title}</p>
-                                        <p className="text-[11px] text-slate-500 mt-1 truncate">{job.structureName || 'Struttura'} • {job.city}</p>
-                                    </div>
-                                </div>
-                            ))}
-                            <button onClick={() => navigate('/jobs')} className="w-full mt-4 py-2.5 px-4 bg-slate-50 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
-                                Vedi tutte le offerte
-                            </button>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-slate-500 font-medium text-center py-4">Nessun nuovo annuncio al momento.</p>
-                    )}
+            <aside className="hidden lg:block" aria-label="Suggerimenti">
+                <div className="sticky top-[5.5rem]">
+                    <HomeRightRail user={user} jobs={latestJobs} isLoadingJobs={isLoadingJobs} />
                 </div>
             </aside>
         </div>

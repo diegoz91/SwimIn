@@ -47,7 +47,7 @@ export const RegisterForm: React.FC = () => {
         try {
             await register(email.trim(), password, { userType, firstName, lastName, structureName });
             showToast('Account creato! Benvenuto in SwimIn 🌊', 'success');
-            navigate('/profile', { replace: true });
+            navigate('/benvenuto', { replace: true });
         } catch (err) {
             setError(authErrorMessage(err, 'Registrazione non riuscita. Controlla i dati e riprova.'));
         }

@@ -29,6 +29,7 @@ const Chat = lazy(() => import('@/pages/Chat'));
 const Live = lazy(() => import('@/pages/Live'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Landing = lazy(() => import('@/pages/Landing'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Search = lazy(() => import('@/pages/Search'));
@@ -56,8 +57,13 @@ const HomeGate: React.FC = () => {
   return authenticated ? <Home /> : <Landing />;
 };
 
+/** Pagine a schermo intero, senza header e navigazione (es. onboarding). */
+const CHROMELESS = ['/benvenuto'];
+
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
+  const { pathname } = useLocation();
+  const showChrome = authenticated && !CHROMELESS.includes(pathname);
 
   return (
     <div className="min-h-screen bg-piastrella font-sans text-abisso flex flex-col relative">
@@ -68,11 +74,11 @@ const AppContent: React.FC = () => {
         Vai al contenuto
       </a>
 
-      {authenticated && <Header />}
+      {showChrome && <Header />}
 
       <main
         id="contenuto"
-        className={`flex-1 w-full flex flex-col ${authenticated ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-24 md:pb-10' : ''}`}
+        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-24 md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -96,6 +102,7 @@ const AppContent: React.FC = () => {
               <Route path="/post/:id" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
               <Route path="/notifiche" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+              <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
@@ -104,8 +111,8 @@ const AppContent: React.FC = () => {
         </ErrorBoundary>
       </main>
 
-      {authenticated && <BottomNav />}
-      {authenticated && (
+      {showChrome && <BottomNav />}
+      {showChrome && (
         <Suspense fallback={null}>
           <GlobalChatWidget />
         </Suspense>
