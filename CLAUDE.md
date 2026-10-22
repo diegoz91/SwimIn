@@ -30,7 +30,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `src/services/storage.ts` — upload avatar e media post
 - `src/hooks/useAuth.tsx` — sessione e profilo utente corrente
 - `src/types/types.ts` — tipi di dominio; tenerli allineati allo schema in `setup-db.js`
-- `setup-db.js` — **fonte di verità dello schema** Appwrite (collezioni, attributi, indici, permessi)
+- `setup-db.js` — **fonte di verità dello schema** Appwrite (tabelle, colonne, indici, permessi). Usa l'API **TablesDB** (Appwrite 1.8+); la vecchia API Databases per schema/collezioni è deprecata e la console non offre più i suoi scope
 - `functions/api/` — Appwrite Function per le operazioni che toccano dati di più utenti; il client la chiama con `callApi()` in `database.ts`
 - `.github/workflows/ci.yml` — CI su ogni PR: sincronizza `package-lock.json`, type-check, build, test della Function
 

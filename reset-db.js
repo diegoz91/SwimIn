@@ -6,7 +6,7 @@
  */
 import dotenv from 'dotenv';
 import { assertNodeAppwriteVersion } from './scripts/check-sdk.js';
-import { Client, Databases, Functions, Query, Storage, Users } from 'node-appwrite';
+import { Client, Functions, Query, Storage, TablesDB, Users } from 'node-appwrite';
 
 dotenv.config({ path: '.env.setup' });
 assertNodeAppwriteVersion();
@@ -23,7 +23,7 @@ if (!process.argv.includes('--yes')) {
 }
 
 const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID).setKey(APPWRITE_API_KEY);
-const databases = new Databases(client);
+const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
 const functions = new Functions(client);
 const users = new Users(client);
@@ -40,7 +40,7 @@ const ignore404 = (label) => (e) => {
 async function reset() {
     console.log('🧹 Reset di SwimWaveUp…');
 
-    await databases.delete({ databaseId: DB_ID }).then(() => console.log('✅ Database eliminato'), ignore404('Database'));
+    await tablesDB.delete({ databaseId: DB_ID }).then(() => console.log('✅ Database eliminato'), ignore404('Database'));
 
     for (const bucketId of BUCKETS) {
         await storage.deleteBucket({ bucketId }).then(() => console.log(`✅ Bucket ${bucketId} eliminato`), ignore404(`Bucket ${bucketId}`));

@@ -11,10 +11,13 @@ database, permessi, storage e la Function `api`.
 ## 2. API key (una volta sola)
 
 1. Appwrite Console → il tuo progetto → **Overview → Integrations → API keys → Create API key**
-2. Nome: `setup-script`. Negli scope spunta **tutte** le voci (lettura e scrittura) dei gruppi
-   **Auth** (`users.*`), **Database** (`databases.*`, `collections.*`, `attributes.*`, `indexes.*`, `documents.*`),
+2. Nome: `setup-script`. Per l'ambiente di test la cosa più semplice è **Select all**. In alternativa servono,
+   in lettura e scrittura: **Auth** (`users.*`), **Database** (`databases.*`, `tables.*`, `columns.*`, `indexes.*`, `rows.*`),
    **Storage** (`buckets.*`, `files.*`) e **Functions** (`functions.*`, `execution.*`).
    Se ne manca uno lo script si ferma con `missing scopes (["..."])`: modifica la key e aggiungilo.
+
+> Gli script usano l'API **TablesDB** di Appwrite 1.8+: nella console "tabelle/colonne/righe"
+> corrispondono a "collezioni/attributi/documenti" delle versioni precedenti.
 3. Copia `.env.setup.example` in `.env.setup` e incolla endpoint, project ID e la key.
 
 > `.env.setup` è nel `.gitignore`: non va mai committato né condiviso in chat.
@@ -35,7 +38,7 @@ npm run setup-db
 
 Lo script:
 
-- crea le collezioni con **document security** attiva e permessi minimi;
+- crea le tabelle con **row security** attiva e permessi minimi;
 - crea gli indici per le query più usate;
 - crea i bucket `avatars` e `post_media` (lettura pubblica, modifica solo del proprietario);
 - crea la Function **`api`** e ne carica il codice da `functions/api`.
