@@ -1,4 +1,4 @@
-import { ExecutionMethod, ID, Permission, Query, Role } from 'appwrite';
+import { ExecutionMethod, ID, Models, Permission, Query, Role } from 'appwrite';
 import { databases, functions } from '@/services/appwrite';
 import { storageService } from '@/services/storage';
 import { getPostContent } from '@/utils/postMedia';
@@ -198,7 +198,7 @@ export const databaseService = {
             const out: T[] = [];
             let cursor: string | null = null;
             for (;;) {
-                const res = await databases.listDocuments<T>(databaseId, collectionId, [
+                const res: Models.DocumentList<T> = await databases.listDocuments<T>(databaseId, collectionId, [
                     ...queries, Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : []),
                 ]);
                 out.push(...res.documents);
