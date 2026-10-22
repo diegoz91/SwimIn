@@ -93,7 +93,9 @@ const Network: React.FC = () => {
             showToast('Collegamento accettato!', 'success');
             setPendingRequests(prev => prev.filter(r => r.$id !== connectionId));
             if (req.senderProfile) setActiveConnections(prev => [req.senderProfile!, ...prev]);
-        } catch (error) { showToast('Errore durante l\'accettazione.', 'error'); }
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Errore durante l\'accettazione.', 'error');
+        }
     };
 
     const handleRejectRequest = async (connectionId: string) => {
@@ -111,7 +113,9 @@ const Network: React.FC = () => {
             showToast('Richiesta inviata!', 'success');
             setSuggestions(prev => prev.filter(s => (s.userId || s.$id) !== targetUserId));
             setSearchResults(prev => ({...prev, profiles: prev.profiles.filter(p => (p.userId || p.$id) !== targetUserId)}));
-        } catch (error) { showToast('Hai già inviato una richiesta a questo utente.', 'error'); }
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Impossibile inviare la richiesta.', 'error');
+        }
     };
 
     const handleRemoveConnection = async (targetUserId: string) => {

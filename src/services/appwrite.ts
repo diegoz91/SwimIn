@@ -1,4 +1,4 @@
-import { Client, Account, Databases, Storage, Query } from 'appwrite';
+import { Client, Account, Databases, Storage, Functions, Query } from 'appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 
 const client = new Client()
@@ -8,6 +8,7 @@ const client = new Client()
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
+export const functions = new Functions(client);
 
 export const testConnection = async (): Promise<boolean> => {
   try {

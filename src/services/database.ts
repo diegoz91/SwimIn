@@ -1,5 +1,5 @@
-import { ID, Query } from 'appwrite';
-import { databases } from '@/services/appwrite';
+import { ID, Permission, Query, Role } from 'appwrite';
+import { databases, functions } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import type { 
     UserProfile, 
@@ -31,6 +31,43 @@ const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_moc
 
 type Profile = UserProfile | StructureProfile;
 
+// ==========================================
+// FUNCTION "api" (lato server)
+// Le operazioni che modificano dati di altri utenti non sono permesse dal
+// client: passano dalla Function, che verifica chi chiama e cosa può fare.
+// ==========================================
+const API_FUNCTION_ID = 'api';
+
+type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string };
+
+async function callApi<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+    const execution = await functions.createExecution(
+        API_FUNCTION_ID,
+        JSON.stringify({ action, ...params }),
+        false,
+        '/',
+        'POST',
+        { 'content-type': 'application/json' }
+    );
+    let payload: ApiResponse<T>;
+    try {
+        payload = JSON.parse(execution.responseBody || '{}');
+    } catch {
+        throw new Error('Risposta del server non valida. Riprova tra poco.');
+    }
+    if (!payload.ok) {
+        throw new Error(payload.error || 'Operazione non riuscita.');
+    }
+    return payload.data;
+}
+
+/** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
+const ownedBy = (userId: string) => [
+    Permission.read(Role.users()),
+    Permission.update(Role.user(userId)),
+    Permission.delete(Role.user(userId)),
+];
+
 export const databaseService = {
     // ==========================================
     // PROFILI & PRESENZA
@@ -40,7 +77,7 @@ export const databaseService = {
             ? { userId, email, userType, firstName: name, readReceipts: true, availableForEmergencies: false, isOnline: true }
             : { userId, email, userType, structureName: name, readReceipts: true, isOnline: true };
 
-        return await databases.createDocument(databaseId, collections.profiles, userId, profileData);
+        return await databases.createDocument(databaseId, collections.profiles, userId, profileData, ownedBy(userId));
     },
 
     async getProfile(userId: string): Promise<Profile> {
@@ -65,34 +102,41 @@ export const databaseService = {
                 isOnline,
                 lastActive: new Date().toISOString()
             });
-        } catch (error) {}
+        } catch (error) {
+            console.warn('updatePresence non riuscito:', error);
+        }
     },
 
     // ==========================================
     // CHAT & MESSAGING
     // ==========================================
-    async sendMessage(conversationId: string, senderId: string, receiverId: string, content: string) {
-        return await databases.createDocument<Message>(databaseId, collections.messages, ID.unique(), { conversationId, senderId, receiverId, content, isRead: false });
+    // conversationId e senderId sono calcolati dal server: restano nella firma per compatibilità.
+    async sendMessage(_conversationId: string, _senderId: string, receiverId: string, content: string) {
+        return await callApi<Message>('sendMessage', { receiverId, content });
     },
 
     async setTypingStatus(userId: string, targetUserId: string | null) {
         try { 
             return await databases.updateDocument(databaseId, collections.profiles, userId, { typingTo: targetUserId }); 
-        } catch (error) {}
+        } catch (error) {
+            console.warn('setTypingStatus non riuscito:', error);
+        }
     },
 
     async markMessagesAsRead(conversationId: string, currentUserId: string) {
         try {
-            const unreadMessages = await databases.listDocuments<Message>(databaseId, collections.messages, [
+            // Controllo locale (economico) prima di invocare la Function.
+            const unread = await databases.listDocuments<Message>(databaseId, collections.messages, [
                 Query.equal('conversationId', conversationId), 
                 Query.equal('receiverId', currentUserId), 
-                Query.equal('isRead', false)
+                Query.equal('isRead', false),
+                Query.limit(1)
             ]);
-            const updatePromises = unreadMessages.documents.map(msg => 
-                databases.updateDocument(databaseId, collections.messages, msg.$id, { isRead: true })
-            );
-            return await Promise.all(updatePromises);
-        } catch (error) {}
+            if (unread.total === 0) return;
+            await callApi('markConversationRead', { conversationId });
+        } catch (error) {
+            console.warn('markMessagesAsRead non riuscito:', error);
+        }
     },
 
     // ==========================================
@@ -123,7 +167,10 @@ export const databaseService = {
     // 🌊 FEED E POSTS
     // ==========================================
     async createPost(postData: Partial<Post>) {
-        return await databases.createDocument<Post>(databaseId, collections.posts, ID.unique(), postData);
+        return await databases.createDocument<Post>(
+            databaseId, collections.posts, ID.unique(), postData, 
+            postData.authorId ? ownedBy(postData.authorId) : undefined
+        );
     },
 
     async getFeed(currentUserId: string, userConnections: string[], limit = 20, offset = 0): Promise<EnrichedPost[]> {
@@ -176,22 +223,9 @@ export const databaseService = {
         return enrichedPosts.slice(offset, offset + limit);
     },
 
-    async toggleLike(postId: string, userId: string) {
-        const existingLikes = await databases.listDocuments<Like>(databaseId, collections.likes, [
-            Query.equal('postId', postId), 
-            Query.equal('userId', userId)
-        ]);
-        const post = await databases.getDocument<Post>(databaseId, collections.posts, postId);
-
-        if (existingLikes.total > 0) {
-            await databases.deleteDocument(databaseId, collections.likes, existingLikes.documents[0].$id);
-            await databases.updateDocument(databaseId, collections.posts, postId, { likesCount: Math.max(0, (post.likesCount || 0) - 1) });
-            return false;
-        } else {
-            await databases.createDocument(databaseId, collections.likes, ID.unique(), { postId, userId });
-            await databases.updateDocument(databaseId, collections.posts, postId, { likesCount: (post.likesCount || 0) + 1 });
-            return true;
-        }
+    async toggleLike(postId: string, _userId: string) {
+        const { liked } = await callApi<{ liked: boolean; likesCount: number }>('toggleLike', { postId });
+        return liked;
     },
 
     async getPostLikers(postId: string): Promise<Profile[]> {
@@ -202,11 +236,8 @@ export const databaseService = {
         return profiles.filter((p): p is Profile => p !== null);
     },
 
-    async createComment(postId: string, authorId: string, content: string, parentCommentId: string | null = null) {
-        const comment = await databases.createDocument<Comment>(databaseId, collections.comments, ID.unique(), { postId, authorId, content, parentCommentId });
-        const post = await databases.getDocument<Post>(databaseId, collections.posts, postId);
-        await databases.updateDocument(databaseId, collections.posts, postId, { commentsCount: (post.commentsCount || 0) + 1 });
-        return comment;
+    async createComment(postId: string, _authorId: string, content: string, parentCommentId: string | null = null) {
+        return await callApi<Comment>('createComment', { postId, content, parentCommentId });
     },
 
     async getPostComments(postId: string) {
@@ -243,12 +274,10 @@ export const databaseService = {
     },
 
     async applyForJob(applicationData: Partial<Application>) {
-        const existing = await databases.listDocuments(databaseId, collections.applications, [
-            Query.equal('jobId', applicationData.jobId!), 
-            Query.equal('applicantId', applicationData.applicantId!)
-        ]);
-        if (existing.total > 0) throw new Error('Ti sei già candidato per questa posizione.');
-        return await databases.createDocument<Application>(databaseId, collections.applications, ID.unique(), applicationData);
+        return await callApi<Application>('applyForJob', {
+            jobId: applicationData.jobId,
+            coverLetter: applicationData.coverLetter || '',
+        });
     },
 
     async getJobApplications(jobId: string) {
@@ -263,16 +292,11 @@ export const databaseService = {
         }
     },
 
-    async updateApplicationStatus(applicationId: string, status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'hired') {
+    async updateApplicationStatus(applicationId: string, status: 'pending' | 'reviewed' | 'accepted' | 'rejected') {
         try { 
-            const updated = await databases.updateDocument<Application>(databaseId, collections.applications, applicationId, { status }); 
-            if (status === 'rejected') {
-                await databases.createDocument(databaseId, NOTIFICATIONS_COLLECTION, ID.unique(), {
-                    userId: updated.applicantId, type: 'rejected', content: `La tua candidatura è stata scartata.`, relatedId: updated.jobId, isRead: false
-                }).catch(() => {});
-            }
-            return updated;
+            return await callApi<Application>('updateApplicationStatus', { applicationId, status });
         } catch (error) { 
+            console.error('updateApplicationStatus:', error);
             return null; 
         }
     },
@@ -280,12 +304,8 @@ export const databaseService = {
     // ==========================================
     // NETWORK & COLLEGAMENTI
     // ==========================================
-    async sendConnectionRequest(senderId: string, receiverId: string) {
-        const req = await databases.createDocument<Connection>(databaseId, collections.connections, ID.unique(), { senderId, receiverId, status: 'pending' });
-        await databases.createDocument(databaseId, NOTIFICATIONS_COLLECTION, ID.unique(), {
-            userId: receiverId, type: 'connection', content: `Hai ricevuto una nuova richiesta di collegamento.`, relatedId: senderId, isRead: false
-        }).catch(() => {});
-        return req;
+    async sendConnectionRequest(_senderId: string, receiverId: string) {
+        return await callApi<Connection>('sendConnectionRequest', { receiverId });
     },
 
     async getPendingConnectionRequests(userId: string) {
@@ -297,24 +317,12 @@ export const databaseService = {
         return res.documents;
     },
 
-    async acceptConnectionRequest(connectionId: string, senderId: string, receiverId: string) {
-        await databases.updateDocument(databaseId, collections.connections, connectionId, { status: 'accepted' });
-        const senderProfile = await this.getProfile(senderId);
-        const receiverProfile = await this.getProfile(receiverId);
-        
-        const senderConns = senderProfile.connections || [];
-        const receiverConns = receiverProfile.connections || [];
-        
-        if (!senderConns.includes(receiverId)) {
-            await this.updateProfile(senderId, { connections: [...senderConns, receiverId] });
-        }
-        if (!receiverConns.includes(senderId)) {
-            await this.updateProfile(receiverId, { connections: [...receiverConns, senderId] });
-        }
+    async acceptConnectionRequest(connectionId: string, _senderId?: string, _receiverId?: string) {
+        return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: true });
     },
 
     async rejectConnectionRequest(connectionId: string) {
-        return await databases.updateDocument(databaseId, collections.connections, connectionId, { status: 'rejected' });
+        return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: false });
     },
 
     async getNetworkSuggestions(currentUserId: string, currentConnections: string[] = []) {
@@ -339,18 +347,13 @@ export const databaseService = {
         }
     },
     
-    async removeConnection(userId1: string, userId2: string) {
+    /** Rimuove il collegamento tra l'utente corrente e `otherUserId`. */
+    async removeConnection(_currentUserId: string, otherUserId: string) {
         try {
-            const p1 = await this.getProfile(userId1);
-            const p2 = await this.getProfile(userId2);
-            
-            const c1 = (p1.connections || []).filter(id => id !== userId2);
-            const c2 = (p2.connections || []).filter(id => id !== userId1);
-            
-            await this.updateProfile(userId1, { connections: c1 });
-            await this.updateProfile(userId2, { connections: c2 });
+            await callApi('removeConnection', { userId: otherUserId });
             return true;
         } catch(e) { 
+            console.error('removeConnection:', e);
             return false; 
         }
     },
@@ -488,49 +491,24 @@ export const databaseService = {
         } catch(e) { return []; }
     },
 
-    async toggleFollowFacility(facilityId: string, userId: string) {
+    async toggleFollowFacility(facilityId: string, _userId: string) {
         try {
-            const fac = await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, facilityId);
-            const followers = fac.followers || [];
-            const isFollowing = followers.includes(userId);
-            
-            const newFollowers = isFollowing 
-                ? followers.filter(id => id !== userId) 
-                : [...followers, userId];
-                
-            await databases.updateDocument(databaseId, FACILITIES_COLLECTION, facilityId, { followers: newFollowers });
-            return !isFollowing; 
-        } catch(e) { return null; }
+            const { following } = await callApi<{ following: boolean }>('toggleFollowFacility', { facilityId });
+            return following;
+        } catch(e) { 
+            console.error('toggleFollowFacility:', e);
+            return null; 
+        }
     },
 
-    async hireCandidate(applicationId: string, jobId: string, structureId: string, applicantId: string) {
+    async hireCandidate(applicationId: string, _jobId?: string, _structureId?: string, _applicantId?: string) {
         try {
-            await databases.updateDocument(databaseId, collections.applications, applicationId, { status: 'hired' });
-            await databases.updateDocument(databaseId, collections.jobs, jobId, { isActive: false });
-            
-            let facilityName = 'Una Struttura';
-            try {
-                const fac = await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, structureId);
-                facilityName = fac.name;
-                const staff = fac.staff || [];
-                if (!staff.includes(applicantId)) {
-                    await databases.updateDocument(databaseId, FACILITIES_COLLECTION, structureId, { staff: [...staff, applicantId] });
-                }
-            } catch {
-                const prof = await databases.getDocument<StructureProfile>(databaseId, collections.profiles, structureId);
-                facilityName = prof.structureName || 'Una Struttura';
-                const conns = prof.connections || [];
-                if (!conns.includes(applicantId)) {
-                    await databases.updateDocument(databaseId, collections.profiles, structureId, { connections: [...conns, applicantId] });
-                }
-            }
-
-            await databases.createDocument(databaseId, NOTIFICATIONS_COLLECTION, ID.unique(), {
-                userId: applicantId, type: 'hired', content: `🎉 Congratulazioni! Sei stato assunto da ${facilityName}.`, relatedId: structureId, isRead: false
-            }).catch(() => {});
-
+            await callApi('hireCandidate', { applicationId });
             return true;
-        } catch (error) { return false; }
+        } catch (error) {
+            console.error('hireCandidate:', error);
+            return false;
+        }
     },
 
     async removeStaffMember(structureId: string, staffId: string) {
@@ -591,50 +569,22 @@ export const databaseService = {
         } catch (e) { return null; }
     },
 
-    async joinLiveRoom(roomId: string, userId: string, role: 'speaker' | 'listener') {
+    async joinLiveRoom(roomId: string, _userId: string, role: 'speaker' | 'listener') {
         try {
-            const room = await this.getLiveRoom(roomId);
-            if (!room || room.status !== 'active') return null;
-
-            const speakers = new Set(room.speakers || []);
-            const listeners = new Set(room.listeners || []);
-
-            speakers.delete(userId);
-            listeners.delete(userId);
-
-            if (role === 'speaker') {
-                speakers.add(userId);
-            } else {
-                listeners.add(userId);
-            }
-
-            return await databases.updateDocument<LiveRoom>(
-                databaseId, 
-                LIVE_ROOMS_COLLECTION, 
-                roomId, 
-                {
-                    speakers: Array.from(speakers),
-                    listeners: Array.from(listeners)
-                }
-            );
-        } catch (e) { return null; }
+            return await callApi<LiveRoom>('joinLiveRoom', { roomId, role });
+        } catch (e) {
+            console.error('joinLiveRoom:', e);
+            return null;
+        }
     },
 
-    async leaveLiveRoom(roomId: string, userId: string) {
+    async leaveLiveRoom(roomId: string, _userId: string) {
         try {
-            const room = await this.getLiveRoom(roomId);
-            if (!room) return null;
-
-            const speakers = (room.speakers || []).filter(id => id !== userId);
-            const listeners = (room.listeners || []).filter(id => id !== userId);
-
-            return await databases.updateDocument<LiveRoom>(
-                databaseId, 
-                LIVE_ROOMS_COLLECTION, 
-                roomId, 
-                { speakers, listeners }
-            );
-        } catch (e) { return null; }
+            return await callApi<LiveRoom>('leaveLiveRoom', { roomId });
+        } catch (e) {
+            console.error('leaveLiveRoom:', e);
+            return null;
+        }
     },
 
     async endLiveRoom(roomId: string) {
@@ -689,42 +639,13 @@ export const databaseService = {
         } catch (e) { return null; }
     },
 
-    async joinSwimMeet(meetId: string, userId: string) {
-        try {
-            const meet = await this.getSwimMeet(meetId);
-            if (!meet || meet.status !== 'upcoming') return null;
-
-            const participants = new Set(meet.participants || []);
-            
-            if (meet.maxParticipants && participants.size >= meet.maxParticipants && !participants.has(userId)) {
-                throw new Error("L'evento ha raggiunto il limite massimo di partecipanti.");
-            }
-
-            participants.add(userId);
-
-            return await databases.updateDocument<SwimMeet>(
-                databaseId, 
-                SWIM_MEETS_COLLECTION, 
-                meetId, 
-                { participants: Array.from(participants) }
-            );
-        } catch (e) { return null; }
+    /** Lancia un errore con il motivo (es. evento pieno), mostrato all'utente. */
+    async joinSwimMeet(meetId: string, _userId: string) {
+        return await callApi<SwimMeet>('joinSwimMeet', { meetId });
     },
 
-    async leaveSwimMeet(meetId: string, userId: string) {
-        try {
-            const meet = await this.getSwimMeet(meetId);
-            if (!meet) return null;
-
-            const participants = (meet.participants || []).filter(id => id !== userId);
-
-            return await databases.updateDocument<SwimMeet>(
-                databaseId, 
-                SWIM_MEETS_COLLECTION, 
-                meetId, 
-                { participants }
-            );
-        } catch (e) { return null; }
+    async leaveSwimMeet(meetId: string, _userId: string) {
+        return await callApi<SwimMeet>('leaveSwimMeet', { meetId });
     },
 
     async cancelSwimMeet(meetId: string) {
