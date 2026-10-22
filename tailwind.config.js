@@ -1,3 +1,5 @@
+import animate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -34,5 +36,6 @@ export default {
       }
     },
   },
-  plugins: [],
+  // Abilita le classi animate-in / fade-in / zoom-in-95 / slide-in-from-* usate nei componenti.
+  plugins: [animate],
 }

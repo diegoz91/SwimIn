@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
@@ -11,6 +12,7 @@ import type { EnrichedConnectionRequest } from '@/features/network/components/Co
 type Profile = UserProfile | StructureProfile;
 
 const Network: React.FC = () => {
+    usePageTitle('Il mio network');
     const { user: currentUser } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -205,7 +207,7 @@ const Network: React.FC = () => {
     if (!currentUser) return null;
 
     return (
-        <div className="pt-20 md:pt-24 px-4 pb-20 max-w-7xl mx-auto w-full">
+        <div className="pt-4 w-full">
             
             {/* TAB SWITCHER */}
             <div className="flex justify-center mb-8 animate-in slide-in-from-top-4">

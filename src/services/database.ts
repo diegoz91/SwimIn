@@ -77,10 +77,18 @@ export const databaseService = {
     // ==========================================
     // PROFILI & PRESENZA
     // ==========================================
-    async initializeProfile(userId: string, email: string, userType: 'professional' | 'structure', name: string) {
-        const profileData = userType === 'professional' 
-            ? { userId, email, userType, firstName: name, readReceipts: true, availableForEmergencies: false, isOnline: true }
-            : { userId, email, userType, structureName: name, readReceipts: true, isOnline: true };
+    async initializeProfile(
+        userId: string,
+        email: string,
+        data: { userType: 'professional' | 'structure'; firstName?: string; lastName?: string; structureName?: string }
+    ) {
+        const profileData = data.userType === 'professional' 
+            ? {
+                userId, email, userType: data.userType,
+                firstName: (data.firstName || '').trim(), lastName: (data.lastName || '').trim(),
+                readReceipts: true, availableForEmergencies: false, isOnline: true,
+            }
+            : { userId, email, userType: data.userType, structureName: (data.structureName || '').trim(), readReceipts: true, isOnline: true };
 
         return await databases.createDocument(databaseId, collections.profiles, userId, profileData, ownedBy(userId));
     },

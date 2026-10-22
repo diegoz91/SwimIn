@@ -199,7 +199,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const chatParticipant = selectedConversation?.participant || newChatParticipant;
 
   return (
-    <div className="flex h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] max-w-6xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-8 md:mb-0 animate-in fade-in duration-500">
+    <div className="flex h-[calc(100dvh-12.5rem)] md:h-[calc(100dvh-9rem)] max-w-6xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in duration-500">
       
       <div className={`w-full md:w-[380px] flex-col bg-slate-50 border-r border-slate-200 ${showList ? 'flex' : 'hidden md:flex'}`}>
         <div className="p-5 border-b border-slate-200 bg-white">

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { account } from '@/services/appwrite';
+import { authErrorMessage } from '@/utils/authErrors';
 
 export const LoginForm: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ export const LoginForm: React.FC = () => {
             showToast('Accesso effettuato con successo!', 'success');
             navigate(from, { replace: true });
         } catch (err: any) {
-            showToast(err.message || 'Credenziali non valide. Riprova.', 'error');
+            showToast(authErrorMessage(err, 'Accesso non riuscito. Riprova.'), 'error');
         }
     };
 

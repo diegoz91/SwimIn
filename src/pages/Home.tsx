@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
@@ -17,6 +18,7 @@ interface EnrichedHiredApp extends Application {
 }
 
 const Home: React.FC = () => {
+    usePageTitle('Feed');
     const { user, authenticated } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -114,7 +116,7 @@ const Home: React.FC = () => {
 
     if (selectedPost) {
         return (
-            <div className="pt-20 md:pt-24 px-4 sm:px-6 max-w-3xl mx-auto w-full pb-8 animate-in slide-in-from-right-8 duration-300">
+            <div className="max-w-3xl mx-auto w-full pt-4 animate-in slide-in-from-right-8 duration-300">
                 <PostDetailView 
                     post={selectedPost} 
                     onBack={() => setSelectedPost(null)} 
@@ -125,7 +127,7 @@ const Home: React.FC = () => {
     }
 
     return (
-        <div className="pt-20 md:pt-24 px-4 sm:px-6 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20">
+        <div className="w-full pt-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             <div className="lg:col-span-8 flex flex-col gap-6">
                 

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { APP_CONFIG } from '@/config/constants';
 import { Icon } from '@/components/ui/Icon';
 import type { AuthenticatedUser } from '@/types/types';
 
@@ -135,15 +137,19 @@ export const Settings: React.FC<SettingsProps> = ({
                     <h3 className="text-2xl font-extrabold text-slate-900 mb-1">
                         SwimWave<span className="text-blue-600">Up</span>
                     </h3>
-                    <p className="text-slate-500 font-medium">Versione 1.0.0 (Production)</p>
+                    <p className="text-slate-500 font-medium">Versione {APP_CONFIG.version}</p>
                   </div>
 
                   <div className="space-y-2">
-                    {['Termini di Servizio', 'Privacy Policy', 'Supporto Tecnico'].map((item, idx) => (
-                        <button key={idx} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-left group outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                            <span className="font-bold text-slate-700">{item}</span>
+                    {[
+                        { to: '/termini', label: 'Termini di servizio' },
+                        { to: '/privacy', label: 'Privacy Policy' },
+                        { to: '/cookie', label: 'Cookie Policy' },
+                    ].map((item) => (
+                        <Link key={item.to} to={item.to} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-left group outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                            <span className="font-bold text-slate-700">{item.label}</span>
                             <span className="text-slate-400 group-hover:text-slate-600 font-bold">&rarr;</span>
-                        </button>
+                        </Link>
                     ))}
                   </div>
 

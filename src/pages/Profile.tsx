@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
@@ -24,6 +25,14 @@ const ProfilePage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
 
     const isOwnProfile = !id || id === currentUser?.$id;
+
+    const viewedName = !viewedProfile ? null
+        : 'userType' in viewedProfile
+            ? (viewedProfile.userType === 'professional'
+                ? `${viewedProfile.firstName || ''} ${viewedProfile.lastName || ''}`.trim()
+                : viewedProfile.structureName)
+            : viewedProfile.name;
+    usePageTitle(isOwnProfile ? 'Il mio profilo' : viewedName || 'Profilo');
 
     useEffect(() => {
         const fetchProfileData = async () => {
@@ -76,7 +85,7 @@ const ProfilePage: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="pt-32 flex justify-center items-center h-full">
+            <div className="pt-16 flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
             </div>
         );
@@ -94,7 +103,7 @@ const ProfilePage: React.FC = () => {
     };
 
     return (
-        <div className="pt-20 md:pt-24 px-4 w-full h-full relative">
+        <div className="pt-4 w-full h-full relative">
             
             {/* Navigazione Impostazioni Personali */}
             {isOwnProfile && (
