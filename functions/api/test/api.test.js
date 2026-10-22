@@ -12,11 +12,12 @@ const col=c=>(store[c]??={});
 // Finto TablesDB in memoria con la stessa interfaccia usata dalla Function.
 const db={
  async getRow({tableId,rowId}){const d=col(tableId)[rowId]; if(!d){const e=new Error('nf');e.code=404;throw e} return structuredClone(d)},
- async listRows({tableId,queries}){let rows=Object.values(col(tableId));let lim=25;for(const raw of queries){const q=JSON.parse(raw);if(q.method==='equal')rows=rows.filter(d=>q.values.includes(d[q.attribute]));if(q.method==='limit')lim=q.values[0]}return {total:rows.length,rows:rows.slice(0,lim).map(d=>structuredClone(d))}},
+ async listRows({tableId,queries}){let rows=Object.values(col(tableId));let lim=25;let after=null;for(const raw of queries){const q=JSON.parse(raw);if(q.method==='equal')rows=rows.filter(d=>q.values.includes(d[q.attribute]));if(q.method==='contains')rows=rows.filter(d=>(d[q.attribute]||[]).some(v=>q.values.includes(v)));if(q.method==='limit')lim=q.values[0];if(q.method==='cursorAfter')after=q.values[0]}const total=rows.length;if(after){const i=rows.findIndex(r=>r.$id===after);rows=rows.slice(i+1)}return {total,rows:rows.slice(0,lim).map(d=>structuredClone(d))}},
  async createRow({tableId,rowId,data,permissions}){const d={$id:rowId,$permissions:permissions||[],...data};col(tableId)[rowId]=d;return d},
  async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
  async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
-const api=createApi(db);
+const deletedUsers=[]; const deletedFiles=[];
+const api=createApi(db,{users:{delete:async({userId})=>deletedUsers.push(userId)},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
@@ -97,4 +98,55 @@ col('swim_meets').s1={$id:'s1',creatorId:'eve',status:'upcoming',participants:['
 await api.joinSwimMeet('bob',{meetId:'s1'}); await rejects(api.joinSwimMeet('anna',{meetId:'s1'}),409);
 await rejects(api.leaveSwimMeet('eve',{meetId:'s1'}),400);
 await api.leaveSwimMeet('bob',{meetId:'s1'}); assert.deepEqual(col('swim_meets').s1.participants,['eve']);
+
+// Notifiche di consigli e commenti
+const notifs=(u,type)=>Object.values(col('notifications')).filter(n=>n.userId===u&&(!type||n.type===type));
+col('posts').p3={$id:'p3',authorId:'eve',likesCount:0,commentsCount:0,$permissions:['update("user:eve")']};
+const likeN=notifs('eve','like').length, commentN=notifs('eve','comment').length, bobN=notifs('bob','comment').length;
+await api.toggleLike('anna',{postId:'p3'});
+assert.equal(notifs('eve','like').length,likeN+1);
+await api.toggleLike('eve',{postId:'p3'}); // like al proprio post: nessuna notifica
+assert.equal(notifs('eve','like').length,likeN+1);
+const c3=await api.createComment('bob',{postId:'p3',content:'bel post'});
+assert.equal(notifs('eve','comment').length,commentN+1);
+await api.createComment('anna',{postId:'p3',content:'concordo',parentCommentId:c3.$id});
+assert.equal(notifs('bob','comment').length,bobN+1);
+assert.ok(notifs('eve').length>=3);
+const before=notifs('eve').filter(n=>!n.isRead).length; assert.ok(before>0);
+await api.markAllNotificationsRead('eve');
+assert.equal(notifs('eve').filter(n=>!n.isRead).length,0);
+
+// Segnalazioni
+await rejects(api.reportContent('bob',{targetType:'post',targetId:'p3',reason:'boh'}),400);
+assert.deepEqual(await api.reportContent('bob',{targetType:'post',targetId:'p3',reason:'spam'}),{reported:true});
+assert.deepEqual(await api.reportContent('bob',{targetType:'post',targetId:'p3',reason:'spam'}),{reported:true,duplicate:true});
+assert.deepEqual(Object.values(col('reports'))[0].$permissions,[]);
+
+// Eliminazione account di anna
+P('anna2'); // utente estraneo
+col('profiles').anna.avatar='https://cloud.appwrite.io/v1/storage/buckets/avatars/files/avatarAnna/view?project=x';
+col('profiles').anna.connections=['bob']; col('profiles').bob.connections=['anna','eve'];
+col('posts').pa={$id:'pa',authorId:'anna',likesCount:0,commentsCount:0,media:[JSON.stringify({type:'image',url:'https://cloud.appwrite.io/v1/storage/buckets/post_media/files/fotoAnna/view'})],$permissions:['update("user:anna")']};
+await api.toggleLike('bob',{postId:'pa'});
+// anna ha già consigliato p3 più sopra
+const likesP3=col('posts').p3.likesCount;
+col('facilities').fa={$id:'fa',name:'Sola',admins:['anna'],staff:[],followers:[]};
+col('facilities').f1.followers=['anna','bob'];
+col('swim_meets').sa={$id:'sa',creatorId:'anna',status:'upcoming',participants:['anna','bob']};
+await rejects(api.deleteAccount('anna',{confirmation:'si'}),400);
+assert.deepEqual(await api.deleteAccount('anna',{confirmation:'ELIMINA'}),{deleted:true});
+assert.deepEqual(deletedUsers,['anna']);
+assert.equal(col('profiles').anna,undefined);
+assert.equal(col('posts').pa,undefined);
+assert.equal(Object.values(col('likes')).filter(l=>l.userId==='anna'||l.postId==='pa').length,0);
+assert.equal(col('posts').p3.likesCount,likesP3-1);
+assert.equal(Object.values(col('comments')).filter(c=>c.authorId==='anna').length,0);
+assert.deepEqual(col('profiles').bob.connections,['eve']);
+assert.equal(Object.values(col('applications')).filter(a=>a.applicantId==='anna').length,0);
+assert.equal(col('facilities').fa,undefined);
+assert.deepEqual(col('facilities').f1.followers,['bob']);
+assert.equal(col('swim_meets').sa.status,'cancelled');
+assert.equal(notifs('anna').length,0);
+assert.ok(deletedFiles.includes('avatarAnna') && deletedFiles.includes('fotoAnna'));
+assert.ok(col('profiles').anna2);
 });

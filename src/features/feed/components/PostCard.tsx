@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import type { EnrichedPost, UserProfile, StructureProfile } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { LikesModal } from './LikesModal';
+import { ReportModal } from '@/components/common/ReportModal';
 import { getPostContent } from '@/utils/postMedia';
 import { formatRelativeTime } from '@/utils/format';
 
@@ -42,6 +43,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
     const [isEditing, setIsEditing] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isBusy, setIsBusy] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const { text: displayContent, media } = getPostContent(post);
@@ -228,6 +230,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
                         {isMenuOpen && (
                             <div role="menu" className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-150">
                                 <MenuItem icon="link" label="Copia / condividi link" onClick={handleShare} />
+                                {!isMine && (
+                                    <MenuItem icon="alert-triangle" label="Segnala" onClick={() => { setIsMenuOpen(false); setIsReportOpen(true); }} />
+                                )}
                                 {isMine && (
                                     <>
                                         <MenuItem icon="pencil" label="Modifica" onClick={() => { setIsMenuOpen(false); setDraft(displayContent); setIsEditing(true); }} />
@@ -338,6 +343,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
                 </button>
             </div>
 
+            {isReportOpen && <ReportModal targetType="post" targetId={post.$id} onClose={() => setIsReportOpen(false)} />}
             {isLikesModalOpen && (
                 <LikesModal postId={post.$id} onClose={() => setIsLikesModalOpen(false)} onNavigate={(view, id) => navigate(`/${view}/${id}`)} />
             )}

@@ -9,7 +9,7 @@
  * Richiesta: POST con body JSON { "action": "<nome>", ...parametri }
  * Risposta:  { ok: true, data } oppure { ok: false, error } con status HTTP 4xx/5xx
  */
-import { Client, ID, Permission, Query, Role, TablesDB } from 'node-appwrite';
+import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -25,6 +25,32 @@ const C = {
   notifications: 'notifications',
   liveRooms: 'live_rooms',
   swimMeets: 'swim_meets',
+  shifts: 'shifts',
+  announcements: 'announcements',
+  reports: 'reports',
+};
+
+const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility'];
+const REPORT_REASONS = ['spam', 'molestie', 'contenuto_inappropriato', 'falso_profilo', 'offerta_ingannevole', 'altro'];
+const DELETE_ACCOUNT_CONFIRMATION = 'ELIMINA';
+
+/** Estrae bucket e file da un URL di Appwrite Storage, se lo è. */
+const parseFileUrl = (url) => {
+  const m = typeof url === 'string' && url.match(/\/storage\/buckets\/([^/]+)\/files\/([^/?]+)/);
+  return m ? { bucketId: m[1], fileId: m[2] } : null;
+};
+
+/** URL dei media di un post (campo `media` o vecchio blocco [MEDIA] nel testo). */
+const postMediaUrls = (post) => {
+  const urls = [];
+  for (const raw of post.media || []) {
+    try { urls.push(JSON.parse(raw).url); } catch { /* ignorato */ }
+  }
+  const legacy = (post.content || '').match(/\[MEDIA\](.*?)\[\/MEDIA\]/s);
+  if (legacy) {
+    try { JSON.parse(legacy[1]).forEach((m) => urls.push(m.url)); } catch { /* ignorato */ }
+  }
+  return urls.filter(Boolean);
 };
 
 const APPLICATION_STATUSES = ['pending', 'reviewed', 'accepted', 'rejected', 'hired'];
@@ -68,7 +94,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db) => {
+const createApi = (db, { users = null, storage = null } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -91,6 +117,18 @@ const createApi = (db) => {
   const remove = (tableId, rowId) => db.deleteRow({ databaseId: DB, tableId, rowId });
 
   const count = async (tableId, queries) => (await list(tableId, [...queries, Query.limit(1)])).total;
+
+  /** Tutte le righe che soddisfano le query (a pagine di 100, con cursore). */
+  const listAll = async (tableId, queries) => {
+    const rows = [];
+    let cursor = null;
+    for (;;) {
+      const page = await list(tableId, [...queries, Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])]);
+      rows.push(...page.documents);
+      if (page.documents.length < 100) return rows;
+      cursor = page.documents[page.documents.length - 1].$id;
+    }
+  };
 
   /** Elimina tutte le righe che soddisfano le query, a blocchi di 100. */
   const removeAll = async (tableId, queries) => {
@@ -211,7 +249,7 @@ const createApi = (db) => {
     // ---------------- FEED ----------------
     async toggleLike(me, { postId }) {
       postId = requireString(postId, 'postId', 36);
-      await get(C.posts, postId);
+      const post = await get(C.posts, postId);
       const existing = await list(C.likes, [Query.equal('postId', postId), Query.equal('userId', me), Query.limit(10)]);
       let liked;
       if (existing.total > 0) {
@@ -224,15 +262,20 @@ const createApi = (db) => {
       // Ricalcolo dal numero reale di like: corretto anche con click simultanei.
       const likesCount = await count(C.likes, [Query.equal('postId', postId)]);
       await update(C.posts, postId, { likesCount });
+      if (liked && post.authorId !== me) {
+        const liker = await find(C.profiles, me);
+        await notify(post.authorId, 'like', `${liker ? displayName(liker) : 'Qualcuno'} ha consigliato il tuo post.`, postId);
+      }
       return { liked, likesCount };
     },
 
     async createComment(me, { postId, content, parentCommentId = null }) {
       postId = requireString(postId, 'postId', 36);
       content = requireString(content, 'content', 2000);
-      await get(C.posts, postId);
+      const post = await get(C.posts, postId);
+      let parent = null;
       if (parentCommentId) {
-        const parent = await get(C.comments, parentCommentId);
+        parent = await get(C.comments, parentCommentId);
         if (parent.postId !== postId) fail(400, 'Il commento padre appartiene a un altro post.');
       }
       const comment = await create(C.comments, { postId, authorId: me, content, parentCommentId }, [
@@ -242,6 +285,13 @@ const createApi = (db) => {
       ]);
       const commentsCount = await count(C.comments, [Query.equal('postId', postId)]);
       await update(C.posts, postId, { commentsCount });
+
+      const author = await find(C.profiles, me);
+      const name = author ? displayName(author) : 'Qualcuno';
+      if (post.authorId !== me) await notify(post.authorId, 'comment', `${name} ha commentato il tuo post.`, postId);
+      if (parent && parent.authorId !== me && parent.authorId !== post.authorId) {
+        await notify(parent.authorId, 'comment', `${name} ha risposto al tuo commento.`, postId);
+      }
       return comment;
     },
 
@@ -274,6 +324,126 @@ const createApi = (db) => {
       return { deleted: true };
     },
 
+    // ---------------- NOTIFICHE ----------------
+    async markAllNotificationsRead(me) {
+      const unread = await listAll(C.notifications, [Query.equal('userId', me), Query.equal('isRead', false)]);
+      await Promise.all(unread.map((n) => update(C.notifications, n.$id, { isRead: true })));
+      return { updated: unread.length };
+    },
+
+    // ---------------- SEGNALAZIONI ----------------
+    async reportContent(me, { targetType, targetId, reason, details = '' }) {
+      if (!REPORT_TARGETS.includes(targetType)) fail(400, 'Tipo di contenuto non valido.');
+      if (!REPORT_REASONS.includes(reason)) fail(400, 'Motivo non valido.');
+      targetId = requireString(targetId, 'targetId', 36);
+      const duplicate = await count(C.reports, [
+        Query.equal('reporterId', me), Query.equal('targetId', targetId), Query.equal('status', 'open'),
+      ]);
+      if (duplicate > 0) return { reported: true, duplicate: true };
+      // Nessun permesso: le segnalazioni sono visibili solo dalla Console di Appwrite.
+      await create(C.reports, {
+        reporterId: me, targetType, targetId, reason,
+        details: String(details).slice(0, 1000), status: 'open',
+      }, []);
+      return { reported: true };
+    },
+
+    // ---------------- ACCOUNT ----------------
+    /**
+     * Elimina l'account e i dati collegati (diritto alla cancellazione, art. 17 GDPR).
+     * I messaggi già inviati restano al destinatario, come indicato nella Privacy Policy.
+     */
+    async deleteAccount(me, { confirmation }) {
+      if (confirmation !== DELETE_ACCOUNT_CONFIRMATION) fail(400, `Per confermare scrivi ${DELETE_ACCOUNT_CONFIRMATION}.`);
+      if (!users) fail(500, 'Servizio utenti non disponibile.');
+      const profile = await find(C.profiles, me);
+      const files = [profile?.avatar, profile?.logo, profile?.cover];
+      const touchedPosts = new Set();
+
+      // Post propri, con relativi like, commenti e file.
+      for (const post of await listAll(C.posts, [Query.equal('authorId', me)])) {
+        files.push(...postMediaUrls(post));
+        await removeAll(C.likes, [Query.equal('postId', post.$id)]);
+        await removeAll(C.comments, [Query.equal('postId', post.$id)]);
+        await remove(C.posts, post.$id);
+      }
+      // Like e commenti lasciati su post altrui: i contatori vanno ricalcolati.
+      for (const like of await listAll(C.likes, [Query.equal('userId', me)])) {
+        touchedPosts.add(like.postId);
+        await remove(C.likes, like.$id);
+      }
+      for (const comment of await listAll(C.comments, [Query.equal('authorId', me)])) {
+        touchedPosts.add(comment.postId);
+        await removeAll(C.comments, [Query.equal('parentCommentId', comment.$id)]);
+        await remove(C.comments, comment.$id).catch(() => null); // già rimosso come risposta
+      }
+      for (const postId of touchedPosts) {
+        if (!(await find(C.posts, postId))) continue;
+        await update(C.posts, postId, {
+          likesCount: await count(C.likes, [Query.equal('postId', postId)]),
+          commentsCount: await count(C.comments, [Query.equal('postId', postId)]),
+        });
+      }
+
+      // Rete: richieste di collegamento e presenza negli elenchi altrui.
+      await removeAll(C.connections, [Query.equal('senderId', me)]);
+      await removeAll(C.connections, [Query.equal('receiverId', me)]);
+      for (const otherId of profile?.connections || []) {
+        const other = await find(C.profiles, otherId);
+        if (other) await update(C.profiles, otherId, { connections: removeFromArray(other.connections, me) });
+      }
+
+      // Lavoro: candidature inviate, annunci pubblicati come Struttura e loro candidature.
+      await removeAll(C.applications, [Query.equal('applicantId', me)]);
+      for (const job of await listAll(C.jobs, [Query.equal('structureId', me)])) {
+        await removeAll(C.applications, [Query.equal('jobId', job.$id)]);
+        await remove(C.jobs, job.$id);
+      }
+
+      // Pagine struttura: eliminate se ne ero l'unico amministratore, altrimenti esco dagli elenchi.
+      for (const field of ['admins', 'staff', 'followers']) {
+        for (const facility of await listAll(C.facilities, [Query.contains(field, [me])])) {
+          const current = await find(C.facilities, facility.$id);
+          if (!current) continue;
+          if (field === 'admins' && (current.admins || []).length <= 1) {
+            files.push(current.logo, current.cover);
+            for (const job of await listAll(C.jobs, [Query.equal('structureId', current.$id)])) {
+              await removeAll(C.applications, [Query.equal('jobId', job.$id)]);
+              await remove(C.jobs, job.$id);
+            }
+            await remove(C.facilities, current.$id);
+          } else {
+            await update(C.facilities, current.$id, { [field]: removeFromArray(current[field], me) });
+          }
+        }
+      }
+
+      // Eventi, dirette, turni, bacheca e notifiche.
+      for (const meet of await listAll(C.swimMeets, [Query.equal('creatorId', me)])) {
+        await update(C.swimMeets, meet.$id, { status: 'cancelled', participants: [] });
+      }
+      for (const meet of await listAll(C.swimMeets, [Query.contains('participants', [me])])) {
+        const current = await find(C.swimMeets, meet.$id);
+        if (current) await update(C.swimMeets, meet.$id, { participants: removeFromArray(current.participants, me) });
+      }
+      for (const room of await listAll(C.liveRooms, [Query.equal('hostId', me)])) {
+        await update(C.liveRooms, room.$id, { status: 'ended', speakers: [], listeners: [] });
+      }
+      await removeAll(C.shifts, [Query.equal('userId', me)]);
+      await removeAll(C.shifts, [Query.equal('structureId', me)]);
+      await removeAll(C.announcements, [Query.equal('structureId', me)]);
+      await removeAll(C.notifications, [Query.equal('userId', me)]);
+
+      if (profile) await remove(C.profiles, me);
+      if (storage) {
+        for (const ref of files.map(parseFileUrl).filter(Boolean)) {
+          await storage.deleteFile({ bucketId: ref.bucketId, fileId: ref.fileId }).catch(() => null);
+        }
+      }
+      await users.delete({ userId: me });
+      return { deleted: true };
+    },
+
     // ---------------- LAVORO ----------------
     async applyForJob(me, { jobId, coverLetter = '' }) {
       jobId = requireString(jobId, 'jobId', 36);
@@ -297,7 +467,7 @@ const createApi = (db) => {
       );
       await update(C.jobs, jobId, { candidates: addToArray(job.candidates, me) });
       await Promise.all(
-        managers.map((id) => notify(id, 'general', `Nuova candidatura per "${job.title}".`, jobId))
+        managers.map((id) => notify(id, 'application', `Nuova candidatura per "${job.title}".`, jobId))
       );
       return application;
     },
@@ -425,7 +595,7 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(req.headers['x-appwrite-key'] || process.env.APPWRITE_API_KEY);
 
-  const api = createApi(new TablesDB(client));
+  const api = createApi(new TablesDB(client), { users: new Users(client), storage: new Storage(client) });
   const { action, ...params } = body;
   const handler = Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
   if (!handler) return res.json({ ok: false, error: `Azione sconosciuta: ${action}` }, 400);
@@ -441,4 +611,4 @@ export default async ({ req, res, log, error }) => {
 };
 
 // Esportato per i test locali.
-export { createApi, ownersOf, conversationIdFor, HttpError };
+export { createApi, ownersOf, conversationIdFor, parseFileUrl, postMediaUrls, HttpError };

@@ -19,7 +19,8 @@ import type {
     Facility,
     AppNotification,
     LiveRoom,
-    SwimMeet // 🟢 IMPORTATO NUOVO TIPO SWIM MEET
+    SwimMeet,
+    AppwriteDocument,
 } from '@/types/types';
 
 const { databaseId, collections } = APPWRITE_CONFIG;
@@ -32,6 +33,9 @@ const LIVE_ROOMS_COLLECTION = (collections as any).live_rooms || 'live_rooms_moc
 const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_mock_id'; // 🟢 NUOVA COSTANTE
 
 type Profile = UserProfile | StructureProfile;
+
+export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility';
+export type ReportReason = 'spam' | 'molestie' | 'contenuto_inappropriato' | 'falso_profilo' | 'offerta_ingannevole' | 'altro';
 
 const profileDisplayName = (p: Profile) =>
     p.userType === 'professional'
@@ -170,6 +174,65 @@ export const databaseService = {
         }
     },
     
+    /** Ultime notifiche (lette e non lette) per il centro notifiche. */
+    async getNotifications(userId: string, limit = 50) {
+        const res = await databases.listDocuments<AppNotification>(databaseId, NOTIFICATIONS_COLLECTION, [
+            Query.equal('userId', userId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
+
+    async markAllNotificationsRead() {
+        return await callApi<{ updated: number }>('markAllNotificationsRead');
+    },
+
+    async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {
+        return await callApi<{ reported: boolean; duplicate?: boolean }>('reportContent', report);
+    },
+
+    /** Raccoglie i dati dell'utente leggibili dal client, per l'esportazione (portabilità GDPR). */
+    async exportMyData(userId: string) {
+        const all = async <T extends AppwriteDocument>(collectionId: string, queries: string[]) => {
+            const out: T[] = [];
+            let cursor: string | null = null;
+            for (;;) {
+                const res = await databases.listDocuments<T>(databaseId, collectionId, [
+                    ...queries, Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : []),
+                ]);
+                out.push(...res.documents);
+                if (res.documents.length < 100) return out;
+                cursor = res.documents[res.documents.length - 1].$id;
+            }
+        };
+        const strip = <T extends AppwriteDocument>(rows: T[]) =>
+            rows.map(({ $permissions, $databaseId, $collectionId, ...rest }) => rest);
+
+        const [profile, posts, comments, likes, applications, notifications] = await Promise.all([
+            this.getProfile(userId),
+            all<Post>(collections.posts, [Query.equal('authorId', userId)]),
+            all<Comment>(collections.comments, [Query.equal('authorId', userId)]),
+            all<Like>(collections.likes, [Query.equal('userId', userId)]),
+            all<Application>(collections.applications, [Query.equal('applicantId', userId)]),
+            all<AppNotification>(NOTIFICATIONS_COLLECTION, [Query.equal('userId', userId)]),
+        ]);
+        return {
+            exportedAt: new Date().toISOString(),
+            profile: strip([profile])[0],
+            posts: strip(posts),
+            comments: strip(comments),
+            likes: likes.map((l) => ({ postId: l.postId, date: l.$createdAt })),
+            applications: strip(applications),
+            notifications: strip(notifications),
+        };
+    },
+
+    /** Elimina definitivamente l'account e i dati collegati (lato server). */
+    async deleteAccount(confirmation: string) {
+        return await callApi<{ deleted: boolean }>('deleteAccount', { confirmation });
+    },
+
     async markNotificationAsRead(notificationId: string) {
         try { 
             return await databases.updateDocument(databaseId, NOTIFICATIONS_COLLECTION, notificationId, { isRead: true }); 

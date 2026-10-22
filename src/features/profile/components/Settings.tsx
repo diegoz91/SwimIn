@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Icon, type IconType } from '@/components/ui/Icon';
 import { APP_CONFIG } from '@/config/constants';
-import { Icon } from '@/components/ui/Icon';
+import { account } from '@/services/appwrite';
+import { databaseService } from '@/services/database';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/context/ToastContext';
+import { authErrorMessage } from '@/utils/authErrors';
 import type { AuthenticatedUser } from '@/types/types';
 
 interface SettingsProps {
@@ -10,175 +15,364 @@ interface SettingsProps {
   onLogout?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ 
-  currentUser, 
-  onNavigate, 
-  onLogout 
-}) => {
-  const [activeTab, setActiveTab] = useState<'account' | 'privacy' | 'notifications' | 'about'>('account');
-  
+type Tab = 'account' | 'security' | 'privacy' | 'about';
+
+const MENU: { id: Tab; label: string; icon: IconType }[] = [
+  { id: 'account', label: 'Account', icon: 'user' },
+  { id: 'security', label: 'Password e accesso', icon: 'lock-closed' },
+  { id: 'privacy', label: 'Privacy e dati', icon: 'shield' },
+  { id: 'about', label: 'Info e legale', icon: 'info' },
+];
+
+const inputClass =
+  'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50 focus:bg-white';
+
+const Card: React.FC<{ title: string; description?: string; children: React.ReactNode; tone?: 'default' | 'danger' }> = ({ title, description, children, tone = 'default' }) => (
+  <section className={`rounded-2xl border p-5 ${tone === 'danger' ? 'border-red-200 bg-red-50/50' : 'border-slate-200 bg-white'}`}>
+    <h3 className={`font-bold ${tone === 'danger' ? 'text-red-700' : 'text-slate-900'}`}>{title}</h3>
+    {description && <p className="text-sm text-slate-500 mt-1 mb-4">{description}</p>}
+    {!description && <div className="mb-3" />}
+    {children}
+  </section>
+);
+
+export const Settings: React.FC<SettingsProps> = ({ currentUser, onLogout }) => {
+  const [activeTab, setActiveTab] = useState<Tab>('account');
   const isProfessional = currentUser.userType === 'professional';
 
-  const menuItems = [
-    { id: 'account', label: 'Account', icon: 'user' },
-    { id: 'privacy', label: 'Privacy e Sicurezza', icon: 'building' },
-    { id: 'notifications', label: 'Notifiche', icon: 'bell' },
-    { id: 'about', label: 'Info App', icon: 'info' }
-  ] as const;
-
-  const displayName = isProfessional 
+  const displayName = isProfessional
     ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Utente'
     : currentUser.structureName || 'Struttura';
-    
-  const displayAvatar = (isProfessional ? currentUser.avatar : currentUser.logo) || 
+  const displayAvatar = (isProfessional ? currentUser.avatar : currentUser.logo) ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8`;
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] max-w-5xl mx-auto w-full pb-20 md:pb-8 animate-in fade-in duration-300">
-      
-      <div className="mb-6 px-4 sm:px-0">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3">
-          <Icon type="settings" className="w-8 h-8 text-slate-400" />
-          Impostazioni
-        </h1>
-      </div>
+    <div className="max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+      <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 mb-6">
+        <Icon type="settings" className="w-8 h-8 text-slate-400" />
+        Impostazioni
+      </h1>
 
       <div className="flex flex-col md:flex-row gap-6">
-        
-        {/* Sidebar Navigazione Menu */}
         <div className="w-full md:w-64 flex-shrink-0">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
-            
-            {/* Riepilogo Utente */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden md:sticky md:top-24">
             <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                <img 
-                    src={displayAvatar} 
-                    alt={displayName} 
-                    className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm bg-white" 
-                />
-                <div className="min-w-0">
-                    <p className="font-bold text-slate-800 truncate">{displayName}</p>
-                    <p className="text-xs text-slate-500 font-medium truncate">{currentUser.email}</p>
-                </div>
+              <img src={displayAvatar} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200 bg-white" />
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 truncate">{displayName}</p>
+                <p className="text-xs text-slate-500 font-medium truncate">{currentUser.email}</p>
+              </div>
             </div>
-
-            {/* Menu Items */}
-            <nav className="p-2 space-y-1">
-                {menuItems.map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                            activeTab === item.id 
-                            ? 'bg-blue-50 text-blue-700' 
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                        }`}
-                    >
-                        <Icon type={item.icon as any} className={`w-5 h-5 ${activeTab === item.id ? 'text-blue-600' : 'text-slate-400'}`} />
-                        {item.label}
-                    </button>
-                ))}
+            <nav className="p-2 flex md:flex-col gap-1 overflow-x-auto" aria-label="Sezioni impostazioni">
+              {MENU.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  aria-current={activeTab === item.id ? 'page' : undefined}
+                  className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    activeTab === item.id ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon type={item.icon} className={`w-5 h-5 ${activeTab === item.id ? 'text-blue-600' : 'text-slate-400'}`} />
+                  {item.label}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
 
-        {/* Area Contenuto Destra */}
-        <div className="flex-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-            
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-extrabold text-slate-800">
-                  {menuItems.find(m => m.id === activeTab)?.label}
-              </h2>
-            </div>
-
-            <div className="p-6">
-              
-              {activeTab === 'account' && (
-                <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h3 className="font-bold text-slate-800 mb-2">Informazioni Personali</h3>
-                    <p className="text-sm text-slate-500 mb-4">Gestisci le informazioni del tuo profilo base e la tua email.</p>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
-                            <span className="text-sm text-slate-500 font-medium">Email Registrata</span>
-                            <span className="text-sm font-bold text-slate-800">{currentUser.email}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
-                            <span className="text-sm text-slate-500 font-medium">Tipologia Account</span>
-                            <span className="text-sm font-bold text-slate-800 capitalize">{currentUser.userType}</span>
-                        </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-red-600 mb-2">Zona Pericolosa</h3>
-                    <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center justify-between">
-                        <div>
-                            <p className="font-bold text-slate-800 text-sm">Elimina Account</p>
-                            <p className="text-xs text-slate-500 mt-1">Questa azione è irreversibile e cancellerà tutti i tuoi dati.</p>
-                        </div>
-                        <button className="px-4 py-2 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-600 hover:text-white transition-colors text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500 shadow-sm">
-                            Elimina
-                        </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'about' && (
-                <div className="animate-in slide-in-from-right-4 duration-300 max-w-lg mx-auto text-center py-8">
-                  <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div className="mb-8">
-                    <h3 className="text-2xl font-extrabold text-slate-900 mb-1">
-                        SwimWave<span className="text-blue-600">Up</span>
-                    </h3>
-                    <p className="text-slate-500 font-medium">Versione {APP_CONFIG.version}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                        { to: '/termini', label: 'Termini di servizio' },
-                        { to: '/privacy', label: 'Privacy Policy' },
-                        { to: '/cookie', label: 'Cookie Policy' },
-                    ].map((item) => (
-                        <Link key={item.to} to={item.to} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-left group outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                            <span className="font-bold text-slate-700">{item.label}</span>
-                            <span className="text-slate-400 group-hover:text-slate-600 font-bold">&rarr;</span>
-                        </Link>
-                    ))}
-                  </div>
-
-                  {onLogout && (
-                    <div className="pt-8 mt-8 border-t border-slate-100">
-                      <button 
-                        onClick={onLogout}
-                        className="w-full flex items-center justify-center space-x-2 p-4 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-600 hover:text-white transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500 shadow-sm"
-                      >
-                        <Icon type="logout" className="w-5 h-5" />
-                        <span>Esci dall'Account</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {(activeTab === 'privacy' || activeTab === 'notifications') && (
-                <div className="animate-in slide-in-from-right-4 duration-300 flex flex-col items-center justify-center py-20 text-center">
-                    <Icon type="settings" className="w-16 h-16 text-slate-200 mb-4 animate-[spin_4s_linear_infinite]" />
-                    <h3 className="text-lg font-bold text-slate-700">Impostazioni in arrivo</h3>
-                    <p className="text-slate-500 text-sm mt-1 max-w-sm">Queste preferenze verranno sbloccate con i prossimi aggiornamenti di sistema.</p>
-                </div>
-              )}
-
-            </div>
-          </div>
+        <div className="flex-1 space-y-4 min-w-0">
+          {activeTab === 'account' && <AccountTab user={currentUser} />}
+          {activeTab === 'security' && <SecurityTab user={currentUser} />}
+          {activeTab === 'privacy' && <PrivacyTab user={currentUser} />}
+          {activeTab === 'about' && <AboutTab onLogout={onLogout} />}
         </div>
       </div>
     </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+const AccountTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
+  const { showToast } = useToast();
+  const [isSending, setIsSending] = useState(false);
+  const verified = !!user.emailVerification;
+
+  const resendVerification = async () => {
+    setIsSending(true);
+    try {
+      await account.createVerification(`${window.location.origin}/verifica-email`);
+      showToast(`Ti abbiamo inviato un link a ${user.email}.`, 'success');
+    } catch (error) {
+      showToast(authErrorMessage(error, 'Invio non riuscito. Riprova più tardi.'), 'error');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <>
+      <Card title="Informazioni dell'account">
+        <dl className="divide-y divide-slate-100 text-sm">
+          <div className="flex justify-between gap-4 py-2.5">
+            <dt className="text-slate-500">Email</dt>
+            <dd className="font-semibold text-slate-800 truncate">{user.email}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2.5">
+            <dt className="text-slate-500">Tipo di account</dt>
+            <dd className="font-semibold text-slate-800">{user.userType === 'professional' ? 'Professionista' : 'Struttura'}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2.5">
+            <dt className="text-slate-500">Iscritto dal</dt>
+            <dd className="font-semibold text-slate-800">{new Date(user.registration || user.$createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</dd>
+          </div>
+        </dl>
+      </Card>
+
+      <Card
+        title="Verifica dell'email"
+        description={verified ? 'Il tuo indirizzo email è verificato.' : 'Verifica la tua email per proteggere l\'account e recuperarlo se dimentichi la password.'}
+      >
+        {verified ? (
+          <span className="inline-flex items-center gap-2 text-sm font-bold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">
+            <Icon type="check-circle" className="w-4 h-4" /> Verificata
+          </span>
+        ) : (
+          <button onClick={resendVerification} disabled={isSending} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-60">
+            {isSending ? 'Invio…' : 'Invia link di verifica'}
+          </button>
+        )}
+      </Card>
+
+      <DeleteAccountCard />
+    </>
+  );
+};
+
+const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
+  const { showToast } = useToast();
+  const { refreshProfile } = useAuth();
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [busy, setBusy] = useState<'password' | 'email' | 'sessions' | null>(null);
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) return showToast('La nuova password deve avere almeno 8 caratteri.', 'error');
+    if (newPassword !== confirm) return showToast('Le due password non coincidono.', 'error');
+    setBusy('password');
+    try {
+      await account.updatePassword(newPassword, oldPassword);
+      setOldPassword(''); setNewPassword(''); setConfirm('');
+      showToast('Password aggiornata.', 'success');
+    } catch (error) {
+      showToast(authErrorMessage(error, 'Password attuale non corretta.'), 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const changeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy('email');
+    try {
+      await account.updateEmail(newEmail.trim(), emailPassword);
+      await databaseService.updateProfile(user.$id, { email: newEmail.trim() });
+      await account.createVerification(`${window.location.origin}/verifica-email`).catch(() => undefined);
+      await refreshProfile();
+      setNewEmail(''); setEmailPassword('');
+      showToast('Email aggiornata. Ti abbiamo inviato un link per verificarla.', 'success');
+    } catch (error) {
+      showToast(authErrorMessage(error, 'Aggiornamento non riuscito.'), 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const logoutOtherDevices = async () => {
+    setBusy('sessions');
+    try {
+      const { sessions } = await account.listSessions();
+      await Promise.all(sessions.filter((s) => !s.current).map((s) => account.deleteSession(s.$id)));
+      showToast('Disconnesso da tutti gli altri dispositivi.', 'success');
+    } catch (error) {
+      showToast(authErrorMessage(error, 'Operazione non riuscita.'), 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <Card title="Cambia password">
+        <form onSubmit={changePassword} className="space-y-3 max-w-sm">
+          <input type="password" autoComplete="current-password" placeholder="Password attuale" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className={inputClass} required aria-label="Password attuale" />
+          <input type="password" autoComplete="new-password" placeholder="Nuova password (min. 8 caratteri)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} minLength={8} required aria-label="Nuova password" />
+          <input type="password" autoComplete="new-password" placeholder="Ripeti la nuova password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} required aria-label="Ripeti la nuova password" />
+          <button type="submit" disabled={busy !== null} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-60">
+            {busy === 'password' ? 'Salvataggio…' : 'Aggiorna password'}
+          </button>
+        </form>
+      </Card>
+
+      <Card title="Cambia email" description={`Attuale: ${user.email}. Per sicurezza ti chiediamo la password.`}>
+        <form onSubmit={changeEmail} className="space-y-3 max-w-sm">
+          <input type="email" autoComplete="email" placeholder="Nuova email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className={inputClass} required aria-label="Nuova email" />
+          <input type="password" autoComplete="current-password" placeholder="Password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} className={inputClass} required aria-label="Password" />
+          <button type="submit" disabled={busy !== null} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-60">
+            {busy === 'email' ? 'Salvataggio…' : 'Aggiorna email'}
+          </button>
+        </form>
+      </Card>
+
+      <Card title="Dispositivi" description="Se hai effettuato l'accesso su un dispositivo che non usi più, puoi disconnetterlo.">
+        <button onClick={logoutOtherDevices} disabled={busy !== null} className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl disabled:opacity-60">
+          {busy === 'sessions' ? 'Disconnessione…' : 'Esci da tutti gli altri dispositivi'}
+        </button>
+      </Card>
+    </>
+  );
+};
+
+const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
+  const { showToast } = useToast();
+  const { updateProfile } = useAuth();
+  const [readReceipts, setReadReceipts] = useState(user.readReceipts !== false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const toggleReadReceipts = async () => {
+    const next = !readReceipts;
+    setReadReceipts(next);
+    try {
+      await updateProfile({ readReceipts: next });
+    } catch {
+      setReadReceipts(!next);
+      showToast('Impostazione non salvata.', 'error');
+    }
+  };
+
+  const exportData = async () => {
+    setIsExporting(true);
+    try {
+      const data = await databaseService.exportMyData(user.$id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swimin-dati-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('exportMyData:', error);
+      showToast('Esportazione non riuscita.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <>
+      <Card title="Conferme di lettura" description="Se attive, chi ti scrive vede quando hai letto i suoi messaggi (spunte blu).">
+        <button
+          role="switch"
+          aria-checked={readReceipts}
+          onClick={toggleReadReceipts}
+          className={`relative inline-flex h-7 w-12 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${readReceipts ? 'bg-blue-600' : 'bg-slate-300'}`}
+        >
+          <span className="sr-only">Conferme di lettura</span>
+          <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${readReceipts ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+      </Card>
+
+      <Card title="Scarica i tuoi dati" description="Un file con il tuo profilo, i tuoi post, commenti, candidature e collegamenti (diritto alla portabilità, art. 20 GDPR).">
+        <button onClick={exportData} disabled={isExporting} className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl disabled:opacity-60 inline-flex items-center gap-2">
+          <Icon type="document" className="w-4 h-4" /> {isExporting ? 'Preparazione…' : 'Scarica (JSON)'}
+        </button>
+      </Card>
+
+      <Card title="Come trattiamo i tuoi dati">
+        <p className="text-sm text-slate-600">
+          Leggi la <Link to="/privacy" className="text-blue-600 font-semibold hover:underline">Privacy Policy</Link> e la{' '}
+          <Link to="/cookie" className="text-blue-600 font-semibold hover:underline">Cookie Policy</Link>.
+        </p>
+      </Card>
+    </>
+  );
+};
+
+const AboutTab: React.FC<{ onLogout?: () => void }> = ({ onLogout }) => (
+  <>
+    <Card title="SwimIn" description={`Il network professionale del nuoto · versione ${APP_CONFIG.version}`}>
+      <div className="space-y-2">
+        {[
+          { to: '/termini', label: 'Termini di servizio' },
+          { to: '/privacy', label: 'Privacy Policy' },
+          { to: '/cookie', label: 'Cookie Policy' },
+        ].map((item) => (
+          <Link key={item.to} to={item.to} className="w-full flex items-center justify-between p-3.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors font-semibold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+            {item.label}
+            <Icon type="chevron-right" className="w-4 h-4 text-slate-400" />
+          </Link>
+        ))}
+      </div>
+    </Card>
+    {onLogout && (
+      <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+        <Icon type="logout" className="w-5 h-5" /> Esci dall'account
+      </button>
+    )}
+  </>
+);
+
+const CONFIRM_WORD = 'ELIMINA';
+
+const DeleteAccountCard: React.FC = () => {
+  const { showToast } = useToast();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await databaseService.deleteAccount(typed);
+      showToast('Il tuo account è stato eliminato. Ci mancherai!', 'info');
+      await logout().catch(() => undefined); // la sessione è già invalidata dalla cancellazione
+      navigate('/login', { replace: true });
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Eliminazione non riuscita.', 'error');
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <Card tone="danger" title="Elimina account" description="Elimina definitivamente il profilo, i post, i commenti, le candidature e i collegamenti. L'operazione non è reversibile.">
+      {!isOpen ? (
+        <button onClick={() => setIsOpen(true)} className="px-4 py-2 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-600 hover:text-white rounded-xl transition">
+          Elimina il mio account
+        </button>
+      ) : (
+        <div className="space-y-3 max-w-sm">
+          <label htmlFor="confirm-delete" className="block text-sm text-slate-700">
+            Per confermare scrivi <strong>{CONFIRM_WORD}</strong>
+          </label>
+          <input id="confirm-delete" value={typed} onChange={(e) => setTyped(e.target.value)} className={inputClass} autoComplete="off" disabled={isDeleting} />
+          <div className="flex gap-2">
+            <button onClick={() => { setIsOpen(false); setTyped(''); }} disabled={isDeleting} className="px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl">
+              Annulla
+            </button>
+            <button onClick={confirmDelete} disabled={typed !== CONFIRM_WORD || isDeleting} className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl disabled:opacity-50">
+              {isDeleting ? 'Eliminazione…' : 'Elimina definitivamente'}
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };

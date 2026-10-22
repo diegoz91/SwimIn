@@ -178,6 +178,16 @@ const schema = [
         indexes: [idx('by_user_read', ['userId', 'isRead'])],
     },
     {
+        // Segnalazioni di contenuti: scritte solo dalla Function, lette solo dalla Console.
+        id: 'reports', name: 'Reports', permissions: SERVER_ONLY,
+        attributes: [
+            str('reporterId', 36, { required: true }), str('targetType', 50, { required: true }),
+            str('targetId', 36, { required: true }), str('reason', 50, { required: true }),
+            str('details', 1000), str('status', 50, { required: true }),
+        ],
+        indexes: [idx('by_reporter_target', ['reporterId', 'targetId']), idx('by_status', ['status'])],
+    },
+    {
         id: 'live_rooms', name: 'Live Rooms', permissions: READ_CREATE,
         attributes: [
             str('title', 255, { required: true }), str('description', 1000), str('hostId', 36, { required: true }),
@@ -318,7 +328,8 @@ async function deployFunction() {
         timeout: 15,
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',
-        scopes: ['databases.read', 'tables.read', 'rows.read', 'rows.write'],
+        // users.write: eliminazione account; files.write: pulizia dei file dell'account eliminato.
+        scopes: ['databases.read', 'tables.read', 'rows.read', 'rows.write', 'users.read', 'users.write', 'files.read', 'files.write'],
         logging: true,
         enabled: true,
     };
