@@ -37,7 +37,8 @@ const Onboarding: React.FC = () => {
     const { showToast } = useToast();
     const navigate = useNavigate();
     const isProfessional = user?.userType === 'professional';
-    const u = user as (UserProfile & StructureProfile) | null;
+    // Campi di entrambi i tipi di profilo, letti in modo tollerante.
+    const u = user as (Partial<Omit<UserProfile, 'userType'>> & Partial<Omit<StructureProfile, 'userType'>> & { userType?: string }) | null;
 
     const [step, setStep] = useState(0);
     const [saving, setSaving] = useState(false);
@@ -129,7 +130,7 @@ const Onboarding: React.FC = () => {
                             </h1>
                             <div className="flex items-center gap-4">
                                 <div className="relative">
-                                    <img src={avatarOf(u)} alt="" className="w-20 h-20 rounded-full object-cover border border-slate-200" />
+                                    <img src={avatarOf(user)} alt="" className="w-20 h-20 rounded-full object-cover border border-slate-200" />
                                     <ImageUploadButton
                                         kind="avatar"
                                         currentUrl={isProfessional ? u.avatar : u.logo}
