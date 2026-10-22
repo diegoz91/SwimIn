@@ -12,6 +12,7 @@ import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
+import { ConnectButton } from '@/components/common/ConnectButton';
 import { initialsAvatar } from '@/utils/avatar';
 
 interface ProfileViewProps {
@@ -345,7 +346,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {isProfessional && (
+      {isProfessional && isOwnProfile && (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 relative overflow-hidden" data-html2canvas-ignore="true">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 relative z-10">
                 <div>
@@ -476,11 +477,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       </button>
                       <button 
                           onClick={() => onContact(user.userId || user.$id)} 
-                          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                          className="px-5 py-2.5 bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 font-semibold rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
                           data-html2canvas-ignore="true"
                       >
-                          <Icon type="chat-bubble" className="w-4 h-4" /> Contatta
+                          <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                       </button>
+                      <ConnectButton profileId={user.userId || user.$id} />
                     </div>
                   )}
               </div>

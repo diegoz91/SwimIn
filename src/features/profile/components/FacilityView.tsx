@@ -7,6 +7,7 @@ import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
+import { ConnectButton } from '@/components/common/ConnectButton';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 
@@ -338,9 +339,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                         {/* Fallback per Profili Struttura Legacy Phase 1 */}
                         {!isAdmin && isLegacyStructure && (
-                            <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                                Contatta
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="py-2.5 px-5 rounded-full font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                                    <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
+                                </button>
+                                <ConnectButton profileId={facilityId} />
+                            </div>
                         )}
                     </div>
                     

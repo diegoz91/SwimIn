@@ -36,6 +36,11 @@ const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_moc
 
 type Profile = UserProfile | StructureProfile;
 
+export type ConnectionStatus =
+    | { state: 'none' }
+    | { state: 'sent' }
+    | { state: 'received'; connectionId: string }
+    | { state: 'connected' };
 export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility';
 export type ReportReason = 'spam' | 'molestie' | 'contenuto_inappropriato' | 'falso_profilo' | 'offerta_ingannevole' | 'altro';
 
@@ -465,6 +470,25 @@ export const databaseService = {
 
     async acceptConnectionRequest(connectionId: string, _senderId?: string, _receiverId?: string) {
         return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: true });
+    },
+
+    /** Stato del collegamento tra l'utente corrente e un altro profilo. */
+    async getConnectionStatus(me: { $id: string; connections?: string[] }, otherId: string): Promise<ConnectionStatus> {
+        if ((me.connections || []).includes(otherId)) return { state: 'connected' };
+        try {
+            const res = await databases.listDocuments<Connection>(databaseId, collections.connections, [
+                Query.equal('senderId', [me.$id, otherId]),
+                Query.equal('receiverId', [me.$id, otherId]),
+                Query.equal('status', 'pending'),
+                Query.limit(1),
+            ]);
+            const req = res.documents[0];
+            if (!req) return { state: 'none' };
+            return req.senderId === me.$id ? { state: 'sent' } : { state: 'received', connectionId: req.$id };
+        } catch (error) {
+            console.warn('Stato collegamento non disponibile:', error);
+            return { state: 'none' };
+        }
     },
 
     async rejectConnectionRequest(connectionId: string) {
