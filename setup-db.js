@@ -68,7 +68,7 @@ const schema = [
             str('email', 255, { required: true }),
             str('firstName', 255), str('lastName', 255), str('structureName', 255),
             str('title', 255), str('structureType', 255), str('bio', 2500),
-            str('avatar', 2048), str('logo', 2048), str('city', 255), str('province', 10),
+            str('avatar', 2048), str('logo', 2048), str('cover', 2048), str('city', 255), str('province', 10),
             str('typingTo', 36), bool('readReceipts', { default: true }),
             str('experienceList', 2500, { array: true }), str('certificationsList', 2500, { array: true }),
             str('connections', 36, { array: true }),
@@ -85,6 +85,7 @@ const schema = [
             str('content', 4000, { required: true }), str('postType', 50, { required: true }),
             str('visibility', 50, { required: true }), str('category', 100),
             str('media', 1000, { array: true }), // ogni elemento: JSON {type,url,alt}
+            str('editedAt', 100), // data dell'ultima modifica del testo (non dei contatori)
             int('likesCount', { default: 0 }), int('commentsCount', { default: 0 }),
         ],
         indexes: [idx('by_author', ['authorId'])],

@@ -8,7 +8,7 @@ import { useToast } from '@/context/ToastContext';
 interface CreatePostModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreatePost: (content: string, media: Media[], category: string) => Promise<void> | void;
+    onCreatePost: (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null) => Promise<void> | void;
     user: UserProfile | StructureProfile;
     initialMediaType?: 'photo' | 'video' | 'video-analysis' | null;
 }
@@ -30,6 +30,22 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const [mediaType, setMediaType] = useState<'photo' | 'video' | 'video-analysis' | null>(initialMediaType || null);
     const [selectedCategory, setSelectedCategory] = useState('generale');
     const [uploading, setUploading] = useState(false);
+    const [videoFile, setVideoFile] = useState<{ file: File; preview: string } | null>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+    const isVideoMode = mediaType === 'video' || mediaType === 'video-analysis';
+
+    useEffect(() => () => { if (videoFile) URL.revokeObjectURL(videoFile.preview); }, [videoFile]);
+
+    const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > 50 * 1024 * 1024) {
+            showToast('Video troppo grande: il limite è 50 MB.', 'error');
+            return;
+        }
+        setVideoFile({ file, preview: URL.createObjectURL(file) });
+    };
     
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const { showToast } = useToast();
@@ -44,7 +60,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName || 'U')}&background=eff6ff&color=1d4ed8`;
 
     const handleSafeClose = () => {
-        if (content.trim() !== '' || mediaFiles.length > 0) {
+        if (content.trim() !== '' || mediaFiles.length > 0 || videoFile) {
             if (window.confirm("Hai un post in sospeso. Sei sicuro di voler annullare?")) onClose();
         } else {
             onClose();
@@ -52,28 +68,36 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     };
 
     const handleCreatePost = async () => {
-        if (!content.trim() && mediaFiles.length === 0) return;
+        if (!content.trim() && mediaFiles.length === 0 && !videoFile) return;
+        if (mediaType === 'video-analysis' && !videoFile) {
+            showToast('Per una video-analisi carica un video.', 'error');
+            return;
+        }
         setUploading(true);
         try {
             let uploadedMedia: Media[] = [];
-            if (mediaFiles.length > 0) {
+            if (isVideoMode && videoFile) {
+                const url = await storageService.uploadPostMedia(videoFile.file);
+                uploadedMedia = [{ type: 'video', url }];
+            } else if (mediaFiles.length > 0) {
                 const uploadPromises = mediaFiles.map(async (mediaFile) => {
                     const uploadedUrl = await storageService.uploadPostMedia(mediaFile.file);
                     return { type: 'image' as const, url: uploadedUrl, alt: mediaFile.alt };
                 });
                 uploadedMedia = await Promise.all(uploadPromises);
             }
-            await onCreatePost(content.trim(), uploadedMedia, selectedCategory);
+            await onCreatePost(content.trim(), uploadedMedia, selectedCategory, mediaType);
             showToast('Post pubblicato con successo!', 'success');
         } catch (error) {
-            showToast("Errore durante la pubblicazione.", "error");
+            console.error('Pubblicazione post:', error);
+            showToast(error instanceof Error && error.message ? error.message : 'Errore durante la pubblicazione.', 'error');
         } finally {
             setUploading(false);
         }
     };
 
     if (!isOpen) return null;
-    const isPostButtonDisabled = (content.trim() === '' && mediaFiles.length === 0) || uploading;
+    const isPostButtonDisabled = (content.trim() === '' && mediaFiles.length === 0 && !videoFile) || uploading;
 
     return (
         <div className="fixed inset-0 bg-slate-900 bg-opacity-75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200" onClick={handleSafeClose}>
@@ -111,7 +135,37 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         placeholder="Condividi un pensiero, un traguardo o una novità..."
                         className="w-full border-none focus:ring-0 text-lg sm:text-xl p-0 text-slate-800 placeholder-slate-400 resize-none outline-none min-h-[120px] bg-transparent"
                         disabled={uploading}
+                        maxLength={4000}
+                        aria-label="Testo del post"
                     />
+                    {content.length > 3500 && (
+                        <p className="text-right text-xs text-slate-400">{content.length}/4000</p>
+                    )}
+
+                    {isVideoMode && (
+                        <div className="mt-4 animate-in fade-in duration-300">
+                            {mediaType === 'video-analysis' && (
+                                <p className="text-sm text-purple-700 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 mb-3">
+                                    <strong>Video-analisi:</strong> chi commenta potrà fermare il video e lasciare osservazioni legate a un istante preciso.
+                                </p>
+                            )}
+                            <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleVideoChange} />
+                            {videoFile ? (
+                                <div className="relative rounded-xl overflow-hidden bg-black">
+                                    <video src={videoFile.preview} controls playsInline className="w-full max-h-80 object-contain" />
+                                    <button onClick={() => setVideoFile(null)} disabled={uploading} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-slate-700 hover:text-red-600" aria-label="Rimuovi video">
+                                        <Icon type="x" className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={() => videoInputRef.current?.click()} disabled={uploading} className="w-full border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 rounded-xl p-8 text-center transition">
+                                    <Icon type="video" className="w-10 h-10 mx-auto mb-2 text-blue-500" />
+                                    <span className="block font-semibold text-blue-700">Scegli un video</span>
+                                    <span className="block text-xs text-slate-500 mt-1">MP4, MOV o WebM · max 50 MB</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     {mediaType === 'photo' && (
                         <div className="mt-4 animate-in fade-in duration-300">
@@ -129,8 +183,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
                 <div className="p-4 border-t border-slate-100 mt-auto bg-white rounded-b-2xl flex justify-between items-center">
                      <div className="flex items-center space-x-1">
-                        <button onClick={() => setMediaType(mediaType === 'photo' ? null : 'photo')} disabled={uploading} className={`p-2.5 rounded-full ${mediaType === 'photo' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                        <button onClick={() => setMediaType(mediaType === 'photo' ? null : 'photo')} disabled={uploading} aria-label="Aggiungi foto" title="Foto" className={`p-2.5 rounded-full ${mediaType === 'photo' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
                             <Icon type="photo" className="w-6 h-6"/>
+                        </button>
+                        <button onClick={() => setMediaType(mediaType === 'video' ? null : 'video')} disabled={uploading} aria-label="Aggiungi video" title="Video" className={`p-2.5 rounded-full ${mediaType === 'video' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                            <Icon type="video" className="w-6 h-6"/>
+                        </button>
+                        <button onClick={() => setMediaType(mediaType === 'video-analysis' ? null : 'video-analysis')} disabled={uploading} aria-label="Video-analisi tecnica" title="Video-analisi tecnica" className={`p-2.5 rounded-full ${mediaType === 'video-analysis' ? 'bg-purple-50 text-purple-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                            <Icon type="camera" className="w-6 h-6"/>
                         </button>
                      </div>
                      <button onClick={handleCreatePost} disabled={isPostButtonDisabled} className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 disabled:opacity-50">

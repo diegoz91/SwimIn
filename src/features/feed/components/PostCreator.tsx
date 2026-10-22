@@ -25,11 +25,11 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         setIsModalOpen(true);
     };
 
-    const handleCreatePost = async (content: string, media: Media[], category: string) => {
+    const handleCreatePost = async (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null) => {
         const finalContent = content.trim();
 
         let pType: Post['postType'] = 'text';
-        if (initialMediaType === 'video-analysis') {
+        if (mode === 'video-analysis' && media.length > 0) {
             pType = 'video-analysis';
         } else if (media.length > 0) {
             pType = media.some(m => m.type === 'video') ? 'video' : 'image';

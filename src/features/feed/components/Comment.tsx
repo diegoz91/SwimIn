@@ -18,14 +18,18 @@ interface CommentProps {
     onSelectProfile: (userId: string) => void;
     onReply?: (commentId: string, authorName: string) => void;
     onLike?: (commentId: string) => void;
+    /** Restituisce l'azione di eliminazione se l'utente può eliminare il commento. */
+    onDelete?: (comment: EnrichedComment) => (() => void) | undefined;
 }
 
 export const Comment: React.FC<CommentProps> = ({ 
     comment, 
     onSelectProfile,
     onReply,
-    onLike 
+    onLike,
+    onDelete,
 }) => {
+    const deleteAction = onDelete?.(comment);
     let authorName = 'Utente Sconosciuto';
     let authorSubtitle = '';
     let avatarUrl = '';
@@ -106,6 +110,14 @@ export const Comment: React.FC<CommentProps> = ({
                     <span className="text-slate-400" title={new Date(comment.createdAt).toLocaleString('it-IT')}>
                         {formatTimeAgo(comment.createdAt)}
                     </span>
+                    {deleteAction && (
+                        <button
+                            onClick={deleteAction}
+                            className="font-semibold text-slate-400 hover:text-red-600 transition-colors outline-none focus-visible:text-red-600"
+                        >
+                            Elimina
+                        </button>
+                    )}
                 </div>
 
                 {comment.replies && comment.replies.length > 0 && (
@@ -117,6 +129,7 @@ export const Comment: React.FC<CommentProps> = ({
                                 onSelectProfile={onSelectProfile} 
                                 onReply={onReply}
                                 onLike={onLike}
+                                onDelete={onDelete}
                             />
                         ))}
                     </div>

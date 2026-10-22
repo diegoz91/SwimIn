@@ -1,5 +1,7 @@
 import { ExecutionMethod, ID, Permission, Query, Role } from 'appwrite';
 import { databases, functions } from '@/services/appwrite';
+import { storageService } from '@/services/storage';
+import { getPostContent } from '@/utils/postMedia';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import type { 
     UserProfile, 
@@ -203,7 +205,7 @@ export const databaseService = {
             Query.limit(limit),
             Query.offset(offset),
         ]);
-        const posts: EnrichedPost[] = response.documents;
+        const posts: EnrichedPost[] = await this.withLikedByMe(response.documents, currentUserId);
         if (offset > 0 || !hasNetwork) return posts;
 
         try {
@@ -227,7 +229,8 @@ export const databaseService = {
             const recommenders = await this.getConnectionsProfiles(recommenderIds);
             const nameById = new Map(recommenders.map(p => [p.$id, profileDisplayName(p)]));
 
-            const recommended: EnrichedPost[] = recommendedRes.documents
+            const recommendedWithLikes = await this.withLikedByMe(recommendedRes.documents, currentUserId);
+            const recommended: EnrichedPost[] = recommendedWithLikes
                 .filter(p => !authors.includes(p.authorId))
                 .map(p => {
                     const by = likeByPost.get(p.$id)!.userId;
@@ -240,6 +243,46 @@ export const databaseService = {
             console.warn('Post consigliati non disponibili:', error);
             return posts;
         }
+    },
+
+    /** Aggiunge `likedByMe` ai post con una sola query sui like dell'utente. */
+    async withLikedByMe(posts: Post[], userId: string): Promise<EnrichedPost[]> {
+        if (posts.length === 0) return posts;
+        try {
+            const res = await databases.listDocuments<Like>(databaseId, collections.likes, [
+                Query.equal('userId', userId),
+                Query.equal('postId', posts.map(p => p.$id).slice(0, 100)),
+                Query.limit(100),
+            ]);
+            const liked = new Set(res.documents.map(l => l.postId));
+            return posts.map(p => ({ ...p, likedByMe: liked.has(p.$id) }));
+        } catch (error) {
+            console.warn('Stato dei like non disponibile:', error);
+            return posts;
+        }
+    },
+
+    async getPost(postId: string, currentUserId?: string): Promise<EnrichedPost> {
+        const post = await databases.getDocument<Post>(databaseId, collections.posts, postId);
+        if (!currentUserId) return post;
+        const [enriched] = await this.withLikedByMe([post], currentUserId);
+        return enriched;
+    },
+
+    /** Modifica il testo di un proprio post (permesso di update del proprietario). */
+    async updatePost(postId: string, data: Pick<Post, 'content'> & Partial<Pick<Post, 'category'>>) {
+        return await databases.updateDocument<Post>(databaseId, collections.posts, postId, { ...data, editedAt: new Date().toISOString() });
+    },
+
+    /** Elimina un proprio post: prima i file caricati, poi post, like e commenti (Function). */
+    async deletePost(post: Post) {
+        const { media } = getPostContent(post);
+        await callApi('deletePost', { postId: post.$id });
+        await Promise.all(media.map(m => storageService.deleteByUrl(m.url)));
+    },
+
+    async deleteComment(commentId: string) {
+        return await callApi('deleteComment', { commentId });
     },
 
     /** Restituisce se ora il post è consigliato e il numero aggiornato di like. */

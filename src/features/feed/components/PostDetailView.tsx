@@ -12,10 +12,15 @@ interface PostDetailViewProps {
     post: EnrichedPost;
     onBack: () => void;
     onSelectProfile: (id: string) => void;
+    backLabel?: string;
+    onDeleted?: (postId: string) => void;
+    onUpdated?: (post: EnrichedPost) => void;
 }
 
-export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, onSelectProfile }) => {
+export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPost, onBack, onSelectProfile, backLabel = 'Torna al feed', onDeleted, onUpdated }) => {
     const { user } = useAuth();
+    const [post, setPost] = useState(initialPost);
+    useEffect(() => setPost(initialPost), [initialPost]);
     const { showToast } = useToast();
     const [comments, setComments] = useState<EnrichedComment[]>([]);
     const [newCommentText, setNewCommentText] = useState('');
@@ -67,6 +72,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, on
                 : newCommentText.trim();
 
             await databaseService.createComment(post.$id, user.$id, finalContent);
+            setPost((p) => ({ ...p, commentsCount: (p.commentsCount || 0) + 1 }));
             
             setNewCommentText('');
             setSelectedTimestamp(null);
@@ -78,6 +84,22 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, on
             setIsSubmitting(false);
         }
     };
+
+    /** Può eliminare: l'autore del commento o l'autore del post. */
+    const canDeleteComment = (comment: EnrichedComment) =>
+        !!user && (comment.authorId === user.$id || post.authorId === user.$id)
+            ? async () => {
+                if (!window.confirm('Eliminare questo commento?')) return;
+                try {
+                    await databaseService.deleteComment(comment.$id);
+                    showToast('Commento eliminato.', 'info');
+                    await loadComments();
+                    setPost((p) => ({ ...p, commentsCount: Math.max(0, (p.commentsCount || 0) - 1 - (comment.replies?.length || 0)) }));
+                } catch (error) {
+                    showToast(error instanceof Error ? error.message : 'Eliminazione non riuscita.', 'error');
+                }
+            }
+            : undefined;
 
     const currentUserAvatar = user 
         ? (user.userType === 'professional' ? user.avatar : user.logo) || 
@@ -92,11 +114,15 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, on
                     className="inline-flex items-center text-slate-600 hover:text-blue-600 font-bold bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                     <Icon type="arrow-left" className="w-5 h-5 mr-2" />
-                    Torna al feed
+                    {backLabel}
                 </button>
             </div>
 
-            <PostCard post={postForCard} /> 
+            <PostCard
+                post={postForCard}
+                onDeleted={onDeleted}
+                onUpdated={(updated) => { setPost(updated); onUpdated?.(updated); }}
+            />
 
             {/* PLAYER VIDEO-ANALISI */}
             {isVideoAnalysis && videoMedia && (
@@ -211,7 +237,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, on
                                                 </button>
                                             </div>
                                         )}
-                                        <Comment comment={displayComment} onSelectProfile={onSelectProfile} />
+                                        <Comment comment={displayComment} onSelectProfile={onSelectProfile} onDelete={canDeleteComment} />
                                     </div>
                                 );
                             })}

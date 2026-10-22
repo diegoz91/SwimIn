@@ -8,7 +8,6 @@ import { APPWRITE_CONFIG } from '@/config/constants';
 import { Query } from 'appwrite';
 import { PostCreator } from '@/features/feed/components/PostCreator';
 import { PostCard } from '@/features/feed/components/PostCard';
-import { PostDetailView } from '@/features/feed/components/PostDetailView';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import type { EnrichedPost, Job, Application } from '@/types/types';
@@ -27,7 +26,6 @@ const Home: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const [selectedPost, setSelectedPost] = useState<EnrichedPost | null>(null);
     
     const [latestJobs, setLatestJobs] = useState<Job[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
@@ -114,18 +112,6 @@ const Home: React.FC = () => {
 
     if (!authenticated || !user) return null;
 
-    if (selectedPost) {
-        return (
-            <div className="max-w-3xl mx-auto w-full pt-4 animate-in slide-in-from-right-8 duration-300">
-                <PostDetailView 
-                    post={selectedPost} 
-                    onBack={() => setSelectedPost(null)} 
-                    onSelectProfile={(id) => navigate(`/profile/${id}`)}
-                />
-            </div>
-        );
-    }
-
     return (
         <div className="w-full pt-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
             
@@ -170,7 +156,13 @@ const Home: React.FC = () => {
                     ) : posts.length > 0 ? (
                         <>
                             {posts.map(post => (
-                                <PostCard key={post.$id} post={post} onSelectPost={setSelectedPost} />
+                                <PostCard
+                                    key={post.$id}
+                                    post={post}
+                                    onSelectPost={(p) => navigate(`/post/${p.$id}`, { state: { post: p } })}
+                                    onDeleted={(id) => setPosts((prev) => prev.filter((x) => x.$id !== id))}
+                                    onUpdated={(updated) => setPosts((prev) => prev.map((x) => (x.$id === updated.$id ? updated : x)))}
+                                />
                             ))}
                             {hasMore && (
                                 <button 

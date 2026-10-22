@@ -1,79 +1,99 @@
 import { ID } from 'appwrite';
 import { storage } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
+import { compressImage } from '@/utils/image';
+
+const MB = 1024 * 1024;
+const IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+
+/** Dimensioni massime (lato lungo, px) per tipo di immagine. */
+export const IMAGE_SIZES = {
+  avatar: 800,
+  cover: 1920,
+  post: 2048,
+} as const;
+
+export type ImageKind = keyof typeof IMAGE_SIZES;
 
 class StorageService {
-  private storage = storage;
   private buckets = APPWRITE_CONFIG.buckets;
 
-  // ==================== AVATAR & LOGO UPLOAD ====================\
-  async uploadAvatar(file: File, userId: string): Promise<string> {
-    try {
-      this.validateImageFile(file, 5); // Max 5MB
-      
-      const fileId = ID.unique();
-      const uploadResult = await this.storage.createFile(this.buckets.avatars, fileId, file);
-      
-      return this.storage.getFileView(this.buckets.avatars, uploadResult.$id).toString();
-    } catch (error) {
-      console.error('StorageService - uploadAvatar Error:', error);
-      throw error;
-    }
+  /**
+   * Carica un'immagine del profilo (avatar, logo o copertina) dopo averla
+   * ridimensionata. Il file è leggibile da tutti e modificabile solo da chi
+   * lo ha caricato (permessi predefiniti di Appwrite per il creatore).
+   */
+  async uploadProfileImage(file: File, kind: Exclude<ImageKind, 'post'> = 'avatar'): Promise<string> {
+    this.validateImageFile(file, 15);
+    const compressed = await compressImage(file, { maxSize: IMAGE_SIZES[kind] });
+    const uploaded = await storage.createFile(this.buckets.avatars, ID.unique(), compressed);
+    return this.viewUrl(this.buckets.avatars, uploaded.$id);
   }
 
-  // ==================== POST MEDIA UPLOAD ====================\
+  /** @deprecated usa uploadProfileImage */
+  async uploadAvatar(file: File, _userId?: string): Promise<string> {
+    return this.uploadProfileImage(file, 'avatar');
+  }
+
+  /** Carica foto o video di un post. Le foto vengono ridimensionate. */
   async uploadPostMedia(file: File): Promise<string> {
-    try {
-      if (file.type.startsWith('image/')) {
-        this.validateImageFile(file, 10); // Max 10MB per foto nei post
-      } else if (file.type.startsWith('video/')) {
-        this.validateVideoFile(file, 50); // Max 50MB per video nei post
-      } else {
-        throw new Error('Tipo di file non supportato. Puoi caricare solo immagini o video.');
-      }
+    let toUpload = file;
+    if (file.type.startsWith('image/')) {
+      this.validateImageFile(file, 20);
+      toUpload = await compressImage(file, { maxSize: IMAGE_SIZES.post });
+    } else if (file.type.startsWith('video/')) {
+      this.validateVideoFile(file, 50);
+    } else {
+      throw new Error('Tipo di file non supportato. Puoi caricare solo immagini o video.');
+    }
+    const uploaded = await storage.createFile(this.buckets.postMedia, ID.unique(), toUpload);
+    return this.viewUrl(this.buckets.postMedia, uploaded.$id);
+  }
 
-      const fileId = ID.unique();
-      const uploadResult = await this.storage.createFile(this.buckets.postMedia, fileId, file);
-      
-      return this.storage.getFileView(this.buckets.postMedia, uploadResult.$id).toString();
+  /**
+   * Elimina un file a partire dal suo URL pubblico, se appartiene al nostro
+   * storage. Errori ignorati (file già eliminato o di un altro utente): la
+   * pulizia non deve bloccare l'azione principale.
+   */
+  async deleteByUrl(url?: string | null): Promise<void> {
+    const ref = parseFileUrl(url);
+    if (!ref) return;
+    try {
+      await storage.deleteFile(ref.bucketId, ref.fileId);
     } catch (error) {
-      console.error('StorageService - uploadPostMedia Error:', error);
-      throw error;
+      console.warn('File non eliminato:', ref, error);
     }
   }
 
-  // ==================== FILE MANAGEMENT ====================\
-  async deleteFile(bucketId: string, fileId: string): Promise<void> {
-    try {
-      await this.storage.deleteFile(bucketId, fileId);
-    } catch (error) {
-      console.error('StorageService - deleteFile Error:', error);
-      throw error;
-    }
+  private viewUrl(bucketId: string, fileId: string): string {
+    return storage.getFileView(bucketId, fileId).toString();
   }
 
-  // ==================== VALIDATION HELPERS ====================\
-  private validateImageFile(file: File, maxSizeMB: number): boolean {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+  private validateImageFile(file: File, maxSizeMB: number) {
+    if (!IMAGE_TYPES.includes(file.type)) {
       throw new Error('Formato immagine non supportato. Usa JPG, PNG o WebP.');
     }
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      throw new Error(`Immagine troppo grande. La dimensione massima consentita è ${maxSizeMB}MB.`);
+    if (file.size > maxSizeMB * MB) {
+      throw new Error(`Immagine troppo grande. Il limite è ${maxSizeMB} MB.`);
     }
-    return true;
   }
 
-  private validateVideoFile(file: File, maxSizeMB: number): boolean {
-    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Formato video non supportato. Usa MP4, MOV, AVI o WebM.');
+  private validateVideoFile(file: File, maxSizeMB: number) {
+    if (!VIDEO_TYPES.includes(file.type)) {
+      throw new Error('Formato video non supportato. Usa MP4, MOV o WebM.');
     }
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      throw new Error(`Video troppo grande. La dimensione massima consentita è ${maxSizeMB}MB.`);
+    if (file.size > maxSizeMB * MB) {
+      throw new Error(`Video troppo grande. Il limite è ${maxSizeMB} MB.`);
     }
-    return true;
   }
+}
+
+/** Estrae bucket e file da un URL del tipo …/storage/buckets/{bucket}/files/{file}/view… */
+export function parseFileUrl(url?: string | null): { bucketId: string; fileId: string } | null {
+  if (!url || !APPWRITE_CONFIG.endpoint || !url.startsWith(APPWRITE_CONFIG.endpoint)) return null;
+  const match = url.match(/\/storage\/buckets\/([^/]+)\/files\/([^/?]+)/);
+  return match ? { bucketId: match[1], fileId: match[2] } : null;
 }
 
 export const storageService = new StorageService();
