@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 import { displayNameOf } from '@/utils/profile';
+import { useSaved } from '@/context/SavedContext';
 
 interface JobDetailViewProps {
   job: Job;
@@ -61,6 +62,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { isSaved, toggle: toggleSaved } = useSaved();
     const navigate = useNavigate();
   
     const [localJob, setLocalJob] = useState<Job>(job);
@@ -325,29 +327,39 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* BOTTONE AZIONE (Bottom Nav per Mobile) */}
             {!isAdmin && (
-                <div className="fixed md:absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 md:border-none md:bg-slate-50 md:p-6 z-20" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <div className="fixed md:absolute bottom-16 md:bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 md:border-none md:bg-slate-50 md:p-6 z-30 flex gap-3">
+                    <button
+                        onClick={() => toggleSaved('job', localJob.$id)}
+                        aria-pressed={isSaved('job', localJob.$id)}
+                        aria-label={isSaved('job', localJob.$id) ? 'Rimuovi dai salvati' : 'Salva offerta'}
+                        className="flex-shrink-0 w-14 rounded-2xl border border-slate-200 bg-white text-corsia-700 hover:bg-piastrella flex items-center justify-center"
+                    >
+                        <Icon type="bookmark" className={`w-6 h-6 ${isSaved('job', localJob.$id) ? 'fill-corsia-200' : ''}`} />
+                    </button>
+                    <div className="flex-1">
                     {!localJob.isActive && !hasApplied ? (
                         <button 
                             disabled
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-slate-400 cursor-not-allowed opacity-90"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-slate-400 cursor-not-allowed opacity-90"
                         >
-                            <Icon type="lock-closed" className="w-5 h-5" /> POSIZIONE CHIUSA
+                            <Icon type="lock-closed" className="w-5 h-5" /> Posizione chiusa
                         </button>
                     ) : hasApplied ? (
                         <button 
                             disabled
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-green-600 cursor-not-allowed opacity-90"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-green-600 cursor-not-allowed opacity-90"
                         >
-                            <Icon type="check-double" className="w-6 h-6" /> GIÀ CANDIDATO
+                            <Icon type="check-double" className="w-6 h-6" /> Candidatura inviata
                         </button>
                     ) : (
                         <button 
                             onClick={() => onApply(localJob)} 
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-300"
                         >
-                            <Icon type="send" className="w-5 h-5" /> CANDIDATI ORA
+                            <Icon type="send" className="w-5 h-5" /> Candidati
                         </button>
                     )}
+                    </div>
                 </div>
             )}
 

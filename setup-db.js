@@ -53,6 +53,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const READ_CREATE = [Permission.read(Role.users()), Permission.create(Role.users())];
 const READ_ONLY = [Permission.read(Role.users())];
 const SERVER_ONLY = []; // lettura solo tramite permessi sul singolo documento
+const CREATE_ONLY = [Permission.create(Role.users())]; // ognuno legge solo le proprie righe
 
 const str = (key, size, opts = {}) => ({ type: 'string', key, size, ...opts });
 const int = (key, opts = {}) => ({ type: 'integer', key, ...opts });
@@ -179,6 +180,15 @@ const schema = [
             str('content', 255, { required: true }), str('relatedId', 36), bool('isRead', { default: false }),
         ],
         indexes: [idx('by_user_read', ['userId', 'isRead'])],
+    },
+    {
+        // Elementi salvati: privati, ogni riga è leggibile ed eliminabile solo da chi l'ha creata.
+        id: 'saves', name: 'Saves', permissions: CREATE_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('targetType', 20, { required: true }),
+            str('targetId', 36, { required: true }),
+        ],
+        indexes: [idx('by_user', ['userId'])],
     },
     {
         // Conferme di competenze tra collegamenti: scritte solo dalla Function.

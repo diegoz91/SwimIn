@@ -30,6 +30,7 @@ export interface AppwriteConfig {
         swim_meets?: string;
         endorsements: string;
         live_messages: string;
+        saves: string;
     };
     buckets: {
         avatars: string;
@@ -60,6 +61,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         swim_meets: 'swim_meets',
         endorsements: 'endorsements',
         live_messages: 'live_messages',
+        saves: 'saves',
     },
     buckets: {
         avatars: 'avatars',

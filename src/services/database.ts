@@ -23,6 +23,7 @@ import type {
     AppwriteDocument,
     Endorsement,
     LiveMessage,
+    SavedItem,
 } from '@/types/types';
 
 const { databaseId, collections } = APPWRITE_CONFIG;
@@ -238,6 +239,41 @@ export const databaseService = {
     /** Elimina definitivamente l'account e i dati collegati (lato server). */
     async deleteAccount(confirmation: string) {
         return await callApi<{ deleted: boolean }>('deleteAccount', { confirmation });
+    },
+
+    // ==========================================
+    // ELEMENTI SALVATI (privati)
+    // ==========================================
+    async getSavedItems(userId: string) {
+        const res = await databases.listDocuments<SavedItem>(databaseId, collections.saves, [
+            Query.equal('userId', userId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(500),
+        ]);
+        return res.documents;
+    },
+
+    async saveItem(userId: string, targetType: SavedItem['targetType'], targetId: string) {
+        return await databases.createDocument<SavedItem>(databaseId, collections.saves, ID.unique(), { userId, targetType, targetId }, [
+            Permission.read(Role.user(userId)),
+            Permission.delete(Role.user(userId)),
+        ]);
+    },
+
+    async unsaveItem(saveId: string) {
+        await databases.deleteDocument(databaseId, collections.saves, saveId);
+    },
+
+    async getPostsByIds(ids: string[], currentUserId: string) {
+        if (ids.length === 0) return [];
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [Query.equal('$id', ids.slice(0, 100)), Query.limit(100)]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+
+    async getJobsByIds(ids: string[]) {
+        if (ids.length === 0) return [] as Job[];
+        const res = await databases.listDocuments<Job>(databaseId, collections.jobs, [Query.equal('$id', ids.slice(0, 100)), Query.limit(100)]);
+        return res.documents;
     },
 
     // ==========================================

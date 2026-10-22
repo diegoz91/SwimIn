@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 // Providers
 import { ToastProvider } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { SavedProvider } from '@/context/SavedContext';
 
 // Layout & Common
 import Header from '@/components/layout/Header';
@@ -33,6 +34,7 @@ const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Search = lazy(() => import('@/pages/Search'));
+const Saved = lazy(() => import('@/pages/Saved'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -103,6 +105,7 @@ const AppContent: React.FC = () => {
               <Route path="/notifiche" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
               <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
@@ -126,7 +129,9 @@ export const App: React.FC = () => {
     <Router>
       <ToastProvider>
         <AuthProvider>
-          <AppContent />
+          <SavedProvider>
+            <AppContent />
+          </SavedProvider>
         </AuthProvider>
       </ToastProvider>
     </Router>

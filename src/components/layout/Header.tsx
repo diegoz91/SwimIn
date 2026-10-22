@@ -223,6 +223,9 @@ const Header: React.FC = () => {
                   <Link to="/profile?tab=impostazioni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
                   </Link>
+                  <Link to="/salvati" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                    <Icon type="bookmark" className="w-5 h-5 text-slate-400" /> Elementi salvati
+                  </Link>
                   <Link to="/notifiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="bell" className="w-5 h-5 text-slate-400" /> Notifiche
                   </Link>

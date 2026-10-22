@@ -83,6 +83,7 @@ const PRIVATE_PAGES = [
     ['live', '/live'],
     ['impostazioni', '/profile?tab=impostazioni'],
     ['benvenuto', '/benvenuto'],
+    ['salvati', '/salvati'],
 ];
 
 const VIEWPORTS = [
