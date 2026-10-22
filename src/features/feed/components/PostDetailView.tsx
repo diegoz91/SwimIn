@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { getPostContent } from '@/utils/postMedia';
 import { initialsAvatar } from '@/utils/avatar';
+import { displayNameOf } from '@/utils/profile';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -104,7 +105,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
     const currentUserAvatar = user 
         ? (user.userType === 'professional' ? user.avatar : user.logo) || 
-          initialsAvatar(user.firstName || user.structureName || 'User')
+          initialsAvatar(displayNameOf(user))
         : '';
 
     return (

@@ -10,6 +10,7 @@ import type { UserProfile, StructureProfile, Message } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
+import { displayNameOf } from '@/utils/profile';
 
 interface Conversation {
   conversationId: string;
@@ -182,13 +183,13 @@ export const GlobalChatWidget: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img 
-                src={user.avatar || user.logo || initialsAvatar(user.firstName || user.structureName || 'User')} 
+                src={user.avatar || user.logo || initialsAvatar(displayNameOf(user))} 
                 className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
                 alt="Me" 
             />
             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
-          <span className="font-bold text-slate-800 text-sm">Messaggistica</span>
+          <span className="font-bold text-slate-800 text-sm">Messaggi</span>
         </div>
         <div className="flex items-center gap-2 text-slate-500">
           {totalUnread > 0 && !isOpen && (

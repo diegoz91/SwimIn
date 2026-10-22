@@ -13,16 +13,16 @@ interface LavoroViewProps {
   onShowMyApplications: () => void;
 }
 
-const FilterPill: React.FC<{ label: string; icon: string; active?: boolean; onClick?: () => void }> = ({ label, icon, active, onClick }) => (
+const FilterPill: React.FC<{ label: string; active?: boolean; onClick?: () => void }> = ({ label, active, onClick }) => (
     <button 
         onClick={onClick}
+        aria-pressed={active}
         className={`flex-shrink-0 flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-full border transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${
             active 
-                ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50'
+                ? 'bg-abisso text-white border-abisso' 
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
         }`}
     >
-        <span>{icon}</span>
         <span>{label}</span>
     </button>
 );
@@ -163,11 +163,11 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
     useEffect(() => { loadJobs(); }, []);
 
     const filters = [
-        { label: 'Tutti', icon: '🌍' },
-        { label: 'Istruttore', icon: '🏊‍♂️' },
-        { label: 'Bagnino', icon: '🛟' },
-        { label: 'Allenatore', icon: '⏱️' },
-        { label: 'Reception', icon: '🖥️' }
+        { label: 'Tutti' },
+        { label: 'Istruttore' },
+        { label: 'Bagnino' },
+        { label: 'Allenatore' },
+        { label: 'Reception' },
     ];
 
     const contractTypes = useMemo(
@@ -271,8 +271,8 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 {filters.map(filter => (
                     <FilterPill 
                         key={filter.label} 
+ 
                         label={filter.label} 
-                        icon={filter.icon} 
                         active={activeFilter === filter.label}
                         onClick={() => setActiveFilter(filter.label)}
                     />

@@ -25,6 +25,7 @@ function applyQueries(rows, rawQueries) {
             out = out.filter((r) => q.values.includes(r[q.attribute]));
         }
         if (q.method === 'equal' && q.attribute === '$id') out = out.filter((r) => q.values.includes(r.$id));
+        if (q.method === 'notEqual' && q.attribute) out = out.filter((r) => !q.values.includes(r[q.attribute]));
         if (q.method === 'limit') out = out.slice(0, q.values[0]);
     }
     return out;
@@ -53,7 +54,7 @@ async function mockAppwrite(page, { loggedIn }) {
         }
         const list = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents$/);
         if (list && method === 'GET') {
-            const queries = url.searchParams.getAll('queries[]');
+            const queries = [...url.searchParams.entries()].filter(([k]) => k.startsWith('queries')).map(([, v]) => v);
             const rows = applyQueries(collections[list[1]] || [], queries);
             return json(route, { total: rows.length, documents: rows });
         }

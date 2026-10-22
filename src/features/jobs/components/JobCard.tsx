@@ -3,6 +3,7 @@ import type { Job, StructureProfile, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
+import { swimMatchScore } from '@/utils/swimMatch';
 
 interface JobCardProps {
     job: Job;
@@ -41,35 +42,6 @@ const capitalize = (str?: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-const getSwimMatchScore = (user: UserProfile, job: Job) => {
-    const reqs = job.requirements || [];
-    const quals = job.qualificationsRequired || [];
-    const totalReqs = [...reqs, ...quals];
-
-    if (totalReqs.length === 0) return null;
-
-    const userCerts = (user.certificationsList || []).map(c => {
-        try { const p = JSON.parse(c as string); return `${p.name} ${p.category} ${p.issuer}`.toLowerCase(); } 
-        catch { return String(c).toLowerCase(); }
-    });
-    const userExp = (user.experienceList || []).map(e => {
-        try { const p = JSON.parse(e as string); return `${p.role} ${p.description}`.toLowerCase(); } 
-        catch { return String(e).toLowerCase(); }
-    }).join(" ");
-
-    let metCount = 0;
-    totalReqs.forEach(req => {
-        const reqLower = req.toLowerCase();
-        let isMet = false;
-        if (userCerts.some(cert => cert.includes(reqLower) || reqLower.includes(cert))) isMet = true;
-        if (!isMet && (userExp.includes(reqLower) || reqLower.includes(userExp))) isMet = true;
-        if (!isMet && reqLower.includes('esperienz') && userExp.length > 5) isMet = true;
-        if (isMet) metCount++;
-    });
-
-    return Math.round((metCount / totalReqs.length) * 100);
-};
-
 export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, onApply }) => {
     const { user } = useAuth();
 
@@ -80,12 +52,14 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
     }, [structure, job.structureName]);
 
     // SwimMatch (Solo Professionisti)
-    const matchScore = user?.userType === 'professional' ? getSwimMatchScore(user as UserProfile, job) : null;
+    const rawScore = user?.userType === 'professional' ? swimMatchScore(user as UserProfile, job) : null;
+    // Mostriamo l'affinità solo quando c'è almeno un requisito soddisfatto.
+    const matchScore = rawScore && rawScore > 0 ? rawScore : null;
     
     const getMatchStyle = (score: number) => {
-        if (score >= 80) return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200';
-        if (score >= 50) return 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-amber-200';
-        return 'bg-gradient-to-r from-slate-400 to-slate-500 text-white shadow-slate-200';
+        if (score >= 80) return 'bg-cloro-500 text-white';
+        if (score >= 50) return 'bg-amber-400 text-abisso';
+        return 'bg-slate-200 text-slate-700';
     };
 
     return (
@@ -93,9 +67,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
             
             {/* BADGE SWIMMATCH PREDITTIVO */}
             {matchScore !== null && (
-                <div className={`absolute -top-3 -right-2 z-10 text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 ${getMatchStyle(matchScore)} animate-in zoom-in duration-300`}>
+                <div className={`absolute -top-3 -right-2 z-10 text-[11px] font-extrabold px-3 py-1 rounded-full shadow-card flex items-center gap-1 ${getMatchStyle(matchScore)} animate-in zoom-in duration-300`}>
                     <Icon type="sparkles" className="w-3 h-3" />
-                    SwimMatch {matchScore}%
+                    Affinità {matchScore}%
                 </div>
             )}
 
