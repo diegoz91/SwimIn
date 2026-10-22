@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx vite build
+        env:
+          # Valori fittizi: la build non contatta Appwrite.
+          VITE_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
+          VITE_APPWRITE_PROJECT_ID: ci-placeholder
