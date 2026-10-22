@@ -28,6 +28,7 @@ const C = {
   shifts: 'shifts',
   announcements: 'announcements',
   reports: 'reports',
+  endorsements: 'endorsements',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility'];
@@ -324,6 +325,31 @@ const createApi = (db, { users = null, storage = null } = {}) => {
       return { deleted: true };
     },
 
+    // ---------------- COMPETENZE ----------------
+    /**
+     * Conferma (o ritira la conferma di) una competenza di un collegamento,
+     * come gli endorsement di LinkedIn. Solo tra utenti collegati.
+     */
+    async toggleEndorsement(me, { profileId, skill }) {
+      profileId = requireString(profileId, 'profileId', 36);
+      skill = requireString(skill, 'skill', 60);
+      if (profileId === me) fail(400, 'Non puoi confermare le tue competenze.');
+      const [profile, endorser] = await Promise.all([get(C.profiles, profileId), get(C.profiles, me)]);
+      if (!(profile.skills || []).includes(skill)) fail(404, 'Competenza non presente nel profilo.');
+      if (!(endorser.connections || []).includes(profileId)) fail(403, 'Puoi confermare le competenze solo dei tuoi collegamenti.');
+
+      const existing = await list(C.endorsements, [
+        Query.equal('profileId', profileId), Query.equal('endorserId', me), Query.equal('skill', skill), Query.limit(5),
+      ]);
+      if (existing.total > 0) {
+        await Promise.all(existing.documents.map((e) => remove(C.endorsements, e.$id)));
+        return { endorsed: false };
+      }
+      await create(C.endorsements, { profileId, endorserId: me, skill }, [Permission.read(Role.users())]);
+      await notify(profileId, 'endorsement', `${displayName(endorser)} ha confermato la tua competenza "${skill}".`, me);
+      return { endorsed: true };
+    },
+
     // ---------------- NOTIFICHE ----------------
     async markAllNotificationsRead(me) {
       const unread = await listAll(C.notifications, [Query.equal('userId', me), Query.equal('isRead', false)]);
@@ -433,6 +459,8 @@ const createApi = (db, { users = null, storage = null } = {}) => {
       await removeAll(C.shifts, [Query.equal('structureId', me)]);
       await removeAll(C.announcements, [Query.equal('structureId', me)]);
       await removeAll(C.notifications, [Query.equal('userId', me)]);
+      await removeAll(C.endorsements, [Query.equal('profileId', me)]);
+      await removeAll(C.endorsements, [Query.equal('endorserId', me)]);
 
       if (profile) await remove(C.profiles, me);
       if (storage) {

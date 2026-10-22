@@ -28,6 +28,7 @@ export interface AppwriteConfig {
         notifications?: string;
         live_rooms?: string;
         swim_meets?: string;
+        endorsements: string;
     };
     buckets: {
         avatars: string;
@@ -55,7 +56,8 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         facilities: 'facilities',
         notifications: 'notifications',
         live_rooms: 'live_rooms',
-        swim_meets: 'swim_meets'
+        swim_meets: 'swim_meets',
+        endorsements: 'endorsements',
     },
     buckets: {
         avatars: 'avatars',

@@ -22,6 +22,8 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'briefcase', tone: 'bg-amber-100 text-amber-700', href: '/jobs' };
         case 'hired':
             return { icon: 'sparkles', tone: 'bg-green-100 text-green-600', href: n.relatedId ? `/profile/${n.relatedId}` : '/jobs' };
+        case 'endorsement':
+            return { icon: 'star', tone: 'bg-amber-100 text-amber-600', href: '/profile' };
         case 'rejected':
             return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: '/jobs' };
         default:
