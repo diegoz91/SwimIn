@@ -10,6 +10,7 @@ import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -444,7 +445,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     <div key={job.$id} className="bg-red-50 border-2 border-red-500 p-5 rounded-2xl shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
                                         <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS ATTIVO</div>
                                         <div className="pt-2 sm:pt-0 pr-20 sm:pr-0">
-                                            <h3 className="font-bold text-lg text-red-800">{job.title}</h3>
+                                            <h3 className="font-bold text-lg text-red-800">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-red-700 font-medium">
                                                 <span className="flex items-center gap-1"><Icon type="calendar" className="w-3.5 h-3.5" /> {job.sosDate}</span>
                                                 <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {job.sosShift}</span>
@@ -462,7 +463,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 <div key={job.$id} className="bg-white border border-slate-200 p-5 rounded-2xl hover:shadow-md transition-shadow group">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
-                                            <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{job.title}</h3>
+                                            <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-500 font-medium">
                                                 <span className="flex items-center gap-1"><Icon type="user" className="w-3.5 h-3.5" /> {job.role}</span>
                                                 <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {job.contractType}</span>

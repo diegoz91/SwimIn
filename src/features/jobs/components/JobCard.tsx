@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
 import { swimMatchScore } from '@/utils/swimMatch';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface JobCardProps {
     job: Job;
@@ -86,7 +87,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
                                 className="text-lg font-extrabold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2 leading-tight mb-1" 
                                 onClick={() => onSelectJob?.(job.$id)}
                             >
-                                {job.title}
+                                {jobDisplayTitle(job)}
                             </h3>
                             <p className="text-sm font-medium text-slate-600 truncate">{structureName}</p>
                         </div>

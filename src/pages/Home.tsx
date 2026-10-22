@@ -142,7 +142,7 @@ const Home: React.FC = () => {
                                     <div className="bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/30">
                                         <Icon type="check-double" className="w-6 h-6 text-white" />
                                     </div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Sei stato assunto! 🎉</h2>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Sei stato assunto</h2>
                                     <p className="text-green-50 font-medium text-lg max-w-xl mb-6">
                                         Congratulazioni! <strong>{app.job?.structureName}</strong> ti ha scelto per il ruolo di <em>{app.job?.title}</em>.
                                     </p>

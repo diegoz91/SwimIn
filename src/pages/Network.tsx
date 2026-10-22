@@ -217,14 +217,14 @@ const Network: React.FC = () => {
                         className={`px-5 sm:px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'network' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Icon type="users" className="w-4 h-4" />
-                        <span className="hidden sm:inline">Connessioni</span>
+                        <span>Collegamenti</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('meets')}
                         className={`px-5 sm:px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'meets' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Icon type="location" className="w-4 h-4" />
-                        <span className="hidden sm:inline">Eventi Locali</span>
+                        <span>Swim-Meet</span>
                     </button>
                 </div>
             </div>

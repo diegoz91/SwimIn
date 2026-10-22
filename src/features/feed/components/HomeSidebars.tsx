@@ -7,6 +7,7 @@ import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { initialsAvatar } from '@/utils/avatar';
 import { certificationsNeedingAttention, describeExpiry, parseCertifications } from '@/utils/certifications';
 import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -160,7 +161,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                                     <span className="min-w-0">
                                         <span className="block text-sm font-semibold text-abisso truncate">
                                             {job.isSOS && <span className="text-galleggiante">SOS </span>}
-                                            {job.title.replace('🚨 SOS SOSTITUZIONE URGENTE: ', '')}
+                                            {jobDisplayTitle(job)}
                                         </span>
                                         <span className="block text-xs text-slate-500 truncate">{[job.structureName, job.city].filter(Boolean).join(', ')}</span>
                                     </span>

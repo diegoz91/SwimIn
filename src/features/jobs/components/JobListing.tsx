@@ -3,6 +3,7 @@ import type { Job, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface JobListingProps {
   job: Job; 
@@ -63,7 +64,7 @@ export const JobListing: React.FC<JobListingProps> = ({
           role="button"
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          aria-label={`Visualizza offerta: ${job.title}`}
+          aria-label={`Visualizza offerta: ${jobDisplayTitle(job)}`}
         >
             {matchScore !== null && matchScore >= 70 && (
                 <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-1 z-10" title={`Ottimo Match: ${matchScore}%`}>
@@ -79,7 +80,7 @@ export const JobListing: React.FC<JobListingProps> = ({
                 />
                 <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
-                        {job.title}
+                        {jobDisplayTitle(job)}
                     </h3>
                     <p className="text-sm text-slate-500 mt-1 truncate">{structureName}</p>
                     
@@ -108,7 +109,7 @@ export const JobListing: React.FC<JobListingProps> = ({
         role="button"
         tabIndex={0}
         onKeyDown={handleKeyDown}
-        aria-label={`Visualizza offerta: ${job.title}`}
+        aria-label={`Visualizza offerta: ${jobDisplayTitle(job)}`}
     >
       <img 
         src={displayLogo} 
@@ -118,7 +119,7 @@ export const JobListing: React.FC<JobListingProps> = ({
       />
       <div className="min-w-0 flex-1">
         <p className="font-bold text-sm text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1 leading-tight pr-8">
-            {job.title}
+            {jobDisplayTitle(job)}
         </p>
         <p className="text-xs text-slate-500 truncate mt-0.5">{structureName}</p>
         <div className="flex items-center text-[11px] font-medium text-slate-400 mt-1">

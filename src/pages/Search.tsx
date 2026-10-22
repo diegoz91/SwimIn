@@ -8,6 +8,7 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { initialsAvatar } from '@/utils/avatar';
 import type { EnrichedPost, Facility, Job, StructureProfile, UserProfile } from '@/types/types';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'post';
 
@@ -195,7 +196,7 @@ const Search: React.FC = () => {
                                         >
                                             <img src={j.facilityLogo || initialsAvatar(j.structureName)} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-100" />
                                             <span className="min-w-0">
-                                                <span className="block font-semibold text-abisso truncate">{j.isSOS ? 'SOS – ' : ''}{j.title}</span>
+                                                <span className="block font-semibold text-abisso truncate">{j.isSOS ? 'SOS – ' : ''}{jobDisplayTitle(j)}</span>
                                                 <span className="block text-sm text-slate-500 truncate">{[j.structureName, j.city].filter(Boolean).join(' – ')}</span>
                                             </span>
                                         </button>

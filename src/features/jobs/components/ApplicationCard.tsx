@@ -2,6 +2,7 @@ import React from 'react';
 import type { Application, Job } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { initialsAvatar } from '@/utils/avatar';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 export interface EnrichedApplication extends Application {
     job?: Job;
@@ -59,7 +60,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
                                 className="font-bold text-lg text-slate-800 hover:text-blue-600 cursor-pointer transition-colors line-clamp-1 outline-none focus-visible:underline" 
                                 onClick={() => onSelectJob(job.$id)}
                             >
-                                {job.title}
+                                {jobDisplayTitle(job)}
                             </h3>
                             <p className="text-md text-slate-600 font-medium">{job.structureName || 'Struttura Privata'}</p>
                             <div className="flex items-center text-sm text-slate-500 mt-1">

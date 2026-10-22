@@ -260,7 +260,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     };
 
     return (
-    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto py-4 sm:py-6 animate-in fade-in duration-500">
       
       <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
         
@@ -466,7 +466,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                   </div>
                   {!isOwnProfile && (
-                    <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end" data-html2canvas-ignore="true">
                       <button
                           onClick={() => setIsReportOpen(true)}
                           className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-red-500"

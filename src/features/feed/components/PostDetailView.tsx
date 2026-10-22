@@ -245,7 +245,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-10"><p className="text-slate-500 text-lg">Sii il primo a commentare! 💬</p></div>
+                        <div className="text-center py-10"><p className="text-slate-500 text-lg">Ancora nessun commento: scrivi il primo.</p></div>
                     )}
                 </div>
             </div>

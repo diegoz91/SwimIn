@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 import { displayNameOf } from '@/utils/profile';
 import { useSaved } from '@/context/SavedContext';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface JobDetailViewProps {
   job: Job;
@@ -147,7 +148,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                     )}
                 </div>
                 
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-800 leading-tight">{localJob.title}</h1>
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-800 leading-tight">{jobDisplayTitle(localJob)}</h1>
                 
                 <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-600">
                     <div className="flex items-center gap-1.5"><Icon type="location" className="w-4 h-4" />{localJob.city}{localJob.province ? ` (${localJob.province})` : ''}</div>

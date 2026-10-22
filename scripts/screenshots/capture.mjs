@@ -102,7 +102,8 @@ for (const [vpName, viewport] of VIEWPORTS) {
         await mockAppwrite(page, { loggedIn });
         for (const [name, path] of loggedIn ? PRIVATE_PAGES : PUBLIC_PAGES) {
             try {
-                await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 30_000 });
+                await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+                await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
                 await page.waitForTimeout(800);
                 await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: vpName === 'desktop' ? false : false });
                 console.log(`✓ ${vpName}-${name}`);

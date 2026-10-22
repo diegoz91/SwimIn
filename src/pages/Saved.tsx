@@ -9,6 +9,7 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { Icon } from '@/components/ui/Icon';
 import { initialsAvatar } from '@/utils/avatar';
 import type { EnrichedPost, Job } from '@/types/types';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 type Tab = 'post' | 'job';
 
@@ -82,7 +83,7 @@ const Saved: React.FC = () => {
                             <button onClick={() => navigate('/jobs', { state: { selectedJobId: j.$id } })} className="flex items-center gap-3 min-w-0 flex-1 text-left">
                                 <img src={j.facilityLogo || initialsAvatar(j.structureName)} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-100" />
                                 <span className="min-w-0">
-                                    <span className="block font-semibold text-abisso truncate">{j.title}</span>
+                                    <span className="block font-semibold text-abisso truncate">{jobDisplayTitle(j)}</span>
                                     <span className="block text-sm text-slate-500 truncate">
                                         {[j.structureName, j.city].filter(Boolean).join(', ')}{!j.isActive && ' · non più disponibile'}
                                     </span>

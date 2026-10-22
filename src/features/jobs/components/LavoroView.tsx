@@ -6,6 +6,7 @@ import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
 import type { Job } from '@/types/types';
 import { useToast } from '@/context/ToastContext';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface LavoroViewProps {
   onSelectJob: (id: string) => void;
@@ -40,7 +41,7 @@ const CreateSOSModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreated
         try {
             await databaseService.createJob({
                 structureId,
-                title: `🚨 SOS SOSTITUZIONE URGENTE: ${formData.role}`,
+                title: `Sostituzione urgente: ${formData.role}`,
                 description: `Richiesta di sostituzione urgente per il giorno ${formData.date} in orario ${formData.shift}.\nCompenso previsto: €${formData.salary} netti.\nCandidati solo se hai disponibilità immediata!`,
                 role: formData.role.toLowerCase(),
                 contractType: 'collaborazione',
@@ -343,7 +344,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                                             <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
                                                 SOS ATTIVO
                                             </div>
-                                            <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{job.title.replace('🚨 SOS SOSTITUZIONE URGENTE: ', '')}</h3>
+                                            <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{jobDisplayTitle(job)}</h3>
                                             <p className="text-sm font-bold text-red-600 mt-1 truncate">{job.structureName || 'Struttura Privata'}</p>
                                             
                                             <div className="grid grid-cols-2 gap-2 mt-4 mb-4">
