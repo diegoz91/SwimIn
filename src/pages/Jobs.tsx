@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { Query } from 'appwrite';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router-dom';
@@ -14,6 +15,7 @@ import { MyApplicationsView, type EnrichedApplication } from '@/features/jobs/co
 import { ApplicationFlowModal, type ApplicationFlowState, type CustomApplicationData } from '@/features/jobs/components/ApplicationFlowModal';
 
 const Jobs: React.FC = () => {
+    usePageTitle('Bacheca lavoro');
     const { user } = useAuth();
     const { showToast } = useToast();
     const location = useLocation();
@@ -139,7 +141,7 @@ const Jobs: React.FC = () => {
     const hasApplied = selectedJob ? myApplications.some(app => app.jobId === selectedJob.$id) : false;
 
     return (
-        <div className="pt-20 md:pt-24 px-4 w-full h-full relative">
+        <div className="pt-4 w-full h-full relative">
             
             {currentView === 'list' && (
                 <LavoroView 

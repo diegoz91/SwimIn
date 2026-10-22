@@ -1,9 +1,11 @@
 import React from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { MessagesView } from '@/features/messaging/components/MessagesView';
 
 const Chat: React.FC = () => {
+    usePageTitle('Messaggi');
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -14,7 +16,7 @@ const Chat: React.FC = () => {
     };
 
     return (
-        <div className="pt-20 md:pt-24 px-0 md:px-4 max-w-7xl mx-auto w-full h-screen md:h-auto overflow-hidden animate-in fade-in duration-500">
+        <div className="pt-4 w-full animate-in fade-in duration-500">
             <MessagesView 
                 currentUserId={user.$id} 
                 onProfileClick={handleProfileClick}

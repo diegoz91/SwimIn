@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { client } from '@/services/appwrite';
@@ -8,6 +9,7 @@ import { useToast } from '@/context/ToastContext';
 import type { LiveRoom } from '@/types/types';
 
 const Live: React.FC = () => {
+    usePageTitle('Bordo Vasca Live');
     const { user } = useAuth();
     const { showToast } = useToast();
     

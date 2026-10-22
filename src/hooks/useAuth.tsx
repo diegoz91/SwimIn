@@ -4,12 +4,22 @@ import { account } from '@/services/appwrite';
 import { databaseService } from '@/services/database';
 import type { AuthenticatedUser, UserProfile, StructureProfile } from '@/types/types';
 
+export interface RegistrationData {
+  userType: 'professional' | 'structure';
+  firstName?: string;
+  lastName?: string;
+  structureName?: string;
+}
+
 interface AuthContextType {
   user: AuthenticatedUser | null;
   authenticated: boolean;
+  /** Un'azione di login/registrazione/logout è in corso. */
   isLoading: boolean;
+  /** Primo controllo della sessione all'apertura dell'app non ancora concluso. */
+  isInitializing: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, userType?: 'professional' | 'structure') => Promise<void>;
+  register: (email: string, password: string, data: RegistrationData) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile | StructureProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,7 +41,8 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   const isActionPending = useRef<boolean>(false);
 
@@ -53,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       setUser(null);
     } finally {
-      setIsLoading(false);
+      setIsInitializing(false);
     }
   };
 
@@ -77,17 +88,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string, userType: 'professional' | 'structure' = 'professional') => {
+  const register = async (email: string, password: string, data: RegistrationData) => {
     if (isActionPending.current) return;
     isActionPending.current = true;
     setIsLoading(true);
     try {
-      const newAccount = await account.create(ID.unique(), email, password, name);
+      const displayName = data.userType === 'structure'
+        ? (data.structureName || '').trim()
+        : `${data.firstName || ''} ${data.lastName || ''}`.trim();
+      const newAccount = await account.create(ID.unique(), email, password, displayName);
       
       // Auto-Login immediato dopo la creazione
       await account.createEmailPasswordSession(email, password);
       
-      await databaseService.initializeProfile(newAccount.$id, email, userType, name);
+      await databaseService.initializeProfile(newAccount.$id, email, data);
+
+      // Email di verifica: se il servizio email non è configurato non blocchiamo la registrazione.
+      account.createVerification(`${window.location.origin}/verifica-email`).catch((e) =>
+        console.warn('Email di verifica non inviata:', e)
+      );
+
       await checkAuth();
     } catch (error) {
       console.error('Registration error:', error);
@@ -138,6 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     authenticated: !!user, 
     isLoading,
+    isInitializing,
     login,
     register,
     logout,

@@ -1,7 +1,10 @@
 import React from 'react';
+import { PublicFooter } from '@/components/layout/PublicFooter';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { RegisterForm } from '@/features/auth/components/RegisterForm';
 
 const Register: React.FC = () => {
+  usePageTitle('Crea il tuo account');
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-slate-50 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-full h-64 bg-gradient-to-b from-cyan-500/10 to-transparent pointer-events-none"></div>
@@ -9,6 +12,7 @@ const Register: React.FC = () => {
       
       <div className="w-full max-w-md z-10">
         <RegisterForm />
+        <PublicFooter />
       </div>
     </div>
   );
