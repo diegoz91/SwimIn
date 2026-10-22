@@ -17,7 +17,7 @@ const db={
  async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
  async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
 const deletedUsers=[]; const deletedFiles=[];
-const api=createApi(db,{users:{delete:async({userId})=>deletedUsers.push(userId)},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
+const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId)},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
@@ -134,6 +134,24 @@ assert.equal(notifs('eve','endorsement').length,1);
 assert.deepEqual(await api.toggleEndorsement('bob',{profileId:'eve',skill:'Salvamento'}),{endorsed:false});
 assert.equal(Object.values(col('endorsements')).length,0);
 await api.toggleEndorsement('bob',{profileId:'eve',skill:'Aquagym'});
+
+// Endorsement: l'elenco dei collegamenti dell'endorser da solo non basta
+col('profiles').anna2.connections=['eve']; // anna2 si "aggiunge" eve da sola
+await rejects(api.toggleEndorsement('anna2',{profileId:'eve',skill:'Salvamento'}),403);
+
+// Creazione post e annunci lato server
+const pp=await api.createPost('bob',{content:' ciao ',authorId:'eve',media:[JSON.stringify({type:'image',url:'https://cloud.appwrite.io/v1/storage/buckets/post_media/files/f1/view'})],postType:'image',category:'boh'});
+assert.equal(pp.authorId,'bob'); assert.equal(pp.content,'ciao'); assert.equal(pp.category,'generale');
+assert.deepEqual(ownersOf(pp),['bob']);
+await rejects(api.createPost('bob',{content:'',media:[]}),400);
+await rejects(api.createPost('bob',{content:'x',media:[{type:'image',url:'https://evil.example/x.jpg'}]}),400);
+const jobBase={title:'Istruttore',description:'Corsi bambini',role:'istruttore',city:'Milano',salaryMin:'1200'};
+await rejects(api.createJob('bob',{...jobBase,structureId:'bob'}),403); // bob è un professionista
+await rejects(api.createJob('bob',{...jobBase,structureId:'piscina'}),403); // struttura altrui
+const jp=await api.createJob('piscina',{...jobBase,structureId:'piscina',structureName:'Falso Nome'});
+assert.equal(jp.structureName,'Piscina Blu'); assert.equal(jp.salaryMin,1200); assert.equal(jp.isActive,true);
+const jf=await api.createJob('eve',{...jobBase,structureId:'f1'});
+assert.equal(jf.structureName,'Centro');
 
 // Eliminazione account di anna
 col('profiles').anna.avatar='https://cloud.appwrite.io/v1/storage/buckets/avatars/files/avatarAnna/view?project=x';

@@ -80,7 +80,8 @@ const schema = [
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
     {
-        id: 'posts', name: 'Posts', permissions: READ_CREATE,
+        // Creati dalla Function (autore verificato); l'autore può modificarli ed eliminarli.
+        id: 'posts', name: 'Posts', permissions: READ_ONLY,
         attributes: [
             str('authorId', 36, { required: true }), str('authorType', 50, { required: true }),
             str('content', 4000, { required: true }), str('postType', 50, { required: true }),
@@ -105,7 +106,8 @@ const schema = [
         indexes: [idx('by_post', ['postId']), idx('by_user', ['userId']), idx('by_post_user', ['postId', 'userId'])],
     },
     {
-        id: 'jobs', name: 'Jobs', permissions: READ_CREATE,
+        // Creati dalla Function (struttura verificata); chi pubblica può modificarli.
+        id: 'jobs', name: 'Jobs', permissions: READ_ONLY,
         attributes: [
             str('structureId', 36, { required: true }), str('title', 255, { required: true }),
             str('description', 4000, { required: true }), str('role', 100, { required: true }),

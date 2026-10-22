@@ -13,6 +13,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `npm run dev` — dev server su porta 3000
 - `npm run build` — `tsc && vite build` (deve passare prima di ogni commit)
 - `npm run typecheck` — solo controllo dei tipi
+- `npm test` — test del frontend (Vitest, file `src/**/*.test.ts`)
 - `npm run setup-db` — crea/aggiorna DB, collezioni, indici, bucket e deploya la Function `api` (richiede `.env.setup` con API key, MAI committarlo)
 - `npm run reset-db -- --yes` — ⚠️ cancella tutto l'ambiente di test
 - `cd functions/api && npm test` — test della Function server-side
@@ -24,10 +25,11 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Entrambi sono in `.gitignore`. Non scrivere mai chiavi nel codice.
 
 ## Struttura
-- `src/pages/` — pagine di route (Home, Jobs, Network, Profile, Chat, Live, Login, Register)
+- `src/pages/` — pagine di route (Home, Jobs, Network, Profile, Chat, Live, PostPage `/post/:id`, Notifications `/notifiche`, Login, Register, ResetPassword, VerifyEmail, NotFound) e `src/pages/legal/` (privacy, termini, cookie). Tutte caricate con `React.lazy` in `App.tsx`
 - `src/features/<dominio>/components/` — UI per dominio: auth, feed, jobs, network, messaging, profile
 - `src/services/database.ts` — **unico punto di accesso** alle collezioni Appwrite; i componenti non devono chiamare `databases.*` direttamente
-- `src/services/storage.ts` — upload avatar e media post
+- `src/services/storage.ts` — upload di immagini (compresse con `utils/image.ts`) e video; `deleteByUrl` per pulire i file sostituiti
+- `src/config/legal.ts` — dati del titolare per le pagine legali (**da completare prima del lancio**)
 - `src/hooks/useAuth.tsx` — sessione e profilo utente corrente
 - `src/types/types.ts` — tipi di dominio; tenerli allineati allo schema in `setup-db.js`
 - `setup-db.js` — **fonte di verità dello schema** Appwrite (tabelle, colonne, indici, permessi). Usa l'API **TablesDB** (Appwrite 1.8+); la vecchia API Databases per schema/collezioni è deprecata e la console non offre più i suoi scope
@@ -42,7 +44,8 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 
 ## Sicurezza (priorità)
 - I permessi vanno impostati **per documento** (document security), non `update/delete(Role.users())` a livello di collezione.
-- Operazioni che toccano dati di altri utenti (collegamenti, like, commenti, candidature, assunzioni, follow, notifiche, messaggi) passano dalla Function `api`, che verifica l'utente tramite `x-appwrite-user-id`. Nuove azioni del genere vanno aggiunte lì, con un test in `functions/api/test`.
+- Passano dalla Function `api` (che verifica l'utente tramite `x-appwrite-user-id`) le operazioni che toccano dati di altri utenti **o** che devono garantire l'identità dell'autore: creazione di post e annunci, collegamenti, like, commenti, conferme di competenze, candidature, assunzioni, follow, notifiche, messaggi, segnalazioni, eliminazione account. Nuove azioni del genere vanno aggiunte lì, con un test in `functions/api/test`.
+- Mai fidarsi di campi "chi sono" inviati dal client (`authorId`, `structureId`, elenchi `connections` del chiamante): un utente può modificare il proprio profilo, quindi i controlli devono usare dati che solo il server o l'altra parte possono scrivere.
 - I messaggi privati devono essere leggibili solo da mittente e destinatario.
 
 ## Workflow

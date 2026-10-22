@@ -12,32 +12,37 @@ SwimWaveUp connette Istruttori FIN, Assistenti Bagnanti, Allenatori, Direttori S
 
 ---
 
-## ✨ Funzionalità Principali (Core Features)
+## ✨ Funzionalità principali
 
 ### 👤 Profili "Passaporto Natatorio"
-- **Due tipologie di account**: *Professionista* (Istruttore/Bagnino) e *Struttura* (Piscina).
-- **Smart Badges Visivi**: Il sistema rileva automaticamente certificazioni ufficiali (es. "FIN", "Salvamento") e applica badge grafici immediati.
-- **Timeline Carriera**: Visualizzazione elegante delle esperienze lavorative e dei brevetti con scadenze.
-- **Facility View**: Le strutture hanno una vetrina dedicata che mostra automaticamente le posizioni lavorative aperte.
+- Due tipi di account: **Professionista** (istruttore, assistente bagnanti, allenatore…) e **Struttura** (piscina, centro sportivo).
+- Foto profilo e copertina caricate dal dispositivo, esperienze, **brevetti con scadenza** e badge automatici (FIN, Salvamento).
+- **Competenze confermabili dai collegamenti** (endorsement) e barra di completamento del profilo.
+- Passaporto scaricabile in PDF, profilo condivisibile via link.
+- **Pagine Struttura** gestite da uno o più amministratori, con staff, bacheca interna, turni e statistiche.
 
-### 💬 Messaggistica Real-Time Enterprise
-- **Chat Globale**: Widget in stile LinkedIn sempre accessibile in basso a destra (Desktop).
-- **Latenza Zero (Optimistic UI)**: I messaggi appaiono istantaneamente nell'interfaccia prima ancora della conferma del server.
-- **Typing Indicator**: Animazione "Sta scrivendo..." in tempo reale tramite WebSockets.
-- **Read Receipts**: Spunte blu (✔✔) sincronizzate live e azzeramento globale delle notifiche.
+### 📰 Feed
+- Post con testo, foto, video e **video-analisi tecnica** (commenti legati a un istante del video).
+- Consigli (like), commenti e risposte, post consigliati dai collegamenti.
+- Modifica ed eliminazione dei propri contenuti, link permanente per ogni post, segnalazioni.
 
-### 🤝 Network & Connessioni
-- Richieste di collegamento bidirezionali (Invia, Accetta, Rifiuta).
-- Suggerimenti di rete intelligenti ("Potresti conoscere...") basati sui profili recenti, che includono sia colleghi che Strutture Sportive.
+### 💼 Lavoro
+- Annunci pubblicati da strutture verificate, **SOS Vasca** per le sostituzioni urgenti.
+- Ricerca con tolleranza agli errori di battitura, filtri per ruolo, contratto e zona, ordinamento.
+- Candidatura rapida o personalizzata, gestione dei candidati e assunzione.
 
-### 📰 Feed & Condivisione (Home)
-- Condivisione di Post (testo e foto/media salvati in Cloud Storage).
-- Sistema di "Consiglia" (Like) e Commenti nidificati.
-- Vista Dettaglio Post fluida per commentare senza interruzioni di navigazione (SPA pura).
+### 🤝 Network e messaggi
+- Richieste di collegamento, suggerimenti, ricerca di persone e strutture, Swim-Meet (eventi).
+- Chat in tempo reale con stato online, "sta scrivendo" e conferme di lettura disattivabili.
 
-### 💼 Bacheca Lavoro
-- Le strutture possono pubblicare annunci di ricerca personale (Bagnini, Istruttori, ecc.).
-- I professionisti possono candidarsi con un click.
+### 🔔 Notifiche, account e privacy
+- Centro notifiche in tempo reale (consigli, commenti, collegamenti, candidature, conferme).
+- Verifica email, recupero e cambio password, cambio email, uscita dagli altri dispositivi.
+- **Esportazione dei dati** ed **eliminazione dell'account** (GDPR), pagine Privacy, Termini e Cookie.
+
+### 🔒 Sicurezza
+- Permessi per singola riga su Appwrite: ognuno modifica solo i propri contenuti, i messaggi sono leggibili solo da mittente e destinatario.
+- Le operazioni tra più utenti passano da una **Appwrite Function** che verifica identità e diritti, coperta da test automatici.
 
 ---
 
@@ -91,6 +96,7 @@ Guida completa: [`docs/SETUP-APPWRITE.md`](docs/SETUP-APPWRITE.md).
 | `npm run typecheck` | Solo controllo dei tipi |
 | `npm run setup-db` | Crea/aggiorna schema Appwrite e Function |
 | `npm run reset-db -- --yes` | ⚠️ Cancella tutti i dati dell'ambiente di test |
+| `npm test` | Test del frontend |
 | `cd functions/api && npm test` | Test della Function server-side |
 
 ### Struttura

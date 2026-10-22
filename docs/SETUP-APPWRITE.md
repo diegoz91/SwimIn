@@ -68,13 +68,17 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
 |---|---|---|---|
-| profiles, posts, jobs, facilities, announcements, shifts, live_rooms, swim_meets | utenti loggati | utenti loggati | solo il proprietario (+ Function per i campi condivisi) |
+| profiles, facilities, announcements, shifts, live_rooms, swim_meets | utenti loggati | utenti loggati | solo il proprietario (+ Function per i campi condivisi) |
+| posts, jobs | utenti loggati | solo Function (autore/struttura verificati) | solo l'autore |
+| endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
+| reports | nessuno (solo Console) | solo Function | solo Console |
 | comments, likes | utenti loggati | solo Function | autore (commenti) |
 | messages | mittente e destinatario | solo Function | solo Function (letto/non letto) |
 | connections | i due utenti coinvolti | solo Function | solo Function |
 | applications | candidato e chi gestisce l'annuncio | solo Function | solo Function; il candidato può ritirarla |
 | notifications | solo il destinatario | solo Function | il destinatario (segna come letta) |
 
-Le azioni che toccano dati di altri utenti (collegamenti, like, commenti, candidature, assunzioni,
-follow, partecipazione a live e swim-meet, messaggi) passano dalla Function `api`, che verifica
+Le azioni che toccano dati di altri utenti o che devono garantire l'identità dell'autore (post, annunci,
+collegamenti, like, commenti, conferme di competenze, candidature, assunzioni, follow, partecipazione
+a live e swim-meet, messaggi, segnalazioni, eliminazione account) passano dalla Function `api`, che verifica
 l'identità tramite l'header `x-appwrite-user-id` impostato da Appwrite.
