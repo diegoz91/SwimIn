@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
@@ -16,7 +16,8 @@ const ACCOUNT_TYPES: { id: AccountType; title: string; description: string; icon
 ];
 
 export const RegisterForm: React.FC = () => {
-    const [userType, setUserType] = useState<AccountType>('professional');
+    const [params] = useSearchParams();
+    const [userType, setUserType] = useState<AccountType>(params.get('tipo') === 'struttura' ? 'structure' : 'professional');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [structureName, setStructureName] = useState('');
@@ -45,15 +46,15 @@ export const RegisterForm: React.FC = () => {
 
         try {
             await register(email.trim(), password, { userType, firstName, lastName, structureName });
-            showToast('Account creato! Benvenuto in SwimIn 🌊', 'success');
-            navigate('/profile', { replace: true });
+            showToast('Account creato. Benvenuto in SwimIn!', 'success');
+            navigate('/benvenuto', { replace: true });
         } catch (err) {
             setError(authErrorMessage(err, 'Registrazione non riuscita. Controlla i dati e riprova.'));
         }
     };
 
     return (
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8 animate-in fade-in duration-300">
             <div className="text-center mb-6">
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Unisciti a SwimIn</h1>
                 <p className="text-slate-500 mt-2">Il network professionale del mondo del nuoto.</p>

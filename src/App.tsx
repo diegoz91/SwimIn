@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 // Providers
 import { ToastProvider } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { SavedProvider } from '@/context/SavedContext';
 
 // Layout & Common
 import Header from '@/components/layout/Header';
@@ -28,8 +29,12 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const Chat = lazy(() => import('@/pages/Chat'));
 const Live = lazy(() => import('@/pages/Live'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const Landing = lazy(() => import('@/pages/Landing'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
+const Search = lazy(() => import('@/pages/Search'));
+const Saved = lazy(() => import('@/pages/Saved'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -47,11 +52,23 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+/** La home: feed per chi ha effettuato l'accesso, pagina di presentazione per gli altri. */
+const HomeGate: React.FC = () => {
+  const { authenticated, isInitializing } = useAuth();
+  if (isInitializing) return <PageLoader />;
+  return authenticated ? <Home /> : <Landing />;
+};
+
+/** Pagine a schermo intero, senza header e navigazione (es. onboarding). */
+const CHROMELESS = ['/benvenuto'];
+
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
+  const { pathname } = useLocation();
+  const showChrome = authenticated && !CHROMELESS.includes(pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-200 selection:text-blue-900 flex flex-col relative">
+    <div className="min-h-screen bg-piastrella font-sans text-abisso flex flex-col relative">
       <a
         href="#contenuto"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-bold"
@@ -59,11 +76,11 @@ const AppContent: React.FC = () => {
         Vai al contenuto
       </a>
 
-      {authenticated && <Header />}
+      {showChrome && <Header />}
 
       <main
         id="contenuto"
-        className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col ${authenticated ? 'pt-16 pb-24 md:pb-10' : ''}`}
+        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-24 md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -78,7 +95,7 @@ const AppContent: React.FC = () => {
               <Route path="/cookie" element={<Cookies />} />
 
               {/* Rotte protette */}
-              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/" element={<HomeGate />} />
               <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
               <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
               <Route path="/profile/:id?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -86,6 +103,9 @@ const AppContent: React.FC = () => {
               <Route path="/live" element={<ProtectedRoute><Live /></ProtectedRoute>} />
               <Route path="/post/:id" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
               <Route path="/notifiche" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+              <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
@@ -94,8 +114,8 @@ const AppContent: React.FC = () => {
         </ErrorBoundary>
       </main>
 
-      {authenticated && <BottomNav />}
-      {authenticated && (
+      {showChrome && <BottomNav />}
+      {showChrome && (
         <Suspense fallback={null}>
           <GlobalChatWidget />
         </Suspense>
@@ -109,7 +129,9 @@ export const App: React.FC = () => {
     <Router>
       <ToastProvider>
         <AuthProvider>
-          <AppContent />
+          <SavedProvider>
+            <AppContent />
+          </SavedProvider>
         </AuthProvider>
       </ToastProvider>
     </Router>

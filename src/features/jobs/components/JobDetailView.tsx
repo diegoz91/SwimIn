@@ -5,6 +5,10 @@ import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { initialsAvatar } from '@/utils/avatar';
+import { displayNameOf } from '@/utils/profile';
+import { useSaved } from '@/context/SavedContext';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface JobDetailViewProps {
   job: Job;
@@ -59,6 +63,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { isSaved, toggle: toggleSaved } = useSaved();
     const navigate = useNavigate();
   
     const [localJob, setLocalJob] = useState<Job>(job);
@@ -112,7 +117,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
     const { structureName, structureLogo } = useMemo(() => {
         const name = structure?.structureName || localJob.structureName || 'Struttura Non Specificata';
-        const logo = structure?.logo || localJob.facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+        const logo = structure?.logo || localJob.facilityLogo || initialsAvatar(name);
         return { structureName: name, structureLogo: logo };
     }, [structure, localJob.structureName, localJob.facilityLogo]);
 
@@ -143,7 +148,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                     )}
                 </div>
                 
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-800 leading-tight">{localJob.title}</h1>
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-800 leading-tight">{jobDisplayTitle(localJob)}</h1>
                 
                 <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-600">
                     <div className="flex items-center gap-1.5"><Icon type="location" className="w-4 h-4" />{localJob.city}{localJob.province ? ` (${localJob.province})` : ''}</div>
@@ -192,7 +197,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 return (
                                     <div key={app.$id} className={`bg-white rounded-xl p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center border-l-4 transition-all ${app.status === 'hired' || app.status === 'accepted' ? 'border-l-green-500 shadow-md' : app.status === 'rejected' ? 'border-l-red-500 opacity-70' : 'border-l-blue-500'}`}>
                                         <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
-                                            <img src={prof.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(prof.firstName || 'U')}&background=eff6ff&color=1d4ed8`} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
+                                            <img src={prof.avatar || initialsAvatar(displayNameOf(prof))} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-bold text-slate-800 text-lg truncate">{prof.firstName} {prof.lastName}</p>
                                                 <p className="text-xs text-slate-500 truncate mb-1.5">{prof.title || 'Professionista'}</p>
@@ -248,7 +253,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 <Icon type="sparkles" className="w-6 h-6 text-blue-600" />
                                 SwimMatch™ Analysis
                             </h2>
-                            <p className="text-sm text-slate-500 font-medium">Abbiamo confrontato il tuo Passaporto Natatorio con questo annuncio.</p>
+                            <p className="text-sm text-slate-500 font-medium">Abbiamo confrontato il tuo profilo con questo annuncio.</p>
                         </div>
                         <div className={`px-4 py-2 rounded-xl text-white font-extrabold text-lg shadow-sm ${analysis.score >= 80 ? 'bg-green-500' : analysis.score >= 50 ? 'bg-amber-500' : 'bg-slate-500'}`}>
                             {analysis.score}% Match
@@ -323,29 +328,39 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* BOTTONE AZIONE (Bottom Nav per Mobile) */}
             {!isAdmin && (
-                <div className="fixed md:absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 md:border-none md:bg-slate-50 md:p-6 z-20" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <div className="fixed md:absolute bottom-16 md:bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 md:border-none md:bg-slate-50 md:p-6 z-30 flex gap-3">
+                    <button
+                        onClick={() => toggleSaved('job', localJob.$id)}
+                        aria-pressed={isSaved('job', localJob.$id)}
+                        aria-label={isSaved('job', localJob.$id) ? 'Rimuovi dai salvati' : 'Salva offerta'}
+                        className="flex-shrink-0 w-14 rounded-2xl border border-slate-200 bg-white text-corsia-700 hover:bg-piastrella flex items-center justify-center"
+                    >
+                        <Icon type="bookmark" className={`w-6 h-6 ${isSaved('job', localJob.$id) ? 'fill-corsia-200' : ''}`} />
+                    </button>
+                    <div className="flex-1">
                     {!localJob.isActive && !hasApplied ? (
                         <button 
                             disabled
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-slate-400 cursor-not-allowed opacity-90"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-slate-400 cursor-not-allowed opacity-90"
                         >
-                            <Icon type="lock-closed" className="w-5 h-5" /> POSIZIONE CHIUSA
+                            <Icon type="lock-closed" className="w-5 h-5" /> Posizione chiusa
                         </button>
                     ) : hasApplied ? (
                         <button 
                             disabled
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-green-600 cursor-not-allowed opacity-90"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 bg-green-600 cursor-not-allowed opacity-90"
                         >
-                            <Icon type="check-double" className="w-6 h-6" /> GIÀ CANDIDATO
+                            <Icon type="check-double" className="w-6 h-6" /> Candidatura inviata
                         </button>
                     ) : (
                         <button 
                             onClick={() => onApply(localJob)} 
-                            className="w-full text-center text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                            className="w-full text-center text-white font-bold text-lg py-3.5 px-6 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-300"
                         >
-                            <Icon type="send" className="w-5 h-5" /> CANDIDATI ORA
+                            <Icon type="send" className="w-5 h-5" /> Candidati
                         </button>
                     )}
+                    </div>
                 </div>
             )}
 

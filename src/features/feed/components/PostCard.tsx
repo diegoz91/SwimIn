@@ -7,8 +7,10 @@ import type { EnrichedPost, UserProfile, StructureProfile } from '@/types/types'
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { LikesModal } from './LikesModal';
 import { ReportModal } from '@/components/common/ReportModal';
+import { useSaved } from '@/context/SavedContext';
 import { getPostContent } from '@/utils/postMedia';
 import { formatRelativeTime } from '@/utils/format';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -33,6 +35,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
     const { user } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { isSaved, toggle: toggleSaved } = useSaved();
 
     const [likes, setLikes] = useState(post.likesCount || 0);
     const [liked, setLiked] = useState(!!post.likedByMe);
@@ -156,7 +159,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
         : 'Membro di SwimIn';
     const authorSubtitle = author ? (isProfessional ? (author as UserProfile).title : (author as StructureProfile).structureType) : '';
     const authorAvatar = author ? (isProfessional ? (author as UserProfile).avatar : (author as StructureProfile).logo) : '';
-    const displayAvatar = authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=eff6ff&color=1d4ed8`;
+    const displayAvatar = authorAvatar || initialsAvatar(authorName);
 
     const swimBadges = (() => {
         if (!author || !isProfessional || !(author as UserProfile).certificationsList) return [];
@@ -229,6 +232,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
                         </button>
                         {isMenuOpen && (
                             <div role="menu" className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-150">
+                                <MenuItem icon="bookmark" label={isSaved('post', post.$id) ? 'Rimuovi dai salvati' : 'Salva'} onClick={() => { setIsMenuOpen(false); toggleSaved('post', post.$id); }} />
                                 <MenuItem icon="link" label="Copia / condividi link" onClick={handleShare} />
                                 {!isMine && (
                                     <MenuItem icon="alert-triangle" label="Segnala" onClick={() => { setIsMenuOpen(false); setIsReportOpen(true); }} />

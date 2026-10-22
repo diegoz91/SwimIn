@@ -6,6 +6,7 @@ import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
 import type { Job } from '@/types/types';
 import { useToast } from '@/context/ToastContext';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface LavoroViewProps {
   onSelectJob: (id: string) => void;
@@ -13,16 +14,16 @@ interface LavoroViewProps {
   onShowMyApplications: () => void;
 }
 
-const FilterPill: React.FC<{ label: string; icon: string; active?: boolean; onClick?: () => void }> = ({ label, icon, active, onClick }) => (
+const FilterPill: React.FC<{ label: string; active?: boolean; onClick?: () => void }> = ({ label, active, onClick }) => (
     <button 
         onClick={onClick}
+        aria-pressed={active}
         className={`flex-shrink-0 flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-full border transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${
             active 
-                ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50'
+                ? 'bg-abisso text-white border-abisso' 
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
         }`}
     >
-        <span>{icon}</span>
         <span>{label}</span>
     </button>
 );
@@ -40,7 +41,7 @@ const CreateSOSModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreated
         try {
             await databaseService.createJob({
                 structureId,
-                title: `🚨 SOS SOSTITUZIONE URGENTE: ${formData.role}`,
+                title: `Sostituzione urgente: ${formData.role}`,
                 description: `Richiesta di sostituzione urgente per il giorno ${formData.date} in orario ${formData.shift}.\nCompenso previsto: €${formData.salary} netti.\nCandidati solo se hai disponibilità immediata!`,
                 role: formData.role.toLowerCase(),
                 contractType: 'collaborazione',
@@ -163,11 +164,11 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
     useEffect(() => { loadJobs(); }, []);
 
     const filters = [
-        { label: 'Tutti', icon: '🌍' },
-        { label: 'Istruttore', icon: '🏊‍♂️' },
-        { label: 'Bagnino', icon: '🛟' },
-        { label: 'Allenatore', icon: '⏱️' },
-        { label: 'Reception', icon: '🖥️' }
+        { label: 'Tutti' },
+        { label: 'Istruttore' },
+        { label: 'Bagnino' },
+        { label: 'Allenatore' },
+        { label: 'Reception' },
     ];
 
     const contractTypes = useMemo(
@@ -271,8 +272,8 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 {filters.map(filter => (
                     <FilterPill 
                         key={filter.label} 
+ 
                         label={filter.label} 
-                        icon={filter.icon} 
                         active={activeFilter === filter.label}
                         onClick={() => setActiveFilter(filter.label)}
                     />
@@ -343,7 +344,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                                             <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
                                                 SOS ATTIVO
                                             </div>
-                                            <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{job.title.replace('🚨 SOS SOSTITUZIONE URGENTE: ', '')}</h3>
+                                            <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{jobDisplayTitle(job)}</h3>
                                             <p className="text-sm font-bold text-red-600 mt-1 truncate">{job.structureName || 'Struttura Privata'}</p>
                                             
                                             <div className="grid grid-cols-2 gap-2 mt-4 mb-4">

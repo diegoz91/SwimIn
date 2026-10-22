@@ -29,6 +29,8 @@ export interface AppwriteConfig {
         live_rooms?: string;
         swim_meets?: string;
         endorsements: string;
+        live_messages: string;
+        saves: string;
     };
     buckets: {
         avatars: string;
@@ -58,6 +60,8 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         live_rooms: 'live_rooms',
         swim_meets: 'swim_meets',
         endorsements: 'endorsements',
+        live_messages: 'live_messages',
+        saves: 'saves',
     },
     buckets: {
         avatars: 'avatars',
@@ -67,7 +71,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
 
 export const APP_CONFIG = {
     name: 'SwimIn',
-    fullName: 'SwimWaveUP - SwimIn',
+    fullName: 'SwimIn',
     version: '1.0.0',
     environment: import.meta.env.MODE,
 };

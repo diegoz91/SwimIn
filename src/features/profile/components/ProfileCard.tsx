@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ProfileCardProps {
   user: UserProfile | StructureProfile;
@@ -26,7 +27,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSelectProfile 
     const extractedLocation = user.city ? `${user.city}${user.province ? ` (${user.province})` : ''}` : 'Sede non specificata';
     
     const rawAvatar = isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo;
-    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(extractedName)}&background=eff6ff&color=1d4ed8`;
+    const fallbackAvatar = initialsAvatar(extractedName);
 
     return {
         name: extractedName,

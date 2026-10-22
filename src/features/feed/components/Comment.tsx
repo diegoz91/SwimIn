@@ -1,6 +1,7 @@
 import React from 'react';
 import { Models } from 'appwrite';
 import type { UserProfile, StructureProfile } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 export interface EnrichedComment extends Models.Document {
     postId: string;
@@ -48,7 +49,7 @@ export const Comment: React.FC<CommentProps> = ({
         }
     }
 
-    const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=f1f5f9&color=3b82f6`;
+    const displayAvatar = avatarUrl || initialsAvatar(authorName);
 
     const formatTimeAgo = (isoString: string) => {
         const date = new Date(isoString);

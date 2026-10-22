@@ -22,6 +22,8 @@ import type {
     SwimMeet,
     AppwriteDocument,
     Endorsement,
+    LiveMessage,
+    SavedItem,
 } from '@/types/types';
 
 const { databaseId, collections } = APPWRITE_CONFIG;
@@ -35,6 +37,11 @@ const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_moc
 
 type Profile = UserProfile | StructureProfile;
 
+export type ConnectionStatus =
+    | { state: 'none' }
+    | { state: 'sent' }
+    | { state: 'received'; connectionId: string }
+    | { state: 'connected' };
 export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility';
 export type ReportReason = 'spam' | 'molestie' | 'contenuto_inappropriato' | 'falso_profilo' | 'offerta_ingannevole' | 'altro';
 
@@ -232,6 +239,41 @@ export const databaseService = {
     /** Elimina definitivamente l'account e i dati collegati (lato server). */
     async deleteAccount(confirmation: string) {
         return await callApi<{ deleted: boolean }>('deleteAccount', { confirmation });
+    },
+
+    // ==========================================
+    // ELEMENTI SALVATI (privati)
+    // ==========================================
+    async getSavedItems(userId: string) {
+        const res = await databases.listDocuments<SavedItem>(databaseId, collections.saves, [
+            Query.equal('userId', userId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(500),
+        ]);
+        return res.documents;
+    },
+
+    async saveItem(userId: string, targetType: SavedItem['targetType'], targetId: string) {
+        return await databases.createDocument<SavedItem>(databaseId, collections.saves, ID.unique(), { userId, targetType, targetId }, [
+            Permission.read(Role.user(userId)),
+            Permission.delete(Role.user(userId)),
+        ]);
+    },
+
+    async unsaveItem(saveId: string) {
+        await databases.deleteDocument(databaseId, collections.saves, saveId);
+    },
+
+    async getPostsByIds(ids: string[], currentUserId: string) {
+        if (ids.length === 0) return [];
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [Query.equal('$id', ids.slice(0, 100)), Query.limit(100)]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+
+    async getJobsByIds(ids: string[]) {
+        if (ids.length === 0) return [] as Job[];
+        const res = await databases.listDocuments<Job>(databaseId, collections.jobs, [Query.equal('$id', ids.slice(0, 100)), Query.limit(100)]);
+        return res.documents;
     },
 
     // ==========================================
@@ -466,6 +508,25 @@ export const databaseService = {
         return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: true });
     },
 
+    /** Stato del collegamento tra l'utente corrente e un altro profilo. */
+    async getConnectionStatus(me: { $id: string; connections?: string[] }, otherId: string): Promise<ConnectionStatus> {
+        if ((me.connections || []).includes(otherId)) return { state: 'connected' };
+        try {
+            const res = await databases.listDocuments<Connection>(databaseId, collections.connections, [
+                Query.equal('senderId', [me.$id, otherId]),
+                Query.equal('receiverId', [me.$id, otherId]),
+                Query.equal('status', 'pending'),
+                Query.limit(1),
+            ]);
+            const req = res.documents[0];
+            if (!req) return { state: 'none' };
+            return req.senderId === me.$id ? { state: 'sent' } : { state: 'received', connectionId: req.$id };
+        } catch (error) {
+            console.warn('Stato collegamento non disponibile:', error);
+            return { state: 'none' };
+        }
+    },
+
     async rejectConnectionRequest(connectionId: string) {
         return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: false });
     },
@@ -540,6 +601,36 @@ export const databaseService = {
             profiles: profRes.documents.filter(p => p.$id !== currentUserId && p.userId !== currentUserId),
             facilities: facRes.documents,
         };
+    },
+
+    /** Post che contengono il termine (ricerca globale). */
+    async searchPosts(searchQuery: string, currentUserId: string, limit = 20): Promise<EnrichedPost[]> {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [];
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [
+            Query.contains('content', term),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+
+    /** Offerte attive che corrispondono al termine (titolo, ruolo, città, struttura). */
+    async searchJobs(searchQuery: string, limit = 20) {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [] as Job[];
+        const res = await databases.listDocuments<Job>(databaseId, collections.jobs, [
+            Query.equal('isActive', true),
+            Query.or([
+                Query.contains('title', term),
+                Query.contains('role', term),
+                Query.contains('city', term),
+                Query.contains('structureName', term),
+            ]),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
     },
 
     // ==========================================
@@ -679,24 +770,31 @@ export const databaseService = {
     // ==========================================
     // 🔴 BORDO VASCA LIVE
     // ==========================================
-    async createLiveRoom(data: Partial<LiveRoom>) {
+    /** Apre una diretta (lato server: l'host è l'utente che chiama). */
+    async createLiveRoom(data: Pick<LiveRoom, 'title'> & Partial<Pick<LiveRoom, 'description'>>) {
         try {
-            return await databases.createDocument<LiveRoom>(
-                databaseId, 
-                LIVE_ROOMS_COLLECTION, 
-                ID.unique(), 
-                {
-                    ...data,
-                    status: 'active',
-                    speakers: data.speakers || [data.hostId],
-                    listeners: data.listeners || [],
-                    startedAt: new Date().toISOString()
-                }
-            );
+            return await callApi<LiveRoom>('createLiveRoom', { title: data.title, description: data.description || '' });
         } catch (e) {
-            console.error("🔥 Errore creazione Live Room:", e);
-            return null;
+            console.error('createLiveRoom:', e);
+            throw e;
         }
+    },
+
+    async getLiveMessages(roomId: string, limit = 100) {
+        const res = await databases.listDocuments<LiveMessage>(databaseId, collections.live_messages, [
+            Query.equal('roomId', roomId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents.reverse();
+    },
+
+    async sendLiveMessage(roomId: string, content: string, kind: LiveMessage['kind'] = 'message') {
+        return await callApi<LiveMessage>('sendLiveMessage', { roomId, content, kind });
+    },
+
+    async setLiveSpeaker(roomId: string, userId: string, onStage: boolean) {
+        return await callApi<LiveRoom>('setLiveSpeaker', { roomId, userId, onStage });
     },
 
     async getActiveLiveRooms() {

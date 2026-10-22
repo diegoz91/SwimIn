@@ -16,10 +16,10 @@ const NotFound: React.FC = () => {
                     La pagina che cerchi non esiste o è stata spostata.
                 </p>
                 <Link
-                    to={authenticated ? '/' : '/login'}
+                    to="/"
                     className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
-                    {authenticated ? 'Torna al feed' : 'Vai all\'accesso'}
+                    {authenticated ? 'Torna al feed' : 'Vai alla pagina iniziale'}
                 </Link>
             </div>
         </div>

@@ -60,7 +60,6 @@ const Privacy: React.FC = () => (
                         <ul>
                             <li><strong>Appwrite</strong> (autenticazione, database, archiviazione file, funzioni server).</li>
                             <li><strong>Vercel</strong> (pubblicazione dell'applicazione web).</li>
-                            <li><strong>UI Avatars</strong> (generazione dell'immagine con le iniziali quando non hai caricato una foto: riceve solo il nome da mostrare).</li>
                         </ul>
                         <p>Non vendiamo i tuoi dati e non li usiamo per pubblicità profilata.</p>
                     </>

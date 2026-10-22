@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { UserProfile, Job } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 export type View = 'lavoro' | 'myApplications';
 export type CustomApplicationSteps = 'custom_analysis' | 'custom_letter' | 'custom_docs' | 'custom_availability' | 'custom_final' | 'custom_preview';
@@ -106,7 +107,7 @@ const ApplicationTypeStep: React.FC<{ onSelect: (type: 'rapid' | CustomApplicati
                 <Icon type="sparkles" className="w-6 h-6 text-blue-500 group-hover:text-blue-600" />
                 <h3 className="font-bold text-lg text-slate-800">Candidatura Rapida</h3>
             </div>
-            <p className="text-slate-600 ml-9">Usa il tuo profilo SwimWaveUp e il CV esistente. Veloce e immediata.</p>
+            <p className="text-slate-600 ml-9">Usa il tuo profilo SwimIn e il CV esistente. Veloce e immediata.</p>
             <p className="text-xs font-semibold text-slate-400 mt-3 ml-9 uppercase tracking-wide">Tempo stimato: 30 secondi</p>
         </button>
         <button 
@@ -131,7 +132,7 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
                 Dati pronti per l'invio:
             </h4>
             <ul className="list-disc list-inside text-slate-600 text-sm space-y-2 ml-1">
-                <li>Profilo completo SwimWaveUp</li>
+                <li>Profilo SwimIn completo</li>
                 <li>CV generato automaticamente</li>
                 <li>Brevetti e certificazioni: <strong>{(user.certificationsList || []).length}</strong></li>
             </ul>
@@ -305,7 +306,7 @@ const PreviewStep: React.FC<{ job: Job, data: CustomApplicationData, onSubmit: (
     <div className="animate-in slide-in-from-right-4 duration-300">
         <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Riepilogo Posizione</h4>
-            <p className="font-bold text-lg text-slate-800">{job.title}</p>
+            <p className="font-bold text-lg text-slate-800">{jobDisplayTitle(job)}</p>
             <p className="text-slate-600">{job.structureName || 'Struttura Privata'}</p>
         </div>
         <div className="mb-6">
@@ -339,7 +340,7 @@ const ConfirmationStep: React.FC<{ job: Job; onClose: () => void; onNavigate: (v
         </div>
         <h3 className="text-2xl font-extrabold text-slate-800 mb-2">Candidatura Inviata!</h3>
         <p className="text-slate-600 mt-2 text-lg">
-            Ti sei candidato con successo per <strong>{job.title}</strong> presso <strong>{job.structureName || 'la struttura'}</strong>.
+            Ti sei candidato con successo per <strong>{jobDisplayTitle(job)}</strong> presso <strong>{job.structureName || 'la struttura'}</strong>.
         </p>
         <p className="text-sm text-slate-500 mt-4 bg-slate-50 p-3 rounded-lg inline-block border border-slate-100">
             Tieni d'occhio le notifiche e la sezione "Lavoro".
@@ -368,10 +369,10 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
 
     const titles: { [key in ApplicationFlowState['step']]: string | string[] } = {
         idle: '',
-        requirements: `Candidatura per ${job.title}`,
+        requirements: `Candidatura per ${jobDisplayTitle(job)}`,
         type: 'Come vuoi candidarti?',
         rapid: 'Candidatura Rapida',
-        custom_analysis: `Candidatura per ${job.title}`,
+        custom_analysis: `Candidatura per ${jobDisplayTitle(job)}`,
         custom_letter: ['Lettera Motivazionale', 'Step 1 di 4'],
         custom_docs: ['Documentazione', 'Step 2 di 4'],
         custom_availability: ['Disponibilità', 'Step 3 di 4'],

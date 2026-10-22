@@ -4,6 +4,7 @@ import { account } from '@/services/appwrite';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { authErrorMessage } from '@/utils/authErrors';
+import { Icon } from '@/components/ui/Icon';
 
 type Status = 'verifying' | 'success' | 'error';
 
@@ -50,14 +51,14 @@ const VerifyEmail: React.FC = () => {
                 )}
                 {status === 'success' && (
                     <>
-                        <div className="text-4xl mb-3" aria-hidden="true">✅</div>
+                        <Icon type="check-circle" className="w-12 h-12 mx-auto mb-3 text-cloro-600" />
                         <h1 className="text-xl font-extrabold text-slate-900 mb-2">Email verificata</h1>
                         <p className="text-slate-600 mb-6">Grazie! Il tuo indirizzo è confermato.</p>
                     </>
                 )}
                 {status === 'error' && (
                     <>
-                        <div className="text-4xl mb-3" aria-hidden="true">⚠️</div>
+                        <Icon type="alert-triangle" className="w-12 h-12 mx-auto mb-3 text-amber-500" />
                         <h1 className="text-xl font-extrabold text-slate-900 mb-2">Verifica non riuscita</h1>
                         <p className="text-slate-600 mb-6">{message} Puoi richiedere un nuovo link dalle Impostazioni.</p>
                     </>

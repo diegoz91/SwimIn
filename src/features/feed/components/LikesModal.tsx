@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { databaseService } from '@/services/database';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface LikesModalProps {
     postId: string;
@@ -43,7 +44,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
 
     const getUserAvatar = (user: UserProfile | StructureProfile, name: string) => {
         const avatarUrl = user.userType === 'professional' ? (user as UserProfile).avatar : (user as StructureProfile).logo;
-        return avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+        return avatarUrl || initialsAvatar(name);
     };
 
     return (

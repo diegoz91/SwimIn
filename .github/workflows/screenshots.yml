@@ -1,0 +1,58 @@
+name: Schermate
+
+# Genera le schermate dell'app (con dati di esempio) per la revisione visiva
+# e le pubblica sul branch ci-screenshots/<branch della PR>.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npx vite build
+        env:
+          VITE_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
+          VITE_APPWRITE_PROJECT_ID: demo
+
+      - name: Schermate
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173 >/dev/null && break; sleep 1; done
+          mkdir -p screenshots
+          node scripts/screenshots/capture.mjs http://localhost:4173 screenshots | tee screenshots/log.txt
+
+      - name: Pubblica sul branch ci-screenshots
+        run: |
+          BRANCH="ci-screenshots/${{ github.head_ref || github.ref_name }}"
+          cd screenshots
+          echo '{ "git": { "deploymentEnabled": false } }' > vercel.json
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b "$BRANCH"
+          git add -A
+          git commit -q -m "Schermate di ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$BRANCH"

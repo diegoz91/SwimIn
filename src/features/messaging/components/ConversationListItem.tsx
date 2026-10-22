@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import type { UserProfile, StructureProfile } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ConversationItemProps {
   conversation: {
@@ -39,9 +40,9 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
 
   const getParticipantAvatar = (): string => {
     if (participant.userType === 'professional') {
-        return (participant as UserProfile).avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+        return (participant as UserProfile).avatar || initialsAvatar(name);
     }
-    return (participant as StructureProfile).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+    return (participant as StructureProfile).logo || initialsAvatar(name);
   };
 
   const formatTimestamp = (isoString: string): string => {

@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PhotoUploader } from '@/features/profile/components/PhotoUploader';
 import { storageService } from '@/services/storage';
 import { useToast } from '@/context/ToastContext';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface CreatePostModalProps {
     isOpen: boolean;
@@ -57,7 +58,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const isProfessional = user.userType === 'professional';
     const authorName = isProfessional ? `${(user as UserProfile).firstName || ''} ${(user as UserProfile).lastName || ''}`.trim() : (user as StructureProfile).structureName;
     const avatarUrl = isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo;
-    const displayAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName || 'U')}&background=eff6ff&color=1d4ed8`;
+    const displayAvatar = avatarUrl || initialsAvatar(authorName || 'U');
 
     const handleSafeClose = () => {
         if (content.trim() !== '' || mediaFiles.length > 0 || videoFile) {

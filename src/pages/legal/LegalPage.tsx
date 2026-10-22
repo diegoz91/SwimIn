@@ -27,9 +27,9 @@ export const LegalPage: React.FC<LegalPageProps> = ({ title, intro, sections }) 
     const { authenticated } = useAuth();
 
     return (
-        <article className="max-w-3xl mx-auto w-full py-8 sm:py-12">
-            <Link to={authenticated ? '/' : '/login'} className="text-sm font-semibold text-blue-600 hover:underline">
-                ← {authenticated ? 'Torna al feed' : 'Torna all\'accesso'}
+        <article className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
+            <Link to="/" className="text-sm font-semibold text-corsia-700 hover:underline">
+                {authenticated ? 'Torna al feed' : 'Torna a SwimIn'}
             </Link>
 
             <header className="mt-4 mb-8">

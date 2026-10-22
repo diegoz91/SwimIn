@@ -35,6 +35,13 @@ SwimWaveUp connette Istruttori FIN, Assistenti Bagnanti, Allenatori, Direttori S
 - Richieste di collegamento, suggerimenti, ricerca di persone e strutture, Swim-Meet (eventi).
 - Chat in tempo reale con stato online, "sta scrivendo" e conferme di lettura disattivabili.
 
+### 🔴 Bordo Vasca Live
+- Stanze di confronto in tempo reale: chi conduce porta gli ospiti sul palco, il pubblico interviene in chat con domande e mani alzate.
+
+### 🧭 Esperienza
+- Landing page per i visitatori, onboarding guidato dopo la registrazione, ricerca globale (persone, piscine, offerte, post), elementi salvati.
+- Home a tre colonne con avvisi di scadenza dei brevetti, app installabile su smartphone (PWA).
+
 ### 🔔 Notifiche, account e privacy
 - Centro notifiche in tempo reale (consigli, commenti, collegamenti, candidature, conferme).
 - Verifica email, recupero e cambio password, cambio email, uscita dagli altri dispositivi.

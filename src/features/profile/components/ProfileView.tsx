@@ -12,6 +12,8 @@ import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
+import { ConnectButton } from '@/components/common/ConnectButton';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -129,7 +131,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         : (user as StructureProfile).structureName || 'Struttura';
     
     const displayAvatar = (isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo) || 
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8&size=256`;
+        initialsAvatar(displayName);
     
     const coverImage = user.cover || null;
 
@@ -258,7 +260,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     };
 
     return (
-    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto py-4 sm:py-6 animate-in fade-in duration-500">
       
       <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
         
@@ -323,19 +325,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <h2 className="text-xl font-extrabold text-red-700 flex items-center gap-2">
-                    <Icon type="alert-triangle" className="w-6 h-6 animate-pulse" />
-                    SOS Vasca - Sostituzioni Urgenti
+                    <Icon type="alert-triangle" className="w-6 h-6" />
+                    Disponibilità per sostituzioni urgenti
                 </h2>
                 <p className="text-red-600 text-sm mt-2 font-medium max-w-xl">
                     Attiva questa modalità per segnalare la tua disponibilità immediata. Riceverai priorità per le chiamate SOS dalle piscine nella tua zona.
                 </p>
             </div>
-            <button 
+            <button
+                role="switch"
+                aria-checked={!!profUser.availableForEmergencies}
+                aria-label="Disponibilità per sostituzioni urgenti"
                 onClick={async () => {
                     const newState = !profUser.availableForEmergencies;
                     const updated = await databaseService.updateProfile(profUser.userId || profUser.$id, { availableForEmergencies: newState });
                     if (onUpdateProfile) onUpdateProfile(updated as UserProfile);
-                    showToast(newState ? 'SOS Vasca Attivato! Sei in prima linea.' : 'SOS Vasca Disattivato.', 'success');
+                    showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
                 }}
                 className={`relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${profUser.availableForEmergencies ? 'bg-red-600 shadow-inner' : 'bg-red-200'}`}
             >
@@ -344,12 +349,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {isProfessional && (
+      {isProfessional && isOwnProfile && (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 relative overflow-hidden" data-html2canvas-ignore="true">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 relative z-10">
                 <div>
                     <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                        Livello Passaporto Natatorio
+                        Completezza del profilo
                         {completionScore === 100 && (
                             <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200 shadow-sm animate-in zoom-in duration-500">
                                 <Icon type="star" className="w-3 h-3" /> Pioniere SwimIn
@@ -382,7 +387,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
                     <Icon type="building" className="w-6 h-6 text-blue-600" />
-                    Le mie Pagine Struttura
+                    Le mie strutture
                 </h2>
                 <button
                     onClick={() => setIsFacilityModalOpen(true)}
@@ -464,21 +469,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                   </div>
                   {!isOwnProfile && (
-                    <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+                    <div className="flex items-center gap-2 w-full sm:w-auto sm:justify-end" data-html2canvas-ignore="true">
+                      <ConnectButton profileId={user.userId || user.$id} className="flex-1 sm:flex-none justify-center whitespace-nowrap" />
+                      <button
+                          onClick={() => onContact(user.userId || user.$id)}
+                          className="flex-1 sm:flex-none justify-center whitespace-nowrap px-5 py-2.5 bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 font-semibold rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                      >
+                          <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
+                      </button>
                       <button
                           onClick={() => setIsReportOpen(true)}
-                          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          className="flex-shrink-0 p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                           aria-label="Segnala profilo"
                           title="Segnala profilo"
                       >
                           <Icon type="alert-triangle" className="w-5 h-5" />
-                      </button>
-                      <button 
-                          onClick={() => onContact(user.userId || user.$id)} 
-                          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                          data-html2canvas-ignore="true"
-                      >
-                          <Icon type="chat-bubble" className="w-4 h-4" /> Contatta
                       </button>
                     </div>
                   )}
@@ -503,7 +508,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <div className="flex flex-wrap items-center gap-3 text-slate-500 text-sm font-medium">
                       <span className="flex items-center gap-1.5"><Icon type="location" className="w-4 h-4" /> {user.city ? `${user.city} (${user.province})` : 'Località mancante'}</span>
                       <span className="hidden sm:inline text-slate-300">•</span>
-                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0)} Collegamenti</span>
+                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}</span>
                   </div>
               </div>
             </div>
@@ -512,7 +517,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
             <h2 className="text-xl font-extrabold text-slate-900 mb-4 flex items-center gap-2">
                 <Icon type="info" className="w-5 h-5 text-blue-600" />
-                Chi Sono
+                Chi sono
             </h2>
             <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
                 {user.bio || 'Nessuna presentazione inserita.'}

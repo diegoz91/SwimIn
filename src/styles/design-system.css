@@ -1,8 +1,8 @@
 @layer base {
   :root {
     /* Variabili native di sistema */
-    --app-bg: #f8fafc;
-    --app-text: #0f172a;
+    --app-bg: #f2f8fa;
+    --app-text: #0a2738;
     
     /* Supporto per i notch degli smartphone moderni (iOS/Android) */
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);

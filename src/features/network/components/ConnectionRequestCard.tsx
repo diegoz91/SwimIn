@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { UserProfile, StructureProfile } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 export interface EnrichedConnectionRequest {
     $id: string;
@@ -40,7 +41,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
         : ((profile as StructureProfile).structureType || 'Centro Sportivo');
 
     const displayAvatar = (isProfessional ? (profile as UserProfile).avatar : (profile as StructureProfile).logo) || 
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8`;
+        initialsAvatar(displayName);
 
     const getSwimBadges = () => {
         if (!isProfessional || !(profile as UserProfile).certificationsList) return [];
