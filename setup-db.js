@@ -200,7 +200,8 @@ const schema = [
         indexes: [idx('by_reporter_target', ['reporterId', 'targetId']), idx('by_status', ['status'])],
     },
     {
-        id: 'live_rooms', name: 'Live Rooms', permissions: READ_CREATE,
+        // Aperte dalla Function (host verificato); l'host può chiuderle.
+        id: 'live_rooms', name: 'Live Rooms', permissions: READ_ONLY,
         attributes: [
             str('title', 255, { required: true }), str('description', 1000), str('hostId', 36, { required: true }),
             str('facilityId', 36), str('status', 50, { required: true }),
@@ -208,6 +209,15 @@ const schema = [
             str('startedAt', 100, { required: true }),
         ],
         indexes: [idx('by_status', ['status'])],
+    },
+    {
+        // Chat delle stanze live: scritta solo dalla Function (solo partecipanti).
+        id: 'live_messages', name: 'Live Messages', permissions: READ_ONLY,
+        attributes: [
+            str('roomId', 36, { required: true }), str('authorId', 36, { required: true }),
+            str('content', 1000, { required: true }), str('kind', 20, { required: true }),
+        ],
+        indexes: [idx('by_room', ['roomId'])],
     },
     {
         id: 'swim_meets', name: 'Swim Meets', permissions: READ_CREATE,

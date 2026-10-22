@@ -22,6 +22,7 @@ import type {
     SwimMeet,
     AppwriteDocument,
     Endorsement,
+    LiveMessage,
 } from '@/types/types';
 
 const { databaseId, collections } = APPWRITE_CONFIG;
@@ -709,24 +710,31 @@ export const databaseService = {
     // ==========================================
     // 🔴 BORDO VASCA LIVE
     // ==========================================
-    async createLiveRoom(data: Partial<LiveRoom>) {
+    /** Apre una diretta (lato server: l'host è l'utente che chiama). */
+    async createLiveRoom(data: Pick<LiveRoom, 'title'> & Partial<Pick<LiveRoom, 'description'>>) {
         try {
-            return await databases.createDocument<LiveRoom>(
-                databaseId, 
-                LIVE_ROOMS_COLLECTION, 
-                ID.unique(), 
-                {
-                    ...data,
-                    status: 'active',
-                    speakers: data.speakers || [data.hostId],
-                    listeners: data.listeners || [],
-                    startedAt: new Date().toISOString()
-                }
-            );
+            return await callApi<LiveRoom>('createLiveRoom', { title: data.title, description: data.description || '' });
         } catch (e) {
-            console.error("🔥 Errore creazione Live Room:", e);
-            return null;
+            console.error('createLiveRoom:', e);
+            throw e;
         }
+    },
+
+    async getLiveMessages(roomId: string, limit = 100) {
+        const res = await databases.listDocuments<LiveMessage>(databaseId, collections.live_messages, [
+            Query.equal('roomId', roomId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents.reverse();
+    },
+
+    async sendLiveMessage(roomId: string, content: string, kind: LiveMessage['kind'] = 'message') {
+        return await callApi<LiveMessage>('sendLiveMessage', { roomId, content, kind });
+    },
+
+    async setLiveSpeaker(roomId: string, userId: string, onStage: boolean) {
+        return await callApi<LiveRoom>('setLiveSpeaker', { roomId, userId, onStage });
     },
 
     async getActiveLiveRooms() {

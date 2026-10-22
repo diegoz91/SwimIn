@@ -27,7 +27,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
             <div className="h-16 bg-gradient-to-br from-corsia-700 to-cloro-500 relative">
                 {user.cover && <img src={user.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
             </div>
-            <div className="px-4 pb-4 -mt-8">
+            <div className="relative px-4 pb-4 -mt-8">
                 <Link to="/profile" className="block w-fit rounded-full">
                     <img src={avatarOf(user)} alt="" className="w-16 h-16 rounded-full object-cover ring-4 ring-white bg-white" />
                 </Link>

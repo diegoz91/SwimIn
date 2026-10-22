@@ -229,6 +229,13 @@ export interface LiveRoom extends AppwriteDocument {
   startedAt: string;
 }
 
+export interface LiveMessage extends AppwriteDocument {
+  roomId: string;
+  authorId: string;
+  content: string;
+  kind: 'message' | 'question' | 'hand';
+}
+
 // ----------------------------------------------------
 // 10. SWIM-MEETS
 // ----------------------------------------------------

@@ -157,6 +157,11 @@ export const collections = {
     live_rooms: [
         doc('live_rooms', 'r1', { title: 'Didattica in vasca piccola: giochi per i 4-5 anni', hostId: 'u_elena', status: 'active', speakers: ['u_elena', 'u_sara'], listeners: ['u_marco', 'u_luca'], startedAt: iso(15) }, 15),
     ],
+    live_messages: [
+        doc('live_messages', 'lm1', { roomId: 'r1', authorId: 'u_elena', content: 'Benvenuti! Oggi parliamo dei giochi per l\'acquaticità dei 4-5 anni.', kind: 'message' }, 14),
+        doc('live_messages', 'lm2', { roomId: 'r1', authorId: 'u_marco', content: 'Come gestite i bambini che hanno paura di mettere la testa sott\'acqua?', kind: 'question' }, 10),
+        doc('live_messages', 'lm3', { roomId: 'r1', authorId: 'u_luca', content: '✋', kind: 'hand' }, 6),
+    ],
     swim_meets: [],
     announcements: [],
     shifts: [],

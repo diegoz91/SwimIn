@@ -6,354 +6,200 @@ import { client } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
-import type { LiveRoom } from '@/types/types';
+import { LiveRoomView } from '@/features/live/LiveRoomView';
+import { avatarOf, displayNameOf } from '@/utils/profile';
+import { formatRelativeTime } from '@/utils/format';
+import type { LiveRoom, StructureProfile, UserProfile } from '@/types/types';
 
+const IDEAS = [
+    'Domande e risposte sul brevetto di assistente bagnanti',
+    'Didattica per i corsi dei più piccoli',
+    'Preparare la stagione estiva in piscina scoperta',
+];
+
+/** Bordo Vasca Live: stanze di confronto in tempo reale tra professionisti. */
 const Live: React.FC = () => {
     usePageTitle('Bordo Vasca Live');
     const { user } = useAuth();
     const { showToast } = useToast();
-    
-    // Stati della Lobby
-    const [activeRooms, setActiveRooms] = useState<LiveRoom[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    
-    // Stati per la creazione di una nuova stanza
-    const [isCreating, setIsCreating] = useState(false);
-    const [newRoomTitle, setNewRoomTitle] = useState('');
-    const [newRoomDesc, setNewRoomDesc] = useState('');
-    
-    // Stato della stanza corrente
-    const [currentRoom, setCurrentRoom] = useState<LiveRoom | null>(null);
-    const [myRole, setMyRole] = useState<'host' | 'speaker' | 'listener' | null>(null);
 
-    // 1. CARICA LA LOBBY E ASCOLTA IN REAL-TIME
+    const [rooms, setRooms] = useState<LiveRoom[]>([]);
+    const [hosts, setHosts] = useState<Record<string, UserProfile | StructureProfile>>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+
     const fetchRooms = useCallback(async () => {
         try {
-            const rooms = await databaseService.getActiveLiveRooms();
-            setActiveRooms(rooms);
-            
-            if (user) {
-                const myActiveRoom = rooms.find(r => 
-                    r.hostId === user.$id || 
-                    (r.speakers || []).includes(user.$id) || 
-                    (r.listeners || []).includes(user.$id)
-                );
-                if (myActiveRoom) {
-                    setCurrentRoom(myActiveRoom);
-                    if (myActiveRoom.hostId === user.$id) setMyRole('host');
-                    else if ((myActiveRoom.speakers || []).includes(user.$id)) setMyRole('speaker');
-                    else setMyRole('listener');
-                }
+            const active = await databaseService.getActiveLiveRooms();
+            setRooms(active);
+            if (user && !currentRoomId) {
+                const mine = active.find((r) => r.hostId === user.$id || (r.speakers || []).includes(user.$id) || (r.listeners || []).includes(user.$id));
+                if (mine) setCurrentRoomId(mine.$id);
+            }
+            const hostIds = [...new Set(active.map((r) => r.hostId))];
+            if (hostIds.length) {
+                const list = await databaseService.getConnectionsProfiles(hostIds);
+                setHosts(Object.fromEntries(list.map((p) => [p.$id, p])));
             }
         } catch (error) {
-            console.error(error);
+            console.error('Stanze live:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, currentRoomId]);
 
     useEffect(() => {
         fetchRooms();
-
-        const liveRoomsCol = (APPWRITE_CONFIG.collections as any).live_rooms || 'live_rooms';
-        const channel = `databases.${APPWRITE_CONFIG.databaseId}.collections.${liveRoomsCol}.documents`;
-        
-        const unsubscribe = client.subscribe(channel, (response: any) => {
-            fetchRooms();
-        });
-
+        const channel = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.live_rooms}.documents`;
+        const unsubscribe = client.subscribe(channel, () => fetchRooms());
         return () => unsubscribe();
     }, [fetchRooms]);
 
-    // 2. CREA UNA NUOVA STANZA
-    const handleCreateRoom = async (e: React.FormEvent) => {
+    const currentRoom = rooms.find((r) => r.$id === currentRoomId) || null;
+
+    // La stanza è stata chiusa dall'host mentre eravamo dentro.
+    useEffect(() => {
+        if (currentRoomId && !isLoading && !currentRoom) {
+            setCurrentRoomId(null);
+            showToast('La diretta è terminata.', 'info');
+        }
+    }, [currentRoomId, currentRoom, isLoading, showToast]);
+
+    const createRoom = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !newRoomTitle.trim()) return;
-        
-        setIsLoading(true);
-        const room = await databaseService.createLiveRoom({
-            title: newRoomTitle,
-            description: newRoomDesc,
-            hostId: user.$id,
-        });
-
-        if (room) {
-            showToast('Stanza creata con successo! Sei Live.', 'success');
-            setCurrentRoom(room);
-            setMyRole('host');
+        if (!title.trim()) return;
+        setBusy(true);
+        try {
+            const room = await databaseService.createLiveRoom({ title: title.trim(), description: description.trim() });
+            setRooms((prev) => [room, ...prev]);
+            setCurrentRoomId(room.$id);
             setIsCreating(false);
-            setNewRoomTitle('');
-            setNewRoomDesc('');
-        } else {
-            showToast('Errore durante la creazione della stanza.', 'error');
+            setTitle('');
+            setDescription('');
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Non è stato possibile aprire la diretta.', 'error');
+        } finally {
+            setBusy(false);
         }
-        setIsLoading(false);
     };
 
-    // 3. ENTRA IN UNA STANZA
-    const handleJoinRoom = async (roomId: string) => {
+    const joinRoom = async (roomId: string) => {
         if (!user) return;
-        setIsLoading(true);
-        const joinedRoom = await databaseService.joinLiveRoom(roomId, user.$id, 'listener');
-        if (joinedRoom) {
-            setCurrentRoom(joinedRoom);
-            setMyRole('listener');
-            showToast('Sei entrato nella stanza in ascolto.', 'info');
+        setBusy(true);
+        const joined = await databaseService.joinLiveRoom(roomId, user.$id, 'listener');
+        setBusy(false);
+        if (joined) {
+            setRooms((prev) => prev.map((r) => (r.$id === joined.$id ? joined : r)));
+            setCurrentRoomId(joined.$id);
         } else {
-            showToast('Impossibile entrare nella stanza. Forse è stata chiusa.', 'error');
+            showToast('La diretta non è più disponibile.', 'error');
         }
-        setIsLoading(false);
     };
 
-    // 4. ESCI O CHIUDI LA STANZA
-    const handleLeaveRoom = async () => {
+    const leaveRoom = async () => {
         if (!user || !currentRoom) return;
-        
-        if (myRole === 'host') {
+        if (currentRoom.hostId === user.$id) {
+            if (!window.confirm('Chiudere la diretta per tutti i partecipanti?')) return;
             await databaseService.endLiveRoom(currentRoom.$id);
-            showToast('Hai terminato la diretta per tutti.', 'info');
+            showToast('Diretta chiusa.', 'info');
         } else {
             await databaseService.leaveLiveRoom(currentRoom.$id, user.$id);
-            showToast('Sei uscito dalla stanza.', 'info');
         }
-        setCurrentRoom(null);
-        setMyRole(null);
+        setCurrentRoomId(null);
+        fetchRooms();
     };
 
     if (!user) return null;
+    if (currentRoom) return <LiveRoomView room={currentRoom} user={user} onLeave={leaveRoom} />;
 
-    // ==========================================
-    // INTERFACCIA 1: STANZA LIVE
-    // ==========================================
-    if (currentRoom) {
-        const totalParticipants = (currentRoom.speakers?.length || 0) + (currentRoom.listeners?.length || 0);
-
-        return (
-            <div className="max-w-4xl mx-auto w-full animate-in zoom-in-95 duration-500">
-                <div className="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 text-white relative">
-                    
-                    {/* Header Stanza */}
-                    <div className="p-6 sm:p-8 border-b border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="flex items-center gap-1.5 bg-red-500/20 text-red-500 px-3 py-1 rounded-full text-xs font-bold border border-red-500/30">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                    </span>
-                                    ON AIR
-                                </span>
-                                <span className="text-slate-400 text-sm font-medium flex items-center gap-1">
-                                    <Icon type="users" className="w-4 h-4" /> {totalParticipants} Partecipanti
-                                </span>
-                            </div>
-                            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{currentRoom.title}</h1>
-                            {currentRoom.description && (
-                                <p className="text-slate-400 mt-2 text-sm">{currentRoom.description}</p>
-                            )}
-                        </div>
-
-                        <button 
-                            onClick={handleLeaveRoom}
-                            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                        >
-                            <Icon type="logout" className="w-5 h-5" />
-                            {myRole === 'host' ? 'Termina Diretta' : 'Esci'}
-                        </button>
-                    </div>
-
-                    {/* Palco */}
-                    <div className="p-6 sm:p-8 bg-slate-800/30">
-                        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sul Palco</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {/* Placeholder per l'Host */}
-                            <div className="bg-slate-800 rounded-2xl p-4 text-center border-2 border-blue-500/30 relative">
-                                <div className="absolute -top-3 -right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">HOST</div>
-                                <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center shadow-inner">
-                                    <Icon type="star" className="w-8 h-8 text-blue-600" />
-                                </div>
-                                <p className="font-bold text-sm truncate text-slate-200">Host Room</p>
-                                <Icon type="video" className="w-4 h-4 text-green-400 mx-auto mt-2 animate-pulse" />
-                            </div>
-
-                            {/* Altri Speakers */}
-                            {(currentRoom.speakers || []).filter(id => id !== currentRoom.hostId).map(speakerId => (
-                                <div key={speakerId} className="bg-slate-800 rounded-2xl p-4 text-center border border-slate-700">
-                                    <div className="w-16 h-16 bg-slate-700 rounded-full mx-auto mb-3 flex items-center justify-center">
-                                        <Icon type="user" className="w-8 h-8 text-slate-400" />
-                                    </div>
-                                    <p className="font-bold text-sm truncate text-slate-300">Speaker</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Platea */}
-                    <div className="p-6 sm:p-8">
-                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            In Ascolto <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-xs">{(currentRoom.listeners || []).length}</span>
-                        </h2>
-                        <div className="flex flex-wrap gap-3">
-                            {(currentRoom.listeners || []).length === 0 ? (
-                                <p className="text-sm text-slate-500 italic">Nessun ascoltatore al momento.</p>
-                            ) : (
-                                (currentRoom.listeners || []).map(listenerId => (
-                                    <div key={listenerId} className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700 tooltip-trigger">
-                                        <Icon type="user" className="w-5 h-5 text-slate-500" />
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Controlli Inferiori Placeholder (Per la futura integrazione WebRTC) */}
-                    <div className="border-t border-slate-800 p-4 bg-slate-950 flex justify-center gap-4">
-                        <button className="p-4 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors tooltip-trigger" title="Prossimamente: Attiva/Disattiva Mic">
-                            <Icon type="chat-bubble" className="w-6 h-6" />
-                        </button>
-                        <button className="p-4 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors tooltip-trigger" title="Prossimamente: Attiva/Disattiva Cam">
-                            <Icon type="camera" className="w-6 h-6" />
-                        </button>
-                        <button className="p-4 rounded-full bg-slate-800 text-slate-400 hover:text-blue-400 hover:bg-blue-900/30 transition-colors tooltip-trigger" title="Prossimamente: Alza la mano">
-                            <Icon type="thumb-up" className="w-6 h-6" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // ==========================================
-    // INTERFACCIA 2: LOBBY
-    // ==========================================
     return (
-        <div className="max-w-5xl mx-auto w-full animate-in fade-in duration-500 pb-20">
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="pt-4 max-w-5xl mx-auto w-full">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
-                        Bordo Vasca Live
-                        <span className="bg-red-100 text-red-600 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-black border border-red-200">Beta</span>
-                    </h1>
-                    <p className="text-slate-500 mt-1">Unisciti alle stanze audio/video per discutere, imparare e fare networking.</p>
+                    <h1 className="text-4xl font-bold text-abisso leading-none">Bordo Vasca Live</h1>
+                    <p className="text-slate-600 mt-2 max-w-xl">
+                        Stanze di confronto in tempo reale: chi conduce porta sul palco gli ospiti, il pubblico interviene in chat con domande e mani alzate.
+                    </p>
                 </div>
-                <button 
-                    onClick={() => setIsCreating(true)}
-                    className="w-full md:w-auto bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                    <Icon type="video" className="w-5 h-5" /> Avvia una Stanza
-                </button>
+                {!isCreating && (
+                    <button onClick={() => setIsCreating(true)} className="px-5 py-3 rounded-full font-semibold text-white bg-corsia-600 hover:bg-corsia-700 flex items-center justify-center gap-2">
+                        <Icon type="plus" className="w-5 h-5" /> Apri una stanza
+                    </button>
+                )}
             </div>
 
-            {/* Modal Creazione Stanza */}
             {isCreating && (
-                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-blue-200 mb-8 animate-in slide-in-from-top-4 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-extrabold text-slate-800">Crea la tua Live Room</h2>
-                        <button onClick={() => setIsCreating(false)} className="text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors">
+                <form onSubmit={createRoom} className="bg-white rounded-3xl border border-slate-200 shadow-card p-6 mb-8 space-y-4 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-abisso">Nuova stanza</h2>
+                        <button type="button" onClick={() => setIsCreating(false)} className="p-2 text-slate-400 hover:text-abisso rounded-full" aria-label="Annulla">
                             <Icon type="x" className="w-5 h-5" />
                         </button>
                     </div>
-                    <form onSubmit={handleCreateRoom} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Argomento della stanza *</label>
-                            <input 
-                                required 
-                                autoFocus
-                                maxLength={100}
-                                placeholder="Es. Q&A per la nuova stagione estiva, Masterclass Nuoto..." 
-                                value={newRoomTitle} 
-                                onChange={e => setNewRoomTitle(e.target.value)} 
-                                className="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-colors text-lg font-medium" 
-                            />
+                    <div>
+                        <label htmlFor="live-title" className="block text-sm font-semibold text-slate-700 mb-1.5">Argomento</label>
+                        <input id="live-title" required autoFocus maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none" placeholder={IDEAS[0]} />
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {IDEAS.map((idea) => (
+                                <button key={idea} type="button" onClick={() => setTitle(idea)} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-piastrella text-slate-600 hover:text-abisso">
+                                    {idea}
+                                </button>
+                            ))}
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Descrizione (Opzionale)</label>
-                            <textarea 
-                                placeholder="Di cosa parleremo?" 
-                                value={newRoomDesc} 
-                                onChange={e => setNewRoomDesc(e.target.value)} 
-                                className="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-colors resize-none" 
-                                rows={2}
-                            />
-                        </div>
-                        <div className="pt-2">
-                            <button type="submit" disabled={isLoading || !newRoomTitle.trim()} className="w-full bg-blue-600 text-white font-extrabold py-4 rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-lg">
-                                {isLoading ? 'Avvio in corso...' : <><Icon type="video" className="w-6 h-6" /> Vai Live Ora</>}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div>
+                        <label htmlFor="live-desc" className="block text-sm font-semibold text-slate-700 mb-1.5">Descrizione (facoltativa)</label>
+                        <textarea id="live-desc" rows={2} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none" />
+                    </div>
+                    <button type="submit" disabled={busy || !title.trim()} className="w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-white bg-galleggiante hover:bg-red-700 disabled:opacity-50">
+                        {busy ? 'Apertura…' : 'Vai in diretta'}
+                    </button>
+                </form>
             )}
 
-            {/* Griglia Stanze Attive */}
-            <div>
-                <h2 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2">
-                    <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
-                    Stanze in corso ({activeRooms.length})
-                </h2>
-
-                {isLoading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-red-500"></div>
-                    </div>
-                ) : activeRooms.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {activeRooms.map(room => (
-                            <div key={room.$id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:shadow-lg transition-shadow group flex flex-col justify-between h-full relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rounded-bl-full opacity-50 -z-10"></div>
-                                
-                                <div>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="bg-red-50 text-red-600 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-md border border-red-100 flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div> Live
-                                        </div>
-                                        <div className="text-xs text-slate-400 font-bold flex items-center gap-1">
-                                            <Icon type="users" className="w-4 h-4" /> {(room.speakers?.length || 0) + (room.listeners?.length || 0)}
-                                        </div>
-                                    </div>
-                                    
-                                    <h3 className="font-extrabold text-xl text-slate-800 mb-2 leading-tight group-hover:text-blue-600 transition-colors">
-                                        {room.title}
-                                    </h3>
-                                    
-                                    <div className="flex items-center gap-3 mt-4">
-                                        <div className="flex -space-x-3">
-                                            {(room.speakers || []).slice(0, 3).map((speakerId, idx) => (
-                                                <div key={idx} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center z-10">
-                                                    <Icon type="user" className="w-4 h-4 text-slate-500" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <span className="text-xs font-semibold text-slate-500">
-                                            {room.speakers?.length} Speaker
-                                        </span>
+            <h2 className="text-2xl font-bold text-abisso mb-4">In corso adesso</h2>
+            {isLoading ? (
+                <div className="grid md:grid-cols-2 gap-4" aria-hidden="true">
+                    {[0, 1].map((i) => <div key={i} className="h-44 bg-white rounded-3xl border border-slate-200 animate-pulse" />)}
+                </div>
+            ) : rooms.length === 0 ? (
+                <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-10 text-center">
+                    <Icon type="video" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                    <p className="font-semibold text-abisso">Nessuna stanza aperta in questo momento.</p>
+                    <p className="text-slate-500 mt-1">Apri tu la prima: un dubbio sui brevetti, una tecnica, l’organizzazione dei turni.</p>
+                </div>
+            ) : (
+                <div className="grid md:grid-cols-2 gap-4">
+                    {rooms.map((room) => {
+                        const host = hosts[room.hostId];
+                        const people = (room.speakers?.length || 0) + (room.listeners?.length || 0);
+                        return (
+                            <article key={room.$id} className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden flex flex-col">
+                                <div className="lane-rope" aria-hidden="true" />
+                                <div className="p-5 flex-1">
+                                    <p className="flex items-center gap-2 text-xs font-semibold text-galleggiante">
+                                        <span className="w-2 h-2 rounded-full bg-galleggiante motion-safe:animate-pulse" aria-hidden="true" />
+                                        In diretta · {people} {people === 1 ? 'partecipante' : 'partecipanti'} · da {formatRelativeTime(room.startedAt || room.$createdAt).replace(' fa', '')}
+                                    </p>
+                                    <h3 className="mt-2 text-xl font-semibold text-abisso leading-snug">{room.title}</h3>
+                                    {room.description && <p className="text-sm text-slate-600 mt-1 line-clamp-2">{room.description}</p>}
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <img src={avatarOf(host)} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                        <span className="text-sm text-slate-600">Conduce <span className="font-semibold text-abisso">{displayNameOf(host)}</span></span>
                                     </div>
                                 </div>
-
-                                <button 
-                                    onClick={() => handleJoinRoom(room.$id)}
-                                    className="w-full mt-6 bg-slate-50 hover:bg-red-50 text-slate-700 hover:text-red-600 font-bold py-3 rounded-xl border border-slate-200 hover:border-red-200 transition-all flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                                >
+                                <button onClick={() => joinRoom(room.$id)} disabled={busy} className="m-5 mt-0 py-3 rounded-full font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 disabled:opacity-60">
                                     Entra nella stanza
                                 </button>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-slate-200 border-dashed">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                            <Icon type="video" className="w-10 h-10 text-slate-300" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Nessuna stanza attiva</h3>
-                        <p className="text-slate-500 max-w-sm mx-auto">Non c'è nessuno a bordo vasca in questo momento. Perché non rompi il ghiaccio e ne avvii una tu?</p>
-                    </div>
-                )}
-            </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };

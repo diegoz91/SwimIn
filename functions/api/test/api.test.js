@@ -153,6 +153,19 @@ assert.equal(jp.structureName,'Piscina Blu'); assert.equal(jp.salaryMin,1200); a
 const jf=await api.createJob('eve',{...jobBase,structureId:'f1'});
 assert.equal(jf.structureName,'Centro');
 
+// Bordo Vasca Live
+const room=await api.createLiveRoom('piscina',{title:'Didattica vasca piccola',hostId:'bob'});
+assert.equal(room.hostId,'piscina'); assert.deepEqual(room.speakers,['piscina']);
+await rejects(api.createLiveRoom('piscina',{title:'Seconda'}),409);
+await rejects(api.sendLiveMessage('bob',{roomId:room.$id,content:'ciao'}),403);
+await api.joinLiveRoom('bob',{roomId:room.$id,role:'listener'});
+const lm=await api.sendLiveMessage('bob',{roomId:room.$id,content:'Domanda sui 4 anni',kind:'question'});
+assert.equal(lm.authorId,'bob'); assert.equal(lm.kind,'question');
+assert.equal((await api.sendLiveMessage('bob',{roomId:room.$id,kind:'hand'})).content,'✋');
+await rejects(api.setLiveSpeaker('bob',{roomId:room.$id,userId:'bob',onStage:true}),403);
+const staged=await api.setLiveSpeaker('piscina',{roomId:room.$id,userId:'bob',onStage:true});
+assert.deepEqual(staged.speakers,['piscina','bob']); assert.deepEqual(staged.listeners,[]);
+
 // Eliminazione account di anna
 col('profiles').anna.avatar='https://cloud.appwrite.io/v1/storage/buckets/avatars/files/avatarAnna/view?project=x';
 col('profiles').anna.connections=['bob']; col('profiles').bob.connections=['anna','eve'];

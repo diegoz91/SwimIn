@@ -29,6 +29,7 @@ export interface AppwriteConfig {
         live_rooms?: string;
         swim_meets?: string;
         endorsements: string;
+        live_messages: string;
     };
     buckets: {
         avatars: string;
@@ -58,6 +59,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         live_rooms: 'live_rooms',
         swim_meets: 'swim_meets',
         endorsements: 'endorsements',
+        live_messages: 'live_messages',
     },
     buckets: {
         avatars: 'avatars',

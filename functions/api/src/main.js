@@ -29,6 +29,7 @@ const C = {
   announcements: 'announcements',
   reports: 'reports',
   endorsements: 'endorsements',
+  liveMessages: 'live_messages',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility'];
@@ -641,6 +642,44 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     },
 
     // ---------------- BORDO VASCA LIVE ----------------
+    /** Apre una stanza: l'host è sempre chi chiama. */
+    async createLiveRoom(me, { title, description = '' }) {
+      title = requireString(title, 'title', 120);
+      const open = await count(C.liveRooms, [Query.equal('hostId', me), Query.equal('status', 'active')]);
+      if (open > 0) fail(409, 'Hai già una diretta in corso: chiudila prima di aprirne un\'altra.');
+      return create(C.liveRooms, {
+        title, description: String(description).trim().slice(0, 1000), hostId: me, status: 'active',
+        speakers: [me], listeners: [], startedAt: new Date().toISOString(),
+      }, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+    },
+
+    /** Messaggio nella chat della stanza: domanda, intervento o mano alzata. */
+    async sendLiveMessage(me, { roomId, content = '', kind = 'message' }) {
+      roomId = requireString(roomId, 'roomId', 36);
+      if (!['message', 'question', 'hand'].includes(kind)) fail(400, 'Tipo di messaggio non valido.');
+      const room = await get(C.liveRooms, roomId);
+      if (room.status !== 'active') fail(409, 'La diretta è terminata.');
+      const participants = [...(room.speakers || []), ...(room.listeners || []), room.hostId];
+      if (!participants.includes(me)) fail(403, 'Entra nella stanza per scrivere.');
+      const text = kind === 'hand' ? '✋' : requireString(content, 'content', 1000);
+      return create(C.liveMessages, { roomId, authorId: me, content: text, kind }, [Permission.read(Role.users())]);
+    },
+
+    /** L'host porta un partecipante sul palco o lo riporta tra il pubblico. */
+    async setLiveSpeaker(me, { roomId, userId, onStage }) {
+      roomId = requireString(roomId, 'roomId', 36);
+      userId = requireString(userId, 'userId', 36);
+      const room = await get(C.liveRooms, roomId);
+      if (room.hostId !== me) fail(403, 'Solo chi conduce la diretta può gestire il palco.');
+      if (userId === room.hostId) fail(400, "L'host resta sempre sul palco.");
+      const updated = await update(C.liveRooms, roomId, {
+        speakers: onStage ? addToArray(room.speakers, userId) : removeFromArray(room.speakers, userId),
+        listeners: onStage ? removeFromArray(room.listeners, userId) : addToArray(room.listeners, userId),
+      });
+      if (onStage) await notify(userId, 'general', `Sei stato invitato sul palco in "${room.title}".`, roomId);
+      return updated;
+    },
+
     async joinLiveRoom(me, { roomId, role }) {
       roomId = requireString(roomId, 'roomId', 36);
       const room = await get(C.liveRooms, roomId);
