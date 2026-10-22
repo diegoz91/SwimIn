@@ -1,4 +1,4 @@
-import { ID, Permission, Query, Role } from 'appwrite';
+import { ExecutionMethod, ID, Permission, Query, Role } from 'appwrite';
 import { databases, functions } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import type { 
@@ -51,7 +51,7 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
         JSON.stringify({ action, ...params }),
         false,
         '/',
-        'POST',
+        ExecutionMethod.POST,
         { 'content-type': 'application/json' }
     );
     let payload: ApiResponse<T>;
@@ -98,7 +98,7 @@ export const databaseService = {
         delete (cleanData as any).$databaseId;
         delete (cleanData as any).$collectionId;
 
-        return await databases.updateDocument(databaseId, collections.profiles, userId, cleanData);
+        return await databases.updateDocument<Profile>(databaseId, collections.profiles, userId, cleanData);
     },
 
     async updatePresence(userId: string, isOnline: boolean) {
