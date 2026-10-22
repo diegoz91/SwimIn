@@ -11,6 +11,7 @@
  * buckets.*, functions.*.
  */
 import dotenv from 'dotenv';
+import { assertNodeAppwriteVersion } from './scripts/check-sdk.js';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -20,6 +21,7 @@ import { Client, Databases, Functions, Permission, Role, Storage, DatabasesIndex
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
+assertNodeAppwriteVersion();
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {

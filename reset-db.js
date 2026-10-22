@@ -5,9 +5,11 @@
  * Uso: npm run reset-db -- --yes
  */
 import dotenv from 'dotenv';
+import { assertNodeAppwriteVersion } from './scripts/check-sdk.js';
 import { Client, Databases, Functions, Query, Storage, Users } from 'node-appwrite';
 
 dotenv.config({ path: '.env.setup' });
+assertNodeAppwriteVersion();
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
