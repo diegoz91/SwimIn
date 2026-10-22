@@ -59,7 +59,9 @@ const Home: React.FC = () => {
                     }));
                     setHiredApps(enriched);
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn('Stato assunzioni non disponibile:', e);
+            }
         };
         fetchHiredStatus();
     }, [user]);

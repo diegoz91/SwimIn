@@ -78,6 +78,7 @@ const schema = [
             str('authorId', 36, { required: true }), str('authorType', 50, { required: true }),
             str('content', 4000, { required: true }), str('postType', 50, { required: true }),
             str('visibility', 50, { required: true }), str('category', 100),
+            str('media', 1000, { array: true }), // ogni elemento: JSON {type,url,alt}
             int('likesCount', { default: 0 }), int('commentsCount', { default: 0 }),
         ],
         indexes: [idx('by_author', ['authorId'])],

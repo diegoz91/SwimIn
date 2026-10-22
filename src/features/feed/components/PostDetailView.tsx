@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
+import { getPostContent } from '@/utils/postMedia';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -25,16 +26,13 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, onBack, on
     const videoRef = useRef<HTMLVideoElement>(null);
     const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(null);
 
-    let extractedMedia: Media[] = [];
-    const mediaMatch = post.content.match(/\[MEDIA\](.*?)\[\/MEDIA\]/);
-    if (mediaMatch) {
-        try { extractedMedia = JSON.parse(mediaMatch[1]); } catch(e) {}
-    }
+    const { text: postText, media: extractedMedia } = getPostContent(post);
     const isVideoAnalysis = post.postType === 'video-analysis';
     const videoMedia = extractedMedia.find(m => m.type === 'video') || extractedMedia[0];
 
+    // In modalità video-analisi il video è mostrato qui sotto: la card mostra solo il testo.
     const postForCard = (isVideoAnalysis && videoMedia) 
-        ? { ...post, content: post.content.replace(/\[MEDIA\](.*?)\[\/MEDIA\]/, '') } 
+        ? { ...post, content: postText, media: [] } 
         : post;
 
     const formatTime = (seconds: number) => {

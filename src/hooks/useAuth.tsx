@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isActionPending.current = true;
     setIsLoading(true);
     try {
-      await account.createEmailSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       await checkAuth();
     } catch (error) {
       console.error('Login error:', error);
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const newAccount = await account.create(ID.unique(), email, password, name);
       
       // Auto-Login immediato dopo la creazione
-      await account.createEmailSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       
       await databaseService.initializeProfile(newAccount.$id, email, userType, name);
       await checkAuth();

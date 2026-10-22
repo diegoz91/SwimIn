@@ -22,6 +22,7 @@ import Network from '@/pages/Network';
 import Profile from '@/pages/Profile';
 import Chat from '@/pages/Chat';
 import Live from '@/pages/Live';
+import ResetPassword from '@/pages/ResetPassword';
 
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
@@ -37,6 +38,7 @@ const AppContent: React.FC = () => {
           {/* Rotte Pubbliche */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Rotte Protette */}
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />

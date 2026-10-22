@@ -4,6 +4,7 @@ import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { CreatePostModal } from './CreatePostModal';
 import type { Media, Post } from '@/types/types';
+import { serializeMedia } from '@/utils/postMedia';
 
 interface PostCreatorProps {
     onPostCreated: () => void;
@@ -25,10 +26,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
     };
 
     const handleCreatePost = async (content: string, media: Media[], category: string) => {
-        let finalContent = content.trim();
-        if (media && media.length > 0) {
-            finalContent += `\n\n[MEDIA]${JSON.stringify(media)}[/MEDIA]`;
-        }
+        const finalContent = content.trim();
 
         let pType: Post['postType'] = 'text';
         if (initialMediaType === 'video-analysis') {
@@ -41,6 +39,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
             authorId: user.$id,
             authorType: user.userType,
             content: finalContent,
+            media: serializeMedia(media),
             postType: pType,
             category: category, 
             visibility: 'public',

@@ -5,6 +5,7 @@ import { databaseService } from '@/services/database';
 import type { EnrichedPost, UserProfile, StructureProfile, Media } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { LikesModal } from './LikesModal';
+import { getPostContent } from '@/utils/postMedia';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -39,23 +40,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost }) => {
         setTimeout(() => setLikeAnimation(false), 400);
         
         try {
-            const isLikedNow = await databaseService.toggleLike(post.$id, user.$id);
-            setLikes(prev => isLikedNow ? prev + 1 : Math.max(0, prev - 1));
+            const { likesCount } = await databaseService.toggleLike(post.$id, user.$id);
+            setLikes(likesCount);
         } catch (error) {
+            console.error('toggleLike:', error);
         } finally {
             setIsLiking(false);
         }
     };
 
-    let displayContent = post.content;
-    let extractedMedia: Media[] = [];
-    const mediaMatch = displayContent.match(/\[MEDIA\](.*?)\[\/MEDIA\]/);
-    if (mediaMatch) {
-        try {
-            extractedMedia = JSON.parse(mediaMatch[1]);
-            displayContent = displayContent.replace(mediaMatch[0], '').trim();
-        } catch(e) {}
-    }
+    const { text: displayContent, media: extractedMedia } = getPostContent(post);
 
     const authorName = author ? (author.userType === 'professional' ? `${(author as UserProfile).firstName || ''} ${(author as UserProfile).lastName || ''}`.trim() : (author as StructureProfile).structureName) : 'Membro di SwimIn';
     const authorSubtitle = author ? (author.userType === 'professional' ? (author as UserProfile).title : (author as StructureProfile).structureType) : '';
