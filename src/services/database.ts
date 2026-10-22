@@ -525,17 +525,21 @@ export const databaseService = {
 
     async removeStaffMember(structureId: string, staffId: string) {
         try {
-            try {
-                const fac = await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, structureId);
-                const staff = (fac.staff || []).filter(id => id !== staffId);
+            const facility = await databases
+                .getDocument<Facility>(databaseId, FACILITIES_COLLECTION, structureId)
+                .catch(() => null);
+            if (facility) {
+                const staff = (facility.staff || []).filter(id => id !== staffId);
                 await databases.updateDocument(databaseId, FACILITIES_COLLECTION, structureId, { staff });
-            } catch {
-                const prof = await databases.getDocument<StructureProfile>(databaseId, collections.profiles, structureId);
-                const conns = (prof.connections || []).filter(id => id !== staffId);
-                await databases.updateDocument(databaseId, collections.profiles, structureId, { connections: conns });
+            } else {
+                // Profilo Struttura: lo staff è rappresentato dal collegamento reciproco.
+                await callApi('removeConnection', { userId: staffId });
             }
             return true;
-        } catch (error) { return false; }
+        } catch (error) {
+            console.error('removeStaffMember:', error);
+            return false;
+        }
     },
 
     // ==========================================
