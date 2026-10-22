@@ -253,7 +253,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 <Icon type="sparkles" className="w-6 h-6 text-blue-600" />
                                 SwimMatch™ Analysis
                             </h2>
-                            <p className="text-sm text-slate-500 font-medium">Abbiamo confrontato il tuo Passaporto Natatorio con questo annuncio.</p>
+                            <p className="text-sm text-slate-500 font-medium">Abbiamo confrontato il tuo profilo con questo annuncio.</p>
                         </div>
                         <div className={`px-4 py-2 rounded-xl text-white font-extrabold text-lg shadow-sm ${analysis.score >= 80 ? 'bg-green-500' : analysis.score >= 50 ? 'bg-amber-500' : 'bg-slate-500'}`}>
                             {analysis.score}% Match
