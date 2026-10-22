@@ -6,12 +6,15 @@ database, permessi, storage e la Function `api`.
 ## 1. Requisiti
 
 - Node.js 20 o superiore (`node -v`)
-- Il repository clonato in locale e `npm install` eseguito nella root
+- Il repository aggiornato (`git pull`) e **`npm install` rieseguito** nella root dopo ogni pull che modifica `package.json`
 
 ## 2. API key (una volta sola)
 
 1. Appwrite Console → il tuo progetto → **Overview → Integrations → API keys → Create API key**
-2. Nome: `setup-script`. Scope: seleziona **Databases**, **Storage**, **Functions** e **Auth/Users** (per il reset).
+2. Nome: `setup-script`. Negli scope spunta **tutte** le voci (lettura e scrittura) dei gruppi
+   **Auth** (`users.*`), **Database** (`databases.*`, `collections.*`, `attributes.*`, `indexes.*`, `documents.*`),
+   **Storage** (`buckets.*`, `files.*`) e **Functions** (`functions.*`, `execution.*`).
+   Se ne manca uno lo script si ferma con `missing scopes (["..."])`: modifica la key e aggiungilo.
 3. Copia `.env.setup.example` in `.env.setup` e incolla endpoint, project ID e la key.
 
 > `.env.setup` è nel `.gitignore`: non va mai committato né condiviso in chat.
