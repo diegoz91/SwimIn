@@ -63,6 +63,7 @@ async function mockAppwrite(page, { loggedIn }) {
 }
 
 const PUBLIC_PAGES = [
+    ['landing', '/'],
     ['login', '/login'],
     ['registrazione', '/register'],
     ['privacy', '/privacy'],

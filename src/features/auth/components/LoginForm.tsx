@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
-import { BrandMark } from '@/components/ui/Brand';
 import { account } from '@/services/appwrite';
 import { authErrorMessage } from '@/utils/authErrors';
 
@@ -67,9 +66,8 @@ export const LoginForm: React.FC = () => {
     };
 
     return (
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8 transform transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8 animate-in fade-in duration-300">
             <div className="text-center mb-8">
-                <BrandMark className="w-14 h-14 mx-auto mb-4" />
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Bentornato in SwimIn</h1>
                 <p className="text-slate-500 mt-2">Accedi al tuo network professionale.</p>
             </div>

@@ -68,6 +68,8 @@ export default {
         'zoom-in-95': 'zoomIn 0.2s ease-out',
       },
       keyframes: {
+        // una bracciata lenta avanti e indietro nella corsia
+        swim: { '0%, 100%': { transform: 'translateX(0)' }, '50%': { transform: 'translateX(14px)' } },
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
         zoomIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
       },

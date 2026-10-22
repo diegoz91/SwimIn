@@ -28,6 +28,7 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const Chat = lazy(() => import('@/pages/Chat'));
 const Live = lazy(() => import('@/pages/Live'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const Landing = lazy(() => import('@/pages/Landing'));
 const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Search = lazy(() => import('@/pages/Search'));
@@ -48,6 +49,13 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+/** La home: feed per chi ha effettuato l'accesso, pagina di presentazione per gli altri. */
+const HomeGate: React.FC = () => {
+  const { authenticated, isInitializing } = useAuth();
+  if (isInitializing) return <PageLoader />;
+  return authenticated ? <Home /> : <Landing />;
+};
+
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
 
@@ -64,7 +72,7 @@ const AppContent: React.FC = () => {
 
       <main
         id="contenuto"
-        className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col ${authenticated ? 'pt-[4.25rem] pb-24 md:pb-10' : ''}`}
+        className={`flex-1 w-full flex flex-col ${authenticated ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-24 md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -79,7 +87,7 @@ const AppContent: React.FC = () => {
               <Route path="/cookie" element={<Cookies />} />
 
               {/* Rotte protette */}
-              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/" element={<HomeGate />} />
               <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
               <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
               <Route path="/profile/:id?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
