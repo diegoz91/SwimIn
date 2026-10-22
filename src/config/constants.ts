@@ -1,9 +1,13 @@
-if (!import.meta.env.VITE_APPWRITE_ENDPOINT || !import.meta.env.VITE_APPWRITE_PROJECT_ID) {
-    throw new Error(
-        "🔥 ERRORE CRITICO DI BUILD: Variabili d'ambiente di Appwrite mancanti. " +
-        "Assicurati che VITE_APPWRITE_ENDPOINT e VITE_APPWRITE_PROJECT_ID siano configurati nel file .env."
-    );
-}
+/**
+ * Variabili d'ambiente obbligatorie mancanti. Se non è vuoto, `index.tsx`
+ * mostra una schermata di errore leggibile invece di una pagina bianca.
+ */
+export const missingEnvVars: string[] = [
+    ['VITE_APPWRITE_ENDPOINT', import.meta.env.VITE_APPWRITE_ENDPOINT],
+    ['VITE_APPWRITE_PROJECT_ID', import.meta.env.VITE_APPWRITE_PROJECT_ID],
+]
+    .filter(([, value]) => !value)
+    .map(([name]) => name as string);
 
 export interface AppwriteConfig {
     endpoint: string;
@@ -32,8 +36,10 @@ export interface AppwriteConfig {
 }
 
 export const APPWRITE_CONFIG: AppwriteConfig = {
-    endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT,
-    projectId: import.meta.env.VITE_APPWRITE_PROJECT_ID,
+    // Fallback a stringa vuota: l'SDK Appwrite chiama .replace() sull'endpoint
+    // e andrebbe in crash prima di poter mostrare la schermata di errore.
+    endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT ?? '',
+    projectId: import.meta.env.VITE_APPWRITE_PROJECT_ID ?? '',
     databaseId: 'swimwaveup_db',
     collections: {
         profiles: 'profiles',
