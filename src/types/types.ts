@@ -1,6 +1,13 @@
 import { Models } from 'appwrite';
 
-export type AppwriteDocument = Models.Document;
+/**
+ * Documento Appwrite con firma indice, come nelle versioni precedenti dell'SDK
+ * (fino alla 13 `Models.Document` la includeva). Mantiene compatibile il codice
+ * esistente che legge campi specifici di professionisti/strutture su un profilo
+ * generico. TODO: sostituire con type guard (isProfessional/isStructure) e rimuovere.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AppwriteDocument = Models.Document & { [key: string]: any };
 export type UserType = 'professional' | 'structure';
 
 export interface Certification {
