@@ -3,6 +3,7 @@ import type { UserProfile, StructureProfile, Facility } from '@/types/types';
 import { ConnectionRequestCard, type EnrichedConnectionRequest } from './ConnectionRequestCard';
 import { ConnectionSuggestionCard } from './ConnectionSuggestionCard';
 import { Icon } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 type Profile = UserProfile | StructureProfile;
 
@@ -102,7 +103,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                         const isProf = conn.userType === 'professional';
                                         const name = isProf ? `${(conn as UserProfile).firstName} ${(conn as UserProfile).lastName}`.trim() : (conn as StructureProfile).structureName;
                                         const role = isProf ? (conn as UserProfile).title : (conn as StructureProfile).structureType;
-                                        const avatar = (isProf ? (conn as UserProfile).avatar : (conn as StructureProfile).logo) || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=f1f5f9&color=3b82f6`;
+                                        const avatar = (isProf ? (conn as UserProfile).avatar : (conn as StructureProfile).logo) || initialsAvatar(name || 'U');
 
                                         return (
                                             <div key={id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors group">
@@ -182,7 +183,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 {searchResults.facilities.map(fac => (
                                                     <div key={fac.$id} onClick={() => onSelectProfile(fac.$id)} className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white">
-                                                        <img src={fac.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(fac.name)}&background=f1f5f9&color=3b82f6`} alt={fac.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                                                        <img src={fac.logo || initialsAvatar(fac.name)} alt={fac.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm" />
                                                         <div className="min-w-0 flex-1">
                                                             <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
                                                             <p className="text-xs text-slate-500 truncate">{fac.type || 'Centro Sportivo'} • {fac.city}</p>

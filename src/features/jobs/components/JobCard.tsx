@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { Job, StructureProfile, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface JobCardProps {
     job: Job;
@@ -74,7 +75,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
 
     const { structureName, structureLogo } = useMemo(() => {
         const name = structure?.structureName || job.structureName || 'Struttura Non Specificata';
-        const logo = structure?.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+        const logo = structure?.logo || initialsAvatar(name);
         return { structureName: name, structureLogo: logo };
     }, [structure, job.structureName]);
 

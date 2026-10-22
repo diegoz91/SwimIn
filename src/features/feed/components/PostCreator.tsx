@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { CreatePostModal } from './CreatePostModal';
 import type { Media, Post } from '@/types/types';
 import { serializeMedia } from '@/utils/postMedia';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface PostCreatorProps {
     onPostCreated: () => void;
@@ -18,7 +19,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
     if (!user) return null;
 
     const displayAvatar = user.userType === 'professional' ? user.avatar : user.logo;
-    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.structureName || 'User')}&background=eff6ff&color=1d4ed8`;
+    const defaultAvatar = initialsAvatar(user.firstName || user.structureName || 'User');
 
     const handleOpenModal = (type: 'photo' | 'video' | 'video-analysis' | null = null) => {
         setInitialMediaType(type);

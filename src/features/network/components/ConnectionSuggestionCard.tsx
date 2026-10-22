@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ConnectionSuggestionCardProps {
     user: UserProfile | StructureProfile;
@@ -33,7 +34,7 @@ export const ConnectionSuggestionCard: React.FC<ConnectionSuggestionCardProps> =
         : ((user as StructureProfile).structureType || user.city || 'Centro Sportivo');
         
     const displayAvatar = (isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo) || 
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=eff6ff&color=1d4ed8`;
+        initialsAvatar(fullName);
 
     const getSwimBadges = () => {
         if (!isProfessional || !(user as UserProfile).certificationsList) return [];

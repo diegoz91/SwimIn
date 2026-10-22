@@ -106,7 +106,7 @@ const ApplicationTypeStep: React.FC<{ onSelect: (type: 'rapid' | CustomApplicati
                 <Icon type="sparkles" className="w-6 h-6 text-blue-500 group-hover:text-blue-600" />
                 <h3 className="font-bold text-lg text-slate-800">Candidatura Rapida</h3>
             </div>
-            <p className="text-slate-600 ml-9">Usa il tuo profilo SwimWaveUp e il CV esistente. Veloce e immediata.</p>
+            <p className="text-slate-600 ml-9">Usa il tuo profilo SwimIn e il CV esistente. Veloce e immediata.</p>
             <p className="text-xs font-semibold text-slate-400 mt-3 ml-9 uppercase tracking-wide">Tempo stimato: 30 secondi</p>
         </button>
         <button 
@@ -131,7 +131,7 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
                 Dati pronti per l'invio:
             </h4>
             <ul className="list-disc list-inside text-slate-600 text-sm space-y-2 ml-1">
-                <li>Profilo completo SwimWaveUp</li>
+                <li>Profilo SwimIn completo</li>
                 <li>CV generato automaticamente</li>
                 <li>Brevetti e certificazioni: <strong>{(user.certificationsList || []).length}</strong></li>
             </ul>

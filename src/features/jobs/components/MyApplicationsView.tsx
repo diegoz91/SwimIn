@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Application, Job } from '@/types/types';
 import { ApplicationCard } from './ApplicationCard';
 import { Icon } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 export interface EnrichedApplication extends Application {
     job?: Job;
@@ -91,7 +92,7 @@ export const MyApplicationsView: React.FC<MyApplicationsViewProps> = ({
                                         <Icon type="sparkles" className="w-3 h-3"/> ASSUNTO
                                     </div>
                                     <div className="flex flex-col sm:flex-row items-center gap-5">
-                                        <img src={app.facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.job?.structureName || 'A')}&background=dcfce7&color=15803d`} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shadow-sm border border-green-200 bg-white flex-shrink-0"/>
+                                        <img src={app.facilityLogo || initialsAvatar(app.job?.structureName || 'A')} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shadow-sm border border-green-200 bg-white flex-shrink-0"/>
                                         <div className="flex-1 text-center sm:text-left">
                                             <h3 className="text-xl font-extrabold text-green-900 leading-tight mb-1">{app.job?.title}</h3>
                                             <p className="text-sm font-semibold text-green-700">{app.job?.structureName}</p>

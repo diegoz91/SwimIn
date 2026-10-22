@@ -6,6 +6,7 @@ import { ID, Query } from 'appwrite';
 import type { UserProfile, StructureProfile, Message } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ChatWindowProps {
   currentUserId: string;
@@ -167,7 +168,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const name = getParticipantName();
     if (participant.userType === 'professional' && (participant as UserProfile).avatar) return (participant as UserProfile).avatar as string;
     if (participant.userType === 'structure' && (participant as StructureProfile).logo) return (participant as StructureProfile).logo as string;
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+    return initialsAvatar(name);
   };
 
   const allowReadReceipts = participant.readReceipts !== false;

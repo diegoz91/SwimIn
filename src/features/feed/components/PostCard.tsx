@@ -9,6 +9,7 @@ import { LikesModal } from './LikesModal';
 import { ReportModal } from '@/components/common/ReportModal';
 import { getPostContent } from '@/utils/postMedia';
 import { formatRelativeTime } from '@/utils/format';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -156,7 +157,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
         : 'Membro di SwimIn';
     const authorSubtitle = author ? (isProfessional ? (author as UserProfile).title : (author as StructureProfile).structureType) : '';
     const authorAvatar = author ? (isProfessional ? (author as UserProfile).avatar : (author as StructureProfile).logo) : '';
-    const displayAvatar = authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=eff6ff&color=1d4ed8`;
+    const displayAvatar = authorAvatar || initialsAvatar(authorName);
 
     const swimBadges = (() => {
         if (!author || !isProfessional || !(author as UserProfile).certificationsList) return [];

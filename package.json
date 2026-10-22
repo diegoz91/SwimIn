@@ -13,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.1.1",
+    "@fontsource/barlow-condensed": "^5.1.0",
     "appwrite": "^29.1.0",
     "canvas-confetti": "^1.9.2",
     "html2canvas": "^1.4.1",

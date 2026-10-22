@@ -2,6 +2,7 @@ import React from 'react';
 import type { Job, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface JobListingProps {
   job: Job; 
@@ -43,7 +44,7 @@ export const JobListing: React.FC<JobListingProps> = ({
   const { user } = useAuth();
   const structureName = job.structureName || 'Struttura Non Specificata';
   const locationString = job.city ? `${job.city}${job.province ? ` (${job.province})` : ''}` : 'Sede non specificata';
-  const displayLogo = job.facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(structureName)}&background=f8fafc&color=3b82f6`;
+  const displayLogo = job.facilityLogo || initialsAvatar(structureName);
 
   const matchScore = user?.userType === 'professional' ? getSwimMatchScore(user as UserProfile, job) : null;
 

@@ -30,6 +30,7 @@ const Live = lazy(() => import('@/pages/Live'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
+const Search = lazy(() => import('@/pages/Search'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -51,7 +52,7 @@ const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-200 selection:text-blue-900 flex flex-col relative">
+    <div className="min-h-screen bg-piastrella font-sans text-abisso flex flex-col relative">
       <a
         href="#contenuto"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-bold"
@@ -63,7 +64,7 @@ const AppContent: React.FC = () => {
 
       <main
         id="contenuto"
-        className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col ${authenticated ? 'pt-16 pb-24 md:pb-10' : ''}`}
+        className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col ${authenticated ? 'pt-[4.25rem] pb-24 md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -86,6 +87,7 @@ const AppContent: React.FC = () => {
               <Route path="/live" element={<ProtectedRoute><Live /></ProtectedRoute>} />
               <Route path="/post/:id" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
               <Route path="/notifiche" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />

@@ -25,8 +25,8 @@ const Cookies: React.FC = () => (
                 title: 'Contenuti di terze parti',
                 body: (
                     <p>
-                        Alcune immagini (es. avatar con le iniziali generati da UI Avatars) vengono scaricate da server esterni, che ricevono il tuo
-                        indirizzo IP come avviene per qualsiasi immagine sul web. Questi servizi non impostano cookie di profilazione tramite SwimIn.
+                        SwimIn non carica caratteri, script o immagini da servizi di terze parti: font e avatar con le iniziali sono generati e
+                        serviti dall'app stessa. Le foto caricate dagli utenti sono conservate sul nostro fornitore di archiviazione (Appwrite).
                     </p>
                 ),
             },

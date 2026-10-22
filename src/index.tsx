@@ -1,7 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Font ospitati con l'app (niente Google Fonts: nessun dato inviato a terzi).
+import '@fontsource-variable/figtree';
+import '@fontsource/barlow-condensed/600.css';
+import '@fontsource/barlow-condensed/700.css';
+import '@fontsource/barlow-condensed/800.css';
 import '@/styles/globals.css';
-import SwimWaveUpApp from './App';
+import SwimInApp from './App';
 import { missingEnvVars } from '@/config/constants';
 
 const rootElement = document.getElementById('root');
@@ -28,6 +33,6 @@ const ConfigError: React.FC<{ vars: string[] }> = ({ vars }) => (
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    {missingEnvVars.length > 0 ? <ConfigError vars={missingEnvVars} /> : <SwimWaveUpApp />}
+    {missingEnvVars.length > 0 ? <ConfigError vars={missingEnvVars} /> : <SwimInApp />}
   </React.StrictMode>
 );

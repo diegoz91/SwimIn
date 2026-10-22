@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Application, Job } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
+import { initialsAvatar } from '@/utils/avatar';
 
 export interface EnrichedApplication extends Application {
     job?: Job;
@@ -39,7 +40,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         year: 'numeric'
     });
 
-    const displayLogo = facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.structureName || 'Facility')}&background=f8fafc&color=3b82f6`;
+    const displayLogo = facilityLogo || initialsAvatar(job.structureName || 'Facility');
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">

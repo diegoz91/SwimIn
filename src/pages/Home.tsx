@@ -11,6 +11,7 @@ import { PostCard } from '@/features/feed/components/PostCard';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import type { EnrichedPost, Job, Application } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface EnrichedHiredApp extends Application {
     job?: Job;
@@ -201,7 +202,7 @@ const Home: React.FC = () => {
                         <div className="flex flex-col gap-3">
                             {latestJobs.map(job => (
                                 <div key={job.$id} onClick={() => navigate('/jobs', { state: { selectedJobId: job.$id } })} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors group border border-transparent hover:border-slate-200 outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500" tabIndex={0}>
-                                    <img src={job.facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.structureName || 'S')}&background=f8fafc&color=3b82f6`} alt="Logo" className="w-10 h-10 rounded-lg bg-slate-50 object-cover border border-slate-100 flex-shrink-0" />
+                                    <img src={job.facilityLogo || initialsAvatar(job.structureName || 'S')} alt="Logo" className="w-10 h-10 rounded-lg bg-slate-50 object-cover border border-slate-100 flex-shrink-0" />
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors truncate">{job.title}</p>
                                         <p className="text-[11px] text-slate-500 mt-1 truncate">{job.structureName || 'Struttura'} • {job.city}</p>

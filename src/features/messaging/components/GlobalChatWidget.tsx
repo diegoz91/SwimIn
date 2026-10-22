@@ -9,6 +9,7 @@ import { APPWRITE_CONFIG } from '@/config/constants';
 import type { UserProfile, StructureProfile, Message } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface Conversation {
   conversationId: string;
@@ -181,7 +182,7 @@ export const GlobalChatWidget: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img 
-                src={user.avatar || user.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.structureName || 'User')}&background=eff6ff&color=1d4ed8`} 
+                src={user.avatar || user.logo || initialsAvatar(user.firstName || user.structureName || 'User')} 
                 className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
                 alt="Me" 
             />

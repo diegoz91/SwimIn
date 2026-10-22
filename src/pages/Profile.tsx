@@ -22,7 +22,9 @@ const ProfilePage: React.FC = () => {
     const [viewedProfile, setViewedProfile] = useState<ProfileType | null>(null);
     const [openJobs, setOpenJobs] = useState<Job[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
+    const tabFromUrl = new URLSearchParams(location.search).get('tab') === 'impostazioni' ? 'settings' : 'profile';
+    const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(tabFromUrl);
+    useEffect(() => setActiveTab(tabFromUrl), [tabFromUrl]);
 
     const isOwnProfile = !id || id === currentUser?.$id;
 

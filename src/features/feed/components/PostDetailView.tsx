@@ -7,6 +7,7 @@ import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { getPostContent } from '@/utils/postMedia';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -103,7 +104,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
     const currentUserAvatar = user 
         ? (user.userType === 'professional' ? user.avatar : user.logo) || 
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.structureName || 'User')}&background=eff6ff&color=1d4ed8`
+          initialsAvatar(user.firstName || user.structureName || 'User')
         : '';
 
     return (

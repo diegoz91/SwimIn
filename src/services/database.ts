@@ -542,6 +542,36 @@ export const databaseService = {
         };
     },
 
+    /** Post che contengono il termine (ricerca globale). */
+    async searchPosts(searchQuery: string, currentUserId: string, limit = 20): Promise<EnrichedPost[]> {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [];
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [
+            Query.contains('content', term),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+
+    /** Offerte attive che corrispondono al termine (titolo, ruolo, città, struttura). */
+    async searchJobs(searchQuery: string, limit = 20) {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [] as Job[];
+        const res = await databases.listDocuments<Job>(databaseId, collections.jobs, [
+            Query.equal('isActive', true),
+            Query.or([
+                Query.contains('title', term),
+                Query.contains('role', term),
+                Query.contains('city', term),
+                Query.contains('structureName', term),
+            ]),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
+
     // ==========================================
     // 🏊‍♂️ SWIM-SQUAD
     // ==========================================

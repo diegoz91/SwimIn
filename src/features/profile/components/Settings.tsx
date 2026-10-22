@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { authErrorMessage } from '@/utils/authErrors';
 import type { AuthenticatedUser } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface SettingsProps {
   currentUser: AuthenticatedUser;
@@ -44,7 +45,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onLogout }) => 
     ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Utente'
     : currentUser.structureName || 'Struttura';
   const displayAvatar = (isProfessional ? currentUser.avatar : currentUser.logo) ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8`;
+    initialsAvatar(displayName);
 
   return (
     <div className="max-w-5xl mx-auto w-full animate-in fade-in duration-300">

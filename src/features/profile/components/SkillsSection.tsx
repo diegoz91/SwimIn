@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import type { Endorsement, UserProfile, StructureProfile } from '@/types/types';
+import { initialsAvatar } from '@/utils/avatar';
 
 const MAX_SKILLS = 20;
 const MAX_SKILL_LENGTH = 60;
@@ -200,7 +201,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
                                                         ? `${(p as UserProfile).firstName || ''} ${(p as UserProfile).lastName || ''}`.trim()
                                                         : (p as StructureProfile).structureName || '';
                                                     const avatar = (p.userType === 'professional' ? (p as UserProfile).avatar : (p as StructureProfile).logo) ||
-                                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=eff6ff&color=1d4ed8`;
+                                                        initialsAvatar(name || 'U');
                                                     return (
                                                         <button key={p.$id} onClick={() => navigate(`/profile/${p.$id}`)} title={name} className="rounded-full">
                                                             <img src={avatar} alt={name} className="w-6 h-6 rounded-full border-2 border-white object-cover" />

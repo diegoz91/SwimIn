@@ -12,6 +12,7 @@ import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -129,7 +130,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         : (user as StructureProfile).structureName || 'Struttura';
     
     const displayAvatar = (isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo) || 
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=eff6ff&color=1d4ed8&size=256`;
+        initialsAvatar(displayName);
     
     const coverImage = user.cover || null;
 

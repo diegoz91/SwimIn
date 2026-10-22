@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { useNavigate } from 'react-router-dom';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -69,7 +70,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const bio = facility.bio;
     const logo = facility.logo;
 
-    const displayLogo = logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(structureName || 'Struttura')}&background=f1f5f9&color=1d4ed8`;
+    const displayLogo = logo || initialsAvatar(structureName || 'Struttura');
     const coverImage = (facility as Facility | StructureProfile).cover || null;
 
     /** Salva logo o copertina sulla pagina (Facility) o sul profilo Struttura. */
@@ -680,7 +681,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                                                     <div className="flex items-center gap-4 min-w-[200px]">
                                                         <div className="relative">
-                                                            <img src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`} alt={name} className="w-12 h-12 rounded-full border border-slate-200" />
+                                                            <img src={member.avatar || initialsAvatar(name)} alt={name} className="w-12 h-12 rounded-full border border-slate-200" />
                                                             {member.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>}
                                                         </div>
                                                         <div>

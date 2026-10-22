@@ -11,11 +11,55 @@
     box-sizing: border-box;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased overflow-x-hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    @apply bg-piastrella text-abisso font-sans antialiased overflow-x-hidden;
     overscroll-behavior-y: none;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  /* Titoli in Barlow Condensed: il carattere dei tabelloni cronometrici delle gare. */
+  h1,
+  h2 {
+    @apply font-display tracking-[0.005em];
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline-color: theme('colors.corsia.500');
+  }
+
+  ::selection {
+    @apply bg-cloro-200 text-abisso;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Il "galleggiante": la corda divisoria tra le corsie, a segmenti alternati.
+   * È l'elemento distintivo del brand: compare sotto l'header e nei momenti chiave.
+   */
+  .lane-rope {
+    height: 4px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      theme('colors.corsia.600') 0 18px,
+      theme('colors.cloro.400') 18px 36px,
+      #ffffff 36px 40px
+    );
   }
 }

@@ -67,7 +67,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
 
 export const APP_CONFIG = {
     name: 'SwimIn',
-    fullName: 'SwimWaveUP - SwimIn',
+    fullName: 'SwimIn',
     version: '1.0.0',
     environment: import.meta.env.MODE,
 };

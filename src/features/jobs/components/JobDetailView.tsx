@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { initialsAvatar } from '@/utils/avatar';
 
 interface JobDetailViewProps {
   job: Job;
@@ -112,7 +113,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
     const { structureName, structureLogo } = useMemo(() => {
         const name = structure?.structureName || localJob.structureName || 'Struttura Non Specificata';
-        const logo = structure?.logo || localJob.facilityLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=eff6ff&color=1d4ed8`;
+        const logo = structure?.logo || localJob.facilityLogo || initialsAvatar(name);
         return { structureName: name, structureLogo: logo };
     }, [structure, localJob.structureName, localJob.facilityLogo]);
 
@@ -192,7 +193,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 return (
                                     <div key={app.$id} className={`bg-white rounded-xl p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center border-l-4 transition-all ${app.status === 'hired' || app.status === 'accepted' ? 'border-l-green-500 shadow-md' : app.status === 'rejected' ? 'border-l-red-500 opacity-70' : 'border-l-blue-500'}`}>
                                         <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
-                                            <img src={prof.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(prof.firstName || 'U')}&background=eff6ff&color=1d4ed8`} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
+                                            <img src={prof.avatar || initialsAvatar(prof.firstName || 'U')} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-bold text-slate-800 text-lg truncate">{prof.firstName} {prof.lastName}</p>
                                                 <p className="text-xs text-slate-500 truncate mb-1.5">{prof.title || 'Professionista'}</p>
