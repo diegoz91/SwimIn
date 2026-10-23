@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!userId) return;
     const channel = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.profiles}.documents.${userId}`;
     const unsubscribe = client.subscribe(channel, (event) => {
-      const payload = event.payload as Partial<UserProfile & StructureProfile>;
+      const payload = event.payload as Record<string, unknown> & { connections?: string[] };
       setUser((prev) => {
         if (!prev) return prev;
         const before = (prev.connections || []).join(',');
