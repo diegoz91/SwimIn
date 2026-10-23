@@ -286,8 +286,24 @@ export interface Message extends AppwriteDocument {
   conversationId: string;
   senderId: string;
   receiverId: string;
+  /** Vuoto se il messaggio contiene solo allegati o è stato eliminato. */
   content: string;
   isRead: boolean;
+  /** JSON di ChatAttachment: file nel bucket privato chat_files. */
+  attachments?: string[];
+  replyToId?: string | null;
+  /** JSON {id, senderId, text} del messaggio citato. */
+  replyPreview?: string | null;
+  /** JSON {userId: reazione}. */
+  reactions?: string | null;
+  deleted?: boolean;
+}
+
+export interface ChatAttachment {
+  fileId: string;
+  name: string;
+  mime: string;
+  size: number;
 }
 
 // ----------------------------------------------------

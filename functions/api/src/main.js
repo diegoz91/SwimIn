@@ -18,6 +18,7 @@ import { teamActions } from './team.js';
 import { socialActions } from './social.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { groupActions } from './groups.js';
+import { chatActions } from './chat.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -273,6 +274,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     if (!ok || url.length > 2048) fail(400, `${label}: immagine non valida.`);
     return url;
   };
+  const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
@@ -289,6 +291,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...social,
     ...content_,
     ...groups,
+    ...chat,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
@@ -298,23 +301,33 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
 
     // ---------------- MESSAGGI ----------------
-    async sendMessage(me, { receiverId, content }) {
+    async sendMessage(me, { receiverId, content = '', attachments = null, replyToId = null }) {
       receiverId = requireString(receiverId, 'receiverId', 36);
-      content = requireString(content, 'content', 4000);
+      content = typeof content === 'string' ? content.trim() : '';
+      if (content.length > 4000) fail(400, 'Il messaggio supera i 4000 caratteri.');
+      const hasFiles = Array.isArray(attachments) && attachments.length > 0;
+      if (!content && !hasFiles) fail(400, 'Scrivi un messaggio o allega un file.');
       if (receiverId === me) fail(400, 'Non puoi scrivere a te stesso.');
       const receiver = await get(C.profiles, receiverId);
       await assertNotBlocked(me, receiverId);
+      const conversationId = conversationIdFor(me, receiverId);
+      const replyPreview = await chat._replyPreview(me, conversationId, replyToId);
       await checkMessagingAllowed(me, receiver);
+      const files = await chat._attach(me, receiverId, attachments);
       const message = await create(
         C.messages,
-        { conversationId: conversationIdFor(me, receiverId), senderId: me, receiverId, content, isRead: false },
+        {
+          conversationId, senderId: me, receiverId, content, isRead: false,
+          ...(files.length ? { attachments: files } : {}),
+          ...(replyPreview ? { replyToId, replyPreview } : {}),
+        },
         [Permission.read(Role.user(me)), Permission.read(Role.user(receiverId))]
       );
       // Push al destinatario, a meno che non abbia silenziato il mittente.
       const muted = await count(C.blocks, [Query.equal('blockerId', receiverId), Query.equal('blockedId', me), Query.equal('kind', 'mute')]);
       if (!muted) {
         const sender = await find(C.profiles, me);
-        await push._deliver(receiverId, 'message', content.slice(0, 140), me, { title: sender ? displayName(sender) : 'Nuovo messaggio' });
+        await push._deliver(receiverId, 'message', content.slice(0, 140) || (files.length === 1 ? 'Ti ha inviato un allegato.' : `Ti ha inviato ${files.length} allegati.`), me, { title: sender ? displayName(sender) : 'Nuovo messaggio' });
       }
       return message;
     },

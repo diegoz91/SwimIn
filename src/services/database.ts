@@ -253,8 +253,19 @@ export const databaseService = {
     // CHAT & MESSAGING
     // ==========================================
     // conversationId e senderId sono calcolati dal server: restano nella firma per compatibilità.
-    async sendMessage(_conversationId: string, _senderId: string, receiverId: string, content: string) {
-        return await callApi<Message>('sendMessage', { receiverId, content });
+    async sendMessage(_conversationId: string, _senderId: string, receiverId: string, content: string, extra: { attachments?: string[]; replyToId?: string | null } = {}) {
+        return await callApi<Message>('sendMessage', {
+            receiverId,
+            content,
+            ...(extra.attachments?.length ? { attachments: extra.attachments } : {}),
+            ...(extra.replyToId ? { replyToId: extra.replyToId } : {}),
+        });
+    },
+    async reactMessage(messageId: string, reaction: string | null) {
+        return await callApi<{ reactions: Record<string, string> }>('reactMessage', { messageId, reaction });
+    },
+    async deleteMessage(messageId: string) {
+        return await callApi<{ deleted: boolean }>('deleteMessage', { messageId });
     },
 
     async setTypingStatus(_userId: string, targetUserId: string | null) {

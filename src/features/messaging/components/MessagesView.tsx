@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Query } from 'appwrite';
 import { ChatWindow } from './ChatWindow';
+import { messagePreview } from '@/services/chatFiles';
 import { ConversationListItem } from './ConversationListItem';
 import { databaseService } from '@/services/database'; 
 import { databases, client } from '@/services/appwrite';
@@ -80,7 +81,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
           if (conv) {
               conv.unreadCount += 1;
               if (msg.$createdAt > conv.lastMessage.sentAt) {
-                 conv.lastMessage = { content: msg.content, sentAt: msg.$createdAt, senderId: msg.senderId };
+                 conv.lastMessage = { content: messagePreview(msg), sentAt: msg.$createdAt, senderId: msg.senderId };
               }
           }
       });
@@ -128,7 +129,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             
             if (isCreation) {
                 newConvs[convIndex].lastMessage = { 
-                    content: payload.content, 
+                    content: messagePreview(payload), 
                     sentAt: payload.$createdAt, 
                     senderId: payload.senderId 
                 };
@@ -239,7 +240,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
         </div>
       </div>
 
-      <div className={`flex-1 flex-col bg-white ${!showList ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`flex-1 min-w-0 flex-col bg-white ${!showList ? 'flex' : 'hidden md:flex'}`}>
         {chatParticipant && selectedConversationId ? (
           <ChatWindow
             key={selectedConversationId}

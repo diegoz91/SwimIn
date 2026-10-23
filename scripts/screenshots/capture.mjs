@@ -115,6 +115,7 @@ const PRIVATE_INTERACTIONS = [
     ['reazioni', '/', (p) => p.getByRole('button', { name: /^Consiglia$/ }).first().hover()],
     ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
+    ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
     ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],
     ['ripubblica', '/', (p) => p.getByRole('button', { name: /Ripubblica/ }).first().click()],

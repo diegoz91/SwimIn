@@ -203,8 +203,12 @@ const schema = [
         id: 'messages', name: 'Messages', permissions: SERVER_ONLY,
         attributes: [
             str('conversationId', 100, { required: true }), str('senderId', 36, { required: true }),
-            str('receiverId', 36, { required: true }), str('content', 4000, { required: true }),
+            str('receiverId', 36, { required: true }), str('content', 4000), // vuoto se c'è solo un allegato
             bool('isRead', { default: false }),
+            str('attachments', 500, { array: true }), // JSON {fileId,name,mime,size}, file nel bucket privato chat_files
+            str('replyToId', 36), str('replyPreview', 400), // risposta: anteprima del messaggio citato (JSON)
+            str('reactions', 1000), // JSON {userId: reazione}
+            bool('deleted', { default: false }), // eliminato per tutti dal mittente
         ],
         indexes: [idx('by_conversation', ['conversationId']), idx('by_receiver_read', ['receiverId', 'isRead'])],
     },
@@ -400,6 +404,8 @@ const buckets = [
     { id: 'post_media', name: 'Post Media', maxSizeMB: 50 },
     // Documenti dei brevetti: privati (ogni file leggibile solo da chi lo carica e dal server).
     { id: 'certificates', name: 'Certificates', maxSizeMB: 8, permissions: [Permission.create(Role.users())], extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] },
+    // Allegati dei messaggi: privati, leggibili da mittente e destinatario (permessi impostati dalla Function).
+    { id: 'chat_files', name: 'Chat files', maxSizeMB: 10, permissions: [Permission.create(Role.users())], extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'] },
 ];
 const BUCKET_PERMISSIONS = [Permission.read(Role.any()), Permission.create(Role.users())];
 
@@ -518,6 +524,12 @@ async function lockClientWrites(tableId, keep = [Permission.read(Role.users())])
  * viene tolta (resta nell'account) e la colonna smette di essere obbligatoria.
  */
 async function migratePrivateInfo() {
+    // Messaggi con solo un allegato: il testo non è più obbligatorio.
+    try {
+        await tablesDB.updateTextColumn({ databaseId: DB_ID, tableId: 'messages', key: 'content', required: false, xdefault: null });
+    } catch (e) {
+        if (!/already|not required|nothing|not found/i.test(e.message || '')) console.warn(`   ⚠️  Colonna messages.content: ${e.message}`);
+    }
     try {
         await tablesDB.updateVarcharColumn({ databaseId: DB_ID, tableId: 'profiles', key: 'email', required: false, xdefault: null });
     } catch (e) {
