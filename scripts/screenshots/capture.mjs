@@ -25,6 +25,7 @@ function applyQueries(rows, rawQueries) {
             out = out.filter((r) => q.values.includes(r[q.attribute]));
         }
         if (q.method === 'equal' && q.attribute === '$id') out = out.filter((r) => q.values.includes(r.$id));
+        if (q.method === 'isNull' && q.attribute) out = out.filter((r) => r[q.attribute] == null);
         if (q.method === 'notEqual' && q.attribute) out = out.filter((r) => !q.values.includes(r[q.attribute]));
         if (q.method === 'contains' && q.attribute) {
             out = out.filter((r) => {
@@ -99,6 +100,8 @@ const PRIVATE_PAGES = [
     ['talenti', '/talenti'],
     ['premium', '/premium'],
     ['hashtag', '/hashtag/master'],
+    ['gruppi', '/gruppi'],
+    ['gruppo', '/gruppi/g1'],
     ['turni', '/turni'],
 ];
 
@@ -112,6 +115,8 @@ const PRIVATE_INTERACTIONS = [
     ['reazioni', '/', (p) => p.getByRole('button', { name: /^Consiglia$/ }).first().hover()],
     ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
+    ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
+    ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],
     ['ripubblica', '/', (p) => p.getByRole('button', { name: /Ripubblica/ }).first().click()],
     ['form-recensione', '/profile/u_lido', (p) => p.getByRole('button', { name: /Scrivi una recensione/ }).click()],
     ['form-profilo', '/profile', (p) => p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click()],

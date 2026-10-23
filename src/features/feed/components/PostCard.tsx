@@ -35,6 +35,8 @@ interface PostCardProps {
     onReposted?: (post: EnrichedPost) => void;
     /** Al posto dei commenti sotto al post (es. nella pagina del post, che ha già i suoi). */
     onCommentClick?: () => void;
+    /** Amministratore del gruppo in cui è pubblicato il post: può rimuoverlo. */
+    canModerate?: boolean;
 }
 
 const CATEGORY_STYLES: Record<string, { icon: IconType; text: string; style: string }> = {
@@ -53,7 +55,7 @@ export const PostCard: React.FC<PostCardProps> = (props) => {
     return <PostCardBody {...props} />;
 };
 
-const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, onUpdated, repostedBy, onReposted, onCommentClick }) => {
+const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, onUpdated, repostedBy, onReposted, onCommentClick, canModerate = false }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -339,6 +341,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                                 {!isMine && (
                                     <MenuItem icon="alert-triangle" label="Segnala" onClick={() => { setIsMenuOpen(false); setIsReportOpen(true); }} />
                                 )}
+                                {!isMine && canModerate && <MenuItem icon="trash" label="Rimuovi dal gruppo" danger onClick={handleDelete} />}
                                 {isMine && (
                                     <>
                                         <MenuItem icon="pencil" label="Modifica" onClick={() => { setIsMenuOpen(false); const ed = toEditable(displayContent); setDraft(ed.text); setEditMentions(ed.map); setIsEditing(true); }} />

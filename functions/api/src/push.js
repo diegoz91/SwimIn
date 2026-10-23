@@ -48,6 +48,7 @@ export function targetUrl(type, relatedId) {
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';
+    case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
     case 'mention': return relatedId ? `/post/${relatedId}` : '/';
     case 'follow': return relatedId ? `/profile/${relatedId}` : '/network';
     case 'repost': return relatedId ? `/post/${relatedId}` : '/';

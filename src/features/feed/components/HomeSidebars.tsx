@@ -49,6 +49,10 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     <dt className="text-slate-500">Collegamenti</dt>
                     <dd className="font-semibold text-corsia-700">{user.connections?.length || 0}</dd>
                 </Link>
+                <Link to="/gruppi" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
+                    <dt className="text-slate-500">Gruppi</dt>
+                    <dd className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></dd>
+                </Link>
                 {isProfessional && (
                     <>
                         <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">

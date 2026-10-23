@@ -136,6 +136,7 @@ I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rila
 | push_subscriptions, blocks, client_errors, profile_views, subscriptions | solo Function | solo Function | solo Function |
 | comment_likes, follows | utenti loggati | solo Function | solo Function |
 | poll_votes | solo chi ha votato (permesso sulla riga) | solo Function | solo Function |
+| groups, group_members | utenti loggati | solo Function (`createGroup`, `joinGroup`) | solo Function (amministratori del gruppo) |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |
 | comments, likes | utenti loggati | solo Function | autore (commenti) |

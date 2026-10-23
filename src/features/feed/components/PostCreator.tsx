@@ -11,9 +11,12 @@ import { displayNameOf } from '@/utils/profile';
 
 interface PostCreatorProps {
     onPostCreated: () => void;
+    /** Pubblica nel gruppo indicato invece che nel feed. */
+    groupId?: string;
+    placeholder?: string;
 }
 
-export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
+export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated, groupId, placeholder = 'Di cosa vorresti parlare alla rete di SwimIn?' }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +48,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
             postType: pType,
             category,
             poll: poll || null,
+            groupId: groupId || null,
         });
         
         onPostCreated();
@@ -65,7 +69,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                         onClick={() => handleOpenModal()}
                         className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 font-medium text-left px-4 py-3 sm:py-3.5 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
-                        Di cosa vorresti parlare alla rete di SwimIn?
+                        {placeholder}
                     </button>
                 </div>
                 
@@ -85,9 +89,9 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                         <span className="hidden sm:inline whitespace-nowrap">Analisi</span>
                     </button>
 
-                    <button onClick={() => navigate('/jobs')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1">
+                    {!groupId && <button onClick={() => navigate('/jobs')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1">
                         <Icon type="briefcase" className="w-5 h-5 text-amber-600" /> <span className="hidden sm:inline">Offerte</span>
-                    </button>
+                    </button>}
                 </div>
             </div>
 
