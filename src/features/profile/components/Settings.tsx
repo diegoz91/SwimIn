@@ -9,6 +9,8 @@ import { useToast } from '@/context/ToastContext';
 import { authErrorMessage } from '@/utils/authErrors';
 import type { AuthenticatedUser } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
+import { useBlocks } from '@/context/BlocksContext';
+import { displayNameOf } from '@/utils/profile';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
 import { email as emailRule, passwordStrength } from '@/utils/validation';
 
@@ -302,6 +304,8 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
         </button>
       </Card>
 
+      <BlockedPeopleCard />
+
       <Card title="Scarica i tuoi dati" description="Un file con il tuo profilo, i tuoi post, commenti, candidature e collegamenti (diritto alla portabilità, art. 20 GDPR).">
         <button onClick={exportData} disabled={isExporting} className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl disabled:opacity-60 inline-flex items-center gap-2">
           <Icon type="document" className="w-4 h-4" /> {isExporting ? 'Preparazione…' : 'Scarica (JSON)'}
@@ -315,6 +319,45 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
         </p>
       </Card>
     </>
+  );
+};
+
+/** Persone bloccate o silenziate, con la possibilità di annullare. */
+const BlockedPeopleCard: React.FC = () => {
+  const { blocked, muted, unblock } = useBlocks();
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const ids = [...new Set([...blocked, ...muted])];
+  const key = ids.join(',');
+
+  React.useEffect(() => {
+    if (!ids.length) return;
+    databaseService
+      .getConnectionsProfiles(ids)
+      .then((list) => setProfiles(Object.fromEntries(list.map((p) => [p.userId || p.$id, displayNameOf(p)]))))
+      .catch((e) => console.warn('Profili non disponibili:', e));
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rows = [...blocked.map((id) => ({ id, kind: 'block' as const })), ...muted.map((id) => ({ id, kind: 'mute' as const }))];
+  return (
+    <Card title="Persone bloccate e silenziate" description="Le persone bloccate non possono contattarti né vedere i tuoi contenuti; quelle silenziate restano collegate ma non compaiono nel tuo feed.">
+      {rows.length === 0 ? (
+        <p className="text-sm text-slate-500">Nessuno.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {rows.map((r) => (
+            <li key={`${r.kind}-${r.id}`} className="flex items-center justify-between gap-3 py-2.5">
+              <span className="min-w-0">
+                <Link to={`/profile/${r.id}`} className="font-semibold text-slate-800 hover:underline truncate">{profiles[r.id] || 'Utente'}</Link>
+                <span className="block text-xs text-slate-500">{r.kind === 'block' ? 'Bloccato' : 'Silenziato'}</span>
+              </span>
+              <button onClick={() => unblock(r.id, r.kind)} className="px-3 py-1.5 text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 rounded-full">
+                {r.kind === 'block' ? 'Sblocca' : 'Riattiva'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 };
 

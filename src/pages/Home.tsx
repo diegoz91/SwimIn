@@ -13,6 +13,7 @@ import { useToast } from '@/context/ToastContext';
 import { CertificationAlert, HomeProfileCard, HomeRightRail } from '@/features/feed/components/HomeSidebars';
 import type { EnrichedPost, Job, Application } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
+import { useBlocks } from '@/context/BlocksContext';
 
 interface EnrichedHiredApp extends Application {
     job?: Job;
@@ -25,6 +26,7 @@ const Home: React.FC = () => {
     const { showToast } = useToast();
     
     const [posts, setPosts] = useState<EnrichedPost[]>([]);
+    const blocks = useBlocks();
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -172,7 +174,7 @@ const Home: React.FC = () => {
                         </div>
                     ) : posts.length > 0 ? (
                         <>
-                            {posts.map(post => (
+                            {posts.filter((post) => !blocks.isMutedOrHidden(post.authorId)).map(post => (
                                 <PostCard
                                     key={post.$id}
                                     post={post}

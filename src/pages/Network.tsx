@@ -11,12 +11,14 @@ import { formatDate } from '@/utils/dates';
 import { CreateMeetModal } from '@/features/network/components/CreateMeetModal';
 import type { UserProfile, StructureProfile, Facility, SwimMeet } from '@/types/types';
 import type { EnrichedConnectionRequest } from '@/features/network/components/ConnectionRequestCard';
+import { useBlocks } from '@/context/BlocksContext';
 
 type Profile = UserProfile | StructureProfile;
 
 const Network: React.FC = () => {
     usePageTitle('Il mio network');
     const { user: currentUser, refreshProfile } = useAuth();
+    const blocks = useBlocks();
     const navigate = useNavigate();
     const { showToast } = useToast();
     
@@ -228,11 +230,11 @@ const Network: React.FC = () => {
                     <NetworkView 
                         currentUser={currentUser}
                         pendingRequests={pendingRequests}
-                        suggestions={suggestions}
+                        suggestions={suggestions.filter((p) => !blocks.isHidden(p.userId || p.$id))}
                         activeConnections={activeConnections}
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
-                        searchResults={searchResults}
+                        searchResults={{ ...searchResults, profiles: searchResults.profiles.filter((p) => !blocks.isHidden(p.userId || p.$id)) }}
                         isLoading={isLoadingNetwork}
                         isSearching={isSearching}
                         onSelectProfile={handleSelectProfile}

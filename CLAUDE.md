@@ -58,6 +58,9 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Passano dalla Function `api` (che verifica l'utente tramite `x-appwrite-user-id`) le operazioni che toccano dati di altri utenti **o** che devono garantire l'identità dell'autore: creazione di post e annunci, collegamenti, like, commenti, conferme di competenze, candidature, assunzioni, follow, notifiche, messaggi, segnalazioni, eliminazione account. Nuove azioni del genere vanno aggiunte lì, con un test in `functions/api/test`.
 - Mai fidarsi di campi "chi sono" inviati dal client (`authorId`, `structureId`, elenchi `connections` del chiamante): un utente può modificare il proprio profilo, quindi i controlli devono usare dati che solo il server o l'altra parte possono scrivere.
 - I messaggi privati devono essere leggibili solo da mittente e destinatario.
+- Profili e pagine struttura si modificano solo via Function (`updateMyProfile`, `createFacility`, `updateFacility` in `functions/api/src/profile.js`): le tabelle sono in sola lettura per i client.
+- Amministratori: utenti con l'etichetta `admin` (Console Appwrite → Auth → utente → Labels). Le azioni `admin*` della Function lo verificano sempre; il client usa `useBlocks().isAdmin` solo per mostrare il pannello `/admin`.
+- Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow
 - Branch per ogni intervento (`fix/...`, `feat/...`), commit piccoli, PR verso `main`.

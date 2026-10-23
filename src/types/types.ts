@@ -63,6 +63,10 @@ export interface BaseProfile extends AppwriteDocument {
   lastActive?: string;
   phone?: string;
   website?: string;
+  /** Account sospeso da un amministratore. */
+  suspended?: boolean;
+  /** Ha brevetti in attesa di verifica. */
+  pendingVerification?: boolean;
 }
 
 export interface UserProfile extends BaseProfile {

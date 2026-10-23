@@ -13,6 +13,8 @@ import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
 import { ConnectButton } from '@/components/common/ConnectButton';
+import { ProfileActionsMenu } from '@/components/common/ProfileActionsMenu';
+import { useBlocks } from '@/context/BlocksContext';
 import { initialsAvatar } from '@/utils/avatar';
 import { isEnthusiast } from '@/utils/profile';
 import { ProfileEditModal } from './ProfileEditModal';
@@ -48,6 +50,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const isProfessional = user.userType === 'professional';
     /** Nuota per passione: il profilo mette in primo piano attività e community, non il lavoro. */
     const isFan = isEnthusiast(user);
+    const blocks = useBlocks();
     const isWorker = isProfessional && !isFan;
     const profUser = isProfessional ? (user as UserProfile) : null;
 
@@ -214,6 +217,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         const updatedProfile = await databaseService.updateProfile(user.userId || user.$id, { certificationsList: newList.map(e => JSON.stringify(e)) });
         if (onUpdateProfile) onUpdateProfile(updatedProfile as UserProfile);
     };
+
+    if (!isOwnProfile && (blocks.isHidden(user.userId || user.$id) || user.suspended)) {
+        const iBlocked = blocks.blocked.includes(user.userId || user.$id);
+        return (
+            <div className="max-w-lg mx-auto text-center py-20">
+                <Icon type="user-minus" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                <h1 className="text-3xl font-bold text-abisso">{iBlocked ? `Hai bloccato ${displayName}` : 'Profilo non disponibile'}</h1>
+                <p className="text-slate-500 mt-2">{iBlocked ? 'Non vedi i suoi contenuti e non può contattarti.' : user.suspended ? 'Questo account è stato sospeso.' : 'Questo profilo non è visibile.'}</p>
+                <div className="flex justify-center gap-3 mt-6">
+                    <button onClick={onBack} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">Torna indietro</button>
+                    {iBlocked && <button onClick={() => blocks.unblock(user.userId || user.$id)} className="px-5 py-2.5 rounded-full font-semibold text-white bg-corsia-600 hover:bg-corsia-700">Sblocca</button>}
+                </div>
+            </div>
+        );
+    }
 
     return (
     <div className="max-w-4xl mx-auto py-4 sm:py-6 animate-in fade-in duration-500">
@@ -422,14 +440,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       >
                           <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                       </button>
-                      <button
-                          onClick={() => setIsReportOpen(true)}
-                          className="flex-shrink-0 p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                          aria-label="Segnala profilo"
-                          title="Segnala profilo"
-                      >
-                          <Icon type="alert-triangle" className="w-5 h-5" />
-                      </button>
+                      <ProfileActionsMenu userId={user.userId || user.$id} name={displayName} />
                     </div>
                   )}
               </div>

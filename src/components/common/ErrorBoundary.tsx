@@ -1,4 +1,5 @@
 import React from 'react';
+import { reportClientError } from './ErrorReporter';
 
 interface ErrorBoundaryState {
     error: Error | null;
@@ -18,6 +19,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
 
     componentDidCatch(error: Error, info: React.ErrorInfo) {
         console.error('Errore non gestito nell\'interfaccia:', error, info.componentStack);
+        reportClientError(error, info.componentStack || '');
     }
 
     render() {

@@ -90,6 +90,8 @@ const schema = [
             str('personType', 20), str('sports', 60, { array: true }),
             // Recensioni ricevute (strutture): media = ratingSum / ratingCount
             int('ratingSum', { default: 0 }), int('ratingCount', { default: 0 }),
+            // Moderazione e verifiche
+            bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -189,6 +191,23 @@ const schema = [
         indexes: [],
     },
     {
+        // Blocchi e silenziamenti: ognuno legge solo i propri (scritti dalla Function).
+        id: 'blocks', name: 'Blocks', permissions: SERVER_ONLY,
+        attributes: [
+            str('blockerId', 36, { required: true }), str('blockedId', 36, { required: true }), str('kind', 10, { required: true }),
+        ],
+        indexes: [idx('by_blocker', ['blockerId']), idx('by_blocked', ['blockedId'])],
+    },
+    {
+        // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
+        id: 'client_errors', name: 'Client errors', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('message', 500, { required: true }),
+            str('stack', 4000), str('url', 500), str('userAgent', 300),
+        ],
+        indexes: [idx('by_user', ['userId'])],
+    },
+    {
         // Recensioni delle strutture: scritte dalla Function (una per persona e struttura).
         id: 'reviews', name: 'Reviews', permissions: READ_ONLY,
         attributes: [
@@ -232,6 +251,8 @@ const schema = [
             str('reporterId', 36, { required: true }), str('targetType', 50, { required: true }),
             str('targetId', 36, { required: true }), str('reason', 50, { required: true }),
             str('details', 1000), str('status', 50, { required: true }),
+            // decisione dell'amministratore
+            str('resolution', 20), str('resolvedBy', 36), str('resolvedAt', 100), str('note', 1000),
         ],
         indexes: [idx('by_reporter_target', ['reporterId', 'targetId']), idx('by_status', ['status'])],
     },

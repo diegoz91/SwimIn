@@ -2,6 +2,7 @@ import React from 'react';
 import { Models } from 'appwrite';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
+import { useBlocks } from '@/context/BlocksContext';
 
 export interface EnrichedComment extends Models.Document {
     postId: string;
@@ -30,6 +31,7 @@ export const Comment: React.FC<CommentProps> = ({
     onLike,
     onDelete,
 }) => {
+    const blocks = useBlocks();
     const deleteAction = onDelete?.(comment);
     let authorName = 'Utente Sconosciuto';
     let authorSubtitle = '';
@@ -123,7 +125,7 @@ export const Comment: React.FC<CommentProps> = ({
 
                 {comment.replies && comment.replies.length > 0 && (
                      <div className="mt-3 space-y-3 pl-4 border-l-2 border-slate-200">
-                        {comment.replies.map(reply => (
+                        {comment.replies.filter((reply) => !blocks.isHidden(reply.authorId)).map(reply => (
                             <Comment 
                                 key={reply.$id} 
                                 comment={reply} 
