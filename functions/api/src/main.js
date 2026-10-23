@@ -13,6 +13,7 @@ import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'n
 import { profileActions } from './profile.js';
 import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
+import { certificateActions, CERT_BUCKET } from './certificates.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -192,6 +193,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   // -------------------------------------------------------------------------
   return {
     ...moderation,
+    ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
     ...profileActions({ find, get, create, update, fail, users, endpoint, C }),
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
@@ -442,6 +444,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       if (!users) fail(500, 'Servizio utenti non disponibile.');
       const profile = await find(C.profiles, me);
       const files = [profile?.avatar, profile?.logo, profile?.cover];
+      // Documenti dei brevetti (bucket privato)
+      for (const raw of profile?.certificationsList || []) {
+        try {
+          const c = JSON.parse(raw);
+          if (c.documentFileId && storage) await storage.deleteFile({ bucketId: CERT_BUCKET, fileId: c.documentFileId }).catch(() => null);
+        } catch { /* ignorato */ }
+      }
       const touchedPosts = new Set();
 
       // Post propri, con relativi like, commenti e file.

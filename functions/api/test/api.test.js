@@ -16,8 +16,8 @@ const db={
  async createRow({tableId,rowId,data,permissions}){const d={$id:rowId,$permissions:permissions||[],...data};col(tableId)[rowId]=d;return d},
  async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
  async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
-const deletedUsers=[]; const deletedFiles=[]; const statusChanges=[];
-const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`,labels:userId==='boss'?['admin']:[]}),updateStatus:async({userId,status})=>statusChanges.push([userId,status])},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
+const deletedUsers=[]; const deletedFiles=[]; const statusChanges=[]; const storedFiles={};
+const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`,labels:userId==='boss'?['admin']:[]}),updateStatus:async({userId,status})=>statusChanges.push([userId,status])},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId),getFile:async({fileId})=>storedFiles[fileId]??(()=>{throw new Error('nf')})(),getFileView:async()=>new Uint8Array([104,105]).buffer}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
@@ -250,6 +250,30 @@ await rejects(api.adminSetSuspended('anna',{userId:'troll',suspended:false}),403
 await api.logClientError('anna',{message:'TypeError: x is undefined',url:'/home'});
 assert.equal((await api.adminListErrors('boss')).length,1);
 assert.ok((await api.adminOverview('boss')).openReports>=0);
+}
+
+// Verifica dei brevetti
+{
+P('vera');
+const withCert=await api.updateMyProfile('vera',{certificationsList:[{name:'Brevetto Assistente Bagnanti',issuer:'SNS',category:'salvamento',expiry:'2030-05-01'}]});
+const certId=JSON.parse(withCert.certificationsList[0]).id;
+storedFiles.f1={$id:'f1',mimeType:'image/jpeg',name:'brevetto.jpg',$permissions:['read("user:vera")','delete("user:vera")']};
+storedFiles.f2={$id:'f2',mimeType:'image/jpeg',name:'altrui.jpg',$permissions:['read("user:anna")']};
+await rejects(api.requestCertVerification('vera',{certId,fileId:'f2'}),403); // file di un altro utente
+await rejects(api.requestCertVerification('vera',{certId:'nope',fileId:'f1'}),404);
+const pending=await api.requestCertVerification('vera',{certId,fileId:'f1'});
+assert.equal(pending.verificationStatus,'pending'); assert.equal(col('profiles').vera.pendingVerification,true);
+await rejects(api.adminListPendingCerts('vera'),403);
+const queue=await api.adminListPendingCerts('boss'); assert.equal(queue.find(q=>q.profileId==='vera').cert.id,certId);
+assert.equal((await api.adminGetCertDocument('boss',{profileId:'vera',certId})).dataUrl,'data:image/jpeg;base64,aGk=');
+await rejects(api.adminVerifyCert('boss',{profileId:'vera',certId,approve:false}),400); // serve il motivo
+const ok=await api.adminVerifyCert('boss',{profileId:'vera',certId,approve:true});
+assert.equal(ok.verified,true); assert.equal(col('profiles').vera.pendingVerification,false);
+// l'utente può modificare altri campi senza perdere la verifica, ma non può cambiare il brevetto verificato
+const same=JSON.parse(col('profiles').vera.certificationsList[0]);
+assert.equal(JSON.parse((await api.updateMyProfile('vera',{certificationsList:[same]})).certificationsList[0]).verified,true);
+const changed=JSON.parse((await api.updateMyProfile('vera',{certificationsList:[{...same,expiry:'2031-01-01'}]})).certificationsList[0]);
+assert.equal(changed.verified,undefined); assert.equal(changed.documentFileId,'f1');
 }
 
 // Bordo Vasca Live

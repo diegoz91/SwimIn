@@ -1,4 +1,4 @@
-import { ID } from 'appwrite';
+import { ID, Permission, Role } from 'appwrite';
 import { storage } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { compressImage } from '@/utils/image';
@@ -29,6 +29,19 @@ class StorageService {
     const compressed = await compressImage(file, { maxSize: IMAGE_SIZES[kind] });
     const uploaded = await storage.createFile(this.buckets.avatars, ID.unique(), compressed);
     return this.viewUrl(this.buckets.avatars, uploaded.$id);
+  }
+
+  /**
+   * Documento di un brevetto (foto o PDF) nel bucket privato: leggibile solo da chi
+   * lo carica e dal server, che lo mostra agli amministratori per la verifica.
+   */
+  async uploadCertificateDocument(file: File, userId: string): Promise<string> {
+    const isPdf = file.type === 'application/pdf';
+    if (!isPdf && !IMAGE_TYPES.includes(file.type)) throw new Error('Carica una foto (JPG, PNG, WebP) o un PDF del brevetto.');
+    if (file.size > 8 * MB) throw new Error('Il file supera gli 8 MB: prova con una foto meno pesante.');
+    const toUpload = isPdf ? file : await compressImage(file, { maxSize: 2000 });
+    const uploaded = await storage.createFile(this.buckets.certificates, ID.unique(), toUpload, [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))]);
+    return uploaded.$id;
   }
 
   /** @deprecated usa uploadProfileImage */

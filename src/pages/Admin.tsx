@@ -7,6 +7,8 @@ import { databaseService, type AdminOverview, type AdminReport, type AdminUserRo
 import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { formatRelativeTime } from '@/utils/format';
+import { formatDate } from '@/utils/dates';
+import type { Certification } from '@/types/types';
 
 type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'errori' | 'verifiche';
 
@@ -37,6 +39,7 @@ const Admin: React.FC = () => {
     const [userRows, setUserRows] = useState<AdminUserRow[]>([]);
     const [busy, setBusy] = useState<string | null>(null);
 
+    const onCertCount = useCallback((n: number) => setOverview((o) => (o ? { ...o, pendingCerts: n } : o)), []);
     const fail = useCallback((e: unknown) => showToast(e instanceof Error ? e.message : 'Operazione non riuscita.', 'error'), [showToast]);
 
     useEffect(() => {
@@ -198,7 +201,7 @@ const Admin: React.FC = () => {
                 </>
             )}
 
-            {tab === 'verifiche' && <AdminVerifications onCountChange={(n) => setOverview((o) => (o ? { ...o, pendingCerts: n } : o))} />}
+            {tab === 'verifiche' && <AdminVerifications onCountChange={onCertCount} />}
 
             {tab === 'utenti' && (
                 <>
@@ -251,9 +254,128 @@ const Admin: React.FC = () => {
     );
 };
 
-/** Verifica dei brevetti: arriva con la richiesta di verifica (vedi PR dei brevetti). */
-const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = () => (
-    <p className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">Nessun brevetto in attesa di verifica.</p>
-);
+type PendingCert = { profileId: string; name: string; city: string; cert: Certification };
+
+/** Coda di verifica dei brevetti: documento allegato, dati dichiarati, approva o respingi con motivo. */
+const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = ({ onCountChange }) => {
+    const { showToast } = useToast();
+    const [items, setItems] = useState<PendingCert[] | null>(null);
+    const [open, setOpen] = useState<string | null>(null);
+    const [doc, setDoc] = useState<{ key: string; mimeType: string; dataUrl: string; name: string } | null>(null);
+    const [docError, setDocError] = useState<string | null>(null);
+    const [note, setNote] = useState('');
+    const [busy, setBusy] = useState(false);
+    const keyOf = (i: PendingCert) => `${i.profileId}:${i.cert.id}`;
+
+    const load = useCallback(async () => {
+        try {
+            const rows = await databaseService.adminListPendingCerts();
+            setItems(rows);
+            onCountChange(rows.length);
+        } catch (err) {
+            console.error('Brevetti in attesa:', err);
+            showToast('Impossibile caricare i brevetti in attesa.', 'error');
+            setItems([]);
+        }
+    }, [onCountChange, showToast]);
+
+    useEffect(() => { void load(); }, [load]);
+
+    const expand = async (item: PendingCert) => {
+        const key = keyOf(item);
+        if (open === key) { setOpen(null); return; }
+        setOpen(key);
+        setNote('');
+        setDocError(null);
+        if (doc?.key === key) return;
+        setDoc(null);
+        try {
+            const d = await databaseService.adminGetCertDocument(item.profileId, item.cert.id!);
+            setDoc({ key, ...d });
+        } catch (err) {
+            console.error('Documento brevetto:', err);
+            setDocError(err instanceof Error ? err.message : 'Documento non disponibile.');
+        }
+    };
+
+    const decide = async (item: PendingCert, approve: boolean) => {
+        if (!approve && !note.trim()) { showToast('Scrivi il motivo del rifiuto: lo leggerà l’utente.', 'error'); return; }
+        setBusy(true);
+        try {
+            await databaseService.adminVerifyCert(item.profileId, item.cert.id!, approve, note.trim());
+            showToast(approve ? 'Brevetto verificato.' : 'Verifica respinta, utente avvisato.', 'success');
+            const rest = (items || []).filter((i) => keyOf(i) !== keyOf(item));
+            setItems(rest);
+            onCountChange(rest.length);
+            setOpen(null);
+        } catch (err) {
+            console.error('Esito verifica:', err);
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    if (items === null) return <PageLoader />;
+    if (items.length === 0) {
+        return <p className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">Nessun brevetto in attesa di verifica.</p>;
+    }
+
+    return (
+        <ul className="space-y-3">
+            {items.map((item) => {
+                const key = keyOf(item);
+                const isOpen = open === key;
+                const c = item.cert;
+                return (
+                    <li key={key} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                        <button type="button" onClick={() => expand(item)} aria-expanded={isOpen} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-corsia-500">
+                            <Icon type="shield" className="w-5 h-5 text-corsia-600 flex-shrink-0" />
+                            <span className="min-w-0 flex-1">
+                                <span className="block font-semibold text-abisso truncate">{c.name}</span>
+                                <span className="block text-xs text-slate-500 truncate">{item.name}{item.city ? `, ${item.city}` : ''}</span>
+                            </span>
+                            <Icon type="chevron-right" className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                        </button>
+                        {isOpen && (
+                            <div className="border-t border-slate-100 p-4 grid gap-4 md:grid-cols-[1fr_16rem]">
+                                <div className="rounded-xl bg-piastrella border border-slate-200 min-h-[16rem] flex items-center justify-center overflow-hidden">
+                                    {docError ? (
+                                        <p className="text-sm text-galleggiante p-4 text-center">{docError}</p>
+                                    ) : doc?.key !== key ? (
+                                        <PageLoader />
+                                    ) : doc.mimeType === 'application/pdf' ? (
+                                        <object data={doc.dataUrl} type="application/pdf" className="w-full h-[28rem]" aria-label={`Documento: ${c.name}`}>
+                                            <a href={doc.dataUrl} download={doc.name} className="text-corsia-700 font-semibold underline p-4">Scarica il PDF</a>
+                                        </object>
+                                    ) : (
+                                        <img src={doc.dataUrl} alt={`Documento: ${c.name}`} className="max-h-[28rem] w-auto object-contain" />
+                                    )}
+                                </div>
+                                <div className="space-y-3 text-sm">
+                                    <dl className="space-y-2">
+                                        <div><dt className="text-xs text-slate-500">Ente</dt><dd className="font-semibold text-abisso">{c.issuer || '—'}</dd></div>
+                                        {c.credentialId && <div><dt className="text-xs text-slate-500">Numero</dt><dd className="font-semibold text-abisso">{c.credentialId}</dd></div>}
+                                        {c.issueDate && <div><dt className="text-xs text-slate-500">Rilascio</dt><dd className="font-semibold text-abisso">{formatDate(c.issueDate, 'short')}</dd></div>}
+                                        {c.expiry && <div><dt className="text-xs text-slate-500">Scadenza</dt><dd className="font-semibold text-abisso">{formatDate(c.expiry, 'short')}</dd></div>}
+                                    </dl>
+                                    <Link to={`/profile/${item.profileId}`} className="inline-block text-corsia-700 font-semibold hover:underline">Apri il profilo</Link>
+                                    <label className="block">
+                                        <span className="block text-xs text-slate-500 mb-1">Motivo del rifiuto (obbligatorio per respingere)</span>
+                                        <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={3} className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none resize-none" placeholder="Es. il numero non corrisponde al documento" />
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button type="button" disabled={busy} onClick={() => decide(item, true)} className="flex-1 px-4 py-2 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700 disabled:opacity-60">Approva</button>
+                                        <button type="button" disabled={busy} onClick={() => decide(item, false)} className="flex-1 px-4 py-2 rounded-full bg-red-50 text-galleggiante font-semibold hover:bg-red-100 disabled:opacity-60">Respingi</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
 
 export default Admin;

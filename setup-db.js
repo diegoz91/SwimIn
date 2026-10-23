@@ -293,6 +293,8 @@ const schema = [
 const buckets = [
     { id: 'avatars', name: 'Avatars', maxSizeMB: 5 },
     { id: 'post_media', name: 'Post Media', maxSizeMB: 50 },
+    // Documenti dei brevetti: privati (ogni file leggibile solo da chi lo carica e dal server).
+    { id: 'certificates', name: 'Certificates', maxSizeMB: 8, permissions: [Permission.create(Role.users())], extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] },
 ];
 const BUCKET_PERMISSIONS = [Permission.read(Role.any()), Permission.create(Role.users())];
 
@@ -408,9 +410,9 @@ async function setupBuckets() {
     console.log('\n🗂️  Storage');
     for (const b of buckets) {
         const args = {
-            bucketId: b.id, name: b.name, permissions: BUCKET_PERMISSIONS, fileSecurity: true,
+            bucketId: b.id, name: b.name, permissions: b.permissions || BUCKET_PERMISSIONS, fileSecurity: true,
             enabled: true, maximumFileSize: b.maxSizeMB * 1024 * 1024,
-            allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov', 'webm'],
+            allowedFileExtensions: b.extensions || ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov', 'webm'],
         };
         try {
             await storage.createBucket(args);
