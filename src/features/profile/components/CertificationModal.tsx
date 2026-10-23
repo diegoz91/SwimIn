@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import type { Certification } from '@/types/types';
 import { FormModal } from '@/components/form/FormModal';
 import { Checkbox, Field } from '@/components/form/Field';
-import { Suggestions } from '@/components/form/Pickers';
+import { DatePicker, Select, SuggestInput } from '@/components/form/Pickers';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
 import { CERT_CATEGORIES, CERT_ISSUERS, CERT_NAMES, COMMON_CERTS, certCategoryKey } from '@/data/swimming';
 import { check, isoDate, maxLength, minLength, notAfter, notBefore, required } from '@/utils/validation';
-import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
+import { addDaysISO, formatDate, isValidISODate, todayISO } from '@/utils/dates';
 
 interface CertificationModalProps {
     isOpen: boolean;
@@ -86,7 +86,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, 
     /** Con data di rilascio e validità nota, suggerisce la scadenza. */
     const onIssueDateChange = (issueDate: string) => {
         const known = COMMON_CERTS.find((c) => c.name.toLowerCase() === values.name.trim().toLowerCase());
-        const suggested = known?.years && issueDate && !values.expiry && !values.noExpiry ? addDaysISO(issueDate, Math.round(known.years * 365.25)) : undefined;
+        const suggested = known?.years && isValidISODate(issueDate) && !values.expiry && !values.noExpiry ? addDaysISO(issueDate, Math.round(known.years * 365.25)) : undefined;
         patch({ issueDate, ...(suggested ? { expiry: suggested } : {}) });
     };
 
@@ -127,7 +127,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, 
         }
     };
 
-    const expired = !values.noExpiry && values.expiry && !errors.expiry && values.expiry < today;
+    const expired = !values.noExpiry && isValidISODate(values.expiry) && values.expiry < today;
 
     return (
         <FormModal
@@ -150,46 +150,29 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, 
             }
         >
             <Field id="cert-name" label="Nome del brevetto" error={errors.name}>
-                <input
-                    name="name"
-                    value={values.name}
-                    onChange={(e) => onNameChange(e.target.value)}
-                    onBlur={() => form.touch('name')}
-                    list="cert-name-options"
-                    placeholder="Es. Brevetto Assistente Bagnanti"
-                    maxLength={140}
-                />
+                <SuggestInput value={values.name} onChange={onNameChange} onBlur={() => form.touch('name')} options={CERT_NAMES} label="Brevetti" placeholder="Es. Brevetto Assistente Bagnanti" maxLength={140} />
             </Field>
-            <Suggestions id="cert-name-options" options={CERT_NAMES} />
 
             <div className="grid grid-cols-1 sm:grid-cols-[1.4fr_1fr] gap-4">
                 <Field id="cert-issuer" label="Ente" error={errors.issuer}>
-                    <input {...bind('issuer')} list="cert-issuer-options" placeholder="Es. FIN – Federazione Italiana Nuoto" maxLength={140} />
+                    <SuggestInput {...form.field('issuer')} options={CERT_ISSUERS} label="Enti" placeholder="Es. FIN – Federazione Italiana Nuoto" maxLength={140} />
                 </Field>
                 <Field id="cert-category" label="Categoria" error={errors.category}>
-                    <select {...bind('category')}>
-                        <option value="">Scegli…</option>
-                        {CERT_CATEGORIES.map((c) => (
-                            <option key={c.value} value={c.value}>
-                                {c.label}
-                            </option>
-                        ))}
-                    </select>
+                    <Select {...form.field('category')} label="Categoria" options={CERT_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))} />
                 </Field>
             </div>
-            <Suggestions id="cert-issuer-options" options={CERT_ISSUERS} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="cert-issue" label="Data di rilascio" optional error={errors.issueDate}>
-                    <input type="date" name="issueDate" value={values.issueDate} max={today} min="1950-01-01" onChange={(e) => onIssueDateChange(e.target.value)} onBlur={() => form.touch('issueDate')} />
+                    <DatePicker label="Data di rilascio" value={values.issueDate} max={today} min="1950-01-01" onChange={onIssueDateChange} onBlur={() => form.touch('issueDate')} />
                 </Field>
                 <Field
                     id="cert-expiry"
                     label="Data di scadenza"
                     error={errors.expiry}
-                    hint={values.noExpiry ? 'Senza scadenza' : values.expiry && !expired ? `Valido fino al ${formatDate(values.expiry)}` : undefined}
+                    hint={values.noExpiry ? 'Senza scadenza' : isValidISODate(values.expiry) && !expired ? `Valido fino al ${formatDate(values.expiry)}` : undefined}
                 >
-                    <input type="date" {...bind('expiry')} min={values.issueDate || undefined} disabled={values.noExpiry} />
+                    <DatePicker label="Data di scadenza" {...form.field('expiry')} min={isValidISODate(values.issueDate) ? values.issueDate : undefined} max={addDaysISO(today, 365 * 15)} disabled={values.noExpiry} />
                 </Field>
             </div>
             <Checkbox

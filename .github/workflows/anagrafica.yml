@@ -1,0 +1,66 @@
+name: Anagrafica comuni
+
+# Province e comuni dalla fonte ufficiale ISTAT.
+# - ogni mese: se qualcosa è cambiato (fusioni di comuni, nuove province) apre una PR verso main;
+# - su un branch, quando cambia lo script: rigenera i file e li committa sul branch stesso;
+# - a mano dalla scheda Actions ("Run workflow").
+on:
+  schedule:
+    - cron: '17 4 1 * *'
+  workflow_dispatch:
+  push:
+    branches-ignore: [main, 'ci-screenshots/**', 'bot/**']
+    paths:
+      - 'scripts/anagrafica/**'
+      - '.github/workflows/anagrafica.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: anagrafica-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test del lettore ISTAT
+        run: node --test scripts/anagrafica/istat.test.mjs
+
+      - name: Scarica e genera l'anagrafica
+        run: node scripts/anagrafica/update.mjs
+
+      - name: Pubblica le variazioni
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A public/data/comuni src/data/generated
+          if git diff --cached --quiet; then
+            echo "Anagrafica già aggiornata."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          SUMMARY=$(cat public/data/comuni/meta.json)
+          if [ "${{ github.event_name }}" = "push" ]; then
+            git commit -m "chore(anagrafica): province e comuni da ISTAT"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            BRANCH="bot/anagrafica-$(date +%Y-%m-%d)"
+            git checkout -b "$BRANCH"
+            git commit -m "chore(anagrafica): aggiornamento mensile da ISTAT"
+            git push -u origin "$BRANCH"
+            printf 'Aggiornamento automatico di province e comuni dalla fonte ISTAT.\n\n```json\n%s\n```\n\nControlla il diff dei file in `public/data/comuni` e unisci se è tutto in ordine.\n' "$SUMMARY" > /tmp/pr-body.md
+            gh pr create --base main --head "$BRANCH" --title "Anagrafica comuni: aggiornamento ISTAT" --body-file /tmp/pr-body.md \
+              || echo "::warning::Branch $BRANCH pubblicato. Per aprire la PR in automatico abilita 'Allow GitHub Actions to create and approve pull requests' nelle impostazioni del repository."
+          fi

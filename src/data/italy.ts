@@ -1,56 +1,21 @@
-/** Province italiane (sigla automobilistica), raggruppate per regione. */
+/**
+ * Province italiane dalla fonte ufficiale ISTAT. Il file generato si aggiorna
+ * ogni mese (workflow "Anagrafica comuni", script scripts/anagrafica/update.mjs);
+ * i comuni di ciascuna provincia si caricano quando servono (vedi data/comuni.ts).
+ */
+import PROVINCE_DATA from './generated/province.json';
+
 export interface Province {
     code: string;
     name: string;
     region: string;
 }
 
-const RAW: Record<string, [string, string][]> = {
-    Abruzzo: [['AQ', "L'Aquila"], ['CH', 'Chieti'], ['PE', 'Pescara'], ['TE', 'Teramo']],
-    Basilicata: [['MT', 'Matera'], ['PZ', 'Potenza']],
-    Calabria: [['CZ', 'Catanzaro'], ['CS', 'Cosenza'], ['KR', 'Crotone'], ['RC', 'Reggio Calabria'], ['VV', 'Vibo Valentia']],
-    Campania: [['AV', 'Avellino'], ['BN', 'Benevento'], ['CE', 'Caserta'], ['NA', 'Napoli'], ['SA', 'Salerno']],
-    'Emilia-Romagna': [
-        ['BO', 'Bologna'], ['FE', 'Ferrara'], ['FC', 'Forlì-Cesena'], ['MO', 'Modena'], ['PR', 'Parma'],
-        ['PC', 'Piacenza'], ['RA', 'Ravenna'], ['RE', 'Reggio Emilia'], ['RN', 'Rimini'],
-    ],
-    'Friuli-Venezia Giulia': [['GO', 'Gorizia'], ['PN', 'Pordenone'], ['TS', 'Trieste'], ['UD', 'Udine']],
-    Lazio: [['FR', 'Frosinone'], ['LT', 'Latina'], ['RI', 'Rieti'], ['RM', 'Roma'], ['VT', 'Viterbo']],
-    Liguria: [['GE', 'Genova'], ['IM', 'Imperia'], ['SP', 'La Spezia'], ['SV', 'Savona']],
-    Lombardia: [
-        ['BG', 'Bergamo'], ['BS', 'Brescia'], ['CO', 'Como'], ['CR', 'Cremona'], ['LC', 'Lecco'], ['LO', 'Lodi'],
-        ['MN', 'Mantova'], ['MI', 'Milano'], ['MB', 'Monza e Brianza'], ['PV', 'Pavia'], ['SO', 'Sondrio'], ['VA', 'Varese'],
-    ],
-    Marche: [['AN', 'Ancona'], ['AP', 'Ascoli Piceno'], ['FM', 'Fermo'], ['MC', 'Macerata'], ['PU', 'Pesaro e Urbino']],
-    Molise: [['CB', 'Campobasso'], ['IS', 'Isernia']],
-    Piemonte: [
-        ['AL', 'Alessandria'], ['AT', 'Asti'], ['BI', 'Biella'], ['CN', 'Cuneo'], ['NO', 'Novara'],
-        ['TO', 'Torino'], ['VB', 'Verbano-Cusio-Ossola'], ['VC', 'Vercelli'],
-    ],
-    Puglia: [['BA', 'Bari'], ['BT', 'Barletta-Andria-Trani'], ['BR', 'Brindisi'], ['FG', 'Foggia'], ['LE', 'Lecce'], ['TA', 'Taranto']],
-    Sardegna: [
-        ['CA', 'Cagliari'], ['CI', 'Carbonia-Iglesias'], ['OT', 'Gallura'], ['VS', 'Medio Campidano'], ['NU', 'Nuoro'],
-        ['OG', 'Ogliastra'], ['OR', 'Oristano'], ['SS', 'Sassari'], ['SU', 'Sud Sardegna'],
-    ],
-    Sicilia: [
-        ['AG', 'Agrigento'], ['CL', 'Caltanissetta'], ['CT', 'Catania'], ['EN', 'Enna'], ['ME', 'Messina'],
-        ['PA', 'Palermo'], ['RG', 'Ragusa'], ['SR', 'Siracusa'], ['TP', 'Trapani'],
-    ],
-    Toscana: [
-        ['AR', 'Arezzo'], ['FI', 'Firenze'], ['GR', 'Grosseto'], ['LI', 'Livorno'], ['LU', 'Lucca'],
-        ['MS', 'Massa-Carrara'], ['PI', 'Pisa'], ['PT', 'Pistoia'], ['PO', 'Prato'], ['SI', 'Siena'],
-    ],
-    'Trentino-Alto Adige': [['BZ', 'Bolzano'], ['TN', 'Trento']],
-    Umbria: [['PG', 'Perugia'], ['TR', 'Terni']],
-    "Valle d'Aosta": [['AO', 'Aosta']],
-    Veneto: [['BL', 'Belluno'], ['PD', 'Padova'], ['RO', 'Rovigo'], ['TV', 'Treviso'], ['VE', 'Venezia'], ['VR', 'Verona'], ['VI', 'Vicenza']],
-};
-
-export const PROVINCES: Province[] = Object.entries(RAW).flatMap(([region, list]) =>
-    list.map(([code, name]) => ({ code, name, region }))
+export const PROVINCES: Province[] = (PROVINCE_DATA as Province[]).slice().sort(
+    (a, b) => a.region.localeCompare(b.region, 'it') || a.name.localeCompare(b.name, 'it')
 );
 
-export const REGIONS = Object.keys(RAW);
+export const REGIONS = Array.from(new Set(PROVINCES.map((p) => p.region)));
 
 const BY_CODE = new Map(PROVINCES.map((p) => [p.code, p]));
 

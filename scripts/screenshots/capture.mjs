@@ -102,6 +102,24 @@ const PRIVATE_INTERACTIONS = [
         await p.getByRole('dialog').getByRole('button', { name: 'Aggiungi' }).click();
     }],
     ['form-disponibilita', '/profile', (p) => p.locator('section[aria-labelledby="availability-title"] button').first().click()],
+    ['menu-provincia', '/profile', async (p) => {
+        await p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click();
+        await p.waitForTimeout(400);
+        await p.locator('#pe-prov').click();
+    }],
+    ['menu-comuni', '/profile', async (p) => {
+        await p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click();
+        await p.waitForTimeout(400);
+        await p.locator('#pe-city').click();
+        await p.waitForTimeout(300);
+        await p.keyboard.press('Control+A');
+        await p.keyboard.type('se');
+    }],
+    ['calendario', '/profile', async (p) => {
+        await p.locator('section[aria-labelledby="certs-title"] button').first().click();
+        await p.waitForTimeout(400);
+        await p.getByRole('button', { name: /Apri il calendario: data di scadenza/ }).click();
+    }],
 ];
 const PUBLIC_INTERACTIONS = [
     ['registrazione-errori', '/register', (p) => p.getByRole('button', { name: 'Crea account' }).click()],
@@ -129,7 +147,7 @@ for (const [vpName, viewport] of VIEWPORTS) {
                 await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: vpName === 'desktop' ? false : false });
                 console.log(`✓ ${vpName}-${name}`);
             } catch (e) {
-                console.error(`✗ ${vpName}-${name}: ${e.message}`);
+                console.log(`✗ ${vpName}-${name}: ${e.message}`);
             }
         }
         for (const [name, path, act] of loggedIn ? PRIVATE_INTERACTIONS : PUBLIC_INTERACTIONS) {
@@ -142,7 +160,7 @@ for (const [vpName, viewport] of VIEWPORTS) {
                 await page.screenshot({ path: `${OUT}/${vpName}-${name}.png` });
                 console.log(`✓ ${vpName}-${name}`);
             } catch (e) {
-                console.error(`✗ ${vpName}-${name}: ${e.message}`);
+                console.log(`✗ ${vpName}-${name}: ${e.message}`);
             }
         }
         await context.close();

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     check, email, integerBetween, maxLength, minLength, notAfter, passwordStrength, personName, phone, postalCode, province, required, time, url, vatNumber,
 } from '../validation';
-import { experiencePeriod, formatDuration, isValidISODate, monthsBetween, sortExperiences, totalExperienceMonths, addDaysISO, formatMonth } from '../dates';
+import { isoToIt, itToIso, maskDate, maskTime, normalizeTime, experiencePeriod, formatDuration, isValidISODate, monthsBetween, sortExperiences, totalExperienceMonths, addDaysISO, formatMonth } from '../dates';
 import { normalizeAvailability, summarizeAvailability } from '../availability';
 import { isJobOpen, jobExpiryLabel } from '../jobs';
 
@@ -113,5 +113,29 @@ describe('disponibilità e scadenze', () => {
         expect(isJobOpen({ isActive: true }, '2026-10-23')).toBe(true);
         expect(jobExpiryLabel({ expiresAt: '2026-10-25' }, new Date(2026, 9, 23))).toBe('Scade tra 2 giorni');
         expect(jobExpiryLabel({ expiresAt: '2026-10-23' }, new Date(2026, 9, 23))).toBe('Scade oggi');
+    });
+});
+
+describe('formato italiano', () => {
+    it('converte gg/mm/aaaa', () => {
+        expect(isoToIt('2026-10-23')).toBe('23/10/2026');
+        expect(itToIso('23/10/2026')).toBe('2026-10-23');
+        expect(itToIso('1/2/2026')).toBe('2026-02-01');
+        expect(itToIso('31/02/2026')).toBe('31/02/2026'); // inesistente: resta testo e la validazione lo segnala
+        expect(itToIso('23/10')).toBe('23/10');
+    });
+    it('maschera la digitazione', () => {
+        expect(maskDate('2', '')).toBe('2');
+        expect(maskDate('23', '2')).toBe('23/');
+        expect(maskDate('231', '23')).toBe('23/1');
+        expect(maskDate('23102026', '')).toBe('23/10/2026');
+        expect(maskDate('23/10/', '23/10')).toBe('23/10/');
+        expect(maskDate('1/2/2026', '1/2/202')).toBe('1/2/2026');
+        expect(maskDate('23/1', '23/10')).toBe('23/1'); // cancellazione
+        expect(maskDate('23/10/20261', '23/10/2026')).toBe('23/10/2026');
+        expect(maskTime('930', '93')).toBe('93:0');
+        expect(maskTime('0930', '093')).toBe('09:30');
+        expect(normalizeTime('9:30')).toBe('09:30');
+        expect(normalizeTime('25:00')).toBe('25:00');
     });
 });

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { ID } from 'appwrite';
-import { account } from '@/services/appwrite';
+import { account, client } from '@/services/appwrite';
+import { APPWRITE_CONFIG } from '@/config/constants';
+import { emitNetworkChange } from '@/utils/networkEvents';
 import { databaseService } from '@/services/database';
 import type { AuthenticatedUser, UserProfile, StructureProfile } from '@/types/types';
 
@@ -71,6 +73,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Il profilo può cambiare per azioni di altri (es. una richiesta di collegamento
+  // accettata): lo teniamo allineato in tempo reale.
+  const userId = user?.$id;
+  useEffect(() => {
+    if (!userId) return;
+    const channel = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.profiles}.documents.${userId}`;
+    const unsubscribe = client.subscribe(channel, (event) => {
+      const payload = event.payload as Record<string, unknown> & { connections?: string[] };
+      setUser((prev) => {
+        if (!prev) return prev;
+        const before = (prev.connections || []).join(',');
+        const after = (payload.connections || prev.connections || []).join(',');
+        if (before !== after) window.setTimeout(() => emitNetworkChange({ type: 'remote' }), 0);
+        return { ...prev, ...payload, $id: prev.$id } as AuthenticatedUser;
+      });
+    });
+    return () => unsubscribe();
+  }, [userId]);
 
   const login = async (email: string, password: string) => {
     if (isActionPending.current) return;

@@ -11,11 +11,13 @@ import { ConnectButton } from '@/components/common/ConnectButton';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
+import { contractLabel } from '@/data/swimming';
 import { ProfileEditModal } from './ProfileEditModal';
 import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
 import { PoolSection } from './PoolSection';
-import { Field } from '@/components/form/Field';
-import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
+import { Checkbox, Field } from '@/components/form/Field';
+import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
+import { addDaysISO, formatDate, isValidISODate, todayISO } from '@/utils/dates';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -202,10 +204,14 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         const errors: typeof shiftErrors = {};
         if (!newShift.userId) errors.userId = 'Scegli chi coprirà il turno.';
         if (!newShift.date) errors.date = 'Indica la data.';
+        else if (!isValidISODate(newShift.date)) errors.date = 'Data non valida: usa il formato gg/mm/aaaa.';
         else if (newShift.date < today) errors.date = 'La data è già passata.';
         else if (newShift.date > addDaysISO(today, 180)) errors.date = 'Massimo 6 mesi in anticipo.';
+        const validTime = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
         if (!newShift.start) errors.start = 'Indica l’inizio.';
+        else if (!validTime(newShift.start)) errors.start = 'Orario non valido.';
         if (!newShift.end) errors.end = 'Indica la fine.';
+        else if (!validTime(newShift.end)) errors.end = 'Orario non valido.';
         else if (newShift.start && newShift.end <= newShift.start) errors.end = 'La fine deve essere dopo l’inizio.';
         setShiftErrors(errors);
         if (Object.keys(errors).length) return;
@@ -451,7 +457,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                             <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-500 font-medium">
                                                 <span className="flex items-center gap-1"><Icon type="user" className="w-3.5 h-3.5" /> {job.role}</span>
-                                                <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {job.contractType}</span>
+                                                <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {contractLabel(job.contractType)}</span>
                                             </div>
                                         </div>
                                         <button onClick={() => onSelectJob && onSelectJob(job.$id)} className="w-full sm:w-auto bg-blue-50 text-blue-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Vedi dettagli</button>
@@ -503,11 +509,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                             rows={3} value={newAnnouncement} onChange={e=>setNewAnnouncement(e.target.value)}
                                         />
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 gap-4">
-                                            <label className="flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer group">
-                                                <input type="checkbox" checked={isImportant} onChange={e=>setIsImportant(e.target.checked)} className="w-4 h-4 text-red-600 focus:ring-red-500 border-slate-300 rounded cursor-pointer" />
-                                                <Icon type="alert-triangle" className={`w-4 h-4 transition-colors ${isImportant ? 'text-red-500' : 'text-slate-400 group-hover:text-red-400'}`}/> 
-                                                Segna come Importante
-                                            </label>
+                                            <Checkbox id="ann-important" tone="danger" checked={isImportant} onChange={setIsImportant} label="Segna come importante" description="Compare in evidenza nella bacheca dello staff." />
                                             <button onClick={handlePostAnnouncement} className="w-full sm:w-auto bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
                                                 <Icon type="send" className="w-4 h-4"/> Pubblica
                                             </button>
@@ -579,19 +581,21 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                         ) : (
                                             <>
                                                 <Field id="shift-user" label="Membro dello staff" error={shiftErrors.userId}>
-                                                    <select value={newShift.userId} onChange={(e) => { const s = staff.find(st => st.$id === e.target.value || st.userId === e.target.value); setNewShift(s ? {...newShift, userId: s.userId || s.$id, userName: `${s.firstName} ${s.lastName}`, role: s.title || 'Staff'} : {...newShift, userId: ''}); }}>
-                                                        <option value="">Scegli…</option>
-                                                        {staff.map(s=><option key={s.$id} value={s.userId || s.$id}>{s.firstName} {s.lastName}</option>)}
-                                                    </select>
+                                                    <Select
+                                                        label="Membro dello staff"
+                                                        value={newShift.userId}
+                                                        onChange={(id) => { const s = staff.find(st => st.$id === id || st.userId === id); setNewShift(s ? {...newShift, userId: s.userId || s.$id, userName: `${s.firstName} ${s.lastName}`, role: s.title || 'Staff'} : {...newShift, userId: ''}); }}
+                                                        options={staff.map((s) => ({ value: s.userId || s.$id, label: `${s.firstName || ''} ${s.lastName || ''}`.trim(), hint: s.title }))}
+                                                    />
                                                 </Field>
                                                 <Field id="shift-date" label="Data" error={shiftErrors.date}>
-                                                    <input type="date" min={todayISO()} max={addDaysISO(todayISO(), 180)} value={newShift.date} onChange={e=>setNewShift({...newShift, date: e.target.value})} />
+                                                    <DatePicker label="Data del turno" min={todayISO()} max={addDaysISO(todayISO(), 180)} value={newShift.date} onChange={(v) => setNewShift({...newShift, date: v})} />
                                                 </Field>
                                                 <Field id="shift-start" label="Inizio" error={shiftErrors.start}>
-                                                    <input type="time" step={900} value={newShift.start} onChange={e=>setNewShift({...newShift, start: e.target.value})} />
+                                                    <TimePicker label="Inizio del turno" value={newShift.start} onChange={(v) => setNewShift({...newShift, start: v})} />
                                                 </Field>
                                                 <Field id="shift-end" label="Fine" error={shiftErrors.end}>
-                                                    <input type="time" step={900} min={newShift.start || undefined} value={newShift.end} onChange={e=>setNewShift({...newShift, end: e.target.value})} />
+                                                    <TimePicker label="Fine del turno" after={newShift.start} value={newShift.end} onChange={(v) => setNewShift({...newShift, end: v})} />
                                                 </Field>
                                                 <button onClick={handleConfirmShift} className="lg:mt-7 bg-corsia-600 text-white font-semibold py-3 px-5 rounded-xl hover:bg-corsia-700 transition-colors">
                                                     Assegna

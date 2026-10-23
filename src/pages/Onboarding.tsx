@@ -12,8 +12,11 @@ import { avatarOf } from '@/utils/profile';
 import type { Certification, StructureProfile, UserProfile } from '@/types/types';
 import { COMMON_CERTS, POOL_SERVICES, PROFESSIONAL_ROLES as ROLES, STRUCTURE_TYPES } from '@/data/swimming';
 import { Field, ChoiceChips } from '@/components/form/Field';
-import { ProvinceSelect } from '@/components/form/Pickers';
-import { check, maxLength, minLength, province as provinceRule, required, notBefore, notAfter } from '@/utils/validation';
+import { DatePicker, SuggestInput } from '@/components/form/Pickers';
+import { LocationFields } from '@/components/form/LocationFields';
+import { useComuni } from '@/data/comuni';
+import { provinceName } from '@/data/italy';
+import { check, comuneOf, isoDate, maxLength, minLength, province as provinceRule, required, notBefore, notAfter } from '@/utils/validation';
 import { addDaysISO, todayISO } from '@/utils/dates';
 
 const inputClass =
@@ -44,12 +47,13 @@ const Onboarding: React.FC = () => {
     const [services, setServices] = useState<string[]>(u?.services || []);
     const [showErrors, setShowErrors] = useState(false);
 
+    const { comuni } = useComuni(province);
     const step0Errors = {
         title: isProfessional ? check(title, required('Indica cosa fai: compare sotto il tuo nome.'), minLength(2), maxLength(100)) : check(title, maxLength(80)),
-        city: check(city, required('Indica la città: serve per le offerte vicine.'), minLength(2), maxLength(80)),
+        city: check(city, required('Indica il comune: serve per le offerte vicine.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(province))),
         province: check(province, required('Scegli la provincia.'), provinceRule),
     };
-    const certErrors = certs.map((c) => check(c.expiry || '', notBefore(todayISO(), 'Questa data è già passata: il brevetto risulterebbe scaduto.'), notAfter(addDaysISO(todayISO(), 365 * 10), 'Controlla l’anno.')));
+    const certErrors = certs.map((c) => check(c.expiry || '', isoDate, notBefore(todayISO(), 'Questa data è già passata: il brevetto risulterebbe scaduto.'), notAfter(addDaysISO(todayISO(), 365 * 10), 'Controlla l’anno.')));
     const stepErrors = step === 0 ? Object.values(step0Errors).filter(Boolean) : step === 1 && isProfessional ? certErrors.filter(Boolean) : [];
 
     const steps = useMemo(
@@ -156,19 +160,17 @@ const Onboarding: React.FC = () => {
                                 </p>
                             </div>
                             <Field id="ob-title" label={isProfessional ? 'Che cosa fai?' : 'Tipo di struttura'} optional={!isProfessional} error={showErrors ? step0Errors.title : undefined}>
-                                <input list="ob-title-options" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={110} />
+                                <SuggestInput value={title} onChange={setTitle} options={isProfessional ? ROLES : STRUCTURE_TYPES} label={isProfessional ? 'Ruoli' : 'Tipi di struttura'} placeholder={isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={110} />
                             </Field>
-                            <datalist id="ob-title-options">
-                                {(isProfessional ? ROLES : STRUCTURE_TYPES).map((r) => <option key={r} value={r} />)}
-                            </datalist>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Field id="ob-city" label="Città" error={showErrors ? step0Errors.city : undefined}>
-                                    <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
-                                </Field>
-                                <Field id="ob-prov" label="Provincia" error={showErrors ? step0Errors.province : undefined}>
-                                    <ProvinceSelect value={province} onChange={setProvince} />
-                                </Field>
-                            </div>
+                            <LocationFields
+                                idPrefix="ob"
+                                province={province}
+                                city={city}
+                                onProvince={setProvince}
+                                onCity={setCity}
+                                onTouch={() => undefined}
+                                errors={showErrors ? { province: step0Errors.province, city: step0Errors.city } : {}}
+                            />
                         </div>
                     )}
 
@@ -200,7 +202,7 @@ const Onboarding: React.FC = () => {
                                 const idx = certs.indexOf(c);
                                 return (
                                     <Field key={`${c.name}${c.issuer}-exp`} id={`ob-exp-${idx}`} label={`Scadenza: ${c.name}`} optional error={showErrors ? certErrors[idx] : undefined} className="animate-in fade-in slide-in-from-top-1 duration-200">
-                                        <input type="date" value={c.expiry || ''} min={todayISO()} onChange={(e) => setCertExpiry(c.name, c.issuer, e.target.value)} />
+                                        <DatePicker label={`Scadenza: ${c.name}`} value={c.expiry || ''} min={todayISO()} max={addDaysISO(todayISO(), 365 * 10)} onChange={(v) => setCertExpiry(c.name, c.issuer, v)} />
                                     </Field>
                                 );
                             })}

@@ -1,12 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormModal, FormSection } from '@/components/form/FormModal';
 import { Field, fieldClass } from '@/components/form/Field';
-import { ProvinceSelect } from '@/components/form/Pickers';
+import { Select } from '@/components/form/Pickers';
+import { LocationFields } from '@/components/form/LocationFields';
+import { useComuniSync } from '@/data/comuni';
+import { JOB_CONTRACTS, JOB_ROLES } from '@/data/swimming';
+import { provinceName } from '@/data/italy';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
-import { check, integerBetween, maxLength, minLength, noContactInfo, province, required } from '@/utils/validation';
+import { check, comuneOf, integerBetween, maxLength, minLength, noContactInfo, province, required } from '@/utils/validation';
 import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
 
 interface CreateJobModalProps {
@@ -16,24 +20,8 @@ interface CreateJobModalProps {
     structureId: string;
 }
 
-const ROLES = [
-    { value: 'istruttore', label: 'Istruttore di nuoto' },
-    { value: 'bagnino', label: 'Assistente bagnanti' },
-    { value: 'allenatore', label: 'Allenatore' },
-    { value: 'acquafitness', label: 'Istruttore di acquafitness' },
-    { value: 'coordinatore', label: 'Coordinatore' },
-    { value: 'tecnico', label: 'Tecnico manutentore' },
-    { value: 'receptionist', label: 'Receptionist' },
-    { value: 'altro', label: 'Altro' },
-];
-
-const CONTRACTS = [
-    { value: 'full-time', label: 'Tempo pieno' },
-    { value: 'part-time', label: 'Part-time' },
-    { value: 'stagionale', label: 'Stagionale' },
-    { value: 'collaborazione', label: 'Collaborazione sportiva' },
-    { value: 'tirocinio', label: 'Tirocinio' },
-];
+const ROLES = JOB_ROLES;
+const CONTRACTS = JOB_CONTRACTS;
 
 const EXPIRY_OPTIONS = [7, 14, 30, 60, 90];
 const DESCRIPTION_MAX = 4000;
@@ -62,12 +50,12 @@ const listRule = (label: string) => (v: string) => {
     return undefined;
 };
 
-export const validateJob = (v: Values): FormErrors<Values> => {
+export const validateJob = (v: Values, comuni: string[] = []): FormErrors<Values> => {
     const min = v.salaryMin ? Number(v.salaryMin) : undefined;
     const max = v.salaryMax ? Number(v.salaryMax) : undefined;
     return {
         title: check(v.title, required('Dai un titolo all’annuncio.'), minLength(8, 'Un titolo chiaro ha almeno 8 caratteri (es. "Istruttore corsi bambini").'), maxLength(120)),
-        city: check(v.city, required('Indica la città.'), minLength(2), maxLength(80)),
+        city: check(v.city, required('Indica il comune.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(v.province))),
         province: check(v.province, required('Scegli la provincia.'), province),
         description: check(v.description, required('Descrivi il lavoro.'), minLength(50, 'Scrivi almeno 50 caratteri: mansioni, orari, cosa offrite.'), maxLength(DESCRIPTION_MAX), noContactInfo),
         salaryMin: check(v.salaryMin, integerBetween(100, 10000, 'Indica un importo mensile tra 100 e 10.000 €.')),
@@ -99,8 +87,10 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
     const { showToast } = useToast();
     const { user } = useAuth();
     const [saving, setSaving] = useState(false);
-    const form = useForm<Values>(initial(), useCallback(validateJob, []));
+    const [comuni, setComuni] = useState<string[]>([]);
+    const form = useForm<Values>(initial(), useCallback((v: Values) => validateJob(v, comuni), [comuni]));
     const { values, errors, bind, set } = form;
+    useComuniSync(values.province, setComuni);
 
     useEffect(() => {
         if (isOpen) form.reset(initial(user?.city, user?.province));
@@ -155,28 +145,21 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
                 </Field>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field id="job-role" label="Ruolo">
-                        <select {...bind('role')}>
-                            {ROLES.map((r) => (
-                                <option key={r.value} value={r.value}>{r.label}</option>
-                            ))}
-                        </select>
+                        <Select {...form.field('role')} label="Ruolo" options={ROLES} />
                     </Field>
                     <Field id="job-contract" label="Contratto">
-                        <select {...bind('contractType')}>
-                            {CONTRACTS.map((c) => (
-                                <option key={c.value} value={c.value}>{c.label}</option>
-                            ))}
-                        </select>
+                        <Select {...form.field('contractType')} label="Contratto" options={CONTRACTS} />
                     </Field>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field id="job-city" label="Città" error={errors.city}>
-                        <input {...bind('city')} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
-                    </Field>
-                    <Field id="job-prov" label="Provincia" error={errors.province}>
-                        <ProvinceSelect value={values.province} onChange={(c) => set('province', c)} onBlur={() => form.touch('province')} />
-                    </Field>
-                </div>
+                <LocationFields
+                    idPrefix="job"
+                    province={values.province}
+                    city={values.city}
+                    onProvince={(c) => set('province', c)}
+                    onCity={(c) => set('city', c)}
+                    onTouch={(k) => form.touch(k)}
+                    errors={{ province: errors.province, city: errors.city }}
+                />
                 <Field
                     id="job-desc"
                     label="Descrizione"
@@ -213,12 +196,8 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
                 </div>
             </FormSection>
 
-            <Field id="job-expiry" label="Resta visibile per" hint={`Fino al ${formatDate(addDaysISO(todayISO(), Number(values.expiryDays)))}, poi sparisce dalla bacheca.`}>
-                <select {...bind('expiryDays')} className={fieldClass(undefined, 'sm:w-1/2')}>
-                    {EXPIRY_OPTIONS.map((d) => (
-                        <option key={d} value={d}>{d} giorni</option>
-                    ))}
-                </select>
+            <Field id="job-expiry" className="sm:max-w-xs" label="Resta visibile per" hint={`Fino al ${formatDate(addDaysISO(todayISO(), Number(values.expiryDays)))}, poi sparisce dalla bacheca.`}>
+                <Select {...form.field('expiryDays')} label="Resta visibile per" options={EXPIRY_OPTIONS.map((d) => ({ value: String(d), label: `${d} giorni` }))} />
             </Field>
         </FormModal>
     );
