@@ -26,11 +26,25 @@ import { generateVapidKeys } from './functions/api/src/webpush.js';
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
-assertNodeAppwriteVersion();
+
+/** In GitHub Actions gli errori diventano annotazioni, leggibili senza aprire il log. */
+const annotate = (message) => {
+    if (process.env.GITHUB_ACTIONS) console.log(`::error title=setup-db::${String(message).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`);
+};
+let phase = 'avvio';
+
+try {
+    assertNodeAppwriteVersion();
+} catch (e) {
+    annotate(e.message);
+    throw e;
+}
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
-    console.error('❌ Mancano le credenziali in .env.setup (APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY)');
+    const missing = ['APPWRITE_ENDPOINT', 'APPWRITE_PROJECT_ID', 'APPWRITE_API_KEY'].filter((k) => !process.env[k]).join(', ');
+    console.error(`❌ Mancano le credenziali (${missing}): in .env.setup oppure nei secret di GitHub.`);
+    annotate(`Mancano le credenziali: ${missing}`);
     process.exit(1);
 }
 
@@ -608,17 +622,25 @@ async function setupFunctionVariables() {
 
 async function main() {
     console.log('🚀 Configurazione Appwrite per SwimWaveUp…');
+    phase = 'database (tabelle, colonne, indici)';
     await setupDatabase();
+    phase = 'migrazione dei dati privati';
     await migratePrivateInfo();
+    phase = 'permessi delle righe esistenti';
     for (const t of ['profiles', 'facilities', 'swim_meets', 'posts', 'live_rooms']) await lockClientWrites(t);
     // Bacheca e turni: nessun permesso sulle righe, si leggono solo tramite la Function.
     for (const t of ['announcements', 'shifts']) await lockClientWrites(t, []);
+    phase = 'bucket di storage';
     await setupBuckets();
+    phase = 'Function api';
     if (!process.argv.includes('--skip-function')) await deployFunction();
     console.log('\n🎉 Setup completato.');
 }
 
 main().catch((e) => {
-    console.error('\n❌ Setup interrotto:', e.message);
+    const detail = [e.message, e.code && `codice ${e.code}`, e.type].filter(Boolean).join(' · ');
+    console.error(`\n❌ Setup interrotto (fase: ${phase}):`, detail);
+    if (e.response) console.error(typeof e.response === 'string' ? e.response : JSON.stringify(e.response));
+    annotate(`Fase: ${phase}\n${detail}`);
     process.exit(1);
 });
