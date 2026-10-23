@@ -15,6 +15,9 @@ import { contractLabel } from '@/data/swimming';
 import { ProfileEditModal } from './ProfileEditModal';
 import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
 import { PoolSection } from './PoolSection';
+import { ReviewsSection } from '@/features/reviews/ReviewsSection';
+import { Stars } from '@/features/reviews/Stars';
+import { ratingOf } from '@/utils/profile';
 import { Checkbox, Field } from '@/components/form/Field';
 import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
 import { addDaysISO, formatDate, isValidISODate, todayISO } from '@/utils/dates';
@@ -340,7 +343,14 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 </span>
                             )}
                         </div>
-                        <p className="text-lg text-slate-600 font-medium mt-1">{structureType || 'Centro Sportivo'}</p>
+                        <p className="text-lg text-slate-600 font-medium mt-1">{structureType || 'Struttura sportiva'}</p>
+                        {ratingOf(facility as StructureProfile) && (
+                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
+                                <Stars value={ratingOf(facility as StructureProfile)!.average} />
+                                <span className="font-semibold text-abisso">{ratingOf(facility as StructureProfile)!.average.toLocaleString('it-IT', { minimumFractionDigits: 1 })}</span>
+                                <span>({ratingOf(facility as StructureProfile)!.count})</span>
+                            </button>
+                        )}
                         
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-500">
                             <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
@@ -411,6 +421,17 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 {activeTab === 'info' && isLegacyStructure && (
                     <div className="mt-6">
                         <PoolSection profile={facility as StructureProfile} isOwnProfile={isAdmin} onEdit={() => setIsEditingProfile(true)} />
+                    </div>
+                )}
+                {activeTab === 'info' && (
+                    <div className="mt-6">
+                        <ReviewsSection
+                            key={facilityId}
+                            structureId={facilityId}
+                            structureName={structureName || 'la struttura'}
+                            isManager={!!isAdmin}
+                            initial={{ ratingSum: (facility as StructureProfile).ratingSum, ratingCount: (facility as StructureProfile).ratingCount }}
+                        />
                     </div>
                 )}
 

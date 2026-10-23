@@ -196,6 +196,28 @@ assert.equal((await api.updateFacility('zoe',{facilityId:fac.$id,name:'Piscina Z
 assert.deepEqual(col('facilities')[fac.$id].admins,['zoe']);
 }
 
+// Recensioni delle strutture
+{
+await rejects(api.upsertReview('anna',{structureId:'bob',rating:5,content:'Bellissima esperienza in vasca, staff gentile.'}),400); // non è una struttura
+await rejects(api.upsertReview('piscina',{structureId:'piscina',rating:5,content:'Bellissima esperienza in vasca, staff gentile.'}),403);
+await rejects(api.upsertReview('anna',{structureId:'piscina',rating:6,content:'Bellissima esperienza in vasca, staff gentile.'}),400);
+await rejects(api.upsertReview('anna',{structureId:'piscina',rating:4,content:'corta'}),400);
+const r1=await api.upsertReview('anna',{structureId:'piscina',rating:4,content:'Acqua pulita e corsie ben organizzate, spogliatoi da migliorare.',visitedAt:'2026-09'});
+assert.equal(r1.ratingCount,1); assert.equal(r1.ratingSum,4); assert.deepEqual(r1.review.$permissions,['read("users")']);
+const r2=await api.upsertReview('anna',{structureId:'piscina',rating:2,content:'Ripensandoci: spogliatoi davvero trascurati e docce fredde.'});
+assert.equal(r2.ratingCount,1); assert.equal(r2.ratingSum,2); assert.equal(r2.review.$id,r1.review.$id); // stessa recensione aggiornata
+await api.upsertReview('bob',{structureId:'piscina',rating:5,content:'Ottimi corsi master, allenatori preparati e puntuali.'});
+assert.equal(col('profiles').piscina.ratingCount,2); assert.equal(col('profiles').piscina.ratingSum,7);
+await rejects(api.replyReview('bob',{reviewId:r1.review.$id,reply:'Grazie'}),403);
+assert.equal((await api.replyReview('piscina',{reviewId:r1.review.$id,reply:'Grazie, stiamo rinnovando gli spogliatoi.'})).reply,'Grazie, stiamo rinnovando gli spogliatoi.');
+await rejects(api.deleteReview('bob',{reviewId:r1.review.$id}),403);
+assert.equal((await api.deleteReview('anna',{reviewId:r1.review.$id})).ratingCount,1);
+// pagina struttura: chi la amministra non può recensirla
+col('facilities').fr={$id:'fr',name:'Centro Rev',admins:['eve'],staff:[],followers:[]};
+await rejects(api.upsertReview('eve',{structureId:'fr',rating:5,content:'La mia piscina è la migliore di tutte, venite!'}),403);
+assert.equal((await api.upsertReview('anna',{structureId:'fr',rating:3,content:'Nella media, vasca un po\' affollata la sera.'})).ratingCount,1);
+}
+
 // Bordo Vasca Live
 const room=await api.createLiveRoom('piscina',{title:'Didattica vasca piccola',hostId:'bob'});
 assert.equal(room.hostId,'piscina'); assert.deepEqual(room.speakers,['piscina']);

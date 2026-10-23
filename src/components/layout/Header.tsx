@@ -11,6 +11,7 @@ import { notificationMeta } from '@/features/notifications/notificationMeta';
 import { formatRelativeTime } from '@/utils/format';
 import { initialsAvatar } from '@/utils/avatar';
 import type { AppNotification } from '@/types/types';
+import { isEnthusiast } from '@/utils/profile';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -19,6 +20,10 @@ const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/messages', label: 'Messaggi', icon: 'chat-bubble' },
   { to: '/live', label: 'Live', icon: 'video' },
 ];
+
+/** Chi nuota per passione vede le piscine al posto della bacheca lavoro. */
+export const navFor = (user: Parameters<typeof isEnthusiast>[0]) =>
+  isEnthusiast(user) ? NAV.map((n) => (n.to === '/jobs' ? { to: '/strutture', label: 'Piscine', icon: 'building' as IconType } : n)) : NAV;
 
 /** Chiude un menu a tendina al clic fuori o con Esc. */
 function useDismiss(open: boolean, close: () => void) {
@@ -123,7 +128,7 @@ const Header: React.FC = () => {
         </form>
 
         <nav className="hidden md:flex items-stretch h-full ml-auto" aria-label="Navigazione principale">
-          {NAV.map((item) => (
+          {navFor(user).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -223,6 +228,11 @@ const Header: React.FC = () => {
                   <Link to="/profile?tab=impostazioni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
                   </Link>
+                  {!isEnthusiast(user) && (
+                    <Link to="/strutture" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                      <Icon type="building" className="w-5 h-5 text-slate-400" /> Piscine e strutture
+                    </Link>
+                  )}
                   <Link to="/salvati" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="bookmark" className="w-5 h-5 text-slate-400" /> Elementi salvati
                   </Link>

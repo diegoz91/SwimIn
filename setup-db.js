@@ -86,6 +86,10 @@ const schema = [
             str('address', 255), str('postalCode', 10), str('vatNumber', 20),
             int('poolLength'), int('lanes'), str('poolSetting', 20), // 'coperta' | 'scoperta' | 'entrambe'
             str('services', 60, { array: true }),
+            // Persone: lavoro nel nuoto o appassionato (allievi, master, community)
+            str('personType', 20), str('sports', 60, { array: true }),
+            // Recensioni ricevute (strutture): media = ratingSum / ratingCount
+            int('ratingSum', { default: 0 }), int('ratingCount', { default: 0 }),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -180,8 +184,20 @@ const schema = [
             str('name', 255, { required: true }), str('type', 255), str('city', 255, { required: true }),
             str('province', 10), str('bio', 2500), str('logo', 2048), str('cover', 2048),
             str('admins', 36, { array: true }), str('staff', 36, { array: true }), str('followers', 36, { array: true }),
+            int('ratingSum', { default: 0 }), int('ratingCount', { default: 0 }),
         ],
         indexes: [],
+    },
+    {
+        // Recensioni delle strutture: scritte dalla Function (una per persona e struttura).
+        id: 'reviews', name: 'Reviews', permissions: READ_ONLY,
+        attributes: [
+            str('structureId', 36, { required: true }), str('authorId', 36, { required: true }),
+            int('rating', { required: true }), str('content', 2000, { required: true }),
+            str('visitedAt', 10), str('reply', 1000), str('replyAt', 100), str('editedAt', 100),
+            str('status', 20, { default: 'published' }),
+        ],
+        indexes: [idx('by_structure', ['structureId']), idx('by_author_structure', ['authorId', 'structureId'])],
     },
     {
         id: 'notifications', name: 'Notifications', permissions: SERVER_ONLY,

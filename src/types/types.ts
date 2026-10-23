@@ -80,6 +80,10 @@ export interface UserProfile extends BaseProfile {
   languages?: string[];
   /** Fasce di disponibilità settimanale, es. "lun-mattina" (vedi utils/availability). */
   availability?: string[];
+  /** Lavora nel nuoto oppure lo pratica per passione (allievi, master, community). */
+  personType?: 'professional' | 'enthusiast';
+  /** Attività praticate (soprattutto per gli appassionati). */
+  sports?: string[];
 }
 
 export interface StructureProfile extends BaseProfile {
@@ -95,6 +99,8 @@ export interface StructureProfile extends BaseProfile {
   lanes?: number | null;
   poolSetting?: 'coperta' | 'scoperta' | 'entrambe' | null;
   services?: string[];
+  ratingSum?: number;
+  ratingCount?: number;
 }
 
 export type AuthenticatedUser = Models.User<Models.Preferences> & (UserProfile | StructureProfile);
@@ -225,6 +231,8 @@ export interface Facility extends AppwriteDocument {
   admins: string[];     
   staff: string[];      
   followers: string[];  
+  ratingSum?: number;
+  ratingCount?: number;
 }
 
 // ----------------------------------------------------
@@ -256,6 +264,19 @@ export interface LiveRoom extends AppwriteDocument {
   speakers: string[]; 
   listeners: string[];
   startedAt: string;
+}
+
+export interface Review extends AppwriteDocument {
+  structureId: string;
+  authorId: string;
+  rating: number;
+  content: string;
+  /** Mese della visita YYYY-MM. */
+  visitedAt?: string;
+  reply?: string;
+  replyAt?: string;
+  editedAt?: string;
+  status: 'published' | 'hidden';
 }
 
 export interface SavedItem extends AppwriteDocument {

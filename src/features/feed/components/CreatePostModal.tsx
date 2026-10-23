@@ -17,9 +17,11 @@ interface CreatePostModalProps {
 const CATEGORIES = [
     { id: 'generale', label: 'Generale', icon: 'globe' },
     { id: 'allenamento', label: 'Allenamento', icon: 'clock' },
-    { id: 'gara', label: 'Gara & Risultati', icon: 'star' },
-    { id: 'tecnica', label: 'Tecnica & Formazione', icon: 'certificate' },
-    { id: 'normative', label: 'Normative & Sicurezza', icon: 'info' }
+    { id: 'gara', label: 'Gare e risultati', icon: 'star' },
+    { id: 'tecnica', label: 'Tecnica e formazione', icon: 'certificate' },
+    { id: 'normative', label: 'Normative e sicurezza', icon: 'info' },
+    { id: 'pensiero', label: 'Pensieri', icon: 'chat-bubble' },
+    { id: 'esperienza', label: 'Esperienze in vasca', icon: 'heart' },
 ];
 
 export const CreatePostModal: React.FC<CreatePostModalProps> = ({ 

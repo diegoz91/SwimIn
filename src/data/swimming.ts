@@ -88,3 +88,10 @@ export const JOB_CONTRACTS = [
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export const contractLabel = (v?: string) => (v ? JOB_CONTRACTS.find((c) => c.value === v)?.label || cap(v) : '');
 export const jobRoleLabel = (v?: string) => (v ? JOB_ROLES.find((r) => r.value === v)?.label || cap(v) : '');
+
+/** Attività di chi nuota per passione (e discipline praticate dai professionisti). */
+export const SWIM_ACTIVITIES = [
+    'Nuoto libero', 'Nuoto master', 'Corso di nuoto adulti', 'Acquafitness', 'Nuoto agonistico', 'Triathlon',
+    'Nuoto in acque libere', 'Pallanuoto', 'Nuoto artistico', 'Tuffi', 'Apnea', 'Subacquea',
+    'Acquaticità con mio figlio', 'Riabilitazione in acqua', 'Salvamento sportivo',
+];

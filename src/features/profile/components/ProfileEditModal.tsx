@@ -9,7 +9,7 @@ import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import { LANGUAGES, provinceName } from '@/data/italy';
-import { POOL_SERVICES, POOL_SETTINGS, PROFESSIONAL_ROLES, STRUCTURE_TYPES } from '@/data/swimming';
+import { POOL_SERVICES, POOL_SETTINGS, PROFESSIONAL_ROLES, STRUCTURE_TYPES, SWIM_ACTIVITIES } from '@/data/swimming';
 import {
     check, comuneOf, integerBetween, maxLength, minLength, normalizePhone, normalizeUrl, personName, phone, postalCode, province, required, url, vatNumber,
 } from '@/utils/validation';
@@ -31,6 +31,8 @@ type Values = {
     website: string;
     bio: string;
     languages: string[];
+    personType: 'professional' | 'enthusiast';
+    sports: string[];
     poolLength: string;
     lanes: string;
     poolSetting: string;
@@ -55,6 +57,8 @@ const toValues = (p: UserProfile | StructureProfile): Values => {
         website: p.website || '',
         bio: p.bio || '',
         languages: u.languages || [],
+        personType: u.personType === 'enthusiast' ? 'enthusiast' : 'professional',
+        sports: u.sports || [],
         poolLength: s.poolLength ? String(s.poolLength) : '',
         lanes: s.lanes ? String(s.lanes) : '',
         poolSetting: s.poolSetting || '',
@@ -75,7 +79,7 @@ export const validateProfile = (v: Values, isProfessional: boolean, comuni: stri
             ...common,
             firstName: check(v.firstName, required('Indica il nome.'), minLength(2), maxLength(50), personName),
             lastName: check(v.lastName, required('Indica il cognome.'), minLength(2), maxLength(50), personName),
-            title: check(v.title, required('Indica la tua qualifica.'), minLength(2), maxLength(100)),
+            title: v.personType === 'enthusiast' ? check(v.title, maxLength(100)) : check(v.title, required('Indica la tua qualifica.'), minLength(2), maxLength(100)),
         };
     }
     return {
@@ -123,7 +127,7 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
             bio: v.bio.trim(),
         };
         const data = isProfessional
-            ? { ...common, firstName: trim(v.firstName), lastName: trim(v.lastName), title: trim(v.title), languages: v.languages.slice(0, 8) }
+            ? { ...common, firstName: trim(v.firstName), lastName: trim(v.lastName), title: trim(v.title), languages: v.languages.slice(0, 8), personType: v.personType, sports: v.sports.slice(0, 15) }
             : {
                   ...common,
                   structureName: trim(v.structureName),
@@ -165,6 +169,24 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
         >
             {isProfessional ? (
                 <FormSection title="Chi sei">
+                    <div role="radiogroup" aria-label="Il tuo rapporto con il nuoto" className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {([
+                            ['professional', 'Lavoro nel nuoto', 'Offerte di lavoro, brevetti, disponibilità ai turni.'],
+                            ['enthusiast', 'Nuoto per passione', 'Corsi, master, piscine e community. Puoi cambiare quando vuoi.'],
+                        ] as const).map(([value, title, desc]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                role="radio"
+                                aria-checked={values.personType === value}
+                                onClick={() => set('personType', value)}
+                                className={`text-left p-3.5 rounded-2xl border-2 transition-colors outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 ${values.personType === value ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300'}`}
+                            >
+                                <span className="block font-semibold text-abisso text-sm">{title}</span>
+                                <span className="block text-xs text-slate-500 mt-0.5">{desc}</span>
+                            </button>
+                        ))}
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Field id="pe-first" label="Nome" error={errors.firstName}>
                             <input {...bind('firstName')} autoComplete="given-name" maxLength={60} />
@@ -173,7 +195,7 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                             <input {...bind('lastName')} autoComplete="family-name" maxLength={60} />
                         </Field>
                     </div>
-                    <Field id="pe-title" label="Qualifica" error={errors.title} hint="Compare sotto il tuo nome in tutto SwimIn.">
+                    <Field id="pe-title" label={values.personType === 'enthusiast' ? 'Come ti descrivi' : 'Qualifica'} optional={values.personType === 'enthusiast'} error={errors.title} hint="Compare sotto il tuo nome in tutto SwimIn.">
                         <SuggestInput {...form.field('title')} options={PROFESSIONAL_ROLES} label="Qualifiche" placeholder="Es. Istruttore di nuoto FIN" maxLength={110} />
                     </Field>
                 </FormSection>
@@ -249,6 +271,12 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                         <p className="text-sm font-semibold text-abisso mb-2">Attività proposte</p>
                         <ChoiceChips label="Attività proposte" multiple options={POOL_SERVICES.map((s) => ({ value: s, label: s }))} value={values.services} onChange={(next) => set('services', next)} />
                     </div>
+                </FormSection>
+            )}
+
+            {isProfessional && (
+                <FormSection title={values.personType === 'enthusiast' ? 'Cosa pratichi' : 'Discipline praticate'} description="Ti aiutiamo a trovare persone, piscine e post vicini ai tuoi interessi.">
+                    <ChoiceChips label="Attività praticate" multiple max={15} options={SWIM_ACTIVITIES.map((x) => ({ value: x, label: x }))} value={values.sports} onChange={(next) => set('sports', next)} />
                 </FormSection>
             )}
 

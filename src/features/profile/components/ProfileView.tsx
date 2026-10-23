@@ -14,6 +14,7 @@ import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { initialsAvatar } from '@/utils/avatar';
+import { isEnthusiast } from '@/utils/profile';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -45,6 +46,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const [confettiFired, setConfettiFired] = useState(false);
     
     const isProfessional = user.userType === 'professional';
+    /** Nuota per passione: il profilo mette in primo piano attività e community, non il lavoro. */
+    const isFan = isEnthusiast(user);
+    const isWorker = isProfessional && !isFan;
     const profUser = isProfessional ? (user as UserProfile) : null;
 
     const [experienceModal, setExperienceModal] = useState<{isOpen: boolean, mode: 'add'|'edit', experience?: Experience, index?: number}>({ isOpen: false, mode: 'add' });
@@ -72,6 +76,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     /** Passi per completare il profilo: punteggio e cosa manca ancora. */
     const completionSteps = useMemo(() => {
         if (!isProfessional || !profUser) return [];
+        if (isFan) return [
+            { label: 'Nome e cognome', done: !!(profUser.firstName && profUser.lastName), weight: 20 },
+            { label: 'Foto profilo', done: !!profUser.avatar, weight: 20 },
+            { label: 'Città', done: !!profUser.city, weight: 20 },
+            { label: 'Presentazione', done: !!profUser.bio, weight: 20 },
+            { label: 'Attività praticate', done: (profUser.sports || []).length > 0, weight: 20 },
+        ];
         return [
             { label: 'Nome e cognome', done: !!(profUser.firstName && profUser.lastName), weight: 10 },
             { label: 'Foto profilo', done: !!profUser.avatar, weight: 10 },
@@ -83,7 +94,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             { label: 'Competenze', done: (profUser.skills || []).length > 0, weight: 5 },
             { label: 'Disponibilità', done: (profUser.availability || []).length > 0, weight: 5 },
         ];
-    }, [profUser, experiences, certifications, isProfessional]);
+    }, [profUser, experiences, certifications, isProfessional, isFan]);
     const completionScore = completionSteps.reduce((sum, s) => sum + (s.done ? s.weight : 0), 0);
     const missingSteps = completionSteps.filter((s) => !s.done);
 
@@ -248,7 +259,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
             )}
 
-            {isProfessional && (
+            {isWorker && (
                 <button 
                     onClick={handleDownloadPDF}
                     disabled={isGeneratingPDF}
@@ -266,7 +277,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {isProfessional && isOwnProfile && profUser && (
+      {isWorker && isOwnProfile && profUser && (
         <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <h2 className="text-xl font-extrabold text-red-700 flex items-center gap-2">
@@ -316,7 +327,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
 
       {/* PAGINE AZIENDALI GESTITE (LINKEDIN MODEL) */}
-      {isProfessional && isOwnProfile && (
+      {isWorker && isOwnProfile && (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
@@ -488,13 +499,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             )}
           </div>
 
-          {isProfessional && profUser && (
+          {isProfessional && profUser && (profUser.sports || []).length > 0 && (
+            <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="sports-title">
+              <h2 id="sports-title" className="text-xl font-extrabold text-slate-900 mb-4">{isFan ? 'In vasca' : 'Discipline praticate'}</h2>
+              <ul className="flex flex-wrap gap-2">
+                {(profUser.sports || []).map((sp) => (
+                  <li key={sp} className="text-sm font-semibold text-corsia-800 bg-corsia-50 border border-corsia-100 px-3 py-1.5 rounded-full">{sp}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {isWorker && profUser && (
             <AvailabilitySection profile={profUser} isOwnProfile={isOwnProfile} onUpdated={(p) => onUpdateProfile?.(p)} />
           )}
 
           {!isProfessional && <PoolSection profile={user as StructureProfile} isOwnProfile={isOwnProfile} onEdit={() => setIsEditingProfile(true)} />}
 
-          {isProfessional && profUser && (
+          {isProfessional && profUser && (isWorker || (profUser.skills || []).length > 0) && (
             <SkillsSection
                 profile={profUser}
                 isOwnProfile={isOwnProfile}
@@ -502,7 +524,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             />
           )}
 
-          {isProfessional && (
+          {isProfessional && (isWorker || experiences.length > 0 || certifications.length > 0) && (
             <>
                 <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="career-title">
                     <div className="flex items-center justify-between gap-4 mb-6">
