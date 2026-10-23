@@ -86,8 +86,12 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
 |---|---|---|---|
-| profiles, facilities, announcements, shifts, live_rooms, swim_meets | utenti loggati | utenti loggati | solo il proprietario (+ Function per i campi condivisi) |
-| posts, jobs | utenti loggati | solo Function (autore/struttura verificati) | solo l'autore |
+| profiles, facilities | utenti loggati | solo Function | solo Function (`updateMyProfile`, `updateFacility`) |
+| posts, swim_meets, live_rooms | utenti loggati | solo Function (autore verificato) | solo Function (`updatePost`, `cancelSwimMeet`, `endLiveRoom`) |
+| jobs | utenti loggati | solo Function (struttura verificata) | solo Function |
+| announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
+| private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors | solo Function | solo Function | solo Function |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |
 | comments, likes | utenti loggati | solo Function | autore (commenti) |
