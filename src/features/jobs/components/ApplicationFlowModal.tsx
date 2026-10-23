@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { UserProfile, Job } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { useContactInfo } from '@/hooks/useContactInfo';
 
 export type View = 'lavoro' | 'myApplications';
 export type CustomApplicationSteps = 'custom_analysis' | 'custom_letter' | 'custom_docs' | 'custom_availability' | 'custom_final' | 'custom_preview';
@@ -124,7 +125,10 @@ const ApplicationTypeStep: React.FC<{ onSelect: (type: 'rapid' | CustomApplicati
     </div>
 );
 
-const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; onBack: () => void; }> = ({ user, onSubmit, onBack }) => (
+const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; onBack: () => void; }> = ({ user, onSubmit, onBack }) => {
+    // Recapiti privati: arrivano dal server (sono i tuoi, li vedrà solo la struttura a cui ti candidi).
+    const contact = useContactInfo(user.userId || user.$id);
+    return (
      <div>
         <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
             <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
@@ -139,11 +143,11 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
         </div>
          <div className="mb-4">
             <label className="block text-sm font-semibold text-slate-700 mb-1">Email di contatto</label>
-            <input type="email" value={user.email} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
+            <input type="email" value={contact?.email || ''} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
         </div>
          <div className="mb-8">
             <label className="block text-sm font-semibold text-slate-700 mb-1">Numero di telefono</label>
-            <input type="tel" value={user.phone || 'Non indicato: aggiungilo dal profilo'} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
+            <input type="tel" value={contact?.phone || 'Non indicato: aggiungilo dal profilo'} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
         </div>
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
              <button onClick={onBack} className="font-semibold text-slate-600 px-4 py-2.5 rounded-full hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Indietro</button>
@@ -153,7 +157,8 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
             </button>
         </div>
     </div>
-);
+    );
+};
 
 // LO STEP INNOVATIVO: DASHBOARD PREDITTIVA
 const CompatibilityAnalysisStep: React.FC<{ user: UserProfile, job: Job, onProceed: () => void, onBack: () => void }> = ({ user, job, onProceed, onBack }) => {

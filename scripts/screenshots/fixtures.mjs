@@ -184,3 +184,10 @@ export const collections = {
     announcements: [],
     shifts: [],
 };
+
+/** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
+export const apiResponses = {
+    getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
+    getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [] }),
+    getPushConfig: () => ({ publicKey: null, emailAvailable: false, devices: 0, prefs: null, categories: [] }),
+};

@@ -104,8 +104,13 @@ const Live: React.FC = () => {
         if (!user || !currentRoom) return;
         if (currentRoom.hostId === user.$id) {
             if (!window.confirm('Chiudere la diretta per tutti i partecipanti?')) return;
-            await databaseService.endLiveRoom(currentRoom.$id);
-            showToast('Diretta chiusa.', 'info');
+            try {
+                await databaseService.endLiveRoom(currentRoom.$id);
+                showToast('Diretta chiusa.', 'info');
+            } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Non è stato possibile chiudere la diretta.', 'error');
+                return;
+            }
         } else {
             await databaseService.leaveLiveRoom(currentRoom.$id, user.$id);
         }

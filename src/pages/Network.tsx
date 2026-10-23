@@ -194,9 +194,9 @@ const Network: React.FC = () => {
         if (!window.confirm('Sicuro di voler annullare questo evento? La decisione è irreversibile.')) return;
         try {
             await databaseService.cancelSwimMeet(meetId);
-            showToast('Evento annullato.', 'info');
+            showToast('Evento annullato: abbiamo avvisato i partecipanti.', 'info');
             loadMeetsData();
-        } catch (error) { showToast('Errore.', 'error'); }
+        } catch (error) { showToast(error instanceof Error ? error.message : 'Operazione non riuscita.', 'error'); }
     };
 
     if (!currentUser) return null;

@@ -14,6 +14,7 @@ import { profileActions } from './profile.js';
 import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
+import { teamActions } from './team.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -37,6 +38,7 @@ const C = {
   reviews: 'reviews',
   blocks: 'blocks',
   clientErrors: 'client_errors',
+  privateInfo: 'private_info',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
@@ -182,9 +184,20 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     return [...managers];
   };
 
+  /** Chi chiama gestisce un annuncio a cui la persona si è candidata? */
+  const isRecruiterOf = async (me, applicantId) => {
+    const { documents } = await list(C.applications, [Query.equal('applicantId', applicantId), Query.limit(50)]);
+    for (const app of documents) {
+      const job = await find(C.jobs, app.jobId);
+      if (job && (await jobManagers(job)).includes(me)) return true;
+    }
+    return false;
+  };
+
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
+  const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
   const assertNotBlocked = moderation._assertNotBlocked;
 
@@ -193,9 +206,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   // -------------------------------------------------------------------------
   return {
     ...moderation,
+    ...team,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
-    ...profileActions({ find, get, create, update, fail, users, endpoint, C }),
+    ...profileActions({ find, get, create, update, fail, users, endpoint, C, isRecruiterOf }),
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
 
     // ---------------- MESSAGGI ----------------
@@ -301,7 +315,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       return create(C.posts, {
         authorId: me, authorType: author.userType, content, media: cleanMedia, postType, category,
         visibility: 'public', likesCount: 0, commentsCount: 0,
-      }, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+      }, [Permission.read(Role.users())]); // modifiche ed eliminazione solo tramite la Function
     },
 
     async toggleLike(me, { postId }) {
@@ -354,10 +368,23 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     },
 
     /** Elimina un post dell'utente insieme a like e commenti collegati. */
+    /** Modifica di un proprio post: solo testo e categoria (contatori e autore restano del server). */
+    async updatePost(me, { postId, content, category } = {}) {
+      postId = requireString(postId, 'postId', 36);
+      const post = await get(C.posts, postId);
+      if (post.authorId !== me) fail(403, 'Puoi modificare solo i tuoi post.');
+      const text = typeof content === 'string' ? content.trim() : '';
+      if (text.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
+      if (!text && !(post.media || []).length) fail(400, 'Il post è vuoto.');
+      const patch = { content: text, editedAt: new Date().toISOString() };
+      if (category !== undefined) patch.category = POST_CATEGORIES.includes(category) ? category : 'generale';
+      return update(C.posts, postId, patch);
+    },
+
     async deletePost(me, { postId }) {
       postId = requireString(postId, 'postId', 36);
       const post = await get(C.posts, postId);
-      if (!ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
+      if (post.authorId !== me && !ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
       for (const tableId of [C.likes, C.comments]) {
         await removeAll(tableId, [Query.equal('postId', postId)]);
       }
@@ -370,7 +397,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       commentId = requireString(commentId, 'commentId', 36);
       const comment = await get(C.comments, commentId);
       const post = await find(C.posts, comment.postId);
-      const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && ownersOf(post).includes(me));
+      const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && (post.authorId === me || ownersOf(post).includes(me)));
       if (!allowed) fail(403, 'Non puoi eliminare questo commento.');
 
       await removeAll(C.comments, [Query.equal('parentCommentId', commentId)]);
@@ -483,6 +510,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       await removeAll(C.connections, [Query.equal('receiverId', me)]);
       await removeAll(C.blocks, [Query.equal('blockerId', me)]);
       await removeAll(C.blocks, [Query.equal('blockedId', me)]);
+      await remove(C.privateInfo, me).catch(() => null);
       // Recensioni scritte: rimosse, con media delle strutture ricalcolata.
       for (const r of await listAll(C.reviews, [Query.equal('authorId', me)])) {
         await remove(C.reviews, r.$id);
@@ -518,6 +546,12 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
             await update(C.facilities, current.$id, { [field]: removeFromArray(current[field], me) });
           }
         }
+      }
+
+      // Staff dei profili Struttura.
+      for (const structure of await listAll(C.profiles, [Query.contains('staff', [me])])) {
+        const current = await find(C.profiles, structure.$id);
+        if (current) await update(C.profiles, current.$id, { staff: removeFromArray(current.staff, me) });
       }
 
       // Eventi, dirette, turni, bacheca e notifiche.
@@ -664,16 +698,12 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       const applicantId = application.applicantId;
       let structureName = job.structureName || 'Una struttura';
       const facility = await find(C.facilities, job.structureId);
-      if (facility) {
-        structureName = facility.name;
-        await update(C.facilities, facility.$id, { staff: addToArray(facility.staff, applicantId) });
-      } else {
-        // Annuncio di un profilo Struttura: il "team" è rappresentato dai collegamenti reciproci.
-        const [structure, applicant] = await Promise.all([
-          get(C.profiles, job.structureId),
-          get(C.profiles, applicantId),
-        ]);
-        structureName = structure.structureName || structureName;
+      // Chi viene assunto entra nello staff (accesso all'area staff della struttura).
+      const hiredTeam = await team._addStaff(job.structureId, applicantId);
+      structureName = hiredTeam.name || structureName;
+      if (!facility) {
+        // Profilo Struttura: anche collegamento reciproco, come tra colleghi.
+        const [structure, applicant] = await Promise.all([get(C.profiles, job.structureId), get(C.profiles, applicantId)]);
         await Promise.all([
           update(C.profiles, structure.$id, { connections: addToArray(structure.connections, applicantId) }),
           update(C.profiles, applicantId, { connections: addToArray(applicant.connections, structure.$id) }),
@@ -703,7 +733,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       return create(C.liveRooms, {
         title, description: String(description).trim().slice(0, 1000), hostId: me, status: 'active',
         speakers: [me], listeners: [], startedAt: new Date().toISOString(),
-      }, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+      }, [Permission.read(Role.users())]);
+    },
+
+    async endLiveRoom(me, { roomId }) {
+      roomId = requireString(roomId, 'roomId', 36);
+      const room = await get(C.liveRooms, roomId);
+      if (room.hostId !== me) fail(403, 'Solo chi conduce può chiudere la diretta.');
+      return update(C.liveRooms, roomId, { status: 'ended', speakers: [], listeners: [] });
     },
 
     /** Messaggio nella chat della stanza: domanda, intervento o mano alzata. */
@@ -755,6 +792,50 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     },
 
     // ---------------- SWIM-MEETS ----------------
+    /** Nuovo incontro: l'organizzatore è chi chiama (non un campo del client). */
+    async createSwimMeet(me, data = {}) {
+      const text = (v, label, min, max, required = true) => {
+        const t = typeof v === 'string' ? v.trim() : '';
+        if (!t && !required) return undefined;
+        if (t.length < min) fail(400, `${label}: almeno ${min} caratteri.`);
+        if (t.length > max) fail(400, `${label}: massimo ${max} caratteri.`);
+        return t;
+      };
+      const date = String(data.date || '');
+      const time = String(data.time || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(400, 'Data non valida.');
+      if (date < isoDay(Date.now()) || date > isoDay(Date.now() + 365 * 86_400_000)) fail(400, 'La data deve essere entro i prossimi 12 mesi.');
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) fail(400, 'Orario non valido.');
+      const max = data.maxParticipants === undefined || data.maxParticipants === null || data.maxParticipants === '' ? undefined : Number(data.maxParticipants);
+      if (max !== undefined && (!Number.isInteger(max) || max < 2 || max > 500)) fail(400, 'Partecipanti: da 2 a 500.');
+      const meet = {
+        title: text(data.title, 'Titolo', 3, 120),
+        description: text(data.description, 'Descrizione', 10, 2000),
+        date,
+        time,
+        city: text(data.city, 'Città', 2, 80),
+        address: text(data.address, 'Indirizzo', 1, 200, false),
+        creatorId: me,
+        participants: [me],
+        maxParticipants: max,
+        status: 'upcoming',
+      };
+      for (const k of Object.keys(meet)) if (meet[k] === undefined) delete meet[k];
+      return create(C.swimMeets, meet, [Permission.read(Role.users())]);
+    },
+
+    async cancelSwimMeet(me, { meetId }) {
+      meetId = requireString(meetId, 'meetId', 36);
+      const meet = await get(C.swimMeets, meetId);
+      if (meet.creatorId !== me) fail(403, "Solo l'organizzatore può annullare l'evento.");
+      if (meet.status === 'cancelled') return meet;
+      const updated = await update(C.swimMeets, meetId, { status: 'cancelled' });
+      for (const id of meet.participants || []) {
+        if (id !== me) await notify(id, 'general', `L'incontro "${meet.title}" del ${meet.date.slice(8, 10)}/${meet.date.slice(5, 7)} è stato annullato.`, meetId);
+      }
+      return updated;
+    },
+
     async joinSwimMeet(me, { meetId }) {
       meetId = requireString(meetId, 'meetId', 36);
       const meet = await get(C.swimMeets, meetId);

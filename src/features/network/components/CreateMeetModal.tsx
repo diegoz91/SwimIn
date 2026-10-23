@@ -49,7 +49,6 @@ export const CreateMeetModal: React.FC<{ open: boolean; onClose: () => void; onC
                 time: v.time,
                 city: v.city.trim(),
                 address: v.address.trim(),
-                creatorId: user.$id,
                 maxParticipants: v.maxParticipants ? Number(v.maxParticipants) : undefined,
             });
             showToast('Incontro pubblicato.', 'success');
@@ -57,7 +56,7 @@ export const CreateMeetModal: React.FC<{ open: boolean; onClose: () => void; onC
             onClose();
         } catch (error) {
             console.error('Swim-Meet:', error);
-            showToast('Non è stato possibile pubblicare l’incontro.', 'error');
+            showToast(error instanceof Error ? error.message : 'Non è stato possibile pubblicare l’incontro.', 'error');
         } finally {
             setSaving(false);
         }

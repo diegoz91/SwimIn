@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { StructureProfile, Job, UserProfile, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
+import type { StructureProfile, Job, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
-import { databaseService } from '@/services/database';
+import { databaseService, type TeamMember } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
@@ -49,9 +49,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         ? user?.$id === facilityId
         : (facility as Facility).admins?.includes(user?.$id || '');
         
-    const isStaff = isLegacyStructure
-        ? (facility as StructureProfile).connections?.includes(user?.$id || '')
-        : (facility as Facility).staff?.includes(user?.$id || '');
+    // Staff = chi è stato assunto o aggiunto dalla struttura. Un semplice collegamento
+    // o un follower non dà accesso all'area staff (lo verifica comunque il server).
+    const isStaff = !isAdmin && !!user && (facility.staff || []).includes(user.$id);
     
     // 💡 STATI PER I FOLLOWERS
     const [isFollowing, setIsFollowing] = useState(false);
@@ -63,7 +63,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [localJobs, setLocalJobs] = useState<Job[]>(openJobs);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const [staff, setStaff] = useState<UserProfile[]>([]);
+    const [staff, setStaff] = useState<TeamMember[]>([]);
     const [isLoadingStaff, setIsLoadingStaff] = useState(false);
     const [announcements, setAnnouncements] = useState<SquadAnnouncement[]>([]);
     const [shifts, setShifts] = useState<SquadShift[]>([]);
@@ -114,34 +114,29 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     }, [facility, user, isLegacyStructure]);
 
     useEffect(() => {
-        if (activeTab === 'staff' && (isAdmin || isStaff)) {
-            const loadStaffData = async () => {
-                setIsLoadingStaff(true);
-                try {
-                    const memberIds = isLegacyStructure ? (facility as StructureProfile).connections : (facility as Facility).staff;
-                    
-                    if (memberIds && memberIds.length > 0) {
-                        const profiles = await Promise.all(
-                            memberIds.map(id => databaseService.getProfile(id).catch(() => null))
-                        );
-                        setStaff(profiles.filter(p => p && p.userType === 'professional') as UserProfile[]);
-                    } else {
-                        setStaff([]);
-                    }
-
-                    const dbAnnouncements = await databaseService.getSquadAnnouncements(facilityId);
-                    setAnnouncements(dbAnnouncements);
-
-                    const dbShifts = await databaseService.getSquadShifts(facilityId);
-                    setShifts(dbShifts);
-
-                } finally {
-                    setIsLoadingStaff(false);
+        if (activeTab !== 'staff' || !(isAdmin || isStaff)) return;
+        let alive = true;
+        setIsLoadingStaff(true);
+        databaseService.getTeamBoard(facilityId)
+            .then((board) => {
+                if (!alive) return;
+                setStaff(board.members || []);
+                setAnnouncements(board.announcements || []);
+                setShifts(board.shifts || []);
+                if (board.role === 'staff' && (board.announcements || []).some((a) => !(a.readBy || []).includes(user?.$id || ''))) {
+                    databaseService.markAnnouncementsRead(facilityId).catch((err) => console.error('Bacheca letta:', err));
                 }
-            };
-            loadStaffData();
-        }
-    }, [activeTab, isAdmin, isStaff, facilityId, facility, isLegacyStructure]);
+            })
+            .catch((err) => {
+                console.error('Area staff:', err);
+                if (alive) {
+                    showToast(err instanceof Error ? err.message : 'Area staff non disponibile.', 'error');
+                    setActiveTab('info');
+                }
+            })
+            .finally(() => alive && setIsLoadingStaff(false));
+        return () => { alive = false; };
+    }, [activeTab, isAdmin, isStaff, facilityId, user?.$id, showToast]);
 
     /** Numeri reali della pagina: annunci, candidature ricevute per annuncio, follower. */
     const metrics = useMemo(() => {
@@ -183,25 +178,27 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     };
 
     const handlePostAnnouncement = async () => {
-        if (!newAnnouncement.trim()) return;
-        const result = await databaseService.createSquadAnnouncement({
-            structureId: facilityId, content: newAnnouncement, isImportant, readBy: []
-        });
-        if (result) {
+        if (newAnnouncement.trim().length < 2) return showToast('Scrivi la comunicazione.', 'error');
+        try {
+            const result = await databaseService.createSquadAnnouncement(facilityId, newAnnouncement.trim(), isImportant);
             setAnnouncements([result, ...announcements]);
             setNewAnnouncement(''); setIsImportant(false);
-            showToast('Comunicazione pubblicata.', 'success');
+            showToast(isImportant ? 'Comunicazione pubblicata e staff avvisato.' : 'Comunicazione pubblicata.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Pubblicazione non riuscita.', 'error');
         }
     };
 
     const handleConfirmDeleteAnnouncement = async () => {
         if (!announcementToDelete) return;
-        const success = await databaseService.deleteSquadAnnouncement(announcementToDelete);
-        if (success) {
-            setAnnouncements(announcements.filter(a => (a.$id || (a as any).id) !== announcementToDelete));
+        try {
+            await databaseService.deleteSquadAnnouncement(announcementToDelete);
+            setAnnouncements(announcements.filter((a) => a.$id !== announcementToDelete));
             showToast('Comunicazione eliminata.', 'info');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Eliminazione non riuscita.', 'error');
         }
-        setAnnouncementToDelete(null); 
+        setAnnouncementToDelete(null);
     };
 
     const handleConfirmShift = async () => {
@@ -220,45 +217,53 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         else if (newShift.start && newShift.end <= newShift.start) errors.end = 'La fine deve essere dopo l’inizio.';
         setShiftErrors(errors);
         if (Object.keys(errors).length) return;
-        const { start, end, ...rest } = newShift;
-        const result = await databaseService.createSquadShift({
-            structureId: facilityId, ...rest, shiftTime: `${start}–${end}`, status: 'scheduled'
-        });
-        if(result) {
-            setShifts([...shifts, result]);
+        try {
+            const result = await databaseService.createSquadShift({
+                structureId: facilityId, userId: newShift.userId, date: newShift.date, shiftTime: `${newShift.start}–${newShift.end}`, role: newShift.role,
+            });
+            setShifts([...shifts, result].sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime)));
             setShowAddShift(false);
             setNewShift({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
-            showToast('Turno assegnato.', 'success');
-        } else {
-            showToast('Non è stato possibile salvare il turno.', 'error');
+            showToast('Turno assegnato: abbiamo avvisato la persona.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Non è stato possibile salvare il turno.', 'error');
         }
     };
 
     const handleDeleteShift = async (shiftId: string) => {
-        await databaseService.deleteSquadShift(shiftId);
-        setShifts(shifts.filter(s => s.$id !== shiftId));
-        showToast('Turno rimosso', 'info');
+        try {
+            await databaseService.deleteSquadShift(shiftId);
+            setShifts(shifts.filter((s) => s.$id !== shiftId));
+            showToast('Turno annullato.', 'info');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        }
+    };
+
+    const handleRespondShift = async (shiftId: string, status: 'confirmed' | 'declined') => {
+        try {
+            const updated = await databaseService.respondShift(shiftId, status);
+            setShifts(shifts.map((s) => (s.$id === shiftId ? { ...s, status: updated.status } : s)));
+            showToast(status === 'confirmed' ? 'Turno confermato.' : 'Abbiamo avvisato la struttura che non puoi coprirlo.', status === 'confirmed' ? 'success' : 'info');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        }
     };
 
     const handleRemoveStaff = async (staffId: string) => {
-        if (window.confirm("Sei sicuro di voler rimuovere questo membro dal tuo Team? Non potrà più visualizzare la bacheca aziendale o i turni.")) {
-            const success = await databaseService.removeStaffMember(facilityId, staffId);
-            if (success) {
-                setStaff(staff.filter(s => (s.userId || s.$id) !== staffId));
-                showToast("Membro rimosso dallo staff.", "info");
-                
-                if (onUpdateProfile) {
-                    if (isLegacyStructure) {
-                        const prof = facility as StructureProfile;
-                        onUpdateProfile({ ...prof, connections: (prof.connections || []).filter(id => id !== staffId) });
-                    } else {
-                        const fac = facility as Facility;
-                        onUpdateProfile({ ...fac, staff: (fac.staff || []).filter(id => id !== staffId) });
-                    }
-                }
-            } else {
-                showToast("Errore durante la rimozione.", "error");
-            }
+        const leaving = staffId === user?.$id;
+        const question = leaving
+            ? `Vuoi lasciare lo staff di ${structureName}? Non vedrai più bacheca e turni.`
+            : 'Rimuovere questa persona dallo staff? Non vedrà più bacheca e turni, e i suoi turni futuri verranno annullati.';
+        if (!window.confirm(question)) return;
+        try {
+            await databaseService.removeStaffMember(facilityId, staffId);
+            setStaff(staff.filter((s) => s.userId !== staffId));
+            onUpdateProfile?.({ ...facility, staff: (facility.staff || []).filter((id) => id !== staffId) } as StructureProfile | Facility);
+            showToast(leaving ? 'Hai lasciato lo staff.' : 'Persona rimossa dallo staff.', 'info');
+            if (leaving) setActiveTab('info');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
         }
     };
 
@@ -509,14 +514,14 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         <div className="border-b border-slate-100 bg-slate-50/50 p-4">
                             <div className="flex space-x-3 overflow-x-auto hide-scrollbar-mobile pb-1">
                                 <button onClick={() => setStaffSubTab('bacheca')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'bacheca' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                    Bacheca Ufficiale
+                                    Bacheca
                                 </button>
                                 <button onClick={() => setStaffSubTab('turni')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'turni' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                    Gestione Turni
+                                    Turni
                                 </button>
                                 {isAdmin && (
                                     <button onClick={() => setStaffSubTab('radar')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${staffSubTab === 'radar' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                        <Icon type="shield" className="w-4 h-4"/> Radar Scadenze
+                                        <Icon type="shield" className="w-4 h-4"/> Scadenze brevetti
                                     </button>
                                 )}
                             </div>
@@ -542,9 +547,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 
                                 <div className="space-y-4">
                                     {announcements.map(ann => (
-                                        <div key={ann.$id || (ann as any).id} className={`p-5 rounded-2xl border transition-all ${ann.isImportant ? 'bg-red-50/50 border-red-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                                        <div key={ann.$id} className={`p-5 rounded-2xl border transition-all ${ann.isImportant ? 'bg-red-50/50 border-red-200 shadow-sm' : 'bg-white border-slate-200'}`}>
                                             <div className="flex justify-between items-start mb-3">
-                                                <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-md ${ann.isImportant ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${ann.isImportant ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                                                     {ann.isImportant ? 'Importante' : 'Comunicazione'}
                                                 </span>
                                                 <div className="flex items-center gap-3">
@@ -553,7 +558,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                         {new Date(ann.$createdAt || Date.now()).toLocaleDateString('it-IT')}
                                                     </span>
                                                     {isAdmin && (
-                                                        <button onClick={() => setAnnouncementToDelete(ann.$id || (ann as any).id)} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
+                                                        <button onClick={() => setAnnouncementToDelete(ann.$id)} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
                                                             <Icon type="trash" className="w-4 h-4" />
                                                         </button>
                                                     )}
@@ -587,12 +592,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <div className="p-6 animate-in fade-in">
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                                     <div>
-                                        <h3 className="font-extrabold text-slate-800 text-lg">Turni della Settimana</h3>
-                                        <p className="text-sm text-slate-500 font-medium">Controlla gli orari e le assegnazioni del team.</p>
+                                        <h3 className="font-extrabold text-slate-800 text-lg">Turni</h3>
+                                        <p className="text-sm text-slate-500 font-medium">{isAdmin ? 'Assegna i turni allo staff: ognuno riceve un avviso e può confermare.' : 'I turni della squadra. Conferma i tuoi o segnala se non puoi coprirli.'}</p>
                                     </div>
                                     {isAdmin && (
                                         <button onClick={()=>setShowAddShift(!showAddShift)} className="w-full sm:w-auto bg-blue-50 text-blue-700 font-bold px-5 py-2.5 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                                            <Icon type={showAddShift ? "x" : "plus"} className="w-4 h-4"/> {showAddShift ? 'Annulla' : 'Assegna Turno'}
+                                            <Icon type={showAddShift ? "x" : "plus"} className="w-4 h-4"/> {showAddShift ? 'Annulla' : 'Assegna turno'}
                                         </button>
                                     )}
                                 </div>
@@ -607,8 +612,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                     <Select
                                                         label="Membro dello staff"
                                                         value={newShift.userId}
-                                                        onChange={(id) => { const s = staff.find(st => st.$id === id || st.userId === id); setNewShift(s ? {...newShift, userId: s.userId || s.$id, userName: `${s.firstName} ${s.lastName}`, role: s.title || 'Staff'} : {...newShift, userId: ''}); }}
-                                                        options={staff.map((s) => ({ value: s.userId || s.$id, label: `${s.firstName || ''} ${s.lastName || ''}`.trim(), hint: s.title }))}
+                                                        onChange={(id) => { const s = staff.find(st => st.userId === id); setNewShift(s ? {...newShift, userId: s.userId, userName: `${s.firstName} ${s.lastName}`.trim(), role: s.title || 'Staff'} : {...newShift, userId: ''}); }}
+                                                        options={staff.map((s) => ({ value: s.userId, label: `${s.firstName} ${s.lastName}`.trim() || 'Membro dello staff', hint: s.title }))}
                                                     />
                                                 </Field>
                                                 <Field id="shift-date" label="Data" error={shiftErrors.date}>
@@ -631,15 +636,16 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 <div className="overflow-x-auto rounded-xl border border-slate-200">
                                     <table className="w-full text-left border-collapse whitespace-nowrap">
                                         <thead className="bg-slate-50">
-                                            <tr className="border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                                            <tr className="border-b border-slate-200 text-xs text-slate-500">
                                                 <th className="py-3 px-4 font-bold">Membro</th>
                                                 <th className="py-3 px-4 font-bold">Data</th>
-                                                <th className="py-3 px-4 font-bold">Orario / Ruolo</th>
-                                                {isAdmin && <th className="py-3 px-4 font-bold text-right">Azioni</th>}
+                                                <th className="py-3 px-4 font-bold">Orario e ruolo</th>
+                                                <th className="py-3 px-4 font-bold">Stato</th>
+                                                <th className="py-3 px-4 font-bold text-right"><span className="sr-only">Azioni</span></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
-                                            {shifts.length === 0 && <tr><td colSpan={isAdmin ? 4 : 3} className="py-8 text-center text-slate-400 font-medium">Nessun turno assegnato.</td></tr>}
+                                            {shifts.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-slate-400 font-medium">Nessun turno assegnato.</td></tr>}
                                             {shifts.map(shift => (
                                                 <tr key={shift.$id} className={`group transition-colors ${shift.userId === user?.$id ? 'bg-blue-50/50' : 'hover:bg-slate-50/80'}`}>
                                                     <td className="py-4 px-4 font-bold text-slate-800 flex items-center gap-2">
@@ -653,13 +659,30 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                             <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold w-max">{shift.role}</span>
                                                         </div>
                                                     </td>
-                                                    {isAdmin && (
-                                                        <td className="py-4 px-4 text-right">
-                                                            <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-extrabold text-slate-400 hover:text-red-600 p-2 rounded-lg transition-colors ml-auto outline-none">
-                                                                <Icon type="x" className="w-5 h-5"/>
-                                                            </button>
-                                                        </td>
-                                                    )}
+                                                    <td className="py-4 px-4">
+                                                        {shift.status === 'confirmed' ? (
+                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-green-50 text-green-800 border border-green-200">Confermato</span>
+                                                        ) : shift.status === 'declined' ? (
+                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-red-50 text-red-800 border border-red-200">Da riassegnare</span>
+                                                        ) : (
+                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200">In attesa di conferma</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-4 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            {shift.userId === user?.$id && shift.status !== 'confirmed' && (
+                                                                <button onClick={() => handleRespondShift(shift.$id, 'confirmed')} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-corsia-600 text-white hover:bg-corsia-700">Confermo</button>
+                                                            )}
+                                                            {shift.userId === user?.$id && shift.status !== 'declined' && (
+                                                                <button onClick={() => handleRespondShift(shift.$id, 'declined')} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>
+                                                            )}
+                                                            {isAdmin && (
+                                                                <button onClick={() => handleDeleteShift(shift.$id)} aria-label={`Annulla il turno di ${shift.userName}`} className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400">
+                                                                    <Icon type="x" className="w-5 h-5"/>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -668,20 +691,27 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             </div>
                         )}
 
+                        {isStaff && user && (
+                            <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+                                <span>Fai parte dello staff di {structureName}.</span>
+                                <button onClick={() => handleRemoveStaff(user.$id)} className="font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
+                            </div>
+                        )}
+
                         {isAdmin && staffSubTab === 'radar' && (
                             <div className="animate-in fade-in">
                                 {isLoadingStaff ? (
                                     <div className="p-10 text-center">
                                         <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-300 border-t-indigo-600 mx-auto mb-3"></div>
-                                        <p className="text-slate-500 font-medium">Sincronizzazione staff...</p>
+                                        <p className="text-slate-500 font-medium">Caricamento dello staff…</p>
                                     </div>
                                 ) : staff.length > 0 ? (
                                     <div className="divide-y divide-slate-100">
                                         {staff.map(member => {
                                             const name = `${member.firstName} ${member.lastName}`.trim();
-                                            const certs: Certification[] = (member.certificationsList || []).map(c => {
-                                                try { return typeof c === 'string' ? JSON.parse(c) : c; } catch { return null; }
-                                            }).filter(Boolean);
+                                            const certs: Certification[] = (member.certificationsList || []).flatMap((c) => {
+                                                try { return [JSON.parse(c) as Certification]; } catch { return []; }
+                                            });
                                             
                                             const problems = certs.filter(c => isCertExpiringOrExpired(c.expiry));
 
@@ -690,9 +720,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                     
                                                     {isAdmin && (
                                                         <button 
-                                                            onClick={() => handleRemoveStaff(member.userId || member.$id)}
+                                                            onClick={() => handleRemoveStaff(member.userId)}
                                                             className="absolute top-4 right-4 text-slate-300 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
-                                                            title="Rimuovi dal Team"
+                                                            title="Rimuovi dallo staff" aria-label={`Rimuovi ${name} dallo staff`}
                                                         >
                                                             <Icon type="user-minus" className="w-5 h-5" />
                                                         </button>
@@ -715,7 +745,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                         ) : problems.length > 0 ? (
                                                             <div className="space-y-2">
                                                                 <p className="text-sm font-bold text-red-600 flex items-center gap-2 mb-3">
-                                                                    <Icon type="alert-triangle" className="w-4 h-4" /> Attenzione Richiesta
+                                                                    <Icon type="alert-triangle" className="w-4 h-4" /> Brevetti in scadenza
                                                                 </p>
                                                                 {problems.map((p, idx) => (
                                                                     <div key={idx} className="flex items-center justify-between text-xs bg-red-50 text-red-800 px-3 py-2 rounded-md border border-red-100">
@@ -740,9 +770,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
                                             <Icon type="users" className="w-8 h-8 text-slate-300" />
                                         </div>
-                                        <p className="text-slate-600 font-bold text-lg">Il tuo Team è vuoto</p>
+                                        <p className="text-slate-600 font-bold text-lg">Lo staff è ancora vuoto</p>
                                         <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto">
-                                            Pubblica un annuncio di lavoro, accetta i candidati validi e li vedrai apparire magicamente in questa dashboard!
+                                            Quando assumi qualcuno da un tuo annuncio entra nello staff: qui vedrai i suoi brevetti e potrai assegnargli turni.
                                         </p>
                                     </div>
                                 )}

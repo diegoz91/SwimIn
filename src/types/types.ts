@@ -58,6 +58,7 @@ export interface Media {
 export interface BaseProfile extends AppwriteDocument {
   userId: string;
   userType: UserType;
+  /** Solo per l'utente corrente (dall'account): non è salvata sul profilo pubblico. */
   email: string;
   bio?: string;
   /** Immagine di copertina del profilo. */
@@ -101,6 +102,8 @@ export interface UserProfile extends BaseProfile {
 export interface StructureProfile extends BaseProfile {
   userType: 'structure';
   structureName?: string;
+  /** Membri dello staff (assunti o aggiunti): accedono all'area staff. Scritto dal server. */
+  staff?: string[];
   structureType?: string;
   logo?: string;
   address?: string;
@@ -226,7 +229,8 @@ export interface SquadShift extends AppwriteDocument {
   date: string;
   shiftTime: string;
   role: string;
-  status: 'scheduled' | 'completed' | 'sos';
+  /** Assegnato, confermato da chi lo copre, oppure rifiutato (non può coprirlo). */
+  status: 'scheduled' | 'confirmed' | 'declined';
 }
 
 // ----------------------------------------------------
