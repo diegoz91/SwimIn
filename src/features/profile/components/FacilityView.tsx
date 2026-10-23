@@ -96,16 +96,6 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         setLocalJobs(openJobs);
     }, [openJobs]);
 
-    useEffect(() => {
-        setEditForm({
-            name: structureName || '',
-            type: structureType || '',
-            city: city || '',
-            province: province || '',
-            bio: bio || '',
-            logo: logo || ''
-        });
-    }, [facility, structureName, structureType, city, province, bio, logo]);
 
     // 💡 INIZIALIZZAZIONE FOLLOWERS ALL'AVVIO
     useEffect(() => {
