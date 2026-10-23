@@ -215,10 +215,22 @@ export function moderationActions({ find, get, create, update, remove, list, lis
       const q = String(query).trim();
       if (q.length < 2) return [];
       const { documents } = await list(C.profiles, [
-        Query.or([Query.contains('firstName', q), Query.contains('lastName', q), Query.contains('structureName', q), Query.contains('email', q)]),
+        Query.or([Query.contains('firstName', q), Query.contains('lastName', q), Query.contains('structureName', q)]),
         Query.limit(25),
       ]);
-      return documents.map((p) => ({ $id: p.$id, name: displayName(p), email: p.email, userType: p.userType, personType: p.personType, city: p.city, suspended: !!p.suspended }));
+      // L'email non è sul profilo: la cerchiamo negli account.
+      const byEmail = q.includes('@') && users?.list ? (await users.list({ search: q }).catch(() => ({ users: [] }))).users || [] : [];
+      const rows = [...documents];
+      for (const u of byEmail.slice(0, 10)) {
+        if (!rows.some((p) => p.$id === u.$id)) {
+          const p = await find(C.profiles, u.$id);
+          if (p) rows.push(p);
+        }
+      }
+      const emails = Object.fromEntries(
+        await Promise.all(rows.map(async (p) => [p.$id, users ? (await users.get({ userId: p.$id }).catch(() => ({ email: '' }))).email || '' : '']))
+      );
+      return rows.map((p) => ({ $id: p.$id, name: displayName(p), email: emails[p.$id], userType: p.userType, personType: p.personType, city: p.city, suspended: !!p.suspended }));
     },
 
     // esposti per le altre azioni (non chiamabili dal client: filtrati in main.js)

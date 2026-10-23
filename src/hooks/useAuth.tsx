@@ -53,7 +53,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loadUserProfile = async (accountData: any): Promise<AuthenticatedUser | null> => {
     try {
       const profile = await databaseService.getProfile(accountData.$id);
-      return { ...accountData, ...profile } as AuthenticatedUser;
+      // L'email viene dall'account (sul profilo pubblico non c'è più).
+      return { ...accountData, ...profile, email: accountData.email } as AuthenticatedUser;
     } catch (error) {
       console.warn('Profilo non trovato nel database, ma account Auth esistente.');
       return null;
@@ -89,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const before = (prev.connections || []).join(',');
         const after = (payload.connections || prev.connections || []).join(',');
         if (before !== after) window.setTimeout(() => emitNetworkChange({ type: 'remote' }), 0);
-        return { ...prev, ...payload, $id: prev.$id } as AuthenticatedUser;
+        return { ...prev, ...payload, $id: prev.$id, email: prev.email } as AuthenticatedUser;
       });
     });
     return () => unsubscribe();

@@ -6,7 +6,7 @@
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
-import { account, collections, ME } from './fixtures.mjs';
+import { account, apiResponses, collections, ME } from './fixtures.mjs';
 
 const BASE = process.argv[2] || 'http://localhost:4173';
 const OUT = process.argv[3] || 'screenshots';
@@ -50,7 +50,10 @@ async function mockAppwrite(page, { loggedIn }) {
         if (path.startsWith('/account')) return json(route, {});
 
         if (path.startsWith('/functions/api/executions')) {
-            return json(route, { $id: 'x', status: 'completed', responseStatusCode: 200, responseBody: JSON.stringify({ ok: true, data: {} }) });
+            let action = '';
+            try { action = JSON.parse(JSON.parse(route.request().postData() || '{}').body || '{}').action || ''; } catch { action = ''; }
+            const data = apiResponses[action] ? apiResponses[action]() : {};
+            return json(route, { $id: 'x', status: 'completed', responseStatusCode: 200, responseBody: JSON.stringify({ ok: true, data }) });
         }
 
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);

@@ -60,6 +60,9 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - I messaggi privati devono essere leggibili solo da mittente e destinatario.
 - Profili e pagine struttura si modificano solo via Function (`updateMyProfile`, `createFacility`, `updateFacility` in `functions/api/src/profile.js`): le tabelle sono in sola lettura per i client.
 - Amministratori: utenti con l'etichetta `admin` (Console Appwrite → Auth → utente → Labels). Le azioni `admin*` della Function lo verificano sempre; il client usa `useBlocks().isAdmin` solo per mostrare il pannello `/admin`.
+- Area staff di una struttura (bacheca, turni, membri): solo amministratori e membri di `staff` (Facility o profilo Struttura), verificati dalla Function a ogni lettura (`functions/api/src/team.js`). Un collegamento o un follower **non** è staff. Le tabelle `announcements` e `shifts` non hanno permessi per i client.
+- Dati privati: email solo nell'account (mai sul profilo); telefono delle persone in `private_info`, restituito da `getContactInfo` solo alla persona, ai collegamenti reciproci e a chi valuta una sua candidatura.
+- Post, swim-meet e dirette si modificano/annullano solo via Function (`updatePost`, `createSwimMeet`, `cancelSwimMeet`, `endLiveRoom`).
 - Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow

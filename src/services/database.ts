@@ -31,8 +31,6 @@ import type {
 
 const { databaseId, collections } = APPWRITE_CONFIG;
 
-const ANNOUNCEMENTS_COLLECTION = (collections as any).announcements || 'announcements_mock_id';
-const SHIFTS_COLLECTION = (collections as any).shifts || 'shifts_mock_id';
 const FACILITIES_COLLECTION = (collections as any).facilities || 'facilities_mock_id';
 const NOTIFICATIONS_COLLECTION = (collections as any).notifications || 'notifications_mock_id';
 const LIVE_ROOMS_COLLECTION = (collections as any).live_rooms || 'live_rooms_mock_id';
@@ -107,6 +105,17 @@ const ownedBy = (userId: string) => [
     Permission.update(Role.user(userId)),
     Permission.delete(Role.user(userId)),
 ];
+
+export interface TeamMember {
+    $id: string; userId: string; firstName: string; lastName: string; title: string; avatar: string; city: string;
+    isOnline: boolean; certificationsList: string[];
+}
+export interface TeamBoard {
+    role: 'admin' | 'staff';
+    members: TeamMember[];
+    announcements: SquadAnnouncement[];
+    shifts: SquadShift[];
+}
 
 export const databaseService = {
     // ==========================================
@@ -255,6 +264,11 @@ export const databaseService = {
     },
     async adminVerifyCert(profileId: string, certId: string, approve: boolean, note = '') {
         return await callApi<Certification>('adminVerifyCert', { profileId, certId, approve, note });
+    },
+
+    /** Email e telefono di un profilo, se chi chiama può vederli (decide il server). */
+    async getContactInfo(profileId: string) {
+        return await callApi<{ phone: string; email: string; allowed: boolean }>('getContactInfo', { profileId });
     },
 
     async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {
@@ -454,9 +468,9 @@ export const databaseService = {
         return enriched;
     },
 
-    /** Modifica il testo di un proprio post (permesso di update del proprietario). */
+    /** Modifica il testo di un proprio post (tramite la Function: contatori e autore non si toccano). */
     async updatePost(postId: string, data: Pick<Post, 'content'> & Partial<Pick<Post, 'category'>>) {
-        return await databases.updateDocument<Post>(databaseId, collections.posts, postId, { ...data, editedAt: new Date().toISOString() });
+        return await callApi<Post>('updatePost', { postId, ...data });
     },
 
     /** Elimina un proprio post: prima i file caricati, poi post, like e commenti (Function). */
@@ -773,48 +787,33 @@ export const databaseService = {
     },
 
     // ==========================================
-    // 🏊‍♂️ SWIM-SQUAD
+    // AREA STAFF (bacheca, turni, membri): solo tramite la Function
     // ==========================================
-    async createSquadAnnouncement(data: Partial<SquadAnnouncement>) {
-        try {
-            return await databases.createDocument<SquadAnnouncement>(databaseId, ANNOUNCEMENTS_COLLECTION, ID.unique(), data);
-        } catch(e) { return null; }
+    /** Dati dell'area staff; il server risponde 403 a chi non fa parte del team. */
+    async getTeamBoard(structureId: string) {
+        return await callApi<TeamBoard>('getTeamBoard', { structureId });
     },
-    async getSquadAnnouncements(structureId: string) {
-        try {
-            const res = await databases.listDocuments<SquadAnnouncement>(databaseId, ANNOUNCEMENTS_COLLECTION, [
-                Query.equal('structureId', structureId), 
-                Query.orderDesc('$createdAt')
-            ]);
-            return res.documents;
-        } catch(e) { return []; }
+    async createSquadAnnouncement(structureId: string, content: string, isImportant: boolean) {
+        return await callApi<SquadAnnouncement>('createAnnouncement', { structureId, content, isImportant });
     },
     async deleteSquadAnnouncement(announcementId: string) {
-        try {
-            await databases.deleteDocument(databaseId, ANNOUNCEMENTS_COLLECTION, announcementId);
-            return true;
-        } catch(e) { return false; }
+        return await callApi<{ deleted: boolean }>('deleteAnnouncement', { announcementId });
     },
-    async createSquadShift(data: Partial<SquadShift>) {
-        try {
-            return await databases.createDocument<SquadShift>(databaseId, SHIFTS_COLLECTION, ID.unique(), data);
-        } catch(e) { return null; }
+    async markAnnouncementsRead(structureId: string) {
+        return await callApi<{ updated: number }>('markAnnouncementsRead', { structureId });
     },
-    async getSquadShifts(structureId: string) {
-        try {
-            const res = await databases.listDocuments<SquadShift>(databaseId, SHIFTS_COLLECTION, [
-                Query.equal('structureId', structureId), 
-                Query.orderAsc('date')
-            ]);
-            return res.documents;
-        } catch(e) { return []; }
+    async createSquadShift(data: { structureId: string; userId: string; date: string; shiftTime: string; role?: string }) {
+        return await callApi<SquadShift>('createShift', data);
     },
     async deleteSquadShift(shiftId: string) {
-        try {
-            await databases.deleteDocument(databaseId, SHIFTS_COLLECTION, shiftId);
-        } catch(e) {
-            console.error('deleteSquadShift:', e);
-        }
+        return await callApi<{ deleted: boolean }>('deleteShift', { shiftId });
+    },
+    async respondShift(shiftId: string, status: 'confirmed' | 'declined') {
+        return await callApi<SquadShift>('respondShift', { shiftId, status });
+    },
+    /** Un amministratore toglie un membro, oppure il membro stesso lascia lo staff. */
+    async removeStaffMember(structureId: string, staffId: string) {
+        return await callApi<{ removed: boolean }>('removeStaffMember', { structureId, staffId });
     },
 
     // ==========================================
@@ -874,24 +873,6 @@ export const databaseService = {
         }
     },
 
-    async removeStaffMember(structureId: string, staffId: string) {
-        try {
-            const facility = await databases
-                .getDocument<Facility>(databaseId, FACILITIES_COLLECTION, structureId)
-                .catch(() => null);
-            if (facility) {
-                const staff = (facility.staff || []).filter(id => id !== staffId);
-                await databases.updateDocument(databaseId, FACILITIES_COLLECTION, structureId, { staff });
-            } else {
-                // Profilo Struttura: lo staff è rappresentato dal collegamento reciproco.
-                await callApi('removeConnection', { userId: staffId });
-            }
-            return true;
-        } catch (error) {
-            console.error('removeStaffMember:', error);
-            return false;
-        }
-    },
 
     // ==========================================
     // 🔴 BORDO VASCA LIVE
@@ -962,35 +943,15 @@ export const databaseService = {
     },
 
     async endLiveRoom(roomId: string) {
-        try {
-            return await databases.updateDocument<LiveRoom>(
-                databaseId, 
-                LIVE_ROOMS_COLLECTION, 
-                roomId, 
-                { status: 'ended' }
-            );
-        } catch (e) { return null; }
+        return await callApi<LiveRoom>('endLiveRoom', { roomId });
     },
 
     // ==========================================
     // 🟢 SWIM-MEETS
     // ==========================================
-    async createSwimMeet(data: Partial<SwimMeet>) {
-        try {
-            return await databases.createDocument<SwimMeet>(
-                databaseId, 
-                SWIM_MEETS_COLLECTION, 
-                ID.unique(), 
-                {
-                    ...data,
-                    status: 'upcoming',
-                    participants: data.participants || [data.creatorId]
-                }
-            );
-        } catch (e) {
-            console.error("🔥 Errore creazione Swim-Meet:", e);
-            return null;
-        }
+    /** Crea l'incontro tramite il server (organizzatore = chi chiama). Lancia un errore con il motivo. */
+    async createSwimMeet(data: Pick<SwimMeet, 'title' | 'description' | 'date' | 'time' | 'city'> & Partial<Pick<SwimMeet, 'address' | 'maxParticipants'>>) {
+        return await callApi<SwimMeet>('createSwimMeet', data as Record<string, unknown>);
     },
 
     async getActiveSwimMeets() {
@@ -1023,13 +984,6 @@ export const databaseService = {
     },
 
     async cancelSwimMeet(meetId: string) {
-        try {
-            return await databases.updateDocument<SwimMeet>(
-                databaseId, 
-                SWIM_MEETS_COLLECTION, 
-                meetId, 
-                { status: 'cancelled' }
-            );
-        } catch (e) { return null; }
+        return await callApi<SwimMeet>('cancelSwimMeet', { meetId });
     }
 };

@@ -18,6 +18,7 @@ import { ProfileActionsMenu } from '@/components/common/ProfileActionsMenu';
 import { useBlocks } from '@/context/BlocksContext';
 import { initialsAvatar } from '@/utils/avatar';
 import { isEnthusiast } from '@/utils/profile';
+import { useContactInfo } from '@/hooks/useContactInfo';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -59,6 +60,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const [certificationModal, setCertificationModal] = useState<{isOpen: boolean, mode: 'add'|'edit', certification?: Certification, index?: number}>({ isOpen: false, mode: 'add' });
 
     const [verifyCert, setVerifyCert] = useState<Certification | null>(null);
+    // Recapiti privati delle persone: il server li dà solo a chi può vederli.
+    const contact = useContactInfo(user.userId || user.$id, isProfessional);
+    const phone = isProfessional ? contact?.phone || '' : user.phone || '';
+    const email = isProfessional && contact?.allowed && !isOwnProfile ? contact.email : '';
 
     // STATI PER PAGINE AZIENDALI
     const [managedFacilities, setManagedFacilities] = useState<Facility[]>([]);
@@ -483,11 +488,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                       <span className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}</span>
                   </div>
-                  {(user.phone || user.website || (profUser?.languages || []).length > 0) && (
+                  {(phone || email || user.website || (profUser?.languages || []).length > 0) && (
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm">
-                          {user.phone && (
-                              <a href={`tel:${user.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline">
-                                  <Icon type="phone" className="w-4 h-4" /> {user.phone}
+                          {phone && (
+                              <a href={`tel:${phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline" title={isOwnProfile && isProfessional ? 'Visibile solo ai tuoi collegamenti e alle strutture a cui ti candidi' : undefined}>
+                                  <Icon type="phone" className="w-4 h-4" /> {phone}
+                                  {isOwnProfile && isProfessional && <Icon type="lock-closed" className="w-3.5 h-3.5 text-slate-400" />}
+                              </a>
+                          )}
+                          {email && (
+                              <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
+                                  <Icon type="paper-plane" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{email}</span>
                               </a>
                           )}
                           {user.website && (

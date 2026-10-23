@@ -67,7 +67,7 @@ const schema = [
         attributes: [
             str('userId', 36, { required: true }),
             str('userType', 50, { required: true }),
-            str('email', 255, { required: true }),
+            str('email', 255), // non più usata: l'email resta nell'account (vedi migratePrivateInfo)
             str('firstName', 255), str('lastName', 255), str('structureName', 255),
             str('title', 255), str('structureType', 255), str('bio', 2500),
             str('avatar', 2048), str('logo', 2048), str('cover', 2048), str('city', 255), str('province', 10),
@@ -92,6 +92,7 @@ const schema = [
             int('ratingSum', { default: 0 }), int('ratingCount', { default: 0 }),
             // Moderazione e verifiche
             bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
+            str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -163,7 +164,8 @@ const schema = [
         indexes: [idx('by_conversation', ['conversationId']), idx('by_receiver_read', ['receiverId', 'isRead'])],
     },
     {
-        id: 'announcements', name: 'Announcements', permissions: READ_CREATE,
+        // Area staff: solo tramite la Function, che verifica l'appartenenza al team a ogni lettura.
+        id: 'announcements', name: 'Announcements', permissions: SERVER_ONLY,
         attributes: [
             str('structureId', 36, { required: true }), str('content', 4000, { required: true }),
             bool('isImportant', { default: false }), str('readBy', 36, { array: true }),
@@ -171,7 +173,7 @@ const schema = [
         indexes: [idx('by_structure', ['structureId'])],
     },
     {
-        id: 'shifts', name: 'Shifts', permissions: READ_CREATE,
+        id: 'shifts', name: 'Shifts', permissions: SERVER_ONLY,
         attributes: [
             str('structureId', 36, { required: true }), str('userId', 36, { required: true }),
             str('userName', 255, { required: true }), str('date', 100, { required: true }),
@@ -200,6 +202,12 @@ const schema = [
     },
     {
         // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
+        // Dati di contatto privati delle persone (telefono): letti solo dalla Function.
+        id: 'private_info', name: 'Private info', permissions: SERVER_ONLY,
+        attributes: [str('phone', 30)],
+        indexes: [],
+    },
+    {
         id: 'client_errors', name: 'Client errors', permissions: SERVER_ONLY,
         attributes: [
             str('userId', 36, { required: true }), str('message', 500, { required: true }),
@@ -277,7 +285,8 @@ const schema = [
         indexes: [idx('by_room', ['roomId'])],
     },
     {
-        id: 'swim_meets', name: 'Swim Meets', permissions: READ_CREATE,
+        // Creati e annullati dalla Function (organizzatore verificato).
+        id: 'swim_meets', name: 'Swim Meets', permissions: READ_ONLY,
         attributes: [
             str('title', 255, { required: true }), str('description', 4000, { required: true }),
             str('date', 100, { required: true }), str('time', 100, { required: true }),
@@ -385,7 +394,7 @@ async function setupDatabase() {
  * permessi di modifica del proprietario. Li togliamo (lettura dagli utenti resta
  * garantita dal permesso della tabella).
  */
-async function lockClientWrites(tableId) {
+async function lockClientWrites(tableId, keep = [Permission.read(Role.users())]) {
     let cursor = null;
     let changed = 0;
     for (;;) {
@@ -394,9 +403,10 @@ async function lockClientWrites(tableId) {
             queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])],
         });
         for (const row of rows) {
-            const writable = (row.$permissions || []).some((p) => /^(update|delete)\(/.test(p));
-            if (writable) {
-                await tablesDB.updateRow({ databaseId: DB_ID, tableId, rowId: row.$id, permissions: [Permission.read(Role.users())] });
+            const perms = row.$permissions || [];
+            const stale = perms.some((p) => /^(update|delete)\(/.test(p)) || perms.some((p) => !keep.includes(p));
+            if (stale) {
+                await tablesDB.updateRow({ databaseId: DB_ID, tableId, rowId: row.$id, permissions: keep });
                 changed++;
             }
         }
@@ -404,6 +414,39 @@ async function lockClientWrites(tableId) {
         cursor = rows[rows.length - 1].$id;
     }
     if (changed) console.log(`   🔐 ${tableId}: tolti i permessi di modifica dal client a ${changed} righe`);
+}
+
+/**
+ * Profili creati prima di questa versione: email e telefono delle persone erano sul
+ * profilo, leggibile da tutti gli utenti. Il telefono passa in private_info, l'email
+ * viene tolta (resta nell'account) e la colonna smette di essere obbligatoria.
+ */
+async function migratePrivateInfo() {
+    try {
+        await tablesDB.updateVarcharColumn({ databaseId: DB_ID, tableId: 'profiles', key: 'email', required: false, xdefault: null });
+    } catch (e) {
+        if (!/already|not required|nothing/i.test(e.message || '')) console.warn(`   ⚠️  Colonna profiles.email: ${e.message}`);
+    }
+    let cursor = null;
+    let moved = 0;
+    for (;;) {
+        const { rows } = await tablesDB.listRows({ databaseId: DB_ID, tableId: 'profiles', queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])] });
+        for (const row of rows) {
+            const patch = {};
+            if (row.email) patch.email = null;
+            if (row.userType === 'professional' && row.phone) {
+                await tablesDB.upsertRow({ databaseId: DB_ID, tableId: 'private_info', rowId: row.$id, data: { phone: row.phone }, permissions: [] });
+                patch.phone = null;
+            }
+            if (Object.keys(patch).length) {
+                await tablesDB.updateRow({ databaseId: DB_ID, tableId: 'profiles', rowId: row.$id, data: patch });
+                moved++;
+            }
+        }
+        if (rows.length < 100) break;
+        cursor = rows[rows.length - 1].$id;
+    }
+    if (moved) console.log(`   🔐 profiles: email e telefono resi privati su ${moved} profili`);
 }
 
 async function setupBuckets() {
@@ -470,7 +513,10 @@ async function deployFunction() {
 async function main() {
     console.log('🚀 Configurazione Appwrite per SwimWaveUp…');
     await setupDatabase();
-    for (const t of ['profiles', 'facilities']) await lockClientWrites(t);
+    await migratePrivateInfo();
+    for (const t of ['profiles', 'facilities', 'swim_meets', 'posts', 'live_rooms']) await lockClientWrites(t);
+    // Bacheca e turni: nessun permesso sulle righe, si leggono solo tramite la Function.
+    for (const t of ['announcements', 'shifts']) await lockClientWrites(t, []);
     await setupBuckets();
     if (!process.argv.includes('--skip-function')) await deployFunction();
     console.log('\n🎉 Setup completato.');

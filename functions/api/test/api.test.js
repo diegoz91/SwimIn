@@ -21,6 +21,7 @@ const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:as
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
+const notifs=(u,type)=>Object.values(col('notifications')).filter(n=>n.userId===u&&(!type||n.type===type));
 
 // Messaggi
 const m=await api.sendMessage('anna',{receiverId:'bob',content:'ciao'});
@@ -61,6 +62,9 @@ assert.equal(col('posts').p1.commentsCount,2);
 await api.deleteComment('eve',{commentId:cm.$id}); // autore del post: elimina anche la risposta
 assert.equal(col('posts').p1.commentsCount,0);
 col('posts').p2={$id:'p2',authorId:'anna',likesCount:0,commentsCount:0,$permissions:['update("user:anna")']};
+await rejects(api.updatePost('bob',{postId:'p2',content:'hack'}),403);
+const edited=await api.updatePost('anna',{postId:'p2',content:' nuovo testo ',category:'pensiero',likesCount:999});
+assert.equal(edited.content,'nuovo testo'); assert.equal(edited.category,'pensiero'); assert.equal(edited.likesCount,0); assert.ok(edited.editedAt);
 await api.toggleLike('bob',{postId:'p2'}); await api.createComment('bob',{postId:'p2',content:'ok'});
 await rejects(api.deletePost('bob',{postId:'p2'}),403);
 assert.deepEqual(await api.deletePost('anna',{postId:'p2'}),{deleted:true});
@@ -91,16 +95,55 @@ assert.deepEqual(await api.toggleFollowFacility('bob',{facilityId:'f1'}),{follow
 col('jobs').j2={$id:'j2',structureId:'f1',title:'Istruttore',isActive:true,$permissions:['update("user:eve")']};
 const a2=await api.applyForJob('bob',{jobId:'j2'}); assert.ok(a2.$permissions.includes('read("user:eve")'));
 await api.hireCandidate('eve',{applicationId:a2.$id}); assert.deepEqual(col('facilities').f1.staff,['bob']);
+
+// Area staff: solo amministratori e staff, non i semplici collegamenti
+assert.deepEqual(col('profiles').piscina.staff,['anna']);
+col('profiles').piscina.connections=[...col('profiles').piscina.connections,'eve'];
+await rejects(api.getTeamBoard('eve',{structureId:'piscina'}),403); // collegata ma non staff
+await rejects(api.getTeamBoard('anna',{structureId:'nessuna'}),404);
+assert.equal((await api.getTeamBoard('anna',{structureId:'piscina'})).role,'staff');
+assert.equal((await api.getTeamBoard('piscina',{structureId:'piscina'})).role,'admin');
+await rejects(api.createAnnouncement('anna',{structureId:'piscina',content:'Riunione lunedì'}),403);
+const ann=await api.createAnnouncement('piscina',{structureId:'piscina',content:'Riunione lunedì',isImportant:true});
+assert.deepEqual(ann.$permissions,[]); assert.ok(notifs('anna').some(n=>n.content.includes('comunicazione importante')));
+assert.equal((await api.markAnnouncementsRead('anna',{structureId:'piscina'})).updated,1);
+await rejects(api.deleteAnnouncement('anna',{announcementId:ann.$id}),403);
+const shiftDay=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+await rejects(api.createShift('piscina',{structureId:'piscina',userId:'eve',date:shiftDay,shiftTime:'08:00–12:00'}),400); // non è staff
+await rejects(api.createShift('piscina',{structureId:'piscina',userId:'anna',date:shiftDay,shiftTime:'12:00–08:00'}),400);
+await rejects(api.createShift('anna',{structureId:'piscina',userId:'anna',date:shiftDay,shiftTime:'08:00–12:00'}),403);
+const sh=await api.createShift('piscina',{structureId:'piscina',userId:'anna',date:shiftDay,shiftTime:'08:00–12:00'});
+assert.equal(sh.userName,'anna'); assert.equal((await api.getTeamBoard('anna',{structureId:'piscina'})).shifts.length,1);
+await rejects(api.respondShift('piscina',{shiftId:sh.$id,status:'confirmed'}),403);
+assert.equal((await api.respondShift('anna',{shiftId:sh.$id,status:'declined'})).status,'declined');
+assert.ok(notifs('piscina').some(n=>n.content.includes('non può coprire')));
+await rejects(api.removeStaffMember('eve',{structureId:'piscina',staffId:'anna'}),403);
+assert.deepEqual(await api.removeStaffMember('anna',{structureId:'piscina',staffId:'anna'}),{removed:true}); // lascia il team
+assert.deepEqual(col('profiles').piscina.staff,[]); assert.equal(Object.keys(col('shifts')).length,0);
+await rejects(api.getTeamBoard('anna',{structureId:'piscina'}),403);
+await rejects(api.removeStaffMember('anna',{structureId:'f1',staffId:'bob'}),403);
+assert.deepEqual(await api.removeStaffMember('eve',{structureId:'f1',staffId:'bob'}),{removed:true});
+col('facilities').f1.staff=['bob'];
 col('live_rooms').r1={$id:'r1',hostId:'eve',status:'active',speakers:['eve'],listeners:[]};
 let r=await api.joinLiveRoom('bob',{roomId:'r1',role:'speaker'}); assert.deepEqual(r.speakers,['eve']); assert.deepEqual(r.listeners,['bob']);
 r=await api.leaveLiveRoom('bob',{roomId:'r1'}); assert.deepEqual(r.listeners,[]);
 col('swim_meets').s1={$id:'s1',creatorId:'eve',status:'upcoming',participants:['eve'],maxParticipants:2};
 await api.joinSwimMeet('bob',{meetId:'s1'}); await rejects(api.joinSwimMeet('anna',{meetId:'s1'}),409);
 await rejects(api.leaveSwimMeet('eve',{meetId:'s1'}),400);
+// Swim-meet creato dal server: l'organizzatore è chi chiama
+const meetDay=new Date(Date.now()+10*86400000).toISOString().slice(0,10);
+await rejects(api.createSwimMeet('bob',{title:'Allenamento',description:'Ripetute in vasca lunga',date:'2020-01-01',time:'18:00',city:'Milano'}),400);
+await rejects(api.createSwimMeet('bob',{title:'Allenamento',description:'Ripetute in vasca lunga',date:meetDay,time:'25:00',city:'Milano'}),400);
+await rejects(api.createSwimMeet('bob',{title:'Allenamento',description:'Ripetute in vasca lunga',date:meetDay,time:'18:00',city:'Milano',maxParticipants:1}),400);
+const meet=await api.createSwimMeet('bob',{title:'Allenamento',description:'Ripetute in vasca lunga',date:meetDay,time:'18:00',city:'Milano',creatorId:'anna'});
+assert.equal(meet.creatorId,'bob'); assert.deepEqual(meet.participants,['bob']); assert.deepEqual(meet.$permissions,['read("users")']);
+await api.joinSwimMeet('eve',{meetId:meet.$id});
+await rejects(api.cancelSwimMeet('eve',{meetId:meet.$id}),403);
+assert.equal((await api.cancelSwimMeet('bob',{meetId:meet.$id})).status,'cancelled');
+assert.ok(notifs('eve').some(n=>n.content.includes('annullato')));
 await api.leaveSwimMeet('bob',{meetId:'s1'}); assert.deepEqual(col('swim_meets').s1.participants,['eve']);
 
 // Notifiche di consigli e commenti
-const notifs=(u,type)=>Object.values(col('notifications')).filter(n=>n.userId===u&&(!type||n.type===type));
 col('posts').p3={$id:'p3',authorId:'eve',likesCount:0,commentsCount:0,$permissions:['update("user:eve")']};
 const likeN=notifs('eve','like').length, commentN=notifs('eve','comment').length, bobN=notifs('bob','comment').length;
 await api.toggleLike('anna',{postId:'p3'});
@@ -142,7 +185,7 @@ await rejects(api.toggleEndorsement('anna2',{profileId:'eve',skill:'Salvamento'}
 // Creazione post e annunci lato server
 const pp=await api.createPost('bob',{content:' ciao ',authorId:'eve',media:[JSON.stringify({type:'image',url:'https://cloud.appwrite.io/v1/storage/buckets/post_media/files/f1/view'})],postType:'image',category:'boh'});
 assert.equal(pp.authorId,'bob'); assert.equal(pp.content,'ciao'); assert.equal(pp.category,'generale');
-assert.deepEqual(ownersOf(pp),['bob']);
+assert.deepEqual(pp.$permissions,['read("users")']); // modifiche solo tramite la Function
 await rejects(api.createPost('bob',{content:'',media:[]}),400);
 await rejects(api.createPost('bob',{content:'x',media:[{type:'image',url:'https://evil.example/x.jpg'}]}),400);
 const jobBase={title:'Istruttore',description:'Corsi bambini',role:'istruttore',city:'Milano',salaryMin:'1200'};
@@ -165,12 +208,25 @@ assert.equal(sos.expiresAt,day(2)); assert.equal(sos.isSOS,true);
 // Profili: scritture solo dal server, con validazione
 {
 const nuovo=await api.initProfile('zoe',{userType:'professional',personType:'enthusiast',firstName:'Zoe',lastName:"D'Angelo"});
-assert.equal(nuovo.email,'zoe@esempio.it'); assert.equal(nuovo.personType,'enthusiast'); assert.deepEqual(nuovo.$permissions,['read("users")']);
+assert.equal(nuovo.email,undefined); assert.equal(nuovo.personType,'enthusiast'); assert.deepEqual(nuovo.$permissions,['read("users")']);
 assert.equal((await api.initProfile('zoe',{userType:'structure',structureName:'X'})).userType,'professional'); // idempotente
 await rejects(api.initProfile('yan',{userType:'admin'}),400);
 await rejects(api.initProfile('yan',{userType:'professional',firstName:'Y4n',lastName:'Ok'}),400);
 const up=await api.updateMyProfile('zoe',{city:'segrate',province:'mi',phone:'333 123 4567',website:'zoe.it',connections:['anna'],userType:'structure',bio:' ciao '});
-assert.equal(up.city,'Segrate'); assert.equal(up.province,'MI'); assert.equal(up.phone,'3331234567'); assert.equal(up.website,'https://zoe.it/');
+assert.equal(up.city,'Segrate'); assert.equal(up.province,'MI'); assert.equal(up.phone,null); assert.equal(col('private_info').zoe.phone,'3331234567'); assert.deepEqual(col('private_info').zoe.$permissions,[]);
+// Contatti privati: solo la persona, i collegamenti reciproci e chi valuta una sua candidatura
+assert.deepEqual(await api.getContactInfo('zoe',{profileId:'zoe'}),{phone:'3331234567',email:'zoe@esempio.it',allowed:true});
+assert.deepEqual(await api.getContactInfo('eve',{profileId:'zoe'}),{phone:'',email:'',allowed:false});
+col('profiles').zoe.connections=['eve']; // scritto solo da zoe: non basta
+assert.equal((await api.getContactInfo('eve',{profileId:'zoe'})).allowed,false);
+col('profiles').eve.connections=['zoe'];
+assert.equal((await api.getContactInfo('eve',{profileId:'zoe'})).phone,'3331234567');
+col('profiles').zoe.connections=[]; col('profiles').eve.connections=[];
+col('jobs').jz={$id:'jz',structureId:'piscina',title:'Istruttore',isActive:true};
+col('applications').az={$id:'az',jobId:'jz',applicantId:'zoe',status:'pending'};
+assert.equal((await api.getContactInfo('piscina',{profileId:'zoe'})).allowed,true);
+assert.equal((await api.getContactInfo('eve',{profileId:'piscina'})).allowed,false);
+delete col('jobs').jz; delete col('applications').az; assert.equal(up.website,'https://zoe.it/');
 assert.equal(up.bio,'ciao'); assert.deepEqual(up.connections,[]); assert.equal(up.userType,'professional'); // campi protetti ignorati
 await rejects(api.updateMyProfile('zoe',{city:'Roma',province:'MI'}),400); // comune fuori provincia
 await rejects(api.updateMyProfile('zoe',{avatar:'https://evil.example/pixel.gif'}),400);

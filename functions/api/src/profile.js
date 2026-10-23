@@ -212,7 +212,7 @@ export function cleanCertifications(list, previous = []) {
 /**
  * @param ctx helper della Function (find, get, create, update, fail, users, endpoint)
  */
-export function profileActions({ find, get, create, update, fail, users, endpoint, C }) {
+export function profileActions({ find, get, create, update, fail, users, endpoint, C, isRecruiterOf = async () => false }) {
   /** URL di un'immagine caricata nello storage di questo progetto (no link esterni/traccianti). */
   const storageUrl = (v, label) => {
     if (v == null || v === '') return '';
@@ -285,14 +285,21 @@ export function profileActions({ find, get, create, update, fail, users, endpoin
     return out;
   };
 
+  /** Riga privata dell'utente (nessun permesso: la legge solo la Function). */
+  const savePrivate = async (me, data) => {
+    const existing = await find(C.privateInfo, me);
+    if (existing) return update(C.privateInfo, me, data);
+    return create(C.privateInfo, data, [], me);
+  };
+
   return {
     /** Crea il profilo alla registrazione (idempotente). Email e id vengono dall'account. */
     async initProfile(me, { userType, personType, firstName, lastName, structureName }) {
       const existing = await find(C.profiles, me);
       if (existing) return existing;
       if (!['professional', 'structure'].includes(userType)) fail(400, 'Tipo di account non valido.');
-      const account = users ? await users.get({ userId: me }) : { email: '' };
-      const base = { userId: me, userType, email: account.email || '', readReceipts: true, isOnline: true, connections: [] };
+      // L'email resta nell'account: il profilo è leggibile da tutti gli utenti, l'email no.
+      const base = { userId: me, userType, readReceipts: true, isOnline: true, connections: [] };
       const data =
         userType === 'professional'
           ? {
@@ -311,12 +318,35 @@ export function profileActions({ find, get, create, update, fail, users, endpoin
     async updateMyProfile(me, data = {}) {
       const profile = await get(C.profiles, me);
       const out = build(profile, data && typeof data === 'object' ? data : {});
-      if (Object.prototype.hasOwnProperty.call(data || {}, 'email') && users) {
-        // L'email si cambia dall'account (con password): qui la ricopiamo da lì.
-        out.email = (await users.get({ userId: me })).email || profile.email;
+      // Il telefono di una persona è privato (lo vedono collegamenti e chi valuta una sua candidatura):
+      // va in una tabella senza permessi di lettura, non sul profilo pubblico.
+      if (profile.userType === 'professional' && Object.prototype.hasOwnProperty.call(out, 'phone')) {
+        await savePrivate(me, { phone: out.phone || null });
+        out.phone = null;
       }
       if (!Object.keys(out).length) return profile;
       return update(C.profiles, me, out);
+    },
+
+    /**
+     * Email e telefono di un profilo, solo a chi può vederli: la persona stessa,
+     * i suoi collegamenti, chi gestisce un annuncio a cui si è candidata.
+     * Per le strutture il telefono è pubblico (è un recapito aziendale).
+     */
+    async getContactInfo(me, { profileId } = {}) {
+      if (typeof profileId !== 'string' || !profileId) fail(400, 'Parametro mancante: profileId');
+      const profile = await get(C.profiles, profileId);
+      const allowed =
+        profileId === me ||
+        ((profile.connections || []).includes(me) && ((await find(C.profiles, me))?.connections || []).includes(profileId)) ||
+        (await isRecruiterOf(me, profileId));
+      if (profile.userType === 'structure') {
+        return { phone: profile.phone || '', email: allowed && users ? (await users.get({ userId: profileId })).email || '' : '', allowed };
+      }
+      if (!allowed) return { phone: '', email: '', allowed: false };
+      const priv = await find(C.privateInfo, profileId);
+      const email = users ? (await users.get({ userId: profileId }).catch(() => ({ email: '' }))).email || '' : '';
+      return { phone: priv?.phone || profile.phone || '', email, allowed: true };
     },
 
     /** Presenza online e "sta scrivendo…". */

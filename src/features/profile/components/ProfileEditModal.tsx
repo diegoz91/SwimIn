@@ -6,6 +6,7 @@ import { Select, SuggestInput } from '@/components/form/Pickers';
 import { LocationFields } from '@/components/form/LocationFields';
 import { useComuniSync } from '@/data/comuni';
 import { useForm, type FormErrors } from '@/hooks/useForm';
+import { useContactInfo } from '@/hooks/useContactInfo';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import { LANGUAGES, provinceName } from '@/data/italy';
@@ -112,9 +113,17 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
     const { values, errors, bind, set, reset } = form;
     useComuniSync(values.province, setComuni);
 
+    // Il telefono di una persona non è sul profilo pubblico: lo chiediamo al server.
+    const contact = useContactInfo(profile.userId || profile.$id, open && isProfessional);
+    const privatePhone = isProfessional ? contact?.phone || '' : profile.phone || '';
+
     useEffect(() => {
-        if (open) reset(toValues(profile));
+        if (open) reset({ ...toValues(profile), phone: privatePhone });
     }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (open && isProfessional && contact && !form.isDirty) reset({ ...toValues(profile), phone: contact.phone });
+    }, [contact]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submit = form.handleSubmit(async (v) => {
         setSaving(true);
@@ -140,6 +149,8 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                   poolSetting: (v.poolSetting || null) as StructureProfile['poolSetting'],
                   services: v.services.slice(0, POOL_SERVICES.length),
               };
+        // Telefono non ancora arrivato dal server: non lo tocchiamo (eviteremmo di cancellarlo).
+        if (isProfessional && !contact) delete (data as { phone?: string }).phone;
         try {
             const updated = await databaseService.updateProfile(profile.userId || profile.$id, data);
             onSaved({ ...profile, ...updated } as UserProfile | StructureProfile);
@@ -239,7 +250,7 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
 
             <FormSection title="Contatti" description="Visibili agli utenti registrati di SwimIn.">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field id="pe-phone" label="Telefono" optional error={errors.phone}>
+                    <Field id="pe-phone" label="Telefono" optional hint={isProfessional ? 'Lo vedono solo i tuoi collegamenti e le strutture a cui ti candidi.' : undefined} error={errors.phone}>
                         <input {...bind('phone')} type="tel" inputMode="tel" placeholder="Es. +39 333 123 4567" autoComplete="tel" maxLength={24} />
                     </Field>
                     <Field id="pe-web" label={isProfessional ? 'Sito o portfolio' : 'Sito web'} optional error={errors.website}>
