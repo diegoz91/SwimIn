@@ -72,7 +72,7 @@ const PublicProfile: React.FC = () => {
                                 <img
                                     src={data.avatar || initialsAvatar(data.name)}
                                     alt=""
-                                    className={`-mt-12 w-24 h-24 object-cover border-4 border-white shadow-card bg-white ${data.kind === 'structure' ? 'rounded-2xl' : 'rounded-full'}`}
+                                    className={`relative z-10 -mt-12 w-24 h-24 object-cover border-4 border-white shadow-card bg-white ${data.kind === 'structure' ? 'rounded-2xl' : 'rounded-full'}`}
                                 />
                                 <h1 className="text-3xl sm:text-4xl font-bold text-abisso mt-3 flex items-center gap-2">
                                     {data.name}
