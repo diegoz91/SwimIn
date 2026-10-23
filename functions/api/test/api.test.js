@@ -114,6 +114,7 @@ await rejects(api.createShift('piscina',{structureId:'piscina',userId:'anna',dat
 await rejects(api.createShift('anna',{structureId:'piscina',userId:'anna',date:shiftDay,shiftTime:'08:00–12:00'}),403);
 const sh=await api.createShift('piscina',{structureId:'piscina',userId:'anna',date:shiftDay,shiftTime:'08:00–12:00'});
 assert.equal(sh.userName,'anna'); assert.equal((await api.getTeamBoard('anna',{structureId:'piscina'})).shifts.length,1);
+const mine=await api.listMyShifts('anna'); assert.equal(mine.length,1); assert.equal(mine[0].structureName,'Piscina Blu'); assert.equal((await api.listMyShifts('eve')).length,0);
 await rejects(api.respondShift('piscina',{shiftId:sh.$id,status:'confirmed'}),403);
 assert.equal((await api.respondShift('anna',{shiftId:sh.$id,status:'declined'})).status,'declined');
 assert.ok(notifs('piscina').some(n=>n.content.includes('non può coprire')));

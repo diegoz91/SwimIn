@@ -151,3 +151,20 @@ export function normalizeTime(text: string): string {
     const min = Number(m[2]);
     return h < 24 && min < 60 ? `${String(h).padStart(2, '0')}:${m[2]}` : text.trim();
 }
+
+/** Lunedì della settimana che contiene la data (ISO). */
+export function weekStartISO(iso: string): string {
+    const [y, m, d] = iso.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const shift = (date.getDay() + 6) % 7; // lunedì = 0
+    date.setDate(date.getDate() - shift);
+    return toISODate(date);
+}
+
+/** "3–9 novembre 2026" / "28 ottobre – 3 novembre 2026". */
+export function formatWeek(startIso: string): string {
+    const end = addDaysISO(startIso, 6);
+    const [, sm, sd] = startIso.split('-').map(Number);
+    const [ey, em, ed] = end.split('-').map(Number);
+    return sm === em ? `${sd}–${ed} ${MONTHS[em - 1]} ${ey}` : `${sd} ${MONTHS[sm - 1]} – ${ed} ${MONTHS[em - 1]} ${ey}`;
+}

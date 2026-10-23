@@ -117,7 +117,7 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         },
         []
       );
-      await notify(userId, 'general', `${team.name} ti ha assegnato un turno il ${date.slice(8, 10)}/${date.slice(5, 7)}, ${shiftTime}.`, structureId);
+      await notify(userId, 'shift', `${team.name} ti ha assegnato un turno il ${date.slice(8, 10)}/${date.slice(5, 7)}, ${shiftTime}.`, structureId);
       return row;
     },
 
@@ -125,7 +125,7 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       const shift = await get(C.shifts, shiftId);
       await requireRole(me, shift.structureId, 'admin');
       await remove(C.shifts, shift.$id);
-      if (shift.userId !== me) await notify(shift.userId, 'general', `Il turno del ${shift.date.slice(8, 10)}/${shift.date.slice(5, 7)} (${shift.shiftTime}) è stato annullato.`, shift.structureId);
+      if (shift.userId !== me) await notify(shift.userId, 'shift', `Il turno del ${shift.date.slice(8, 10)}/${shift.date.slice(5, 7)} (${shift.shiftTime}) è stato annullato.`, shift.structureId);
       return { deleted: true };
     },
 
@@ -154,6 +154,18 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       await removeAll(C.shifts, [Query.equal('structureId', structureId), Query.equal('userId', staffId), Query.greaterThanEqual('date', isoDay(Date.now()))]);
       if (staffId !== me) await notify(staffId, 'general', `Non fai più parte dello staff di ${team.name}.`, structureId);
       return { removed: true };
+    },
+
+    /** I miei turni in tutte le strutture (dalla settimana scorsa in avanti). */
+    async listMyShifts(me) {
+      const { documents } = await list(C.shifts, [Query.equal('userId', me), Query.greaterThanEqual('date', isoDay(Date.now() - 7 * 86_400_000)), Query.orderAsc('date'), Query.limit(200)]);
+      const names = {};
+      for (const id of [...new Set(documents.map((s) => s.structureId))]) {
+        const team = await teamOf(id).catch(() => null);
+        // Turni di strutture di cui non faccio più parte: non li mostro.
+        names[id] = team && roleIn(team, me) ? team.name : null;
+      }
+      return documents.filter((s) => names[s.structureId]).map((s) => ({ ...s, structureName: names[s.structureId] }));
     },
 
     _teamOf: teamOf,

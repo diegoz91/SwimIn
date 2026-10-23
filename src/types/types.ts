@@ -256,7 +256,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift';
   content: string;
   relatedId?: string;
   isRead: boolean;

@@ -8,7 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
 import { contractLabel } from '@/data/swimming';
@@ -20,7 +20,8 @@ import { Stars } from '@/features/reviews/Stars';
 import { ratingOf } from '@/utils/profile';
 import { Checkbox, Field } from '@/components/form/Field';
 import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
-import { addDaysISO, formatDate, isValidISODate, todayISO } from '@/utils/dates';
+import { addDaysISO, formatDate, isValidISODate, todayISO, weekStartISO } from '@/utils/dates';
+import { ShiftWeek } from './ShiftWeek';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -67,6 +68,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [isLoadingStaff, setIsLoadingStaff] = useState(false);
     const [announcements, setAnnouncements] = useState<SquadAnnouncement[]>([]);
     const [shifts, setShifts] = useState<SquadShift[]>([]);
+    const [shiftWeek, setShiftWeek] = useState(() => weekStartISO(todayISO()));
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [isImportant, setIsImportant] = useState(false);
     const [showAddShift, setShowAddShift] = useState(false);
@@ -223,6 +225,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             });
             setShifts([...shifts, result].sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime)));
             setShowAddShift(false);
+            setShiftWeek(weekStartISO(result.date));
             setNewShift({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
             showToast('Turno assegnato: abbiamo avvisato la persona.', 'success');
         } catch (err) {
@@ -633,61 +636,33 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     </div>
                                 )}
                                 
-                                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                                    <table className="w-full text-left border-collapse whitespace-nowrap">
-                                        <thead className="bg-slate-50">
-                                            <tr className="border-b border-slate-200 text-xs text-slate-500">
-                                                <th className="py-3 px-4 font-bold">Membro</th>
-                                                <th className="py-3 px-4 font-bold">Data</th>
-                                                <th className="py-3 px-4 font-bold">Orario e ruolo</th>
-                                                <th className="py-3 px-4 font-bold">Stato</th>
-                                                <th className="py-3 px-4 font-bold text-right"><span className="sr-only">Azioni</span></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {shifts.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-slate-400 font-medium">Nessun turno assegnato.</td></tr>}
-                                            {shifts.map(shift => (
-                                                <tr key={shift.$id} className={`group transition-colors ${shift.userId === user?.$id ? 'bg-blue-50/50' : 'hover:bg-slate-50/80'}`}>
-                                                    <td className="py-4 px-4 font-bold text-slate-800 flex items-center gap-2">
-                                                        {shift.userId === user?.$id && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
-                                                        {shift.userName}
-                                                    </td>
-                                                    <td className="py-4 px-4 text-slate-600 text-sm font-medium">{formatDate(shift.date, 'weekday')}</td>
-                                                    <td className="py-4 px-4">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="text-slate-800 text-sm font-bold flex items-center gap-1.5"><Icon type="clock" className="w-3.5 h-3.5 text-slate-400"/>{shift.shiftTime}</span>
-                                                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold w-max">{shift.role}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-4 px-4">
-                                                        {shift.status === 'confirmed' ? (
-                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-green-50 text-green-800 border border-green-200">Confermato</span>
-                                                        ) : shift.status === 'declined' ? (
-                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-red-50 text-red-800 border border-red-200">Da riassegnare</span>
-                                                        ) : (
-                                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200">In attesa di conferma</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-4 px-4 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            {shift.userId === user?.$id && shift.status !== 'confirmed' && (
-                                                                <button onClick={() => handleRespondShift(shift.$id, 'confirmed')} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-corsia-600 text-white hover:bg-corsia-700">Confermo</button>
-                                                            )}
-                                                            {shift.userId === user?.$id && shift.status !== 'declined' && (
-                                                                <button onClick={() => handleRespondShift(shift.$id, 'declined')} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>
-                                                            )}
-                                                            {isAdmin && (
-                                                                <button onClick={() => handleDeleteShift(shift.$id)} aria-label={`Annulla il turno di ${shift.userName}`} className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400">
-                                                                    <Icon type="x" className="w-5 h-5"/>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <ShiftWeek
+                                    shifts={shifts}
+                                    weekStart={shiftWeek}
+                                    onWeekChange={setShiftWeek}
+                                    currentUserId={user?.$id}
+                                    show="person"
+                                    actions={(shift) => (
+                                        <>
+                                            {shift.userId === user?.$id && shift.date >= todayISO() && shift.status !== 'confirmed' && (
+                                                <button onClick={() => handleRespondShift(shift.$id, 'confirmed')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-corsia-600 text-white hover:bg-corsia-700">Confermo</button>
+                                            )}
+                                            {shift.userId === user?.$id && shift.date >= todayISO() && shift.status !== 'declined' && (
+                                                <button onClick={() => handleRespondShift(shift.$id, 'declined')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>
+                                            )}
+                                            {isAdmin && (
+                                                <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50" aria-label={`Annulla il turno di ${shift.userName} del ${shift.date}`}>
+                                                    Annulla
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                />
+                                {isStaff && (
+                                    <p className="mt-3 text-sm text-slate-500">
+                                        Tutti i tuoi turni, anche di altre strutture, sono in <Link to="/turni" className="font-semibold text-corsia-700 hover:underline">I miei turni</Link>, da cui puoi aggiungerli al calendario.
+                                    </p>
+                                )}
                             </div>
                         )}
 

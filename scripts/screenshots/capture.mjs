@@ -95,6 +95,8 @@ const PRIVATE_PAGES = [
     ['salvati', '/salvati'],
     ['strutture', '/strutture'],
     ['appassionato', '/profile/u_paolo'],
+    ['talenti', '/talenti'],
+    ['turni', '/turni'],
 ];
 
 /** Schermate di form aperti: [nome, pagina, azione da eseguire prima dello scatto]. */

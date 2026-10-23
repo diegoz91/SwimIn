@@ -7,7 +7,8 @@ import { Select } from '@/components/form/Pickers';
 import { contractLabel } from '@/data/swimming';
 import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
-import type { Job } from '@/types/types';
+import type { Job, UserProfile } from '@/types/types';
+import { Link } from 'react-router-dom';
 import { useToast } from '@/context/ToastContext';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { formatDate } from '@/utils/dates';
@@ -137,12 +138,20 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                             Le mie candidature
                         </button>
                     )}
+                    {(isStructure || ((user as UserProfile | null)?.managedFacilities || []).length > 0) && (
+                        <Link
+                            to="/talenti"
+                            className="flex-1 md:flex-none bg-white border border-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        >
+                            <Icon type="search" className="w-5 h-5" /> Cerca personale
+                        </Link>
+                    )}
                     {isStructure && (
                         <button 
                             onClick={() => setIsCreateModalOpen(true)}
                             className="flex-1 md:flex-none bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
-                            <Icon type="plus" className="w-5 h-5" /> Pubblica Annuncio
+                            <Icon type="plus" className="w-5 h-5" /> Pubblica annuncio
                         </button>
                     )}
                 </div>

@@ -697,6 +697,21 @@ export const databaseService = {
         return { profiles: profiles.documents, facilities: facilities.documents };
     },
 
+    /**
+     * Ricerca di personale: professionisti (non appassionati) per provincia, qualifica
+     * e fascia di disponibilità. I filtri sui brevetti si applicano nel client.
+     */
+    async searchTalent(opts: { province?: string; search?: string; slot?: string; emergencies?: boolean } = {}) {
+        const q = [Query.equal('userType', 'professional'), Query.limit(100)];
+        if (opts.province) q.push(Query.equal('province', opts.province));
+        if (opts.slot) q.push(Query.contains('availability', [opts.slot]));
+        if (opts.emergencies) q.push(Query.equal('availableForEmergencies', true));
+        const term = (opts.search || '').trim();
+        if (term.length >= 2) q.push(Query.or([Query.contains('title', term), Query.contains('firstName', term), Query.contains('lastName', term), Query.contains('city', term)]));
+        const res = await databases.listDocuments<UserProfile>(databaseId, collections.profiles, q);
+        return res.documents.filter((p) => p.personType !== 'enthusiast' && !p.suspended);
+    },
+
     async getNetworkSuggestions(currentUserId: string, currentConnections: string[] = []) {
         const [res, pending] = await Promise.all([
             databases.listDocuments<Profile>(databaseId, collections.profiles, [
@@ -834,6 +849,10 @@ export const databaseService = {
     },
     async deleteSquadShift(shiftId: string) {
         return await callApi<{ deleted: boolean }>('deleteShift', { shiftId });
+    },
+    /** I miei turni in tutte le strutture di cui faccio parte. */
+    async listMyShifts() {
+        return await callApi<(SquadShift & { structureName: string })[]>('listMyShifts');
     },
     async respondShift(shiftId: string, status: 'confirmed' | 'declined') {
         return await callApi<SquadShift>('respondShift', { shiftId, status });
