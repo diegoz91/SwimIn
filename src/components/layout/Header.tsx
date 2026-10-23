@@ -13,6 +13,8 @@ import { initialsAvatar } from '@/utils/avatar';
 import type { AppNotification } from '@/types/types';
 import { isEnthusiast } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { isPremium } from '@/utils/premium';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -225,6 +227,9 @@ const Header: React.FC = () => {
                     <span className="block font-semibold text-abisso truncate">{displayName}</span>
                     <span className="block text-xs text-corsia-700 font-semibold">Vedi il profilo</span>
                   </span>
+                </Link>
+                <Link to="/premium" role="menuitem" className="flex items-center gap-3 mx-3 mb-2 px-3 py-2.5 rounded-xl bg-oro-50 text-sm font-semibold text-abisso hover:bg-oro-100">
+                  <PremiumBadge /> {isPremium(user) ? 'Il tuo Premium' : user?.premiumTrialUsed ? 'Passa a Premium' : 'Prova Premium gratis'}
                 </Link>
                 <div className="border-t border-slate-100 py-1">
                   <Link to="/profile?tab=impostazioni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">

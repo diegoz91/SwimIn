@@ -19,7 +19,8 @@ const db={
 const deletedUsers=[]; const deletedFiles=[]; const statusChanges=[]; const storedFiles={};
 const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`,labels:userId==='boss'?['admin']:[]}),updateStatus:async({userId,status})=>statusChanges.push([userId,status])},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId),getFile:async({fileId})=>storedFiles[fileId]??(()=>{throw new Error('nf')})(),getFileView:async()=>new Uint8Array([104,105]).buffer}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
-P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
+const FUTURE=new Date(Date.now()+30*86400000).toISOString();
+P('anna',{premiumUntil:FUTURE});P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
 const notifs=(u,type)=>Object.values(col('notifications')).filter(n=>n.userId===u&&(!type||n.type===type));
 
@@ -264,11 +265,21 @@ await api.updateMyProfile('zoe',{publicProfile:false});
   assert.equal(notifs('bob','profile_view').length,before+1);
   assert.ok(notifs('bob','profile_view').at(-1).content.startsWith('anna'));
   col('profiles').eve.hideProfileViews=true;
-  await api.recordProfileView('eve',{profileId:'bob'});
+  await api.recordProfileView('eve',{profileId:'piscina'}); // Base: la visita anonima non è disponibile
+  assert.equal(notifs('piscina','profile_view').at(-1).content,'eve ha visualizzato il tuo profilo.');
+  col('profiles').eve.premiumUntil=FUTURE;
+  await api.recordProfileView('eve',{profileId:'bob'}); // Premium verso un profilo Base: anonima
   assert.equal(notifs('bob','profile_view').at(-1).content,'Qualcuno ha visualizzato il tuo profilo.');
+  await api.recordProfileView('eve',{profileId:'anna'}); // verso un profilo Premium: sempre con il nome
+  assert.ok(notifs('anna','profile_view').at(-1).content.startsWith('eve'));
   const views=await api.listProfileViews('bob'); assert.equal(views.viewers.length,2);
   assert.ok(views.viewers.some(v=>v.id===null)); assert.ok(views.viewers.some(v=>v.id==='anna'));
-  delete col('profiles').eve.hideProfileViews; }
+  // Base: si vedono solo gli ultimi visitatori, il resto è riservato a Premium
+  for (const v of ['v1','v2','v3','v4']) { P(v); await api.recordProfileView(v,{profileId:'bob'}); }
+  const locked=await api.listProfileViews('bob'); assert.equal(locked.viewers.length,3); assert.equal(locked.locked,3); assert.equal(locked.premium,false);
+  await rejects(api.getMyStats('bob'),402);
+  const stats=await api.getMyStats('anna'); assert.equal(stats.viewsPerDay.length,30);
+  delete col('profiles').eve.hideProfileViews; delete col('profiles').eve.premiumUntil; }
 
 // Contatti privati: solo la persona, i collegamenti reciproci e chi valuta una sua candidatura
 assert.deepEqual(await api.getContactInfo('zoe',{profileId:'zoe'}),{phone:'3331234567',email:'zoe@esempio.it',allowed:true});
@@ -332,7 +343,7 @@ assert.equal((await api.upsertReview('anna',{structureId:'fr',rating:3,content:'
 
 // Blocco, silenziamento e moderazione
 {
-P('boss'); P('troll');
+P('boss'); P('troll',{premiumUntil:FUTURE});
 col('profiles').anna.connections=['troll']; col('profiles').troll.connections=['anna'];
 await api.blockUser('anna',{userId:'troll'});
 assert.deepEqual(col('profiles').anna.connections,[]); assert.deepEqual(col('profiles').troll.connections,[]);

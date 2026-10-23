@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { Job, StructureProfile, UserProfile, Application } from '@/types/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Icon } from '@/components/ui/Icon';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { isPremium } from '@/utils/premium';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -189,7 +191,8 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {applicants.map(app => {
+                            {/* Candidati Premium in cima alla lista, come su LinkedIn. */}
+                            {[...applicants].sort((a, b) => Number(isPremium(b.applicantProfile)) - Number(isPremium(a.applicantProfile))).map(app => {
                                 const prof = app.applicantProfile;
                                 if (!prof) return null;
                                 const match = getSwimMatchAnalysis(prof, localJob);
@@ -199,7 +202,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
                                             <img src={prof.avatar || initialsAvatar(displayNameOf(prof))} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
                                             <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-slate-800 text-lg truncate">{prof.firstName} {prof.lastName}</p>
+                                                <p className="font-bold text-slate-800 text-lg truncate flex items-center gap-1.5">{prof.firstName} {prof.lastName}{isPremium(prof) && <PremiumBadge label />}</p>
                                                 <p className="text-xs text-slate-500 truncate mb-1.5">{prof.title || 'Professionista'}</p>
                                                 <div className={`text-[10px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${match.score >= 80 ? 'bg-green-100 text-green-700 border border-green-200' : match.score >= 50 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                                                     <Icon type="sparkles" className="w-3 h-3" /> {match.score}% SwimMatch

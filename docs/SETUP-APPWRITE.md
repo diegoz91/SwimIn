@@ -102,6 +102,28 @@ Per aggiornarli in automatico:
 
 Da quel momento il workflow **Deploy Appwrite** lancia `npm run setup-db` a ogni merge che tocca `functions/api/` o `setup-db.js`, e aspetta che la build della Function sia pronta. Si può avviare anche a mano da *Actions → Deploy Appwrite → Run workflow*.
 
+## 10. SwimIn Premium (pagamenti)
+
+Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorni e con l'**omaggio** da *Admin › Utenti*. Per incassare:
+
+1. **Indirizzo della Function**: Console Appwrite → *Functions → api → Domains*, ad esempio `https://xxxx.fra.appwrite.run`. Mettilo in `FUNCTION_URL`: in `.env.setup` oppure tra le *Variables* di GitHub.
+2. **Stripe** (carta, Apple Pay, Google Pay):
+   - crea l'account su stripe.com;
+   - da *Developers → API keys* copia la chiave segreta (`sk_test_…` per le prove, `sk_live_…` in produzione) in `STRIPE_SECRET_KEY` (in `.env.setup` o tra i secret di GitHub);
+   - in *Settings → Billing → Customer portal* attiva il portale: serve per disdetta, cambio carta e fatture.
+3. **PayPal**:
+   - su developer.paypal.com → *Apps & Credentials* crea un'app (sandbox per le prove, live in produzione);
+   - copia *Client ID* e *Secret* in `PAYPAL_CLIENT_ID` e `PAYPAL_SECRET`;
+   - imposta `PAYPAL_MODE=live` quando passi alla produzione.
+4. **Lancia `npm run setup-db`** (o il workflow *Deploy Appwrite*). Lo script:
+   - crea su Stripe i 4 prezzi e su PayPal i 4 piani: persone 4,99 €/mese o 47,90 €/anno, strutture 19 €/mese o 179 €/anno, tutti IVA inclusa;
+   - registra i webhook verso `FUNCTION_URL/webhooks/stripe` e `/webhooks/paypal`;
+   - salva tutto nelle variabili della Function.
+
+   Si può rilanciare quante volte vuoi: non crea doppioni.
+
+I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rilanci `setup-db`, si creano i nuovi prezzi; gli abbonamenti già attivi restano al vecchio prezzo.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
@@ -111,7 +133,7 @@ Da quel momento il workflow **Deploy Appwrite** lancia `npm run setup-db` a ogni
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
-| push_subscriptions, blocks, client_errors, profile_views | solo Function | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors, profile_views, subscriptions | solo Function | solo Function | solo Function |
 | comment_likes | utenti loggati | solo Function | solo Function |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |

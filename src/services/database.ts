@@ -2,6 +2,7 @@ import { ExecutionMethod, ID, Models, Permission, Query, Role } from 'appwrite';
 import { databases, functions } from '@/services/appwrite';
 import { storageService } from '@/services/storage';
 import { getPostContent } from '@/utils/postMedia';
+import { requestPremium } from '@/services/premiumPrompt';
 import { isJobOpen } from '@/utils/jobs';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import type { 
@@ -59,7 +60,7 @@ const profileDisplayName = (p: Profile) =>
 // ==========================================
 const API_FUNCTION_ID = 'api';
 
-type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string };
+type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string; code?: string };
 
 async function callApi<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
     const execution = await functions.createExecution(
@@ -82,9 +83,20 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
             console.error(`Function "api" non aggiornata: manca l'azione "${action}". Lancia npm run setup-db.`);
             throw new ApiOutdatedError(action);
         }
-        throw new Error(payload.error || 'Operazione non riuscita.');
+        const err = new ApiError(payload.error || 'Operazione non riuscita.', payload.code);
+        // Azione riservata a Premium: si apre l'invito a passare a Premium, ovunque sia partita.
+        if (payload.code === 'premium_required' || payload.code === 'inmail_exhausted') requestPremium(err.message, payload.code);
+        throw err;
     }
     return payload.data;
+}
+
+/** Errore restituito dalla Function, con un codice facoltativo (es. 'premium_required'). */
+export class ApiError extends Error {
+    constructor(message: string, public code?: string) {
+        super(message);
+        this.name = 'ApiError';
+    }
 }
 
 /** Il server non conosce ancora l'azione: il sito è stato aggiornato prima della Function. */
@@ -120,6 +132,26 @@ const ownedBy = (userId: string) => [
     Permission.delete(Role.user(userId)),
 ];
 
+export interface BillingStatus {
+    premium: boolean;
+    premiumUntil: string | null;
+    source: 'trial' | 'stripe' | 'paypal' | 'admin' | null;
+    trialAvailable: boolean;
+    trialDays: number;
+    audience: 'person' | 'structure';
+    prices: { month: number; year: number };
+    providers: { stripe: boolean; paypal: boolean };
+    inmailCredits: number;
+    subscription: { provider: 'stripe' | 'paypal'; status: string; period: 'month' | 'year' | ''; currentPeriodEnd: string; cancelAtPeriodEnd: boolean } | null;
+}
+export interface ProfileStats {
+    viewsLast30: number;
+    viewsPerDay: { day: string; views: number }[];
+    viewersByKind: { strutture: number; professionisti: number; appassionati: number };
+    anonymousViews: number;
+    posts: { id: string; createdAt: string; text: string; reactions: number; comments: number; reposts: number }[];
+    totals: { reactions: number; comments: number; reposts: number };
+}
 export interface PublicProfile {
     kind: 'person' | 'structure';
     id: string;
@@ -603,7 +635,31 @@ export const databaseService = {
     },
 
     async listProfileViews() {
-        return await callApi<{ total: number; viewers: { id: string | null; name: string; headline: string; avatar: string; viewedAt: string }[] }>('listProfileViews');
+        return await callApi<{ total: number; premium: boolean; locked: number; viewers: { id: string | null; name: string; headline: string; avatar: string; viewedAt: string }[] }>('listProfileViews');
+    },
+
+    // ---------------- SWIMIN PREMIUM ----------------
+    async getBillingStatus() {
+        return await callApi<BillingStatus>('getBillingStatus');
+    },
+    async startTrial() {
+        return await callApi<{ premiumUntil: string }>('startTrial');
+    },
+    /** Indirizzo della pagina di pagamento (Stripe o PayPal). */
+    async createCheckout(provider: 'stripe' | 'paypal', period: 'month' | 'year') {
+        return await callApi<{ url: string }>('createCheckout', { provider, period });
+    },
+    async confirmPaypal(subscriptionId: string) {
+        return await callApi<{ status: string }>('confirmPaypal', { subscriptionId });
+    },
+    async manageSubscription(cancel = false) {
+        return await callApi<{ url?: string; cancelled?: boolean }>('manageSubscription', { cancel });
+    },
+    async getMyStats() {
+        return await callApi<ProfileStats>('getMyStats');
+    },
+    async adminGrantPremium(userId: string, days: number) {
+        return await callApi<{ premiumUntil: string }>('adminGrantPremium', { userId, days });
     },
 
     /** Profili per id (fino a 100), es. l'elenco dei collegamenti. */

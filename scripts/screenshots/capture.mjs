@@ -97,6 +97,7 @@ const PRIVATE_PAGES = [
     ['strutture', '/strutture'],
     ['appassionato', '/profile/u_paolo'],
     ['talenti', '/talenti'],
+    ['premium', '/premium'],
     ['turni', '/turni'],
 ];
 

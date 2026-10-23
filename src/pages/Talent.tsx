@@ -14,6 +14,9 @@ import { DAYS, PARTS, slotKey, summarizeAvailability } from '@/utils/availabilit
 import { certificationStatus, parseCertifications } from '@/utils/certifications';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import type { UserProfile } from '@/types/types';
+import { isPremium } from '@/utils/premium';
+import { requestPremium } from '@/services/premiumPrompt';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
 
 type Candidate = {
     profile: UserProfile;
@@ -38,7 +41,7 @@ const toCandidate = (p: UserProfile): Candidate => {
         verified,
         expiredOnly: certs.length > 0 && valid.length === 0,
         // Prima chi ha brevetti verificati, poi profili più completi, poi chi è online.
-        score: verified * 10 + valid.length * 3 + filled + (p.isOnline ? 2 : 0) + (p.availableForEmergencies ? 2 : 0),
+        score: verified * 10 + valid.length * 3 + filled + (p.isOnline ? 2 : 0) + (p.availableForEmergencies ? 2 : 0) + (isPremium(p) ? 5 : 0),
     };
 };
 
@@ -55,6 +58,12 @@ const Talent: React.FC = () => {
     const [emergencies, setEmergencies] = useState(false);
     const [verifiedOnly, setVerifiedOnly] = useState(false);
     const [rows, setRows] = useState<Candidate[] | null>(null);
+    // Filtri avanzati (disponibilità, sostituzioni, verificati): inclusi in Premium.
+    const premium = isPremium(user);
+    const gated = <T,>(setter: (v: T) => void) => (v: T) => {
+        if (premium) return setter(v);
+        requestPremium('La ricerca per disponibilità, sostituzioni urgenti e brevetti verificati è inclusa in SwimIn Premium.');
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -106,11 +115,12 @@ const Talent: React.FC = () => {
                     </div>
                     <ProvinceSelect value={province} onChange={setProvince} />
                     <Select label="Brevetto" value={category} onChange={setCategory} placeholder="Qualsiasi brevetto" clearLabel="Qualsiasi brevetto" options={CERT_CATEGORIES.filter((c) => c.value !== 'altro').map((c) => ({ value: c.value, label: c.label }))} />
-                    <Select label="Disponibile" value={slot} onChange={setSlot} placeholder="Qualsiasi momento" clearLabel="Qualsiasi momento" options={SLOT_OPTIONS} />
+                    <Select label="Disponibile" value={slot} onChange={gated(setSlot)} placeholder="Qualsiasi momento" clearLabel="Qualsiasi momento" options={SLOT_OPTIONS} />
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
-                    <Checkbox id="t-emergencies" checked={emergencies} onChange={setEmergencies} label="Disponibile per sostituzioni urgenti" />
-                    <Checkbox id="t-verified" checked={verifiedOnly} onChange={setVerifiedOnly} label="Solo con brevetti verificati" />
+                    <Checkbox id="t-emergencies" checked={emergencies} onChange={gated(setEmergencies)} label="Disponibile per sostituzioni urgenti" />
+                    <Checkbox id="t-verified" checked={verifiedOnly} onChange={gated(setVerifiedOnly)} label="Solo con brevetti verificati" />
+                    {!premium && <span className="inline-flex items-center gap-1.5 text-xs text-oro-700 font-semibold"><PremiumBadge /> Filtri avanzati con Premium</span>}
                 </div>
             </div>
             {province && (
@@ -147,6 +157,7 @@ const Talent: React.FC = () => {
                                         <span className="min-w-0">
                                             <span className="flex items-center gap-1.5 font-semibold text-abisso group-hover:text-corsia-700">
                                                 <span className="truncate">{displayNameOf(p)}</span>
+                                                {isPremium(p) && <PremiumBadge />}
                                                 {verified > 0 && (
                                                     <span title={verified === 1 ? '1 brevetto verificato' : `${verified} brevetti verificati`} className="inline-flex text-corsia-600 flex-shrink-0">
                                                         <Icon type="shield" className="w-4 h-4" />

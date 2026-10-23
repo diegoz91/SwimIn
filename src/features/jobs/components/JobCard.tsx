@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { Job, StructureProfile, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
 import { swimMatchScore } from '@/utils/swimMatch';
@@ -65,7 +66,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-200 transition-all duration-300 flex flex-col h-full group relative">
+        <div className={`bg-white rounded-2xl shadow-sm border hover:shadow-md transition-all duration-300 flex flex-col h-full group relative ${job.featured ? 'border-oro-300 hover:border-oro-500' : 'border-slate-200 hover:border-blue-200'}`}>
             
             {/* BADGE SWIMMATCH PREDITTIVO */}
             {matchScore !== null && (
@@ -91,6 +92,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
                                 {jobDisplayTitle(job)}
                             </h3>
                             <p className="text-sm font-medium text-slate-600 truncate">{structureName}</p>
+                            {job.featured && <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-oro-700"><PremiumBadge /> In evidenza</span>}
                         </div>
                     </div>
                 </div>

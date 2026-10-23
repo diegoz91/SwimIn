@@ -65,7 +65,7 @@ const profiles = [
         managedFacilities: [],
     }, 60 * 24 * 90),
     doc('profiles', 'u_marco', {
-        userId: 'u_marco', userType: 'professional', email: 'marco@example.com', firstName: 'Marco', lastName: 'Bellini',
+        userId: 'u_marco', userType: 'professional', premiumUntil: new Date(now + 20 * 86400000).toISOString(), email: 'marco@example.com', firstName: 'Marco', lastName: 'Bellini',
         title: 'Allenatore squadra master', city: 'Monza', province: 'MB', isOnline: true, connections: [ME], availability: allToday,
         skills: ['Nuoto master', 'Preparazione atletica a secco'],
     }),
@@ -196,8 +196,10 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    getBillingStatus: () => ({ premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'person', prices: { month: 499, year: 4790 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null }),
     listProfileViews: () => ({
-        total: 2,
+        premium: false, locked: 5,
+        total: 7,
         viewers: [
             { id: 'u_lido', name: 'Piscina Lido di Milano', headline: 'Piscina comunale', avatar: '', viewedAt: new Date(now - 2 * 3600000).toISOString() },
             { id: null, name: 'Utente di SwimIn', headline: 'Ha scelto di navigare in modo anonimo', avatar: '', viewedAt: new Date(now - 26 * 3600000).toISOString() },

@@ -119,7 +119,8 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
     const resetFilters = () => { setSearchQuery(''); setActiveFilter('Tutti'); setContractFilter(''); setNearMe(false); };
 
     const sosJobs = filteredJobs.filter(j => j.isSOS);
-    const regularJobs = filteredJobs.filter(j => !j.isSOS);
+    // Annunci delle strutture Premium in cima (a parità, l'ordine resta quello della bacheca).
+    const regularJobs = filteredJobs.filter(j => !j.isSOS).sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
 
     return (
         <div className="max-w-5xl mx-auto w-full pb-20 animate-in fade-in duration-500">

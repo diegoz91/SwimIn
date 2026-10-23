@@ -16,6 +16,8 @@ import { parseReactionCounts, topReactions, type ReactionKey } from '@/data/reac
 import { ReactionButton } from './ReactionButton';
 import { CommentsThread } from './CommentsThread';
 import { FormModal } from '@/components/form/FormModal';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { isPremium } from '@/utils/premium';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -297,6 +299,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             >
                                 {authorName}
                             </button>
+                            {isPremium(author) && <PremiumBadge />}
                             {swimBadges.map((b) => (
                                 <span key={b.id} className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
                             ))}

@@ -49,6 +49,30 @@ const Terms: React.FC = () => (
                 ),
             },
             {
+                title: 'SwimIn Premium',
+                body: (
+                    <ul>
+                        <li>
+                            SwimIn è gratuito nel piano Base. Il piano Premium, a pagamento, aggiunge le funzioni descritte nella pagina{' '}
+                            <Link to="/premium">SwimIn Premium</Link>, con i prezzi in vigore al momento dell'acquisto (IVA inclusa).
+                        </li>
+                        <li>La prova gratuita di 30 giorni è disponibile una sola volta per account e non richiede metodi di pagamento.</li>
+                        <li>
+                            L'abbonamento, mensile o annuale, si rinnova automaticamente alla scadenza con addebito sul metodo scelto (carta tramite
+                            Stripe o PayPal), finché non viene disdetto. Puoi disdire in qualsiasi momento dalla pagina Premium: il rinnovo si ferma e
+                            i vantaggi restano attivi fino alla fine del periodo già pagato.
+                        </li>
+                        <li>
+                            Diritto di recesso: hai 14 giorni dall'acquisto per recedere scrivendo a {LEGAL.contactEmail}. Iniziando a usare subito
+                            le funzioni Premium accetti che il servizio sia erogato prima della scadenza di questo termine; in caso di recesso è
+                            rimborsata la parte di periodo non goduta.
+                        </li>
+                        <li>I dati di pagamento sono trattati direttamente da Stripe e PayPal: SwimIn non li riceve né li conserva.</li>
+                        <li>Eliminando l'account, gli abbonamenti attivi vengono disdetti automaticamente.</li>
+                    </ul>
+                ),
+            },
+            {
                 title: 'Contenuti degli utenti',
                 body: (
                     <>

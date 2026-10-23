@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { UserProfile, StructureProfile, Experience, Certification, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { ExperienceModal } from './ExperienceModal';
@@ -19,6 +19,9 @@ import { useContactInfo } from '@/hooks/useContactInfo';
 import { PeopleModal, type PersonRow } from '@/components/common/PeopleModal';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { isPremium } from '@/utils/premium';
+import { ProfileStatsCard } from '@/features/premium/ProfileStatsCard';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -127,9 +130,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             .filter((p) => !blocks.isHidden(p.$id) && !p.suspended)
             .map((p) => ({ id: p.$id, name: displayNameOf(p), headline: headlineOf(p), avatar: avatarOf(p) }))
             .sort((a, b) => a.name.localeCompare(b.name, 'it'));
+    const [lockedViews, setLockedViews] = useState(0);
     const loadViews = async (): Promise<PersonRow[]> => {
         const r = await databaseService.listProfileViews();
         setViewsCount(r?.total ?? 0);
+        setLockedViews(r?.locked || 0);
         return (r?.viewers || []).map((v) => ({ id: v.id, name: v.name, headline: v.headline, avatar: v.avatar, meta: formatRelativeTime(v.viewedAt) }));
     };
 
@@ -378,6 +383,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
+      {isOwnProfile && <ProfileStatsCard premium={isPremium(user)} onOpenViews={() => setViewsOpen(true)} />}
+
       {isProfessional && isOwnProfile && completionScore < 100 && (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex items-center gap-5 sm:gap-6" data-html2canvas-ignore="true">
             <CompletionRing value={completionScore} />
@@ -504,6 +511,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             <span className="sr-only">Brevetti verificati</span>
                           </span>
                         )}
+                        {isPremium(user) && <PremiumBadge size="md" />}
                       </h1>
                       {user.isOnline && (
                           <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-sm border border-green-200 animate-in zoom-in" title="L'utente è attualmente online su SwimIn">
@@ -784,6 +792,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           subtitle="Negli ultimi 30 giorni"
           load={loadViews}
           empty="Ancora nessuna visita negli ultimi 30 giorni. Un profilo completo e qualche post aiutano a farsi trovare."
+          footer={lockedViews > 0 ? (
+            <div className="m-2 rounded-xl border border-oro-300 bg-oro-50 p-4 text-center">
+              <p className="font-semibold text-abisso flex items-center justify-center gap-2"><PremiumBadge /> Altre {lockedViews} {lockedViews === 1 ? 'persona ha' : 'persone hanno'} visto il tuo profilo</p>
+              <p className="text-sm text-slate-600 mt-1">Con Premium vedi tutti i visitatori degli ultimi 30 giorni e le statistiche.</p>
+              <Link to="/premium" onClick={() => setViewsOpen(false)} className="inline-block mt-3 px-4 py-2 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900">Scopri Premium</Link>
+            </div>
+          ) : null}
           onClose={() => setViewsOpen(false)}
         />
       )}

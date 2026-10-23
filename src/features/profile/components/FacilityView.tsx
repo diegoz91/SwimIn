@@ -21,6 +21,9 @@ import { Checkbox, Field } from '@/components/form/Field';
 import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
 import { addDaysISO, formatDate, isValidISODate, todayISO, weekStartISO } from '@/utils/dates';
 import { ShiftWeek } from './ShiftWeek';
+import { ProfileStatsCard } from '@/features/premium/ProfileStatsCard';
+import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { isPremium } from '@/utils/premium';
 
 // Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
 const ApplicationsChart = lazy(() => import('./ApplicationsChart'));
@@ -363,7 +366,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{structureName}</h1>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">{structureName}{isPremium(facility) && <PremiumBadge size="md" />}</h1>
                             {('isOnline' in facility) && facility.isOnline && (
                                 <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-sm border border-green-200 animate-in zoom-in" title="Struttura attualmente online">
                                     <span className="relative flex h-2.5 w-2.5">
@@ -780,6 +783,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
 
                 {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
+                {activeTab === 'analytics' && isAdmin && isLegacyStructure && <ProfileStatsCard premium={isPremium(facility)} />}
                 {activeTab === 'analytics' && isAdmin && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
                         <div className="mb-6">

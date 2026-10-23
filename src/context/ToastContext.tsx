@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { isRecentPremiumMessage } from '@/services/premiumPrompt';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -31,6 +32,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
     const showToast = useCallback((message: string, type: ToastType = 'info') => {
+        // Già mostrato nell'invito a Premium: niente doppione.
+        if (isRecentPremiumMessage(message)) return;
         const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
         
         setToasts((prev) => [...prev, { id, type, message }]);
