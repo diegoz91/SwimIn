@@ -116,6 +116,16 @@ export interface TeamBoard {
     announcements: SquadAnnouncement[];
     shifts: SquadShift[];
 }
+export type NotifyCategory = 'messages' | 'connections' | 'social' | 'jobs' | 'sos' | 'general';
+export type NotificationPrefs = Record<NotifyCategory, { push: boolean; email: boolean }>;
+export interface PushConfig {
+    /** Chiave VAPID pubblica, null se le push non sono configurate sul server. */
+    publicKey: string | null;
+    emailAvailable: boolean;
+    devices: number;
+    prefs: NotificationPrefs;
+    categories: NotifyCategory[];
+}
 
 export const databaseService = {
     // ==========================================
@@ -269,6 +279,23 @@ export const databaseService = {
     /** Email e telefono di un profilo, se chi chiama può vederli (decide il server). */
     async getContactInfo(profileId: string) {
         return await callApi<{ phone: string; email: string; allowed: boolean }>('getContactInfo', { profileId });
+    },
+
+    // ---------------- NOTIFICHE PUSH ED EMAIL ----------------
+    async getPushConfig() {
+        return await callApi<PushConfig>('getPushConfig');
+    },
+    async savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string; userAgent?: string }) {
+        return await callApi<{ saved: boolean }>('savePushSubscription', sub);
+    },
+    async deletePushSubscription(endpoint: string) {
+        return await callApi<{ deleted: boolean }>('deletePushSubscription', { endpoint });
+    },
+    async updateNotificationPrefs(prefs: NotificationPrefs) {
+        return await callApi<NotificationPrefs>('updateNotificationPrefs', { prefs });
+    },
+    async sendTestPush() {
+        return await callApi<{ push: number; email: boolean }>('sendTestPush');
     },
 
     async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {

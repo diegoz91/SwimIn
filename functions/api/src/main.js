@@ -9,12 +9,13 @@
  * Richiesta: POST con body JSON { "action": "<nome>", ...parametri }
  * Risposta:  { ok: true, data } oppure { ok: false, error } con status HTTP 4xx/5xx
  */
-import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
+import { Client, ID, Messaging, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
 import { profileActions } from './profile.js';
 import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
+import { pushActions } from './push.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -39,6 +40,7 @@ const C = {
   blocks: 'blocks',
   clientErrors: 'client_errors',
   privateInfo: 'private_info',
+  pushSubscriptions: 'push_subscriptions',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
@@ -115,7 +117,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -163,12 +165,18 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   };
 
   /** Notifica leggibile e aggiornabile (segna come letta) solo dal destinatario. */
-  const notify = (userId, type, content, relatedId) =>
-    create(C.notifications, { userId, type, content: content.slice(0, 255), relatedId, isRead: false }, [
+  const push = pushActions({ find, get, list, create, update, remove, fail, C, Query, messaging, ID, vapid, appUrl, log, fetchImpl });
+
+  /** Notifica nell'app più, secondo le preferenze dell'utente, push ed email. */
+  const notify = async (userId, type, content, relatedId) => {
+    const row = await create(C.notifications, { userId, type, content: content.slice(0, 255), relatedId, isRead: false }, [
       Permission.read(Role.user(userId)),
       Permission.update(Role.user(userId)),
       Permission.delete(Role.user(userId)),
     ]).catch(() => null); // una notifica persa non deve far fallire l'azione principale
+    await push._deliver(userId, type, content.slice(0, 255), relatedId);
+    return row;
+  };
 
   const displayName = (profile) =>
     profile.userType === 'structure'
@@ -194,6 +202,24 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     return false;
   };
 
+  /**
+   * Avvisa della sostituzione urgente i professionisti della stessa provincia
+   * che hanno dato disponibilità per quel giorno (e fascia, se c'è l'orario).
+   */
+  const alertSOS = async (job, me) => {
+    const day = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][new Date(`${job.sosDate}T12:00:00Z`).getUTCDay()];
+    const hour = job.sosShift ? Number(job.sosShift.slice(0, 2)) : null;
+    const part = hour === null ? null : hour < 13 ? 'mattina' : hour < 18 ? 'pomeriggio' : 'sera';
+    const people = await listAll(C.profiles, [Query.equal('province', job.province), Query.equal('userType', 'professional')]);
+    const targets = people
+      .filter((p) => p.$id !== me && !p.suspended && p.personType !== 'enthusiast')
+      .filter((p) => (p.availability || []).some((slot) => (part ? slot === `${day}-${part}` : slot.startsWith(`${day}-`))))
+      .slice(0, 100);
+    const when = `${job.sosDate.slice(8, 10)}/${job.sosDate.slice(5, 7)}${job.sosShift ? `, ${job.sosShift}` : ''}`;
+    for (const p of targets) await notify(p.$id, 'sos', `SOS ${job.structureName || 'piscina'} (${job.city}): cercano "${job.title}" il ${when}.`, job.$id);
+    return targets.length;
+  };
+
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
@@ -207,6 +233,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   return {
     ...moderation,
     ...team,
+    ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
     ...profileActions({ find, get, create, update, fail, users, endpoint, C, isRecruiterOf }),
@@ -219,11 +246,18 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       if (receiverId === me) fail(400, 'Non puoi scrivere a te stesso.');
       await get(C.profiles, receiverId);
       await assertNotBlocked(me, receiverId);
-      return create(
+      const message = await create(
         C.messages,
         { conversationId: conversationIdFor(me, receiverId), senderId: me, receiverId, content, isRead: false },
         [Permission.read(Role.user(me)), Permission.read(Role.user(receiverId))]
       );
+      // Push al destinatario, a meno che non abbia silenziato il mittente.
+      const muted = await count(C.blocks, [Query.equal('blockerId', receiverId), Query.equal('blockedId', me), Query.equal('kind', 'mute')]);
+      if (!muted) {
+        const sender = await find(C.profiles, me);
+        await push._deliver(receiverId, 'message', content.slice(0, 140), me, { title: sender ? displayName(sender) : 'Nuovo messaggio' });
+      }
+      return message;
     },
 
     async markConversationRead(me, { conversationId }) {
@@ -511,6 +545,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       await removeAll(C.blocks, [Query.equal('blockerId', me)]);
       await removeAll(C.blocks, [Query.equal('blockedId', me)]);
       await remove(C.privateInfo, me).catch(() => null);
+      await removeAll(C.pushSubscriptions, [Query.equal('userId', me)]);
       // Recensioni scritte: rimosse, con media delle strutture ricalcolata.
       for (const r of await listAll(C.reviews, [Query.equal('authorId', me)])) {
         await remove(C.reviews, r.$id);
@@ -640,7 +675,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
         job.expiresAt = job.sosDate > today ? job.sosDate : today;
       }
       for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
-      return create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+      const created = await create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+      if (job.isSOS && job.province) created.notified = await alertSOS(created, me);
+      return created;
     },
 
     async applyForJob(me, { jobId, coverLetter = '' }) {
@@ -878,10 +915,16 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(req.headers['x-appwrite-key'] || process.env.APPWRITE_API_KEY);
 
+  const env = process.env;
   const api = createApi(new TablesDB(client), {
     users: new Users(client),
     storage: new Storage(client),
-    endpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || '',
+    endpoint: env.APPWRITE_FUNCTION_API_ENDPOINT || '',
+    // Email solo se in Appwrite Messaging c'è un provider (setup-db imposta EMAIL_NOTIFICATIONS=on).
+    messaging: env.EMAIL_NOTIFICATIONS === 'on' ? new Messaging(client) : null,
+    vapid: env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT || 'mailto:info@swimin.it' } : null,
+    appUrl: env.APP_URL || '',
+    log: (m) => log(m),
   });
   const { action, ...params } = body;
   // Le azioni che iniziano con "_" sono helper interni, non chiamabili dal client.

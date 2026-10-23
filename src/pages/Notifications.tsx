@@ -11,6 +11,7 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { notificationMeta } from '@/features/notifications/notificationMeta';
 import { formatRelativeTime } from '@/utils/format';
 import type { AppNotification } from '@/types/types';
+import { PushPrompt } from '@/components/common/PushPrompt';
 
 type Filter = 'all' | 'unread';
 
@@ -89,6 +90,8 @@ const Notifications: React.FC = () => {
                     Segna tutte come lette
                 </button>
             </div>
+
+            <PushPrompt />
 
             <div className="inline-flex bg-slate-200/60 p-1 rounded-full mb-4" role="tablist">
                 {(['all', 'unread'] as Filter[]).map((f) => (

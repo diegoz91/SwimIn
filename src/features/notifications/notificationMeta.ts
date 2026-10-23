@@ -19,11 +19,13 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'connection':
             return { icon: 'users', tone: 'bg-sky-100 text-sky-600', href: '/network' };
         case 'application':
-            return { icon: 'briefcase', tone: 'bg-amber-100 text-amber-700', href: '/jobs' };
+            return { icon: 'briefcase', tone: 'bg-amber-100 text-amber-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
         case 'hired':
             return { icon: 'sparkles', tone: 'bg-green-100 text-green-600', href: n.relatedId ? `/profile/${n.relatedId}` : '/jobs' };
         case 'endorsement':
             return { icon: 'star', tone: 'bg-amber-100 text-amber-600', href: '/profile' };
+        case 'sos':
+            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
         case 'rejected':
             return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: '/jobs' };
         default:

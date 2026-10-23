@@ -1,23 +1,75 @@
 {
+  "id": "/",
   "name": "SwimIn – Il network del nuoto",
   "short_name": "SwimIn",
-  "description": "Il network professionale per istruttori, assistenti bagnanti, allenatori e piscine.",
+  "description": "Il social del nuoto: istruttori, assistenti bagnanti, allenatori, piscine e chi nuota per passione.",
   "lang": "it",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
-  "categories": ["social", "business", "sports"],
+  "background_color": "#F2F8FA",
+  "theme_color": "#0E6A97",
+  "categories": [
+    "social",
+    "business",
+    "sports"
+  ],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "Bacheca lavoro", "url": "/jobs", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Messaggi", "url": "/messages", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "Lavoro",
+      "url": "/jobs",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messaggi",
+      "url": "/messages",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Notifiche",
+      "url": "/notifiche",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
