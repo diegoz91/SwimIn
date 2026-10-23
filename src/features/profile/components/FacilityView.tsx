@@ -14,7 +14,6 @@ import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
 import { ProfileEditModal } from './ProfileEditModal';
 import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
 import { PoolSection } from './PoolSection';
-import { provinceName } from '@/data/italy';
 import { Field } from '@/components/form/Field';
 import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
 
@@ -338,7 +337,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-500">
                             <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                                 <Icon type="location" className="w-4 h-4 text-slate-400" />
-                                {city}{province ? `, ${provinceName(province) || province}` : ''}
+                                {city}{province ? ` (${province.toUpperCase()})` : ''}
                             </span>
                             {facility.phone && (
                                 <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 text-corsia-700 hover:underline">
@@ -353,7 +352,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <span className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 text-blue-700">
                                 <Icon type="users" className="w-4 h-4" />
                                 {/* 💡 Stampa il counter dei veri Followers */}
-                                {followersCount} {isLegacyStructure ? 'Collegamenti' : 'Followers'}
+                                {followersCount} {isLegacyStructure ? (followersCount === 1 ? 'collegamento' : 'collegamenti') : 'follower'}
                             </span>
                         </div>
                     </div>

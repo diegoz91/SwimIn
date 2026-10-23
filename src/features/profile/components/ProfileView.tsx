@@ -20,7 +20,6 @@ import { FacilityFormModal } from './FacilityFormModal';
 import { CompletionRing } from './CompletionRing';
 import { PoolSection } from './PoolSection';
 import { certCategoryLabel, employmentLabel } from '@/data/swimming';
-import { provinceName } from '@/data/italy';
 import { experiencePeriod, formatDate, formatDuration, sortExperiences, totalExperienceMonths } from '@/utils/dates';
 import { certificationStatus } from '@/utils/certifications';
 
@@ -435,7 +434,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 text-sm font-medium">
                       <span className="flex items-center gap-1.5">
                           <Icon type="location" className="w-4 h-4" />
-                          {user.city ? `${user.city}${user.province ? `, ${provinceName(user.province) || user.province}` : ''}` : isOwnProfile ? 'Aggiungi la città' : 'Località non indicata'}
+                          {user.city ? `${user.city}${user.province ? ` (${user.province.toUpperCase()})` : ''}` : isOwnProfile ? 'Aggiungi la città' : 'Località non indicata'}
                       </span>
                       {experienceMonths >= 12 && (
                           <span className="flex items-center gap-1.5"><Icon type="briefcase" className="w-4 h-4" /> {formatDuration(Math.floor(experienceMonths / 12) * 12)} di esperienza</span>
