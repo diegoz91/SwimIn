@@ -18,9 +18,11 @@ import { fileURLToPath } from 'node:url';
 import { parseIstatRows, readCsv, readXlsx, buildAnagrafica } from './istat.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+// L'XLSX è il "link permanente" che ISTAT aggiorna per primo (fusioni di comuni,
+// nuove province sarde dal 2026); il CSV resta come riserva.
 const SOURCES = [
-    'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv',
     'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx',
+    'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv',
 ];
 
 async function load() {
