@@ -12,6 +12,7 @@ import type {
     Application, 
     Connection,
     Review,
+    Certification,
     Like,
     Comment,
     Message,
@@ -241,6 +242,19 @@ export const databaseService = {
     },
     async adminSearchUsers(query: string) {
         return await callApi<AdminUserRow[]>('adminSearchUsers', { query });
+    },
+
+    async requestCertVerification(certId: string, fileId: string) {
+        return await callApi<Certification>('requestCertVerification', { certId, fileId });
+    },
+    async adminListPendingCerts() {
+        return await callApi<{ profileId: string; name: string; city: string; cert: Certification }[]>('adminListPendingCerts');
+    },
+    async adminGetCertDocument(profileId: string, certId: string) {
+        return await callApi<{ mimeType: string; name: string; dataUrl: string }>('adminGetCertDocument', { profileId, certId });
+    },
+    async adminVerifyCert(profileId: string, certId: string, approve: boolean, note = '') {
+        return await callApi<Certification>('adminVerifyCert', { profileId, certId, approve, note });
     },
 
     async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {

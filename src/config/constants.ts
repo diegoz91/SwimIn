@@ -36,6 +36,7 @@ export interface AppwriteConfig {
     buckets: {
         avatars: string;
         postMedia: string;
+        certificates: string;
     };
 }
 
@@ -68,6 +69,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
     buckets: {
         avatars: 'avatars',
         postMedia: 'post_media',
+        certificates: 'certificates',
     }
 };
 

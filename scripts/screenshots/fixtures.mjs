@@ -58,8 +58,8 @@ const profiles = [
             exp('Istruttrice estiva', 'Camp Nuoto Lago di Como', 'Estati 2015 e 2016', ''),
         ],
         certificationsList: [
-            cert('Istruttore di nuoto 2° livello', 'FIN – Federazione Italiana Nuoto', 'istruzione', undefined, { issueDate: '2019-05-12', credentialId: 'FIN-IS2-48211' }),
-            cert('Brevetto Assistente Bagnanti', 'Società Nazionale di Salvamento', 'salvamento', new Date(now + 20 * 86400000).toISOString().slice(0, 10), { issueDate: '2023-11-14' }),
+            cert('Istruttore di nuoto 2° livello', 'FIN – Federazione Italiana Nuoto', 'istruzione', undefined, { id: 'c_fin2', issueDate: '2019-05-12', credentialId: 'FIN-IS2-48211', verified: true, verificationStatus: 'approved' }),
+            cert('Brevetto Assistente Bagnanti', 'Società Nazionale di Salvamento', 'salvamento', new Date(now + 20 * 86400000).toISOString().slice(0, 10), { id: 'c_snsb', issueDate: '2023-11-14', verificationStatus: 'pending' }),
             cert('BLSD esecutore', 'IRC', 'Primo soccorso', '2026-03-01'),
         ],
         managedFacilities: [],

@@ -7,6 +7,7 @@ import type { UserProfile, StructureProfile, Experience, Certification, Facility
 import { Icon } from '@/components/ui/Icon';
 import { ExperienceModal } from './ExperienceModal';
 import { CertificationModal } from './CertificationModal';
+import { CertVerifyModal } from './CertVerifyModal';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
@@ -57,6 +58,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const [experienceModal, setExperienceModal] = useState<{isOpen: boolean, mode: 'add'|'edit', experience?: Experience, index?: number}>({ isOpen: false, mode: 'add' });
     const [certificationModal, setCertificationModal] = useState<{isOpen: boolean, mode: 'add'|'edit', certification?: Certification, index?: number}>({ isOpen: false, mode: 'add' });
 
+    const [verifyCert, setVerifyCert] = useState<Certification | null>(null);
+
     // STATI PER PAGINE AZIENDALI
     const [managedFacilities, setManagedFacilities] = useState<Facility[]>([]);
     const [isFacilityModalOpen, setIsFacilityModalOpen] = useState(false);
@@ -75,6 +78,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const sortedExperiences = useMemo(() => sortExperiences(experiences.map((e, index) => ({ ...e, index }))), [experiences]);
     const experienceMonths = totalExperienceMonths(experiences);
     const certifications = profUser ? safeParse<Certification>(profUser.certificationsList) : [];
+    const verifiedCerts = certifications.filter((c) => c.verified).length;
 
     /** Passi per completare il profilo: punteggio e cosa manca ancora. */
     const completionSteps = useMemo(() => {
@@ -447,7 +451,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div className="mt-4 sm:mt-6">
                   <div className="flex items-center gap-3 mb-1">
-                      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{displayName}</h1>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                        {displayName}
+                        {verifiedCerts > 0 && (
+                          <span title={verifiedCerts === 1 ? '1 brevetto verificato da SwimIn' : `${verifiedCerts} brevetti verificati da SwimIn`} className="inline-flex text-corsia-600">
+                            <Icon type="shield" className="w-6 h-6" />
+                            <span className="sr-only">Brevetti verificati</span>
+                          </span>
+                        )}
+                      </h1>
                       {user.isOnline && (
                           <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-sm border border-green-200 animate-in zoom-in" title="L'utente è attualmente online su SwimIn">
                               <span className="relative flex h-2.5 w-2.5">
@@ -618,7 +630,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                 <li key={index} className="flex flex-col p-5 border border-slate-200 rounded-2xl bg-white hover:border-corsia-200 transition-colors">
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0">
-                                            <h3 className="font-bold leading-tight text-abisso">{cert.name}</h3>
+                                            <h3 className="font-bold leading-tight text-abisso flex items-center gap-1.5">
+                                                {cert.name}
+                                                {cert.verified && (
+                                                    <span title="Brevetto verificato da SwimIn" className="inline-flex text-corsia-600"><Icon type="shield" className="w-4 h-4" /><span className="sr-only">Verificato</span></span>
+                                                )}
+                                            </h3>
                                             <p className="text-sm text-slate-600 mt-0.5">{cert.issuer}</p>
                                             {(cert.issueDate || cert.credentialId) && (
                                                 <p className="text-xs text-slate-500 mt-1">
@@ -640,7 +657,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                     <div className="flex flex-wrap items-center gap-2 mt-4">
                                         {cert.category && <span className="text-xs font-semibold text-corsia-800 bg-corsia-50 px-2 py-1 rounded-md">{certCategoryLabel(cert.category)}</span>}
                                         <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${badge.cls}`}>{badge.text}</span>
+                                        {cert.verified ? (
+                                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-corsia-600 text-white inline-flex items-center gap-1"><Icon type="shield" className="w-3.5 h-3.5" /> Verificato</span>
+                                        ) : cert.verificationStatus === 'pending' ? (
+                                            <span className="text-xs font-semibold px-2 py-1 rounded-md border border-corsia-200 bg-corsia-50 text-corsia-800">Verifica in corso</span>
+                                        ) : null}
                                     </div>
+                                    {isOwnProfile && !cert.verified && cert.verificationStatus === 'rejected' && (
+                                        <p className="mt-3 text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                            <strong>Verifica non riuscita.</strong> {cert.verificationNote}
+                                        </p>
+                                    )}
+                                    {isOwnProfile && !cert.verified && cert.verificationStatus !== 'pending' && cert.id && (
+                                        <button
+                                            type="button"
+                                            data-html2canvas-ignore="true"
+                                            onClick={() => setVerifyCert(cert)}
+                                            className="mt-3 self-start text-sm font-semibold text-corsia-700 hover:text-corsia-800 inline-flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                        >
+                                            <Icon type="shield" className="w-4 h-4" />
+                                            {cert.verificationStatus === 'rejected' ? 'Invia un nuovo documento' : 'Richiedi la verifica'}
+                                        </button>
+                                    )}
                                 </li>
                             )})}
                         </ul>
@@ -671,6 +709,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         certification={certificationModal.certification}
         mode={certificationModal.mode}
       />
+      {isOwnProfile && isProfessional && (
+        <CertVerifyModal
+          open={!!verifyCert}
+          cert={verifyCert ?? undefined}
+          userId={user.userId || user.$id}
+          onClose={() => setVerifyCert(null)}
+          onDone={(p) => onUpdateProfile?.(p as UserProfile)}
+        />
+      )}
       {isOwnProfile && (
         <ProfileEditModal open={isEditingProfile} profile={user} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p)} />
       )}

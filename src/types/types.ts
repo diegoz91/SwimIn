@@ -21,6 +21,14 @@ export interface Certification {
   expiry?: string;
   /** Numero del brevetto o della tessera. */
   credentialId?: string;
+  /** Id stabile assegnato dal server. */
+  id?: string;
+  /** Campi scritti solo dal server (verifica da parte di SwimIn). */
+  documentFileId?: string;
+  verificationStatus?: 'pending' | 'approved' | 'rejected';
+  verified?: boolean;
+  verifiedAt?: string;
+  verificationNote?: string;
 }
 
 export interface Experience {
