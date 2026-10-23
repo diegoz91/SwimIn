@@ -8,6 +8,7 @@ import '@fontsource/barlow-condensed/800.css';
 import '@/styles/globals.css';
 import SwimInApp from './App';
 import { missingEnvVars } from '@/config/constants';
+import { registerServiceWorker } from '@/services/push';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -36,3 +37,6 @@ ReactDOM.createRoot(rootElement).render(
     {missingEnvVars.length > 0 ? <ConfigError vars={missingEnvVars} /> : <SwimInApp />}
   </React.StrictMode>
 );
+
+// Notifiche push e funzionamento senza rete (solo nella versione pubblicata).
+registerServiceWorker();

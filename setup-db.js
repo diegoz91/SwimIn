@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client, Functions, Permission, Query, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
+import { generateVapidKeys } from './functions/api/src/webpush.js';
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
@@ -93,6 +94,7 @@ const schema = [
             // Moderazione e verifiche
             bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
             str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
+            str('notificationPrefs', 1000), // scelte push/email per categoria (JSON), scritte dalla Function
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -206,6 +208,15 @@ const schema = [
         id: 'private_info', name: 'Private info', permissions: SERVER_ONLY,
         attributes: [str('phone', 30)],
         indexes: [],
+    },
+    {
+        // Dispositivi registrati per le notifiche push: solo la Function li legge e li scrive.
+        id: 'push_subscriptions', name: 'Push subscriptions', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('endpoint', 1000, { required: true }),
+            str('p256dh', 100, { required: true }), str('auth', 50, { required: true }), str('userAgent', 255),
+        ],
+        indexes: [idx('by_user', ['userId'])],
     },
     {
         id: 'client_errors', name: 'Client errors', permissions: SERVER_ONLY,
@@ -479,7 +490,8 @@ async function deployFunction() {
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',
         // users.write: eliminazione account; files.write: pulizia dei file dell'account eliminato.
-        scopes: ['databases.read', 'tables.read', 'rows.read', 'rows.write', 'users.read', 'users.write', 'files.read', 'files.write'],
+        // messages.write: email di notifica tramite Appwrite Messaging.
+        scopes: ['databases.read', 'tables.read', 'rows.read', 'rows.write', 'users.read', 'users.write', 'files.read', 'files.write', 'messages.write'],
         logging: true,
         enabled: true,
     };
@@ -491,6 +503,8 @@ async function deployFunction() {
         await functions.update(settings);
         console.log('   🔄 Impostazioni aggiornate');
     }
+
+    await setupFunctionVariables();
 
     // Impacchetta functions/api (senza node_modules) e la carica come nuova versione.
     const tmp = mkdtempSync(path.join(tmpdir(), 'swimwaveup-'));
@@ -508,6 +522,41 @@ async function deployFunction() {
     } finally {
         rmSync(tmp, { recursive: true, force: true });
     }
+}
+
+/**
+ * Variabili della Function: chiavi VAPID per le push (generate una volta e poi
+ * conservate), indirizzo dell'app per i link nelle email, interruttore email.
+ */
+async function setupFunctionVariables() {
+    const { variables } = await functions.listVariables({ functionId: FUNCTION_ID });
+    const current = Object.fromEntries(variables.map((v) => [v.key, v]));
+    const set = async (key, value, secret = false) => {
+        if (value === undefined || value === null) return;
+        const v = current[key];
+        if (!v) await functions.createVariable({ functionId: FUNCTION_ID, key, value: String(value), secret });
+        else if (!v.secret && v.value !== String(value)) await functions.updateVariable({ functionId: FUNCTION_ID, variableId: v.$id, key, value: String(value), secret });
+    };
+    const env = process.env;
+    if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+        await set('VAPID_PUBLIC_KEY', env.VAPID_PUBLIC_KEY);
+        await set('VAPID_PRIVATE_KEY', env.VAPID_PRIVATE_KEY, true);
+    } else if (!current.VAPID_PUBLIC_KEY || !current.VAPID_PRIVATE_KEY) {
+        // Prima installazione: una coppia nuova. Cambiarla invaliderebbe i dispositivi già registrati.
+        const keys = generateVapidKeys();
+        if (current.VAPID_PUBLIC_KEY) await functions.deleteVariable({ functionId: FUNCTION_ID, variableId: current.VAPID_PUBLIC_KEY.$id });
+        if (current.VAPID_PRIVATE_KEY) await functions.deleteVariable({ functionId: FUNCTION_ID, variableId: current.VAPID_PRIVATE_KEY.$id });
+        delete current.VAPID_PUBLIC_KEY;
+        delete current.VAPID_PRIVATE_KEY;
+        await set('VAPID_PUBLIC_KEY', keys.publicKey);
+        await set('VAPID_PRIVATE_KEY', keys.privateKey, true);
+        console.log('   🔑 Chiavi per le notifiche push generate');
+    }
+    const appUrl = (env.APP_URL || '').replace(/\/$/, '');
+    await set('APP_URL', appUrl || undefined);
+    await set('VAPID_SUBJECT', env.VAPID_SUBJECT || (appUrl.startsWith('https://') ? appUrl : 'mailto:privacy@swimin.app'));
+    await set('EMAIL_NOTIFICATIONS', env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off');
+    console.log(`   ✉️  Email di notifica: ${env.EMAIL_NOTIFICATIONS === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);
 }
 
 async function main() {

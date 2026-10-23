@@ -13,6 +13,7 @@ import { useBlocks } from '@/context/BlocksContext';
 import { displayNameOf } from '@/utils/profile';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
 import { email as emailRule, passwordStrength } from '@/utils/validation';
+import { NotificationsTab } from './NotificationSettings';
 
 interface SettingsProps {
   currentUser: AuthenticatedUser;
@@ -20,10 +21,11 @@ interface SettingsProps {
   onLogout?: () => void;
 }
 
-type Tab = 'account' | 'security' | 'privacy' | 'about';
+type Tab = 'account' | 'notifications' | 'security' | 'privacy' | 'about';
 
 const MENU: { id: Tab; label: string; icon: IconType }[] = [
   { id: 'account', label: 'Account', icon: 'user' },
+  { id: 'notifications', label: 'Notifiche', icon: 'bell' },
   { id: 'security', label: 'Password e accesso', icon: 'lock-closed' },
   { id: 'privacy', label: 'Privacy e dati', icon: 'shield' },
   { id: 'about', label: 'Info e legale', icon: 'info' },
@@ -42,7 +44,8 @@ const Card: React.FC<{ title: string; description?: string; children: React.Reac
 );
 
 export const Settings: React.FC<SettingsProps> = ({ currentUser, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('account');
+  // Si può aprire direttamente una sezione: /profile?tab=impostazioni&sezione=notifiche (link nelle email).
+  const [activeTab, setActiveTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('sezione') === 'notifiche' ? 'notifications' : 'account'));
   const isProfessional = currentUser.userType === 'professional';
 
   const displayName = isProfessional
@@ -88,6 +91,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onLogout }) => 
 
         <div className="flex-1 space-y-4 min-w-0">
           {activeTab === 'account' && <AccountTab user={currentUser} />}
+          {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'security' && <SecurityTab user={currentUser} />}
           {activeTab === 'privacy' && <PrivacyTab user={currentUser} />}
           {activeTab === 'about' && <AboutTab onLogout={onLogout} />}

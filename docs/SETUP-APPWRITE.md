@@ -64,6 +64,24 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
 - In Appwrite Console → **Overview → Platforms** aggiungi una piattaforma Web con i domini usati
   (`localhost`, il dominio di produzione Vercel e `*.vercel.app` per le preview), altrimenti il browser blocca le richieste (CORS).
 
+## 7. Notifiche push ed email
+
+- **Push.** Non serve nessun servizio esterno. Al primo `npm run setup-db` vengono generate le chiavi VAPID e salvate come variabili della Function (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`).
+  - Non cancellarle: con chiavi nuove i dispositivi già registrati smettono di ricevere notifiche.
+  - Ogni utente le attiva da *Impostazioni › Notifiche*, oppure dall'invito nella pagina Notifiche.
+  - Su iPhone e iPad le push arrivano solo all'app aggiunta alla schermata Home (iOS 16.4 o successivo).
+- **Email.**
+  1. In Console → *Messaging → Providers* aggiungi un provider email (Brevo, Mailgun, SendGrid o SMTP) e verifica il dominio mittente.
+  2. In `.env.setup` imposta `EMAIL_NOTIFICATIONS=on` e `APP_URL=https://il-tuo-dominio` (serve per i link nelle email).
+  3. Rilancia `npm run setup-db`.
+
+  Senza provider le email restano spente e nelle impostazioni compare solo la colonna Push.
+- **Cosa si riceve.** I valori predefiniti, modificabili da ogni utente per categoria:
+  - push: tutte le categorie;
+  - email: collegamenti, candidature e lavoro, SOS, avvisi;
+  - messaggi: solo push.
+- **SOS.** Una sostituzione urgente avvisa i professionisti della stessa provincia che hanno indicato disponibilità per quel giorno e quella fascia, al massimo 100 persone.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

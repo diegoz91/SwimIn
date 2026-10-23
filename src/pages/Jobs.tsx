@@ -62,12 +62,15 @@ const Jobs: React.FC = () => {
 
     // 💡 INTERCETTAZIONE REDIRECT DA PROFILO AZIENDALE
     useEffect(() => {
-        if (location.state && location.state.selectedJobId) {
-            handleSelectJob(location.state.selectedJobId);
+        // Annuncio da aprire: dal profilo aziendale (state) o da una notifica (?annuncio=).
+        const fromLink = new URLSearchParams(location.search).get('annuncio');
+        const jobId = location.state?.selectedJobId || fromLink;
+        if (jobId) {
+            handleSelectJob(jobId);
             // Pulisce la history per evitare re-aperture al refresh
-            window.history.replaceState({}, document.title);
+            window.history.replaceState({}, document.title, location.pathname);
         }
-    }, [location.state]);
+    }, [location.state, location.search]);
 
     const handleSelectJob = async (jobId: string) => {
         try {

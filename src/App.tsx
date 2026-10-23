@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { SavedProvider } from '@/context/SavedContext';
 import { BlocksProvider } from '@/context/BlocksContext';
 import { ErrorReporter } from '@/components/common/ErrorReporter';
+import { PushBridge } from '@/components/common/PushBridge';
 
 // Layout & Common
 import Header from '@/components/layout/Header';
@@ -80,6 +81,7 @@ const AppContent: React.FC = () => {
         Vai al contenuto
       </a>
 
+      <PushBridge />
       {showChrome && <Header />}
 
       <main
