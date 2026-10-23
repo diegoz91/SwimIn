@@ -16,6 +16,8 @@ import type {
     Certification,
     Like,
     CommentLike,
+    Follow,
+    PollVote,
     Comment,
     Message,
     EnrichedPost,
@@ -487,13 +489,53 @@ export const databaseService = {
     // 🌊 FEED E POSTS
     // ==========================================
     /** Crea un post (lato server: l'autore è sempre l'utente che chiama). */
-    async createPost(postData: Pick<Post, 'content' | 'postType'> & Partial<Pick<Post, 'media' | 'category'>>) {
+    async createPost(postData: Pick<Post, 'content' | 'postType'> & Partial<Pick<Post, 'media' | 'category'>> & { poll?: { options: string[]; days: number } | null }) {
         return await callApi<Post>('createPost', {
             content: postData.content,
             media: postData.media || [],
             postType: postData.postType,
             category: postData.category,
+            poll: postData.poll || null,
         });
+    },
+
+    // ---------------- HASHTAG, SONDAGGI, SEGUI ----------------
+    async votePoll(postId: string, option: number | null) {
+        return await callApi<{ myVote: number | null; counts: number[] }>('votePoll', { postId, option });
+    },
+    async getTrends() {
+        return await callApi<{ tag: string; posts: number }[]>('getTrends');
+    },
+    async toggleFollow(profileId: string) {
+        return await callApi<{ following: boolean; followersCount: number }>('toggleFollow', { profileId });
+    },
+    async isFollowing(followerId: string, followeeId: string) {
+        const res = await databases.listDocuments<Follow>(databaseId, collections.follows, [Query.equal('followerId', followerId), Query.equal('followeeId', followeeId), Query.limit(1)]);
+        return res.total > 0;
+    },
+    /** Chi seguo (fino a 100): i loro post entrano nel mio feed. */
+    async getFollowingIds(userId: string) {
+        const res = await databases.listDocuments<Follow>(databaseId, collections.follows, [Query.equal('followerId', userId), Query.limit(100)]);
+        return res.documents.map((f) => f.followeeId);
+    },
+    async getFollowers(profileId: string) {
+        const res = await databases.listDocuments<Follow>(databaseId, collections.follows, [Query.equal('followeeId', profileId), Query.orderDesc('$createdAt'), Query.limit(100)]);
+        return this.getProfilesByIds(res.documents.map((f) => f.followerId));
+    },
+    async getPostsByHashtag(tag: string, currentUserId: string, limit = 30) {
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [Query.contains('hashtags', [tag.toLowerCase()]), Query.orderDesc('$createdAt'), Query.limit(limit)]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+    /** Persone e strutture da menzionare: prima i collegamenti, poi gli altri. */
+    async searchMentionCandidates(term: string, connections: string[] = []) {
+        const t = term.trim();
+        if (t.length < 1) return (await this.getProfilesByIds(connections.slice(0, 8))).slice(0, 8);
+        const res = await databases.listDocuments<Profile>(databaseId, collections.profiles, [
+            Query.or([Query.startsWith('firstName', t), Query.startsWith('lastName', t), Query.startsWith('structureName', t), Query.contains('firstName', t), Query.contains('structureName', t)]),
+            Query.limit(20),
+        ]);
+        const mine = new Set(connections);
+        return res.documents.filter((p) => !p.suspended).sort((a, b) => Number(mine.has(b.$id)) - Number(mine.has(a.$id))).slice(0, 8);
     },
 
     /**
@@ -502,10 +544,10 @@ export const databaseService = {
      * - Solo in prima pagina: post di altri che un mio collegamento ha consigliato (like).
      * - Senza collegamenti: post più recenti di tutta la rete, per scoprire persone.
      */
-    async getFeed(currentUserId: string, userConnections: string[], limit = 20, offset = 0): Promise<EnrichedPost[]> {
-        // Appwrite accetta al massimo 100 valori in un filtro equal.
-        const authors = [currentUserId, ...userConnections].slice(0, 100);
-        const hasNetwork = userConnections.length > 0;
+    async getFeed(currentUserId: string, userConnections: string[], limit = 20, offset = 0, following: string[] = []): Promise<EnrichedPost[]> {
+        // Appwrite accetta al massimo 100 valori in un filtro equal. Nel feed: io, i collegamenti e chi seguo.
+        const authors = [...new Set([currentUserId, ...userConnections, ...following])].slice(0, 100);
+        const hasNetwork = authors.length > 1;
 
         const response = await databases.listDocuments<Post>(databaseId, collections.posts, [
             ...(hasNetwork ? [Query.equal('authorId', authors)] : []),
@@ -563,7 +605,15 @@ export const databaseService = {
                 Query.limit(100),
             ]);
             const mine = new Map(res.documents.map((l) => [l.postId, l.reaction || 'consiglio']));
-            return posts.map((p) => ({ ...p, likedByMe: mine.has(p.$id), myReaction: mine.get(p.$id) || null }));
+            // Voti ai sondaggi: ognuno legge solo i propri.
+            const pollIds = posts.filter((p) => (p.pollOptions || []).length > 0).map((p) => p.$id);
+            const votes = pollIds.length
+                ? new Map(
+                      (await databases.listDocuments<PollVote>(databaseId, collections.poll_votes, [Query.equal('userId', userId), Query.equal('postId', pollIds.slice(0, 100)), Query.limit(100)]).catch(() => ({ documents: [] as PollVote[] })))
+                          .documents.map((v) => [v.postId, v.option])
+                  )
+                : new Map<string, number>();
+            return posts.map((p) => ({ ...p, likedByMe: mine.has(p.$id), myReaction: mine.get(p.$id) || null, myVote: votes.has(p.$id) ? votes.get(p.$id)! : null }));
         } catch (error) {
             console.warn('Stato dei like non disponibile:', error);
             return posts;

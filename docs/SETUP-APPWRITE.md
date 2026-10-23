@@ -134,7 +134,8 @@ I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rila
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
 | push_subscriptions, blocks, client_errors, profile_views, subscriptions | solo Function | solo Function | solo Function |
-| comment_likes | utenti loggati | solo Function | solo Function |
+| comment_likes, follows | utenti loggati | solo Function | solo Function |
+| poll_votes | solo chi ha votato (permesso sulla riga) | solo Function | solo Function |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |
 | comments, likes | utenti loggati | solo Function | autore (commenti) |

@@ -102,9 +102,14 @@ const profiles = [
 const posts = [
     doc('posts', 'p1', {
         authorId: 'u_marco', authorType: 'professional', postType: 'text', visibility: 'public', category: 'allenamento',
-        content: 'Serie della settimana per il gruppo master: 10x100 stile libero partenza 1\'40", con gli ultimi 25 in apnea controllata. Chi vuole la versione per principianti mi scriva.\n\nFeedback sulle vostre serie di soglia?',
+        content: 'Serie della settimana per il gruppo #master: 10x100 stile libero partenza 1\'40", con gli ultimi 25 in apnea controllata. Grazie a @[Sara Colombo](u_sara) per l\'idea!\n\nFeedback sulle vostre serie di #soglia?', hashtags: ['master', 'soglia'], mentions: ['u_sara'],
         likesCount: 24, commentsCount: 6, media: [], reactionCounts: JSON.stringify({ consiglio: 14, applauso: 7, interessante: 3 }), repostsCount: 2,
     }, 45),
+    doc('posts', 'p5', {
+        authorId: 'u_elena', authorType: 'professional', postType: 'text', visibility: 'public', category: 'tecnica',
+        content: 'Corsi bambini: preferite la lezione da 45 minuti o da un\'ora? #scuolanuoto', hashtags: ['scuolanuoto'],
+        likesCount: 5, commentsCount: 0, media: [], pollOptions: ['45 minuti', 'Un\'ora', 'Dipende dall\'età'], pollEndsAt: new Date(now + 2 * 86400000).toISOString(), pollCounts: JSON.stringify([12, 7, 9]),
+    }, 20),
     doc('posts', 'p4', {
         authorId: 'u_sara', authorType: 'professional', postType: 'repost', visibility: 'public', category: 'generale', repostOf: 'p2',
         content: 'Ottima notizia per chi lavora in zona: la vasca coperta del Lido è tra le più belle di Milano.',
@@ -196,6 +201,7 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    getTrends: () => [{ tag: 'master', posts: 8 }, { tag: 'salvamento', posts: 5 }, { tag: 'scuolanuoto', posts: 4 }, { tag: 'soglia', posts: 2 }],
     getBillingStatus: () => ({ premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'person', prices: { month: 499, year: 4790 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null }),
     listProfileViews: () => ({
         premium: false, locked: 5,

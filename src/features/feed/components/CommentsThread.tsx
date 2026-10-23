@@ -6,6 +6,7 @@ import { useBlocks } from '@/context/BlocksContext';
 import { databaseService } from '@/services/database';
 import { avatarOf } from '@/utils/profile';
 import { Comment, type EnrichedComment } from './Comment';
+import { MentionTextarea, fromEditable, type MentionMap } from '@/components/form/MentionTextarea';
 
 const PAGE = 3;
 
@@ -26,6 +27,7 @@ export const CommentsThread: React.FC<{
     const [comments, setComments] = useState<EnrichedComment[] | null>(null);
     const [visible, setVisible] = useState(PAGE);
     const [text, setText] = useState('');
+    const [mentions, setMentions] = useState<MentionMap>({});
     const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
     const [sending, setSending] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -47,12 +49,13 @@ export const CommentsThread: React.FC<{
 
     const submit = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        const content = text.trim();
+        const content = fromEditable(text.trim(), mentions);
         if (!user || !content || sending) return;
         setSending(true);
         try {
             await databaseService.createComment(postId, user.$id, content, replyTo?.id || null);
             setText('');
+            setMentions({});
             setReplyTo(null);
             onCountChange?.(1);
             await load();
@@ -95,16 +98,20 @@ export const CommentsThread: React.FC<{
                         )}
                         <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white focus-within:border-corsia-400 focus-within:ring-4 focus-within:ring-corsia-100 px-3 py-1.5">
                             <label htmlFor={`comment-${postId}`} className="sr-only">Scrivi un commento</label>
-                            <textarea
+                            <div className="flex-1 min-w-0">
+                            <MentionTextarea
                                 id={`comment-${postId}`}
-                                ref={inputRef}
+                                textareaRef={inputRef}
                                 value={text}
-                                onChange={(e) => setText(e.target.value.slice(0, 2000))}
+                                onChange={(v) => setText(v.slice(0, 2000))}
+                                mentions={mentions}
+                                onMentionsChange={setMentions}
                                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); } }}
                                 rows={Math.min(5, Math.max(1, text.split('\n').length))}
                                 placeholder={replyTo ? 'Scrivi una risposta…' : 'Aggiungi un commento…'}
-                                className="flex-1 resize-none bg-transparent py-1 text-sm outline-none"
+                                className="w-full resize-none bg-transparent py-1 text-sm outline-none"
                             />
+                            </div>
                             {text.trim() && (
                                 <button type="submit" disabled={sending} className="mb-0.5 px-3 py-1 rounded-full text-sm font-semibold bg-corsia-600 text-white hover:bg-corsia-700 disabled:opacity-60">
                                     {sending ? 'Invio…' : 'Pubblica'}

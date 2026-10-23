@@ -29,7 +29,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         setIsModalOpen(true);
     };
 
-    const handleCreatePost = async (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null) => {
+    const handleCreatePost = async (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null, poll?: { options: string[]; days: number } | null) => {
         const finalContent = content.trim();
 
         let pType: Post['postType'] = 'text';
@@ -44,6 +44,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
             media: serializeMedia(media),
             postType: pType,
             category,
+            poll: poll || null,
         });
         
         onPostCreated();

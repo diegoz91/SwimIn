@@ -5,11 +5,12 @@ import { PhotoUploader } from '@/features/profile/components/PhotoUploader';
 import { storageService } from '@/services/storage';
 import { useToast } from '@/context/ToastContext';
 import { initialsAvatar } from '@/utils/avatar';
+import { MentionTextarea, fromEditable, type MentionMap } from '@/components/form/MentionTextarea';
 
 interface CreatePostModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreatePost: (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null) => Promise<void> | void;
+    onCreatePost: (content: string, media: Media[], category: string, mode?: 'photo' | 'video' | 'video-analysis' | null, poll?: { options: string[]; days: number } | null) => Promise<void> | void;
     user: UserProfile | StructureProfile;
     initialMediaType?: 'photo' | 'video' | 'video-analysis' | null;
 }
@@ -28,6 +29,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     isOpen, onClose, onCreatePost, user, initialMediaType 
 }) => {
     const [content, setContent] = useState('');
+    const [mentions, setMentions] = useState<MentionMap>({});
+    // Sondaggio: domanda nel testo del post, da 2 a 4 opzioni, durata in giorni.
+    const [poll, setPoll] = useState<{ options: string[]; days: number } | null>(null);
     const [mediaFiles, setMediaFiles] = useState<{ file: File, preview: string, alt: string }[]>([]);
     // 💡 FIX VERCEL: Esteso il tipo per lo stato
     const [mediaType, setMediaType] = useState<'photo' | 'video' | 'video-analysis' | null>(initialMediaType || null);
@@ -63,7 +67,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const displayAvatar = avatarUrl || initialsAvatar(authorName || 'U');
 
     const handleSafeClose = () => {
-        if (content.trim() !== '' || mediaFiles.length > 0 || videoFile) {
+        if (content.trim() !== '' || mediaFiles.length > 0 || videoFile || poll) {
             if (window.confirm("Hai un post in sospeso. Sei sicuro di voler annullare?")) onClose();
         } else {
             onClose();
@@ -72,6 +76,11 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
     const handleCreatePost = async () => {
         if (!content.trim() && mediaFiles.length === 0 && !videoFile) return;
+        if (poll) {
+            const filled = poll.options.map((o) => o.trim()).filter(Boolean);
+            if (!content.trim()) return showToast('Scrivi la domanda del sondaggio nel testo del post.', 'error');
+            if (filled.length < 2) return showToast('Inserisci almeno due opzioni.', 'error');
+        }
         if (mediaType === 'video-analysis' && !videoFile) {
             showToast('Per una video-analisi carica un video.', 'error');
             return;
@@ -89,7 +98,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 });
                 uploadedMedia = await Promise.all(uploadPromises);
             }
-            await onCreatePost(content.trim(), uploadedMedia, selectedCategory, mediaType);
+            const pollData = poll ? { options: poll.options.map((o) => o.trim()).filter(Boolean), days: poll.days } : null;
+            await onCreatePost(fromEditable(content.trim(), mentions), uploadedMedia, selectedCategory, mediaType, pollData);
+            setContent(''); setMentions({}); setPoll(null);
             showToast('Post pubblicato con successo!', 'success');
         } catch (error) {
             console.error('Pubblicazione post:', error);
@@ -131,16 +142,55 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         </div>
                     </div>
 
-                    <textarea
-                        ref={textareaRef}
+                    <MentionTextarea
+                        textareaRef={textareaRef}
                         value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Condividi un pensiero, un traguardo o una novità..."
+                        onChange={setContent}
+                        mentions={mentions}
+                        onMentionsChange={setMentions}
+                        placeholder={poll ? 'Scrivi la domanda del sondaggio…' : 'Condividi un pensiero, un traguardo o una novità… Usa #argomenti e @ per menzionare.'}
                         className="w-full border-none focus:ring-0 text-lg sm:text-xl p-0 text-slate-800 placeholder-slate-400 resize-none outline-none min-h-[120px] bg-transparent"
                         disabled={uploading}
                         maxLength={4000}
                         aria-label="Testo del post"
                     />
+                    {poll && (
+                        <div className="mt-3 rounded-2xl border border-slate-200 p-4 space-y-2 animate-in fade-in duration-200">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-abisso">Opzioni del sondaggio</p>
+                                <button type="button" onClick={() => setPoll(null)} className="text-sm font-semibold text-slate-500 hover:text-galleggiante">Rimuovi</button>
+                            </div>
+                            {poll.options.map((o, i) => (
+                                <div key={i} className="flex items-center gap-2">
+                                    <input
+                                        value={o}
+                                        onChange={(e) => setPoll({ ...poll, options: poll.options.map((x, j) => (j === i ? e.target.value.slice(0, 80) : x)) })}
+                                        placeholder={`Opzione ${i + 1}`}
+                                        aria-label={`Opzione ${i + 1}`}
+                                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-sm"
+                                    />
+                                    {poll.options.length > 2 && (
+                                        <button type="button" onClick={() => setPoll({ ...poll, options: poll.options.filter((_, j) => j !== i) })} aria-label={`Togli l'opzione ${i + 1}`} className="p-2 text-slate-400 hover:text-galleggiante">
+                                            <Icon type="x" className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                {poll.options.length < 4 ? (
+                                    <button type="button" onClick={() => setPoll({ ...poll, options: [...poll.options, ''] })} className="text-sm font-semibold text-corsia-700 hover:underline">Aggiungi un'opzione</button>
+                                ) : <span />}
+                                <div className="flex items-center gap-1 text-sm" role="radiogroup" aria-label="Durata del sondaggio">
+                                    <span className="text-slate-500 mr-1">Durata</span>
+                                    {[1, 3, 7, 14].map((d) => (
+                                        <button key={d} type="button" role="radio" aria-checked={poll.days === d} onClick={() => setPoll({ ...poll, days: d })} className={`px-2.5 py-1 rounded-full font-semibold ${poll.days === d ? 'bg-corsia-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                            {d === 1 ? '1 giorno' : `${d} giorni`}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {content.length > 3500 && (
                         <p className="text-right text-xs text-slate-400">{content.length}/4000</p>
                     )}
@@ -191,6 +241,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         </button>
                         <button onClick={() => setMediaType(mediaType === 'video' ? null : 'video')} disabled={uploading} aria-label="Aggiungi video" title="Video" className={`p-2.5 rounded-full ${mediaType === 'video' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
                             <Icon type="video" className="w-6 h-6"/>
+                        </button>
+                        <button onClick={() => { setPoll(poll ? null : { options: ['', ''], days: 3 }); setMediaType(null); }} disabled={uploading} aria-label="Sondaggio" title="Sondaggio" aria-pressed={!!poll} className={`p-2.5 rounded-full ${poll ? 'bg-corsia-50 text-corsia-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+                            <Icon type="chart" className="w-6 h-6"/>
                         </button>
                         <button onClick={() => setMediaType(mediaType === 'video-analysis' ? null : 'video-analysis')} disabled={uploading} aria-label="Video-analisi tecnica" title="Video-analisi tecnica" className={`p-2.5 rounded-full ${mediaType === 'video-analysis' ? 'bg-purple-50 text-purple-600' : 'text-slate-500 hover:bg-slate-100'}`}>
                             <Icon type="camera" className="w-6 h-6"/>

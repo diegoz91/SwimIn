@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
+import { FollowButton } from '@/components/common/FollowButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
@@ -360,6 +361,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                                 </button>
                                 <ConnectButton profileId={facilityId} />
+                                <FollowButton profileId={facilityId} />
                             </div>
                         )}
                     </div>

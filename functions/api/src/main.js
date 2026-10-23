@@ -16,6 +16,7 @@ import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
 import { socialActions } from './social.js';
+import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -46,6 +47,8 @@ const C = {
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
   subscriptions: 'subscriptions',
+  follows: 'follows',
+  pollVotes: 'poll_votes',
   pushSubscriptions: 'push_subscriptions',
 };
 
@@ -258,6 +261,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
   const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log });
+  const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
@@ -270,6 +274,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...moderation,
     ...team,
     ...social,
+    ...content_,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
@@ -369,7 +374,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
      * Crea un post a nome dell'utente che chiama: autore e tipo di account sono
      * decisi qui, così nessuno può pubblicare a nome di altri.
      */
-    async createPost(me, { content = '', media = [], postType = 'text', category = 'generale' }) {
+    async createPost(me, { content = '', media = [], postType = 'text', category = 'generale', poll = null }) {
       content = typeof content === 'string' ? content.trim() : '';
       if (content.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
       if (!Array.isArray(media) || media.length > MAX_POST_MEDIA) fail(400, `Puoi allegare al massimo ${MAX_POST_MEDIA} file.`);
@@ -384,12 +389,20 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (!content && cleanMedia.length === 0) fail(400, 'Il post è vuoto.');
       if (!POST_TYPES.includes(postType)) postType = 'text';
       if (!POST_CATEGORIES.includes(category)) category = 'generale';
+      const pollData = cleanPoll(poll);
+      if (pollData?.error) fail(400, pollData.error);
+      if (pollData && !content) fail(400, 'Scrivi la domanda del sondaggio.');
 
       const author = await get(C.profiles, me);
-      return create(C.posts, {
+      const mentions = extractMentions(content);
+      const row = await create(C.posts, {
         authorId: me, authorType: author.userType, content, media: cleanMedia, postType, category,
         visibility: 'public', likesCount: 0, commentsCount: 0,
+        hashtags: extractHashtags(content), mentions,
+        ...(pollData ? { pollOptions: pollData.options, pollEndsAt: pollData.endsAt, pollCounts: JSON.stringify(pollData.options.map(() => 0)) } : {}),
       }, [Permission.read(Role.users())]); // modifiche ed eliminazione solo tramite la Function
+      await content_._notifyMentions(me, mentions, row.$id);
+      return row;
     },
 
     /** Compatibilità: il vecchio "consiglia" è la reazione predefinita. */
@@ -422,6 +435,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (parent && parent.authorId !== me && parent.authorId !== post.authorId) {
         await notify(parent.authorId, 'comment', `${name} ha risposto al tuo commento.`, postId);
       }
+      await content_._notifyMentions(me, extractMentions(content).filter((id) => id !== post.authorId), postId, 'in un commento');
       return comment;
     },
 
@@ -434,16 +448,20 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const text = typeof content === 'string' ? content.trim() : '';
       if (text.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
       if (!text && !(post.media || []).length) fail(400, 'Il post è vuoto.');
-      const patch = { content: text, editedAt: new Date().toISOString() };
+      const mentions = extractMentions(text);
+      const patch = { content: text, editedAt: new Date().toISOString(), hashtags: extractHashtags(text), mentions };
       if (category !== undefined) patch.category = POST_CATEGORIES.includes(category) ? category : 'generale';
-      return update(C.posts, postId, patch);
+      const updated = await update(C.posts, postId, patch);
+      // Solo chi viene menzionato per la prima volta riceve l'avviso.
+      await content_._notifyMentions(me, mentions.filter((id) => !(post.mentions || []).includes(id)), postId);
+      return updated;
     },
 
     async deletePost(me, { postId }) {
       postId = requireString(postId, 'postId', 36);
       const post = await get(C.posts, postId);
       if (post.authorId !== me && !ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
-      for (const tableId of [C.likes, C.comments, C.commentLikes]) {
+      for (const tableId of [C.likes, C.comments, C.commentLikes, C.pollVotes]) {
         await removeAll(tableId, [Query.equal('postId', postId)]);
       }
       await remove(C.posts, postId);
@@ -556,6 +574,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
       await removeAll(C.profileViews, [Query.equal('profileId', me)]);
       await billingApi._cancelAllFor(me);
+      await removeAll(C.pollVotes, [Query.equal('userId', me)]);
+      for (const f of await listAll(C.follows, [Query.equal('followerId', me)])) {
+        await remove(C.follows, f.$id);
+        const other = await find(C.profiles, f.followeeId);
+        if (other) await update(C.profiles, other.$id, { followersCount: Math.max(0, (other.followersCount || 1) - 1) });
+      }
+      await removeAll(C.follows, [Query.equal('followeeId', me)]);
       await removeAll(C.subscriptions, [Query.equal('userId', me)]);
       // Like e commenti lasciati su post altrui: i contatori vanno ricalcolati.
       for (const like of await listAll(C.likes, [Query.equal('userId', me)])) {

@@ -17,6 +17,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import { isEnthusiast } from '@/utils/profile';
 import { useContactInfo } from '@/hooks/useContactInfo';
 import { PeopleModal, type PersonRow } from '@/components/common/PeopleModal';
+import { FollowButton } from '@/components/common/FollowButton';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
@@ -114,6 +115,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     // Collegamenti e visite al profilo (elenchi in finestra).
     const [connectionsOpen, setConnectionsOpen] = useState(false);
+    const [followersOpen, setFollowersOpen] = useState(false);
+    const [followers, setFollowers] = useState(user.followersCount || 0);
+    useEffect(() => setFollowers(user.followersCount || 0), [user.followersCount]);
     const [viewsOpen, setViewsOpen] = useState(() => isOwnProfile && new URLSearchParams(window.location.search).get('visite') === '1');
     const [viewsCount, setViewsCount] = useState<number | null>(null);
     const profileKey = user.userId || user.$id;
@@ -490,6 +494,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   {!isOwnProfile && (
                     <div className="flex items-center gap-2 w-full sm:w-auto sm:justify-end" data-html2canvas-ignore="true">
                       <ConnectButton profileId={user.userId || user.$id} className="flex-1 sm:flex-none justify-center whitespace-nowrap" />
+                      <FollowButton profileId={user.userId || user.$id} onChange={(_, n) => setFollowers(n)} />
                       <button
                           onClick={() => onContact(user.userId || user.$id)}
                           className="flex-1 sm:flex-none justify-center whitespace-nowrap px-5 py-2.5 bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 font-semibold rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
@@ -542,6 +547,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       >
                           <Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}
                       </button>
+                      {followers > 0 && (
+                          <button
+                              type="button"
+                              onClick={() => setFollowersOpen(true)}
+                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                          >
+                              {followers === 1 ? '1 follower' : `${followers} follower`}
+                          </button>
+                      )}
                       {isOwnProfile && viewsCount !== null && (
                           <button
                               type="button"
@@ -784,6 +798,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         load={loadConnections}
         empty={isOwnProfile ? 'Non hai ancora collegamenti: trovali nella sezione Rete.' : 'Nessun collegamento.'}
         onClose={() => setConnectionsOpen(false)}
+      />
+      <PeopleModal
+        open={followersOpen}
+        title={isOwnProfile ? 'Chi ti segue' : `Chi segue ${displayName}`}
+        subtitle={followers === 1 ? '1 follower' : `${followers} follower`}
+        load={async () => (await databaseService.getFollowers(user.userId || user.$id)).filter((p) => !blocks.isHidden(p.$id)).map((p) => ({ id: p.$id, name: displayNameOf(p), headline: headlineOf(p), avatar: avatarOf(p) }))}
+        empty="Ancora nessun follower."
+        onClose={() => setFollowersOpen(false)}
       />
       {isOwnProfile && (
         <PeopleModal

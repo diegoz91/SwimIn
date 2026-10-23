@@ -17,6 +17,9 @@ import { ReactionButton } from './ReactionButton';
 import { CommentsThread } from './CommentsThread';
 import { FormModal } from '@/components/form/FormModal';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { RichText, cutText, plainText } from '@/utils/richText';
+import { PollView } from './PollView';
+import { MentionTextarea, fromEditable, toEditable, type MentionMap } from '@/components/form/MentionTextarea';
 import { isPremium } from '@/utils/premium';
 
 interface PostCardProps {
@@ -80,6 +83,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
     const { text: displayContent, media } = getPostContent(post);
     const [draft, setDraft] = useState(displayContent);
+    const [editMentions, setEditMentions] = useState<MentionMap>({});
     const isMine = !!user && post.authorId === user.$id;
 
     useEffect(() => {
@@ -208,7 +212,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
     };
 
     const handleSaveEdit = async () => {
-        const content = draft.trim();
+        const content = fromEditable(draft.trim(), editMentions);
         if (!content && media.length === 0) return;
         setIsBusy(true);
         try {
@@ -261,7 +265,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
     const catStyle = post.category ? CATEGORY_STYLES[post.category] : undefined;
     const isVideoAnalysis = post.postType === 'video-analysis' && media.length > 0;
     const isLong = displayContent.length > COLLAPSED_LENGTH;
-    const visibleText = isLong && !isExpanded ? `${displayContent.slice(0, COLLAPSED_LENGTH).trimEnd()}…` : displayContent;
+    const visibleText = isLong && !isExpanded ? cutText(displayContent, COLLAPSED_LENGTH) : displayContent;
     const wasEdited = !!post.editedAt;
     const openDetail = () => onSelectPost?.(post);
 
@@ -337,7 +341,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                                 )}
                                 {isMine && (
                                     <>
-                                        <MenuItem icon="pencil" label="Modifica" onClick={() => { setIsMenuOpen(false); setDraft(displayContent); setIsEditing(true); }} />
+                                        <MenuItem icon="pencil" label="Modifica" onClick={() => { setIsMenuOpen(false); const ed = toEditable(displayContent); setDraft(ed.text); setEditMentions(ed.map); setIsEditing(true); }} />
                                         <MenuItem icon="trash" label="Elimina" danger onClick={handleDelete} />
                                     </>
                                 )}
@@ -349,10 +353,12 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 {isEditing ? (
                     <div className="mb-3">
                         <label htmlFor={`edit-${post.$id}`} className="sr-only">Testo del post</label>
-                        <textarea
+                        <MentionTextarea
                             id={`edit-${post.$id}`}
                             value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
+                            onChange={setDraft}
+                            mentions={editMentions}
+                            onMentionsChange={setEditMentions}
                             maxLength={CONTENT_MAX_LENGTH}
                             rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-[15px]"
@@ -369,7 +375,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 ) : (
                     displayContent && (
                         <div className={media.length > 0 ? 'mb-3' : ''}>
-                            <p className="text-slate-800 whitespace-pre-wrap break-words leading-relaxed text-[15px]">{visibleText}</p>
+                            <p className="text-slate-800 whitespace-pre-wrap break-words leading-relaxed text-[15px]"><RichText text={visibleText} /></p>
                             {isLong && (
                                 <button onClick={() => setIsExpanded((v) => !v)} className="text-sm font-bold text-slate-500 hover:text-blue-600 mt-1">
                                     {isExpanded ? 'Mostra meno' : 'Altro'}
@@ -378,6 +384,8 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                         </div>
                     )
                 )}
+
+                {(post.pollOptions || []).length > 0 && <PollView post={post} />}
 
                 {post.repostOf && <EmbeddedOriginal postId={post.repostOf} />}
 
@@ -494,7 +502,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 <p className="text-xs text-slate-400 text-right">{thought.length}/3000</p>
                 <div className="rounded-xl border border-slate-200 p-3 bg-piastrella">
                     <p className="text-sm font-semibold text-abisso">{authorName}</p>
-                    <p className="text-sm text-slate-600 line-clamp-3 whitespace-pre-wrap">{displayContent || (media.length ? 'Post con foto o video' : '')}</p>
+                    <p className="text-sm text-slate-600 line-clamp-3 whitespace-pre-wrap">{plainText(displayContent) || (media.length ? 'Post con foto o video' : '')}</p>
                 </div>
             </FormModal>
 
@@ -591,7 +599,7 @@ const EmbeddedOriginal: React.FC<{ postId: string }> = ({ postId }) => {
                     <span className="block text-[11px] text-slate-400">{formatRelativeTime(original.$createdAt)}</span>
                 </span>
             </span>
-            {text && <span className="block px-4 pt-2 pb-3 text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">{text}</span>}
+            {text && <span className="block px-4 pt-2 pb-3 text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">{plainText(text)}</span>}
             {media[0] && media[0].type !== 'video' && <img src={media[0].url} alt={media[0].alt || ''} className="w-full max-h-72 object-cover" loading="lazy" />}
         </button>
     );

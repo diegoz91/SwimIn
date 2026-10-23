@@ -10,7 +10,7 @@ export type IconType =
   | 'thumb-up' | 'document' | 'bookmark' | 'check' | 'paper-plane' 
   | 'arrow-left' | 'check-circle' | 'trash' | 'pencil'
   | 'lock-closed' | 'alert-triangle' | 'shield' | 'user-minus' | 'chevron-right' | 'edit'
-  | 'play';
+  | 'play' | 'chart' | 'hashtag' | 'user-plus';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   type: IconType;
@@ -176,6 +176,15 @@ const ICON_MAP: Record<IconType, React.ReactNode> = {
   ),
   'play': (
     <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+  ),
+  'chart': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16M7 16V10m5 6V5m5 11v-4" />
+  ),
+  'hashtag': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5-3.9 19.5m-2.1-19.5-3.9 19.5" />
+  ),
+  'user-plus': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
   )
 };
 
