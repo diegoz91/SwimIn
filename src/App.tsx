@@ -41,6 +41,8 @@ const Saved = lazy(() => import('@/pages/Saved'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Structures = lazy(() => import('@/pages/Structures'));
+const Talent = lazy(() => import('@/pages/Talent'));
+const MyShifts = lazy(() => import('@/pages/MyShifts'));
 const Admin = lazy(() => import('@/pages/Admin'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
 const Cookies = lazy(() => import('@/pages/legal/Cookies'));
@@ -115,6 +117,8 @@ const AppContent: React.FC = () => {
               <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
               <Route path="/strutture" element={<ProtectedRoute><Structures /></ProtectedRoute>} />
+              <Route path="/talenti" element={<ProtectedRoute><Talent /></ProtectedRoute>} />
+              <Route path="/turni" element={<ProtectedRoute><MyShifts /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />

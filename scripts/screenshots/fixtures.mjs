@@ -189,5 +189,12 @@ export const collections = {
 export const apiResponses = {
     getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
     getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [] }),
+    listMyShifts: () => {
+        const day = (n) => new Date(now + n * 86400000).toISOString().slice(0, 10);
+        return [
+            { $id: 'sh1', structureId: 'u_lido', structureName: 'Piscina Lido di Milano', userId: ME, userName: 'Giulia Ferri', date: day(1), shiftTime: '07:00–13:00', role: 'Assistente bagnante', status: 'scheduled' },
+            { $id: 'sh2', structureId: 'u_lido', structureName: 'Piscina Lido di Milano', userId: ME, userName: 'Giulia Ferri', date: day(3), shiftTime: '16:00–20:00', role: 'Istruttrice', status: 'confirmed' },
+        ];
+    },
     getPushConfig: () => ({ publicKey: null, emailAvailable: false, devices: 0, prefs: null, categories: [] }),
 };

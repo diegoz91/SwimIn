@@ -43,6 +43,7 @@ export function targetUrl(type, relatedId) {
     case 'sos': return relatedId ? `/jobs?annuncio=${encodeURIComponent(relatedId)}` : '/jobs';
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';
+    case 'shift': return '/turni';
     default: return '/notifiche';
   }
 }
