@@ -700,6 +700,14 @@ export const databaseService = {
     // ==========================================
     // 🏢 FACILITIES
     // ==========================================
+    async getFacility(facilityId: string) {
+        try {
+            return await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, facilityId);
+        } catch (e) {
+            return null;
+        }
+    },
+
     /** Nuova pagina struttura: la crea il server, con chi chiama come amministratore. */
     async createFacility(data: Partial<Facility>, _adminId?: string) {
         return await callApi<Facility>('createFacility', data as Record<string, unknown>);
