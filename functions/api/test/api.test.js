@@ -78,6 +78,11 @@ assert.deepEqual(ownersOf(col('jobs').j1),['piscina']);
 const app=await api.applyForJob('anna',{jobId:'j1',coverLetter:'ciao'});
 assert.ok(app.$permissions.includes('read("user:piscina")')); assert.ok(!app.$permissions.some(p=>p.startsWith('update')));
 await rejects(api.applyForJob('anna',{jobId:'j1'}),409);
+{ col('jobs').jw={$id:'jw',structureId:'piscina',title:'Bagnino',isActive:true,candidates:[],$permissions:['update("user:piscina")']};
+  const aw=await api.applyForJob('bob',{jobId:'jw'}); assert.deepEqual(col('jobs').jw.candidates,['bob']);
+  await rejects(api.withdrawApplication('anna',{applicationId:aw.$id}),403);
+  assert.deepEqual(await api.withdrawApplication('bob',{applicationId:aw.$id}),{withdrawn:true});
+  assert.deepEqual(col('jobs').jw.candidates,[]); assert.equal(col('applications')[aw.$id],undefined); delete col('jobs').jw; }
 await rejects(api.applyForJob('piscina',{jobId:'j1'}),403);
 await rejects(api.updateApplicationStatus('eve',{applicationId:app.$id,status:'rejected'}),403);
 await rejects(api.updateApplicationStatus('anna',{applicationId:app.$id,status:'accepted'}),403);

@@ -328,6 +328,10 @@ export const databaseService = {
         return await callApi<{ push: number; email: boolean }>('sendTestPush');
     },
 
+    async withdrawApplication(applicationId: string) {
+        return await callApi<{ withdrawn: boolean }>('withdrawApplication', { applicationId });
+    },
+
     async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {
         return await callApi<{ reported: boolean; duplicate?: boolean }>('reportContent', report);
     },

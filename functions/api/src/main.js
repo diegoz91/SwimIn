@@ -709,6 +709,18 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       return application;
     },
 
+    /** Il candidato ritira la propria candidatura (non dopo l'assunzione). */
+    async withdrawApplication(me, { applicationId }) {
+      applicationId = requireString(applicationId, 'applicationId', 36);
+      const application = await get(C.applications, applicationId);
+      if (application.applicantId !== me) fail(403, 'Puoi ritirare solo le tue candidature.');
+      if (application.status === 'hired') fail(409, 'Sei già stato assunto per questa posizione.');
+      await remove(C.applications, applicationId);
+      const job = await find(C.jobs, application.jobId);
+      if (job) await update(C.jobs, job.$id, { candidates: removeFromArray(job.candidates, me) });
+      return { withdrawn: true };
+    },
+
     async updateApplicationStatus(me, { applicationId, status }) {
       applicationId = requireString(applicationId, 'applicationId', 36);
       if (!APPLICATION_STATUSES.includes(status) || status === 'hired') fail(400, 'Stato non valido.');
