@@ -52,7 +52,7 @@ const Events: React.FC = () => {
     const views: { key: View; label: string }[] = [
         { key: 'tutti', label: 'In programma' },
         { key: 'miei', label: counts.miei ? `A cui partecipi · ${counts.miei}` : 'A cui partecipi' },
-        { key: 'organizzati', label: counts.organizzati ? `Organizzati da te · ${counts.organizzati}` : 'Organizzati da te' },
+        { key: 'organizzati', label: counts.organizzati ? `Organizzati · ${counts.organizzati}` : 'Organizzati' },
     ];
 
     return (

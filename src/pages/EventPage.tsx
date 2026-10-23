@@ -101,7 +101,8 @@ const EventPage: React.FC = () => {
         }
     };
 
-    const where = event.isOnline ? 'Online' : [event.address, `${event.city}${event.province ? ` (${provinceName(event.province) || event.province})` : ''}`].filter(Boolean).join(', ');
+    const cityLine = event.province && provinceName(event.province) !== event.city ? `${event.city} (${event.province})` : event.city;
+    const where = event.isOnline ? 'Online' : [event.address, cityLine].filter(Boolean).join(', ');
 
     return (
         <div className="pt-4 max-w-3xl mx-auto w-full space-y-4">
