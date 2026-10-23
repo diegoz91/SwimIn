@@ -18,8 +18,10 @@ const doc = (collection, id, data, minutesAgo = 600) => ({
 
 export const ME = 'u_giulia';
 
-const exp = (role, facility, period, description) => JSON.stringify({ role, facility, period, description });
-const cert = (name, issuer, category, expiry) => JSON.stringify({ name, issuer, category, expiry });
+const exp = (role, facility, period, description, extra = {}) => JSON.stringify({ role, facility, period, description, ...extra });
+const cert = (name, issuer, category, expiry, extra = {}) => JSON.stringify({ name, issuer, category, expiry, ...extra });
+const DAYS = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+const allToday = ['mattina', 'pomeriggio', 'sera'].map((p) => `${['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][new Date(now).getDay()]}-${p}`);
 
 export const account = {
     $id: ME,
@@ -47,26 +49,29 @@ const profiles = [
         city: 'Milano', province: 'MI', isOnline: true, readReceipts: true, availableForEmergencies: true,
         bio: 'Insegno nuoto da otto anni, dai corsi neonatali alla preparazione agonistica giovanile. Mi interessano la didattica per bambini con disabilità e l\'analisi video della tecnica.',
         connections: ['u_marco', 'u_sara', 'u_lido'],
+        phone: '+39 333 123 4567', website: 'https://giuliaferri.example', languages: ['Italiano', 'Inglese', 'Spagnolo'],
+        availability: [...DAYS.slice(0, 5).map((d) => `${d}-pomeriggio`), 'sab-mattina'],
         skills: ['Scuola nuoto bambini', 'Acquaticità neonatale', 'Nuoto agonistico', 'Primo soccorso BLSD'],
         experienceList: [
-            exp('Istruttrice di nuoto', 'Piscina Lido di Milano', '2021 – oggi', 'Corsi bambini 4-10 anni e preagonistica.'),
-            exp('Assistente bagnante', 'Centro Sportivo Saini', '2017 – 2021', 'Sorveglianza vasca olimpionica, turni estivi.'),
+            exp('Istruttrice di nuoto', 'Piscina Lido di Milano', '', 'Corsi bambini 4-10 anni e preagonistica.', { startDate: '2021-09', current: true, employmentType: 'collaborazione', city: 'Milano' }),
+            exp('Assistente bagnante', 'Centro Sportivo Saini', '', 'Sorveglianza vasca olimpionica, turni estivi.', { startDate: '2017-06', endDate: '2021-08', employmentType: 'stagionale' }),
+            exp('Istruttrice estiva', 'Camp Nuoto Lago di Como', 'Estati 2015 e 2016', ''),
         ],
         certificationsList: [
-            cert('Istruttore di nuoto 2° livello', 'FIN – Federazione Italiana Nuoto', 'Didattica', '2027-06-30'),
-            cert('Brevetto Assistente Bagnanti', 'Società Nazionale di Salvamento', 'Salvamento', new Date(now + 20 * 86400000).toISOString().slice(0, 10)),
+            cert('Istruttore di nuoto 2° livello', 'FIN – Federazione Italiana Nuoto', 'istruzione', undefined, { issueDate: '2019-05-12', credentialId: 'FIN-IS2-48211' }),
+            cert('Brevetto Assistente Bagnanti', 'Società Nazionale di Salvamento', 'salvamento', new Date(now + 20 * 86400000).toISOString().slice(0, 10), { issueDate: '2023-11-14' }),
             cert('BLSD esecutore', 'IRC', 'Primo soccorso', '2026-03-01'),
         ],
         managedFacilities: [],
     }, 60 * 24 * 90),
     doc('profiles', 'u_marco', {
         userId: 'u_marco', userType: 'professional', email: 'marco@example.com', firstName: 'Marco', lastName: 'Bellini',
-        title: 'Allenatore squadra master', city: 'Monza', province: 'MB', isOnline: true, connections: [ME],
+        title: 'Allenatore squadra master', city: 'Monza', province: 'MB', isOnline: true, connections: [ME], availability: allToday,
         skills: ['Nuoto master', 'Preparazione atletica a secco'],
     }),
     doc('profiles', 'u_sara', {
         userId: 'u_sara', userType: 'professional', email: 'sara@example.com', firstName: 'Sara', lastName: 'Colombo',
-        title: 'Assistente bagnanti e istruttrice aquagym', city: 'Milano', province: 'MI', connections: [ME],
+        title: 'Assistente bagnanti e istruttrice aquagym', city: 'Milano', province: 'MI', connections: [ME], availability: allToday.slice(1),
     }),
     doc('profiles', 'u_luca', {
         userId: 'u_luca', userType: 'professional', email: 'luca@example.com', firstName: 'Luca', lastName: 'Rinaldi',
@@ -80,6 +85,8 @@ const profiles = [
         userId: 'u_lido', userType: 'structure', email: 'info@lido.example', structureName: 'Piscina Lido di Milano',
         structureType: 'Piscina comunale', city: 'Milano', province: 'MI', connections: [ME],
         bio: 'Vasca olimpionica scoperta, vasca coperta da 25 m e vasca didattica. Corsi per tutte le età.',
+        address: 'Piazza Lombardia 1', postalCode: '20131', phone: '02 1234567', website: 'https://piscinalido.example',
+        poolLength: 50, lanes: 8, poolSetting: 'entrambe', services: ['Scuola nuoto', 'Nuoto libero', 'Agonismo', 'Acquafitness', 'Corsi di salvamento'],
     }),
     doc('profiles', 'u_aquae', {
         userId: 'u_aquae', userType: 'structure', email: 'staff@aquae.example', structureName: 'Aquae Sport Center',

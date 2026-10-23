@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
 import { swimMatchScore } from '@/utils/swimMatch';
-import { jobDisplayTitle } from '@/utils/jobs';
+import { jobDisplayTitle, jobExpiryLabel } from '@/utils/jobs';
 
 interface JobCardProps {
     job: Job;
@@ -103,6 +103,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
                 <p className="text-xs text-slate-400 mt-4 font-medium flex items-center gap-1.5">
                     <Icon type="clock" className="w-3.5 h-3.5" />
                     Pubblicato {formatRelativeDate(job.$createdAt)}
+                    {!job.isSOS && jobExpiryLabel(job) && <span className="text-amber-700 font-semibold">· {jobExpiryLabel(job)}</span>}
                 </p>
             </div>
             

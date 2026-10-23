@@ -66,10 +66,22 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
         'zoom-in-95': 'zoomIn 0.2s ease-out',
+        lap: 'lap 2.4s cubic-bezier(.45,.05,.55,.95) infinite',
+        wake: 'wake 1.2s ease-in-out infinite',
       },
       keyframes: {
         // una bracciata lenta avanti e indietro nella corsia
         swim: { '0%, 100%': { transform: 'translateX(0)' }, '50%': { transform: 'translateX(14px)' } },
+        // una vasca: il nuotatore va da un bordo all'altro, gira e torna
+        lap: {
+          '0%': { left: '0%', transform: 'translateX(0) scaleX(1)' },
+          '46%': { left: '100%', transform: 'translateX(-100%) scaleX(1)' },
+          '50%': { left: '100%', transform: 'translateX(-100%) scaleX(-1)' },
+          '96%': { left: '0%', transform: 'translateX(0) scaleX(-1)' },
+          '100%': { left: '0%', transform: 'translateX(0) scaleX(1)' },
+        },
+        // scia che si allunga dietro al nuotatore
+        wake: { '0%, 100%': { opacity: '0.25' }, '50%': { opacity: '0.7' } },
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
         zoomIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
       },

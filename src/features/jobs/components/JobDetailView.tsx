@@ -31,7 +31,7 @@ const getSwimMatchAnalysis = (user: UserProfile, job: Job) => {
         catch { return String(c).toLowerCase(); }
     });
     const userExp = (user.experienceList || []).map(e => {
-        try { const p = JSON.parse(e as string); return `${p.role} ${p.description}`.toLowerCase(); } 
+        try { const p = JSON.parse(e as string); return `${p.role} ${p.description || ""}`.toLowerCase(); } 
         catch { return String(e).toLowerCase(); }
     }).join(" ");
 

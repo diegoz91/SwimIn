@@ -53,7 +53,7 @@ const getSwimMatchAnalysis = (user: UserProfile, job: Job) => {
         catch { return String(c).toLowerCase(); }
     });
     const userExp = (user.experienceList || []).map(e => {
-        try { const p = JSON.parse(e as string); return `${p.role} ${p.description}`.toLowerCase(); } 
+        try { const p = JSON.parse(e as string); return `${p.role} ${p.description || ""}`.toLowerCase(); } 
         catch { return String(e).toLowerCase(); }
     }).join(" ");
 
@@ -143,7 +143,7 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
         </div>
          <div className="mb-8">
             <label className="block text-sm font-semibold text-slate-700 mb-1">Numero di telefono</label>
-            <input type="tel" value={(user as any).phone || 'Non specificato'} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
+            <input type="tel" value={user.phone || 'Non indicato: aggiungilo dal profilo'} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-600 cursor-not-allowed outline-none" />
         </div>
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
              <button onClick={onBack} className="font-semibold text-slate-600 px-4 py-2.5 rounded-full hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Indietro</button>

@@ -10,19 +10,11 @@ import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { SUGGESTED_SKILLS } from '@/features/profile/components/SkillsSection';
 import { avatarOf } from '@/utils/profile';
 import type { Certification, StructureProfile, UserProfile } from '@/types/types';
-
-const ROLES = ['Istruttore di nuoto', 'Assistente bagnanti', 'Allenatore', 'Istruttore di acquafitness', 'Coordinatore scuola nuoto', 'Direttore tecnico', 'Studente / in formazione'];
-const STRUCTURE_TYPES = ['Piscina comunale', 'Centro sportivo', 'Società sportiva', 'Stabilimento balneare', 'Parco acquatico', 'Hotel / Spa'];
-
-/** Brevetti più diffusi, per l'inserimento rapido. */
-const COMMON_CERTS: Omit<Certification, 'expiry'>[] = [
-    { name: 'Brevetto Assistente Bagnanti', issuer: 'Società Nazionale di Salvamento', category: 'salvamento' },
-    { name: 'Brevetto Assistente Bagnanti', issuer: 'FIN – Sezione Salvamento', category: 'salvamento' },
-    { name: 'Istruttore di nuoto 1° livello', issuer: 'FIN – Federazione Italiana Nuoto', category: 'istruzione' },
-    { name: 'Istruttore di nuoto 2° livello', issuer: 'FIN – Federazione Italiana Nuoto', category: 'istruzione' },
-    { name: 'BLSD esecutore', issuer: 'IRC / American Heart Association', category: 'primo_soccorso' },
-    { name: 'Allenatore di nuoto', issuer: 'FIN – Federazione Italiana Nuoto', category: 'allenamento' },
-];
+import { COMMON_CERTS, POOL_SERVICES, PROFESSIONAL_ROLES as ROLES, STRUCTURE_TYPES } from '@/data/swimming';
+import { Field, ChoiceChips } from '@/components/form/Field';
+import { ProvinceSelect } from '@/components/form/Pickers';
+import { check, maxLength, minLength, province as provinceRule, required, notBefore, notAfter } from '@/utils/validation';
+import { addDaysISO, todayISO } from '@/utils/dates';
 
 const inputClass =
     'w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none';
@@ -49,6 +41,16 @@ const Onboarding: React.FC = () => {
     const [certs, setCerts] = useState<Certification[]>([]);
     const [skills, setSkills] = useState<string[]>(u?.skills || []);
     const [sos, setSos] = useState(!!u?.availableForEmergencies);
+    const [services, setServices] = useState<string[]>(u?.services || []);
+    const [showErrors, setShowErrors] = useState(false);
+
+    const step0Errors = {
+        title: isProfessional ? check(title, required('Indica cosa fai: compare sotto il tuo nome.'), minLength(2), maxLength(100)) : check(title, maxLength(80)),
+        city: check(city, required('Indica la città: serve per le offerte vicine.'), minLength(2), maxLength(80)),
+        province: check(province, required('Scegli la provincia.'), provinceRule),
+    };
+    const certErrors = certs.map((c) => check(c.expiry || '', notBefore(todayISO(), 'Questa data è già passata: il brevetto risulterebbe scaduto.'), notAfter(addDaysISO(todayISO(), 365 * 10), 'Controlla l’anno.')));
+    const stepErrors = step === 0 ? Object.values(step0Errors).filter(Boolean) : step === 1 && isProfessional ? certErrors.filter(Boolean) : [];
 
     const steps = useMemo(
         () => (isProfessional ? ['Chi sei', 'Brevetti', 'Competenze', 'Disponibilità'] : ['La struttura', 'Presentazione']),
@@ -58,15 +60,18 @@ const Onboarding: React.FC = () => {
     if (!user || !u) return null;
     const isLast = step === steps.length - 1;
 
-    const toggleCert = (c: Omit<Certification, 'expiry'>) => {
+    const toggleCert = (c: (typeof COMMON_CERTS)[number]) => {
         const key = `${c.name}|${c.issuer}`;
-        setCerts((prev) => (prev.some((x) => `${x.name}|${x.issuer}` === key) ? prev.filter((x) => `${x.name}|${x.issuer}` !== key) : [...prev, { ...c, expiry: '' }]));
+        const { years: _years, ...cert } = c;
+        setCerts((prev) => (prev.some((x) => `${x.name}|${x.issuer}` === key) ? prev.filter((x) => `${x.name}|${x.issuer}` !== key) : [...prev, { ...cert, expiry: '' }]));
     };
+    const setCertExpiry = (name: string, issuer: string, expiry: string) =>
+        setCerts((prev) => prev.map((x) => (x.name === name && x.issuer === issuer ? { ...x, expiry } : x)));
 
     const save = async () => {
         setSaving(true);
         try {
-            const base = { city: city.trim(), province: province.trim().toUpperCase().slice(0, 2), bio: bio.trim() };
+            const base = { city: city.trim().replace(/\s+/g, ' '), province: province.trim().toUpperCase(), bio: bio.trim() };
             const existing = (u.certificationsList || []) as string[];
             const data = isProfessional
                 ? {
@@ -74,9 +79,9 @@ const Onboarding: React.FC = () => {
                     title: title.trim(),
                     skills: skills.slice(0, 20),
                     availableForEmergencies: sos,
-                    certificationsList: [...existing, ...certs.map((c) => JSON.stringify(c))],
+                    certificationsList: [...existing, ...certs.map(({ expiry, ...c }) => JSON.stringify(expiry ? { ...c, expiry } : c))],
                 }
-                : { ...base, structureType: title.trim() };
+                : { ...base, structureType: title.trim(), services };
             await databaseService.updateProfile(user.$id, data);
             await refreshProfile();
             return true;
@@ -90,6 +95,8 @@ const Onboarding: React.FC = () => {
     };
 
     const next = async () => {
+        if (stepErrors.length) return setShowErrors(true);
+        setShowErrors(false);
         if (!isLast) return setStep((s) => s + 1);
         if (await save()) {
             showToast('Profilo pronto. Benvenuto in SwimIn!', 'success');
@@ -98,7 +105,8 @@ const Onboarding: React.FC = () => {
     };
 
     const skip = async () => {
-        await save();
+        // Salva solo ciò che è valido: i campi incompleti si sistemano dal profilo.
+        if (!Object.values(step0Errors).some(Boolean)) await save();
         navigate('/', { replace: true });
     };
 
@@ -123,6 +131,7 @@ const Onboarding: React.FC = () => {
                 </ol>
 
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-card p-6 sm:p-8">
+                    <div key={step} className="animate-in fade-in slide-in-from-right-4 duration-300 motion-reduce:animate-none">
                     {step === 0 && (
                         <div className="space-y-5">
                             <h1 className="text-4xl font-bold text-abisso leading-none">
@@ -146,24 +155,19 @@ const Onboarding: React.FC = () => {
                                     {isProfessional ? 'Una foto riconoscibile aiuta colleghi e strutture a fidarsi di te.' : 'Il logo rende riconoscibili i tuoi annunci.'}
                                 </p>
                             </div>
-                            <div>
-                                <label htmlFor="ob-title" className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                    {isProfessional ? 'Che cosa fai?' : 'Tipo di struttura'}
-                                </label>
-                                <input id="ob-title" list="ob-title-options" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder={isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={120} />
-                                <datalist id="ob-title-options">
-                                    {(isProfessional ? ROLES : STRUCTURE_TYPES).map((r) => <option key={r} value={r} />)}
-                                </datalist>
-                            </div>
-                            <div className="grid grid-cols-[1fr_6rem] gap-3">
-                                <div>
-                                    <label htmlFor="ob-city" className="block text-sm font-semibold text-slate-700 mb-1.5">Città</label>
-                                    <input id="ob-city" value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} placeholder="Es. Milano" autoComplete="address-level2" />
-                                </div>
-                                <div>
-                                    <label htmlFor="ob-prov" className="block text-sm font-semibold text-slate-700 mb-1.5">Provincia</label>
-                                    <input id="ob-prov" value={province} onChange={(e) => setProvince(e.target.value.toUpperCase())} className={`${inputClass} uppercase`} placeholder="MI" maxLength={2} />
-                                </div>
+                            <Field id="ob-title" label={isProfessional ? 'Che cosa fai?' : 'Tipo di struttura'} optional={!isProfessional} error={showErrors ? step0Errors.title : undefined}>
+                                <input list="ob-title-options" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={110} />
+                            </Field>
+                            <datalist id="ob-title-options">
+                                {(isProfessional ? ROLES : STRUCTURE_TYPES).map((r) => <option key={r} value={r} />)}
+                            </datalist>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <Field id="ob-city" label="Città" error={showErrors ? step0Errors.city : undefined}>
+                                    <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
+                                </Field>
+                                <Field id="ob-prov" label="Provincia" error={showErrors ? step0Errors.province : undefined}>
+                                    <ProvinceSelect value={province} onChange={setProvince} />
+                                </Field>
                             </div>
                         </div>
                     )}
@@ -171,7 +175,7 @@ const Onboarding: React.FC = () => {
                     {step === 1 && isProfessional && (
                         <div className="space-y-5">
                             <h1 className="text-4xl font-bold text-abisso leading-none">Quali brevetti hai?</h1>
-                            <p className="text-slate-600">Selezionali qui: le scadenze le aggiungi dal profilo, così ti avvisiamo prima che scadano.</p>
+                            <p className="text-slate-600">Selezionali qui e, per quelli che scadono, indica la data: ti avviseremo due mesi prima.</p>
                             <div className="grid sm:grid-cols-2 gap-3">
                                 {COMMON_CERTS.map((c) => {
                                     const selected = certs.some((x) => x.name === c.name && x.issuer === c.issuer);
@@ -192,6 +196,14 @@ const Onboarding: React.FC = () => {
                                     );
                                 })}
                             </div>
+                            {certs.filter((c) => COMMON_CERTS.find((k) => k.name === c.name && k.issuer === c.issuer)?.years).map((c) => {
+                                const idx = certs.indexOf(c);
+                                return (
+                                    <Field key={`${c.name}${c.issuer}-exp`} id={`ob-exp-${idx}`} label={`Scadenza: ${c.name}`} optional error={showErrors ? certErrors[idx] : undefined} className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <input type="date" value={c.expiry || ''} min={todayISO()} onChange={(e) => setCertExpiry(c.name, c.issuer, e.target.value)} />
+                                    </Field>
+                                );
+                            })}
                         </div>
                     )}
 
@@ -232,7 +244,7 @@ const Onboarding: React.FC = () => {
                                 className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition ${sos ? 'border-galleggiante bg-red-50' : 'border-slate-200'}`}
                             >
                                 <span className="text-left">
-                                    <span className="block font-semibold text-abisso">SOS Vasca</span>
+                                    <span className="block font-semibold text-abisso">Sostituzioni urgenti</span>
                                     <span className="block text-sm text-slate-500">{sos ? 'Riceverai le richieste urgenti' : 'Non riceverai richieste urgenti'}</span>
                                 </span>
                                 <span className={`relative inline-flex h-7 w-12 rounded-full transition ${sos ? 'bg-galleggiante' : 'bg-slate-300'}`}>
@@ -245,10 +257,16 @@ const Onboarding: React.FC = () => {
                     {step === 1 && !isProfessional && (
                         <div className="space-y-5">
                             <h1 className="text-4xl font-bold text-abisso leading-none">Racconta la tua piscina.</h1>
-                            <label htmlFor="ob-bio" className="block text-sm font-semibold text-slate-700">Vasche, corsi, servizi</label>
-                            <textarea id="ob-bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={6} maxLength={2500} className={inputClass} placeholder="Es. Vasca da 25 m con 6 corsie, vasca didattica, corsi dai 3 anni, squadra master…" />
+                            <div>
+                                <p className="text-sm font-semibold text-abisso mb-2">Attività proposte</p>
+                                <ChoiceChips label="Attività proposte" multiple options={POOL_SERVICES.map((x) => ({ value: x, label: x }))} value={services} onChange={setServices} />
+                            </div>
+                            <Field id="ob-bio" label="Presentazione" optional count={{ value: bio, max: 2500 }} hint="Vasche, orari, ambiente di lavoro: lunghezza e corsie le aggiungi poi dal profilo.">
+                                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={6} maxLength={2600} className={inputClass} placeholder="Es. Vasca da 25 m con 6 corsie, vasca didattica, corsi dai 3 anni, squadra master…" />
+                            </Field>
                         </div>
                     )}
+                    </div>
 
                     <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
                         <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || saving} className="px-4 py-2.5 font-semibold text-slate-600 disabled:invisible">

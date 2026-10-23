@@ -14,6 +14,15 @@ import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { initialsAvatar } from '@/utils/avatar';
+import { ProfileEditModal } from './ProfileEditModal';
+import { AvailabilitySection } from './AvailabilitySection';
+import { FacilityFormModal } from './FacilityFormModal';
+import { CompletionRing } from './CompletionRing';
+import { PoolSection } from './PoolSection';
+import { certCategoryLabel, employmentLabel } from '@/data/swimming';
+import { provinceName } from '@/data/italy';
+import { experiencePeriod, formatDate, formatDuration, sortExperiences, totalExperienceMonths } from '@/utils/dates';
+import { certificationStatus } from '@/utils/certifications';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -45,32 +54,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     // STATI PER PAGINE AZIENDALI
     const [managedFacilities, setManagedFacilities] = useState<Facility[]>([]);
     const [isFacilityModalOpen, setIsFacilityModalOpen] = useState(false);
-    const [isSubmittingFacility, setIsSubmittingFacility] = useState(false);
-    const [facilityForm, setFacilityForm] = useState({ name: '', type: '', city: '' });
-
-    // 💡 STATI PER LA MODIFICA DEL PROFILO PERSONALE
     const [isEditingProfile, setIsEditingProfile] = useState(false);
-    const [editProfileForm, setEditProfileForm] = useState({
-        firstName: profUser?.firstName || '',
-        lastName: profUser?.lastName || '',
-        title: profUser?.title || '',
-        city: user.city || '',
-        province: user.province || '',
-        bio: user.bio || '',
-    });
-
-    useEffect(() => {
-        if (profUser) {
-            setEditProfileForm({
-                firstName: profUser.firstName || '',
-                lastName: profUser.lastName || '',
-                title: profUser.title || '',
-                city: user.city || '',
-                province: user.province || '',
-                bio: user.bio || '',
-            });
-        }
-    }, [profUser, user]);
 
     const safeParse = <T,>(data: any): T[] => {
         if (!data || !Array.isArray(data)) return [];
@@ -81,6 +65,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     };
 
     const experiences = profUser ? safeParse<Experience>(profUser.experienceList) : [];
+    /** Esperienze ordinate per data, con l'indice originale per modificarle. */
+    const sortedExperiences = useMemo(() => sortExperiences(experiences.map((e, index) => ({ ...e, index }))), [experiences]);
+    const experienceMonths = totalExperienceMonths(experiences);
     const certifications = profUser ? safeParse<Certification>(profUser.certificationsList) : [];
 
     /** Passi per completare il profilo: punteggio e cosa manca ancora. */
@@ -94,7 +81,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             { label: 'Presentazione', done: !!profUser.bio, weight: 10 },
             { label: 'Esperienze', done: experiences.length > 0, weight: 20 },
             { label: 'Brevetti', done: certifications.length > 0, weight: 20 },
-            { label: 'Competenze', done: (profUser.skills || []).length > 0, weight: 10 },
+            { label: 'Competenze', done: (profUser.skills || []).length > 0, weight: 5 },
+            { label: 'Disponibilità', done: (profUser.availability || []).length > 0, weight: 5 },
         ];
     }, [profUser, experiences, certifications, isProfessional]);
     const completionScore = completionSteps.reduce((sum, s) => sum + (s.done ? s.weight : 0), 0);
@@ -105,8 +93,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             const duration = 3 * 1000;
             const end = Date.now() + duration;
             const frame = () => {
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#3b82f6', '#60a5fa', '#ffffff'] });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#3b82f6', '#60a5fa', '#ffffff'] });
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
                 if (Date.now() < end) requestAnimationFrame(frame);
             };
             frame();
@@ -141,25 +129,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         if (onUpdateProfile) onUpdateProfile({ ...user, ...updated } as UserProfile);
     };
 
-    const getCertStyles = (cert: Certification) => {
-        const str = `${cert.name} ${cert.issuer} ${cert.category}`.toLowerCase();
-        if (str.includes('fin') || str.includes('federazione')) return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: 'text-orange-500' };
-        if (str.includes('salvamento') || str.includes('bagnanti') || str.includes('sns')) return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-500' };
-        return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: 'text-blue-500' };
-    };
-
-    const getExpiryStatus = (dateString?: string) => {
-        if (!dateString) return { text: 'Senza Scadenza', style: 'text-slate-600 bg-slate-100 border-slate-200', icon: 'check-double' };
-        const expiryDate = new Date(dateString);
-        const today = new Date();
-        const diffTime = expiryDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays < 0) return { text: `Scaduto da ${Math.abs(diffDays)} gg`, style: 'text-red-700 bg-red-100 border-red-300 animate-pulse', icon: 'x' };
-        if (diffDays <= 30) return { text: `Scade tra ${diffDays} gg`, style: 'text-amber-700 bg-amber-100 border-amber-300', icon: 'alert-triangle' };
-        return { text: `Scade il ${expiryDate.toLocaleDateString('it-IT')}`, style: 'text-green-700 bg-green-50 border-green-200', icon: 'check' };
-    };
-
     const handleDownloadPDF = async () => {
         setIsGeneratingPDF(true);
         showToast('Generazione Passaporto in corso...', 'info');
@@ -183,42 +152,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         }
     };
 
-    const handleCreateFacility = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreateFacility = async (data: { name: string; type: string; city: string; province: string }) => {
         if (!profUser) return;
-        setIsSubmittingFacility(true);
-        try {
-            const adminId = profUser.userId || profUser.$id;
-            const newFac = await databaseService.createFacility(facilityForm, adminId);
-            if (newFac) {
-                setManagedFacilities([newFac, ...managedFacilities]);
-                showToast('Pagina Struttura creata con successo!', 'success');
-                setIsFacilityModalOpen(false);
-                setFacilityForm({ name: '', type: '', city: '' });
-                
-                if (onUpdateProfile) {
-                    const updatedManaged = [...(profUser.managedFacilities || []), newFac.$id];
-                    onUpdateProfile({ ...profUser, managedFacilities: updatedManaged });
-                }
-            } else {
-                showToast('Errore durante la creazione della pagina.', 'error');
-            }
-        } finally {
-            setIsSubmittingFacility(false);
+        const adminId = profUser.userId || profUser.$id;
+        const newFac = await databaseService.createFacility({ name: data.name, type: data.type, city: data.city, province: data.province }, adminId);
+        if (!newFac) {
+            showToast('Non è stato possibile creare la pagina. Riprova.', 'error');
+            throw new Error('createFacility');
         }
-    };
-
-    // 💡 HANDLER SALVATAGGIO PROFILO PERSONALE
-    const handleSaveProfile = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const updated = await databaseService.updateProfile(user.userId || user.$id, editProfileForm);
-            if (onUpdateProfile) onUpdateProfile({ ...user, ...updated } as UserProfile);
-            setIsEditingProfile(false);
-            showToast('Profilo aggiornato con successo!', 'success');
-        } catch(err) {
-            showToast('Errore durante il salvataggio.', 'error');
-        }
+        setManagedFacilities([newFac, ...managedFacilities]);
+        showToast('Pagina della struttura creata.', 'success');
+        onUpdateProfile?.({ ...profUser, managedFacilities: [...(profUser.managedFacilities || []), newFac.$id] });
     };
 
     const handleSaveExperience = async (exp: Experience) => {
@@ -275,7 +219,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     Torna indietro
                 </button>
             ) : (
-                <div className="text-xl font-extrabold text-slate-800 hidden sm:block">Il tuo Passaporto</div>
+                <div className="text-xl font-extrabold text-slate-800 hidden sm:block">Il tuo profilo</div>
             )}
         </div>
 
@@ -294,12 +238,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             >
                 <Icon type="share" className="w-4 h-4" /> <span className="hidden sm:inline">Condividi</span>
             </button>
-            {isOwnProfile && isProfessional && (
+            {isOwnProfile && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
-                    className="bg-blue-50 text-blue-600 font-bold px-4 py-2 rounded-xl hover:bg-blue-100 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="bg-corsia-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-corsia-700 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2"
                 >
-                    <Icon type="edit" className="w-4 h-4" /> Modifica Info
+                    <Icon type="edit" className="w-4 h-4" /> <span className="hidden sm:inline">Modifica profilo</span><span className="sm:hidden">Modifica</span>
                 </button>
             )}
 
@@ -349,35 +293,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {isProfessional && isOwnProfile && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 relative overflow-hidden" data-html2canvas-ignore="true">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 relative z-10">
-                <div>
-                    <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                        Completezza del profilo
-                        {completionScore === 100 && (
-                            <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200 shadow-sm animate-in zoom-in duration-500">
-                                <Icon type="star" className="w-3 h-3" /> Pioniere SwimIn
-                            </span>
-                        )}
-                    </h2>
-                    <p className="text-sm text-slate-500 font-medium">Completa il profilo al 100% per avere massima visibilità dalle strutture.</p>
-                </div>
-                <span className="text-3xl font-extrabold text-blue-600">{completionScore}%</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden relative border border-slate-200/50 shadow-inner">
-                <div 
-                    className={`h-full transition-all duration-1000 relative ${completionScore === 100 ? 'bg-gradient-to-r from-blue-400 to-indigo-500' : 'bg-blue-400'}`} 
-                    style={{ width: `${completionScore}%` }}
-                >
-                    <div className="absolute top-0 bottom-0 left-0 right-0 opacity-30 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] mix-blend-overlay"></div>
+      {isProfessional && isOwnProfile && completionScore < 100 && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex items-center gap-5 sm:gap-6" data-html2canvas-ignore="true">
+            <CompletionRing value={completionScore} />
+            <div className="min-w-0">
+                <h2 className="text-xl font-extrabold text-slate-800">Completa il profilo</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Un profilo completo compare prima nelle ricerche delle strutture.</p>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                    {missingSteps.map((s) => (
+                        <span key={s.label} className="text-xs font-semibold text-corsia-700 bg-corsia-50 border border-corsia-100 px-2.5 py-1 rounded-full">+ {s.label}</span>
+                    ))}
                 </div>
             </div>
-            {isOwnProfile && missingSteps.length > 0 && (
-                <p className="text-sm text-slate-600 mt-4">
-                    <span className="font-semibold">Ti manca:</span> {missingSteps.map((s) => s.label.toLowerCase()).join(', ')}.
-                </p>
-            )}
         </div>
       )}
 
@@ -393,7 +320,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     onClick={() => setIsFacilityModalOpen(true)}
                     className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                    <Icon type="plus" className="w-4 h-4" /> Crea Pagina
+                    <Icon type="plus" className="w-4 h-4" /> Crea pagina
                 </button>
             </div>
             
@@ -414,7 +341,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             </div>
                             <div className="min-w-0 flex-1">
                                 <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
-                                <p className="text-xs text-slate-500 font-medium truncate">{fac.type || 'Centro Sportivo'} • {fac.city}</p>
+                                <p className="text-xs text-slate-500 font-medium truncate">{[fac.type, fac.city].filter(Boolean).join(', ')}</p>
                             </div>
                             <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
                         </div>
@@ -427,7 +354,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     </div>
                     <p className="text-slate-600 font-bold">Nessuna pagina gestita</p>
                     <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
-                        Sei il direttore o il proprietario di un impianto? Crea la tua Pagina Struttura per pubblicare annunci e gestire il tuo staff.
+                        Sei il direttore o il proprietario di un impianto? Crea la pagina della struttura per pubblicare annunci e gestire lo staff.
                     </p>
                 </div>
             )}
@@ -503,13 +430,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                   </div>
                   <p className="text-lg text-slate-700 font-semibold mb-3">
-                    {isProfessional ? (profUser?.title || 'Professionista') : ((user as StructureProfile).structureType || 'Centro Sportivo')}
+                    {isProfessional ? (profUser?.title || 'Professionista') : ((user as StructureProfile).structureType || 'Struttura')}
                   </p>
-                  <div className="flex flex-wrap items-center gap-3 text-slate-500 text-sm font-medium">
-                      <span className="flex items-center gap-1.5"><Icon type="location" className="w-4 h-4" /> {user.city ? `${user.city} (${user.province})` : 'Località mancante'}</span>
-                      <span className="hidden sm:inline text-slate-300">•</span>
-                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 text-sm font-medium">
+                      <span className="flex items-center gap-1.5">
+                          <Icon type="location" className="w-4 h-4" />
+                          {user.city ? `${user.city}${user.province ? `, ${provinceName(user.province) || user.province}` : ''}` : isOwnProfile ? 'Aggiungi la città' : 'Località non indicata'}
+                      </span>
+                      {experienceMonths >= 12 && (
+                          <span className="flex items-center gap-1.5"><Icon type="briefcase" className="w-4 h-4" /> {formatDuration(Math.floor(experienceMonths / 12) * 12)} di esperienza</span>
+                      )}
+                      <span className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}</span>
                   </div>
+                  {(user.phone || user.website || (profUser?.languages || []).length > 0) && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm">
+                          {user.phone && (
+                              <a href={`tel:${user.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline">
+                                  <Icon type="phone" className="w-4 h-4" /> {user.phone}
+                              </a>
+                          )}
+                          {user.website && (
+                              <a href={user.website} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
+                                  <Icon type="globe" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{user.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</span>
+                              </a>
+                          )}
+                          {(profUser?.languages || []).length > 0 && (
+                              <span className="inline-flex items-center gap-1.5 text-slate-600">
+                                  <Icon type="chat-bubble" className="w-4 h-4 text-slate-400" /> {profUser!.languages!.join(', ')}
+                              </span>
+                          )}
+                      </div>
+                  )}
               </div>
             </div>
           </div>
@@ -517,12 +468,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
             <h2 className="text-xl font-extrabold text-slate-900 mb-4 flex items-center gap-2">
                 <Icon type="info" className="w-5 h-5 text-blue-600" />
-                Chi sono
+                {isProfessional ? 'Chi sono' : 'Chi siamo'}
             </h2>
-            <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {user.bio || 'Nessuna presentazione inserita.'}
-            </p>
+            {user.bio ? (
+                <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{user.bio}</p>
+            ) : isOwnProfile ? (
+                <button onClick={() => setIsEditingProfile(true)} data-html2canvas-ignore="true" className="text-corsia-700 font-semibold hover:underline">
+                    Scrivi due righe di presentazione
+                </button>
+            ) : (
+                <p className="text-slate-500">Nessuna presentazione inserita.</p>
+            )}
           </div>
+
+          {isProfessional && profUser && (
+            <AvailabilitySection profile={profUser} isOwnProfile={isOwnProfile} onUpdated={(p) => onUpdateProfile?.(p)} />
+          )}
+
+          {!isProfessional && <PoolSection profile={user as StructureProfile} isOwnProfile={isOwnProfile} onEdit={() => setIsEditingProfile(true)} />}
 
           {isProfessional && profUser && (
             <SkillsSection
@@ -534,12 +497,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {isProfessional && (
             <>
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-                            <Icon type="briefcase" className="w-6 h-6 text-blue-600" />
-                            La mia Carriera
-                        </h2>
+                <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="career-title">
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 id="career-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <Icon type="briefcase" className="w-6 h-6 text-blue-600" />
+                                Esperienze
+                            </h2>
+                            {experienceMonths > 0 && <p className="text-sm text-slate-500 mt-0.5">{formatDuration(experienceMonths)} in totale</p>}
+                        </div>
                         {isOwnProfile && (
                             <button onClick={() => setExperienceModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi
@@ -547,49 +513,50 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         )}
                     </div>
 
-                    {experiences.length > 0 ? (
-                        <div className="relative border-l-2 border-blue-100 ml-3 md:ml-4 space-y-8 pb-4">
-                            {experiences.map((exp, index) => (
-                            <div key={index} className="relative pl-6 sm:pl-8 group">
-                                <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white bg-blue-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
-                                
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                                    <div>
-                                        <h3 className="font-extrabold text-lg text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">{exp.role}</h3>
-                                        <p className="text-slate-800 font-semibold mt-1 flex items-center gap-1.5">
+                    {sortedExperiences.length > 0 ? (
+                        <ol className="relative border-l-2 border-corsia-100 ml-2 space-y-7">
+                            {sortedExperiences.map((exp) => (
+                            <li key={exp.index} className="relative pl-6 sm:pl-8">
+                                <span className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow-sm ${exp.current ? 'bg-cloro-500' : 'bg-corsia-400'}`} aria-hidden="true" />
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h3 className="font-extrabold text-lg text-slate-900 leading-tight">{exp.role}</h3>
+                                        <p className="text-slate-800 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
                                             <Icon type="building" className="w-4 h-4 text-slate-400" /> {exp.facility}
+                                            {(exp.employmentType || exp.city) && (
+                                                <span className="font-normal text-slate-500">· {[employmentLabel(exp.employmentType), exp.city].filter(Boolean).join(', ')}</span>
+                                            )}
                                         </p>
-                                        <p className="text-xs font-bold text-blue-600/80 mt-1 uppercase tracking-wider">{exp.period}</p>
-                                        {exp.description && <p className="text-sm text-slate-600 leading-relaxed mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">{exp.description}</p>}
+                                        <p className="text-sm text-corsia-700 mt-1">{experiencePeriod(exp)}</p>
+                                        {exp.description && <p className="text-sm text-slate-600 leading-relaxed mt-3 whitespace-pre-wrap">{exp.description}</p>}
                                     </div>
-                                    
                                     {isOwnProfile && (
-                                        <div data-html2canvas-ignore="true" className="flex items-center gap-1 mt-2 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setExperienceModal({isOpen: true, mode: 'edit', experience: exp, index})} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Modifica">
-                                                <Icon type="certificate" className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => handleDeleteExperience(index)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Elimina">
-                                                <Icon type="x" className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        <button
+                                            data-html2canvas-ignore="true"
+                                            onClick={() => setExperienceModal({ isOpen: true, mode: 'edit', experience: exp, index: exp.index })}
+                                            className="flex-shrink-0 p-2 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                            aria-label={`Modifica esperienza: ${exp.role}`}
+                                        >
+                                            <Icon type="pencil" className="w-4 h-4" />
+                                        </button>
                                     )}
                                 </div>
-                            </div>
+                            </li>
                             ))}
-                        </div>
+                        </ol>
                     ) : (
-                        <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                            <Icon type="briefcase" className="w-10 h-10 text-slate-300 mb-3" />
-                            <p className="text-slate-500 font-bold text-lg">Nessuna esperienza</p>
+                        <div className="text-center p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                            <Icon type="briefcase" className="w-10 h-10 text-slate-300 mb-3 mx-auto" />
+                            <p className="text-slate-600 font-semibold">{isOwnProfile ? 'Aggiungi dove hai lavorato: piscine, società, stabilimenti.' : 'Nessuna esperienza inserita.'}</p>
                         </div>
                     )}
-                </div>
+                </section>
 
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8" aria-labelledby="certs-title">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                        <h2 id="certs-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
                             <Icon type="certificate" className="w-6 h-6 text-blue-600" />
-                            Brevetti & Certificazioni
+                            Brevetti e certificazioni
                         </h2>
                         {isOwnProfile && (
                             <button onClick={() => setCertificationModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
@@ -599,148 +566,79 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     </div>
 
                     {certifications.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {certifications.map((cert, index) => {
-                                const styles = getCertStyles(cert);
-                                const expiryStatus = getExpiryStatus(cert.expiry); 
-                                const isEndorsed = cert.issuer.toLowerCase().includes('piscina') || cert.issuer.toLowerCase().includes('club');
-
+                                const status = certificationStatus(cert);
+                                const badge =
+                                    status.state === 'expired' ? { text: `Scaduto il ${formatDate(cert.expiry, 'short')}`, cls: 'text-red-700 bg-red-50 border-red-200' }
+                                    : status.state === 'expiring' ? { text: status.daysLeft === 0 ? 'Scade oggi' : `Scade tra ${status.daysLeft} giorni`, cls: 'text-amber-800 bg-amber-50 border-amber-200' }
+                                    : status.state === 'valid' ? { text: `Valido fino al ${formatDate(cert.expiry, 'short')}`, cls: 'text-green-800 bg-green-50 border-green-200' }
+                                    : { text: 'Senza scadenza', cls: 'text-slate-600 bg-slate-50 border-slate-200' };
                                 return (
-                                <div key={index} className={`flex flex-col p-5 border rounded-2xl transition-all shadow-sm hover:shadow-md ${styles.bg} ${styles.border} group relative`}>
+                                <li key={index} className="flex flex-col p-5 border border-slate-200 rounded-2xl bg-white hover:border-corsia-200 transition-colors">
                                     <div className="flex justify-between items-start gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Icon type="star" className={`w-4 h-4 ${styles.icon}`} />
-                                                <h3 className={`font-bold leading-tight ${styles.text}`}>{cert.name}</h3>
-                                            </div>
-                                            <p className="text-sm font-semibold text-slate-700 truncate">{cert.issuer}</p>
-                                            
-                                            {isEndorsed && (
-                                                <div className="mt-2 inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-amber-200">
-                                                    <Icon type="check-double" className="w-3 h-3" /> Verificato da Struttura
-                                                </div>
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold leading-tight text-abisso">{cert.name}</h3>
+                                            <p className="text-sm text-slate-600 mt-0.5">{cert.issuer}</p>
+                                            {(cert.issueDate || cert.credentialId) && (
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    {[cert.issueDate && `Rilasciato il ${formatDate(cert.issueDate, 'short')}`, cert.credentialId && `N. ${cert.credentialId}`].filter(Boolean).join(' · ')}
+                                                </p>
                                             )}
                                         </div>
-                                        
                                         {isOwnProfile && (
-                                            <div data-html2canvas-ignore="true" className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white p-1">
-                                                <button onClick={() => setCertificationModal({isOpen: true, mode: 'edit', certification: cert, index})} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md">
-                                                    <Icon type="certificate" className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button onClick={() => handleDeleteCertification(index)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md">
-                                                    <Icon type="x" className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
+                                            <button
+                                                data-html2canvas-ignore="true"
+                                                onClick={() => setCertificationModal({isOpen: true, mode: 'edit', certification: cert, index})}
+                                                className="flex-shrink-0 p-2 -mt-1 -mr-1 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                                aria-label={`Modifica brevetto: ${cert.name}`}
+                                            >
+                                                <Icon type="pencil" className="w-4 h-4" />
+                                            </button>
                                         )}
                                     </div>
-                                    
-                                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-black/5">
-                                        <span className="text-[10px] font-extrabold text-slate-600 bg-white/60 px-2 py-1 rounded border border-black/5 uppercase tracking-wider">{cert.category}</span>
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded border flex items-center gap-1 ${expiryStatus.style}`}>
-                                            <Icon type={expiryStatus.icon as any} className="w-3 h-3" />
-                                            {expiryStatus.text}
-                                        </span>
+                                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                                        {cert.category && <span className="text-xs font-semibold text-corsia-800 bg-corsia-50 px-2 py-1 rounded-md">{certCategoryLabel(cert.category)}</span>}
+                                        <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${badge.cls}`}>{badge.text}</span>
                                     </div>
-                                </div>
+                                </li>
                             )})}
-                        </div>
+                        </ul>
                     ) : (
-                        <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                            <Icon type="certificate" className="w-10 h-10 text-slate-300 mb-3" />
-                            <p className="text-slate-500 font-bold text-lg">Nessun brevetto inserito</p>
+                        <div className="text-center p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                            <Icon type="certificate" className="w-10 h-10 text-slate-300 mb-3 mx-auto" />
+                            <p className="text-slate-600 font-semibold">{isOwnProfile ? 'Aggiungi i tuoi brevetti: ti avviseremo prima che scadano.' : 'Nessun brevetto inserito.'}</p>
                         </div>
                     )}
-                </div>
+                </section>
             </>
           )}
       </div>
 
-      <ExperienceModal isOpen={experienceModal.isOpen} onClose={() => setExperienceModal({ isOpen: false, mode: 'add' })} onSave={handleSaveExperience} experience={experienceModal.experience} mode={experienceModal.mode} />
-      <CertificationModal isOpen={certificationModal.isOpen} onClose={() => setCertificationModal({ isOpen: false, mode: 'add' })} onSave={handleSaveCertification} certification={certificationModal.certification} mode={certificationModal.mode} />
-      
+      <ExperienceModal
+        isOpen={experienceModal.isOpen}
+        onClose={() => setExperienceModal({ isOpen: false, mode: 'add' })}
+        onSave={handleSaveExperience}
+        onDelete={experienceModal.index !== undefined ? () => handleDeleteExperience(experienceModal.index!) : undefined}
+        experience={experienceModal.experience}
+        mode={experienceModal.mode}
+      />
+      <CertificationModal
+        isOpen={certificationModal.isOpen}
+        onClose={() => setCertificationModal({ isOpen: false, mode: 'add' })}
+        onSave={handleSaveCertification}
+        onDelete={certificationModal.index !== undefined ? () => handleDeleteCertification(certificationModal.index!) : undefined}
+        certification={certificationModal.certification}
+        mode={certificationModal.mode}
+      />
+      {isOwnProfile && (
+        <ProfileEditModal open={isEditingProfile} profile={user} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p)} />
+      )}
+      {isProfessional && isOwnProfile && (
+        <FacilityFormModal open={isFacilityModalOpen} mode="create" onClose={() => setIsFacilityModalOpen(false)} onSubmit={handleCreateFacility} />
+      )}
+
       {isReportOpen && <ReportModal targetType="profile" targetId={user.userId || user.$id} onClose={() => setIsReportOpen(false)} />}
-
-      {/* 🏢 MODALE CREAZIONE PAGINA STRUTTURA */}
-      {isFacilityModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-                    <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
-                        <h2 className="text-xl font-extrabold text-slate-800">Crea Pagina Aziendale</h2>
-                        <button onClick={() => setIsFacilityModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-200/50 rounded-full">
-                            <Icon type="x" className="w-5 h-5"/>
-                        </button>
-                    </div>
-                    <form onSubmit={handleCreateFacility} className="p-6 space-y-4">
-                        <p className="text-sm text-slate-500 mb-4">La Pagina Struttura ti permette di pubblicare offerte di lavoro e gestire il tuo staff. Tu ne sarai l'Amministratore.</p>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Nome Struttura <span className="text-red-500">*</span></label>
-                            <input required type="text" value={facilityForm.name} onChange={e=>setFacilityForm({...facilityForm, name: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Es. Piscina Comunale Segrate" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Tipologia</label>
-                            <input type="text" value={facilityForm.type} onChange={e=>setFacilityForm({...facilityForm, type: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Es. Centro Sportivo, Aquapark..." />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Città <span className="text-red-500">*</span></label>
-                            <input required type="text" value={facilityForm.city} onChange={e=>setFacilityForm({...facilityForm, city: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Es. Milano" />
-                        </div>
-                        <button type="submit" disabled={isSubmittingFacility} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition flex justify-center items-center gap-2 mt-4 disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                            {isSubmittingFacility ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Icon type="plus" className="w-5 h-5" /> Crea Pagina</>}
-                        </button>
-                    </form>
-                </div>
-            </div>
-      )}
-
-      {/* 💡 NUOVA MODALE MODIFICA PROFILO PERSONALE */}
-      {isEditingProfile && (
-          <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                  <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
-                      <h2 className="text-xl font-extrabold text-slate-800">Modifica Profilo Personale</h2>
-                      <button onClick={() => setIsEditingProfile(false)} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-200/50 rounded-full">
-                          <Icon type="x" className="w-5 h-5"/>
-                      </button>
-                  </div>
-                  <form onSubmit={handleSaveProfile} className="p-6 overflow-y-auto custom-scrollbar space-y-5 flex-1">
-                      <div className="grid grid-cols-2 gap-4">
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">Nome</label>
-                              <input required type="text" value={editProfileForm.firstName} onChange={e=>setEditProfileForm({...editProfileForm, firstName: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                          </div>
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">Cognome</label>
-                              <input required type="text" value={editProfileForm.lastName} onChange={e=>setEditProfileForm({...editProfileForm, lastName: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                          </div>
-                      </div>
-                      <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Qualifica / Professione (Es. Istruttore FIN)</label>
-                          <input type="text" value={editProfileForm.title} onChange={e=>setEditProfileForm({...editProfileForm, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">Città</label>
-                              <input type="text" value={editProfileForm.city} onChange={e=>setEditProfileForm({...editProfileForm, city: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                          </div>
-                          <div>
-                              <label className="block text-sm font-bold text-slate-700 mb-1">Provincia (Sigla)</label>
-                              <input type="text" maxLength={2} value={editProfileForm.province} onChange={e=>setEditProfileForm({...editProfileForm, province: e.target.value.toUpperCase()})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
-                          </div>
-                      </div>
-                      <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Chi sono (Bio)</label>
-                          <textarea rows={4} value={editProfileForm.bio} onChange={e=>setEditProfileForm({...editProfileForm, bio: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Racconta qualcosa di te..." />
-                      </div>
-                      <p className="text-xs text-slate-500">Foto profilo e copertina si cambiano dal pulsante con la fotocamera sul profilo.</p>
-                      <div className="pt-4 border-t border-slate-100 flex gap-3">
-                          <button type="button" onClick={()=>setIsEditingProfile(false)} className="flex-1 font-bold text-slate-600 bg-slate-100 py-3 rounded-xl hover:bg-slate-200 transition">Annulla</button>
-                          <button type="submit" className="flex-1 font-bold text-white bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition shadow-md">Salva Profilo</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-      )}
-
     </div>
   );
 };

@@ -1,174 +1,213 @@
-import React, { useState, useEffect } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { Certification } from '@/types/types';
+import { FormModal } from '@/components/form/FormModal';
+import { Checkbox, Field } from '@/components/form/Field';
+import { Suggestions } from '@/components/form/Pickers';
+import { useForm, type FormErrors } from '@/hooks/useForm';
+import { useToast } from '@/context/ToastContext';
+import { CERT_CATEGORIES, CERT_ISSUERS, CERT_NAMES, COMMON_CERTS, certCategoryKey } from '@/data/swimming';
+import { check, isoDate, maxLength, minLength, notAfter, notBefore, required } from '@/utils/validation';
+import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
 
 interface CertificationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (certification: Certification) => Promise<void>;
-  certification?: Certification;
-  mode: 'add' | 'edit';
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (certification: Certification) => Promise<void>;
+    onDelete?: () => Promise<void>;
+    certification?: Certification;
+    mode: 'add' | 'edit';
 }
 
-const CATEGORIES = [
-  { value: 'salvamento', label: 'Salvamento' },
-  { value: 'istruzione', label: 'Istruzione' },
-  { value: 'sicurezza', label: 'Sicurezza' },
-  { value: 'allenamento', label: 'Allenamento' },
-  { value: 'specializzazione', label: 'Specializzazione' },
-  { value: 'primo_soccorso', label: 'Primo Soccorso' },
-  { value: 'manutenzione', label: 'Manutenzione' },
-  { value: 'altro', label: 'Altro' },
-] as const;
+type Values = {
+    name: string;
+    issuer: string;
+    category: string;
+    issueDate: string;
+    expiry: string;
+    noExpiry: boolean;
+    credentialId: string;
+};
 
-export const CertificationModal: React.FC<CertificationModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  certification,
-  mode
-}) => {
-  const [formData, setFormData] = useState<Certification>({
-    name: '',
-    issuer: '',
-    category: '',
-    expiry: ''
-  });
-  
-  const [isLoading, setIsLoading] = useState(false);
+const EMPTY: Values = { name: '', issuer: '', category: '', issueDate: '', expiry: '', noExpiry: false, credentialId: '' };
 
-  useEffect(() => {
-    if (certification && mode === 'edit') {
-      setFormData(certification);
-    } else {
-      setFormData({ name: '', issuer: '', category: '', expiry: '' });
-    }
-  }, [certification, mode, isOpen]);
+const toValues = (c?: Certification): Values =>
+    c
+        ? {
+              name: c.name || '',
+              issuer: c.issuer || '',
+              category: certCategoryKey(c.category),
+              issueDate: c.issueDate || '',
+              expiry: c.expiry || '',
+              noExpiry: !c.expiry,
+              credentialId: c.credentialId || '',
+          }
+        : EMPTY;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.issuer.trim() || !formData.category.trim()) return;
+export const validateCertification = (v: Values, today: string = todayISO()): FormErrors<Values> => ({
+    name: check(v.name, required('Indica il nome del brevetto.'), minLength(3), maxLength(120)),
+    issuer: check(v.issuer, required('Indica l’ente che l’ha rilasciato.'), minLength(2), maxLength(120)),
+    category: check(v.category, required('Scegli una categoria.')),
+    issueDate: check(v.issueDate, isoDate, notAfter(today, 'La data di rilascio non può essere nel futuro.'), notBefore('1950-01-01', 'Data non valida.')),
+    expiry: v.noExpiry
+        ? undefined
+        : check(
+              v.expiry,
+              required('Indica la scadenza, oppure spunta "Non scade".'),
+              isoDate,
+              notBefore(v.issueDate, 'La scadenza deve essere successiva al rilascio.'),
+              notAfter(addDaysISO(today, 365 * 15), 'Scadenza troppo lontana: controlla l’anno.')
+          ),
+    credentialId: check(v.credentialId, maxLength(40)),
+});
 
-    setIsLoading(true);
-    try {
-      await onSave(formData);
-      onClose();
-    } catch (error) {
-      console.error('Errore salvataggio certificazione:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, onClose, onSave, onDelete, certification, mode }) => {
+    const { showToast } = useToast();
+    const [saving, setSaving] = useState(false);
+    const validate = useCallback((v: Values) => validateCertification(v), []);
+    const form = useForm<Values>(EMPTY, validate);
+    const { values, errors, bind, patch, reset } = form;
+    const today = todayISO();
 
-  if (!isOpen) return null;
+    useEffect(() => {
+        if (isOpen) reset(toValues(mode === 'edit' ? certification : undefined));
+    }, [isOpen, certification, mode, reset]);
 
-  return (
-    <div 
-      className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
-          <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-            <Icon type="certificate" className="w-6 h-6 text-blue-600" />
-            {mode === 'add' ? 'Aggiungi Certificazione' : 'Modifica Certificazione'}
-          </h2>
-          <button 
-            onClick={onClose} 
-            className="text-slate-400 hover:text-slate-700 hover:bg-slate-200 p-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-          >
-            <Icon type="x" className="w-5 h-5" />
-          </button>
-        </div>
+    /** Se il nome corrisponde a un brevetto noto, propone ente, categoria e scadenza tipica. */
+    const onNameChange = (name: string) => {
+        const known = COMMON_CERTS.find((c) => c.name.toLowerCase() === name.trim().toLowerCase());
+        patch({
+            name,
+            ...(known && !values.issuer ? { issuer: known.issuer } : {}),
+            ...(known && !values.category ? { category: known.category } : {}),
+            ...(known && !known.years && !values.expiry ? { noExpiry: true } : {}),
+        });
+    };
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Nome Certificazione <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="es. Brevetto Istruttore Base"
-              required
-            />
-          </div>
+    /** Con data di rilascio e validità nota, suggerisce la scadenza. */
+    const onIssueDateChange = (issueDate: string) => {
+        const known = COMMON_CERTS.find((c) => c.name.toLowerCase() === values.name.trim().toLowerCase());
+        const suggested = known?.years && issueDate && !values.expiry && !values.noExpiry ? addDaysISO(issueDate, Math.round(known.years * 365.25)) : undefined;
+        patch({ issueDate, ...(suggested ? { expiry: suggested } : {}) });
+    };
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Ente Rilasciante <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                value={formData.issuer}
-                onChange={e => setFormData({ ...formData, issuer: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                placeholder="es. FIN"
-                required
-              />
+    const submit = form.handleSubmit(async (v) => {
+        setSaving(true);
+        try {
+            const clean: Certification = {
+                name: v.name.trim(),
+                issuer: v.issuer.trim(),
+                category: v.category,
+                ...(v.issueDate ? { issueDate: v.issueDate } : {}),
+                ...(!v.noExpiry && v.expiry ? { expiry: v.expiry } : {}),
+                ...(v.credentialId.trim() ? { credentialId: v.credentialId.trim() } : {}),
+            };
+            await onSave(clean);
+            showToast(mode === 'add' ? 'Brevetto aggiunto.' : 'Brevetto aggiornato.', 'success');
+            onClose();
+        } catch (error) {
+            console.error('Salvataggio brevetto:', error);
+            showToast('Non è stato possibile salvare il brevetto. Riprova.', 'error');
+        } finally {
+            setSaving(false);
+        }
+    });
+
+    const remove = async () => {
+        if (!onDelete || !window.confirm('Eliminare questo brevetto dal profilo?')) return;
+        setSaving(true);
+        try {
+            await onDelete();
+            showToast('Brevetto eliminato.', 'info');
+            onClose();
+        } catch (error) {
+            console.error('Eliminazione brevetto:', error);
+            showToast('Eliminazione non riuscita.', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const expired = !values.noExpiry && values.expiry && !errors.expiry && values.expiry < today;
+
+    return (
+        <FormModal
+            open={isOpen}
+            title={mode === 'add' ? 'Aggiungi brevetto' : 'Modifica brevetto'}
+            description="Brevetti, abilitazioni e certificazioni con le loro scadenze."
+            icon="certificate"
+            dirty={form.isDirty}
+            busy={saving}
+            submitLabel={mode === 'add' ? 'Aggiungi' : 'Salva'}
+            onClose={onClose}
+            onSubmit={submit}
+            formRef={form.formRef}
+            secondaryAction={
+                mode === 'edit' && onDelete ? (
+                    <button type="button" onClick={remove} className="text-sm font-semibold text-galleggiante hover:underline">
+                        Elimina
+                    </button>
+                ) : null
+            }
+        >
+            <Field id="cert-name" label="Nome del brevetto" error={errors.name}>
+                <input
+                    name="name"
+                    value={values.name}
+                    onChange={(e) => onNameChange(e.target.value)}
+                    onBlur={() => form.touch('name')}
+                    list="cert-name-options"
+                    placeholder="Es. Brevetto Assistente Bagnanti"
+                    maxLength={140}
+                />
+            </Field>
+            <Suggestions id="cert-name-options" options={CERT_NAMES} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1.4fr_1fr] gap-4">
+                <Field id="cert-issuer" label="Ente" error={errors.issuer}>
+                    <input {...bind('issuer')} list="cert-issuer-options" placeholder="Es. FIN – Federazione Italiana Nuoto" maxLength={140} />
+                </Field>
+                <Field id="cert-category" label="Categoria" error={errors.category}>
+                    <select {...bind('category')}>
+                        <option value="">Scegli…</option>
+                        {CERT_CATEGORIES.map((c) => (
+                            <option key={c.value} value={c.value}>
+                                {c.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
             </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Categoria <span className="text-red-500">*</span></label>
-              <select
-                value={formData.category}
-                onChange={e => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                required
-              >
-                <option value="" disabled>Seleziona categoria...</option>
-                {CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.label}>{cat.label}</option>
-                ))}
-              </select>
+            <Suggestions id="cert-issuer-options" options={CERT_ISSUERS} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field id="cert-issue" label="Data di rilascio" optional error={errors.issueDate}>
+                    <input type="date" name="issueDate" value={values.issueDate} max={today} min="1950-01-01" onChange={(e) => onIssueDateChange(e.target.value)} onBlur={() => form.touch('issueDate')} />
+                </Field>
+                <Field
+                    id="cert-expiry"
+                    label="Data di scadenza"
+                    error={errors.expiry}
+                    hint={values.noExpiry ? 'Senza scadenza' : values.expiry && !expired ? `Valido fino al ${formatDate(values.expiry)}` : undefined}
+                >
+                    <input type="date" {...bind('expiry')} min={values.issueDate || undefined} disabled={values.noExpiry} />
+                </Field>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Data di Scadenza (Opzionale)</label>
-            <input
-              type="date"
-              value={formData.expiry || ''}
-              onChange={e => setFormData({ ...formData, expiry: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-700"
+            <Checkbox
+                id="cert-no-expiry"
+                checked={values.noExpiry}
+                onChange={(c) => patch({ noExpiry: c, expiry: c ? '' : values.expiry })}
+                label="Non scade"
+                description="Per i titoli permanenti, come i brevetti da istruttore federale."
             />
-            <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
-              <Icon type="info" className="w-3 h-3" />
-              Lascia vuoto se la certificazione non scade.
-            </p>
-          </div>
+            {expired && (
+                <p className="text-sm bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 animate-in fade-in duration-200">
+                    Questo brevetto risulta scaduto: lo salveremo comunque, e sul profilo comparirà come da rinnovare.
+                </p>
+            )}
 
-          <div className="flex space-x-3 pt-5 border-t border-slate-100 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 font-bold text-slate-600 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-            >
-              Annulla
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 px-4 py-2.5 font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Salvataggio...
-                </>
-              ) : (
-                <>
-                  <Icon type={mode === 'add' ? 'plus' : 'check-double'} className="w-4 h-4" />
-                  {mode === 'add' ? 'Aggiungi' : 'Salva Modifiche'}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+            <Field id="cert-id" label="Numero del brevetto o tessera" optional error={errors.credentialId} hint="Utile alle strutture per verificare il titolo.">
+                <input {...bind('credentialId')} placeholder="Es. SNS-123456" maxLength={50} autoComplete="off" />
+            </Field>
+        </FormModal>
+    );
 };

@@ -152,6 +152,15 @@ const jp=await api.createJob('piscina',{...jobBase,structureId:'piscina',structu
 assert.equal(jp.structureName,'Piscina Blu'); assert.equal(jp.salaryMin,1200); assert.equal(jp.isActive,true);
 const jf=await api.createJob('eve',{...jobBase,structureId:'f1'});
 assert.equal(jf.structureName,'Centro');
+assert.match(jp.expiresAt,/^\d{4}-\d{2}-\d{2}$/); // scadenza predefinita a 30 giorni
+const day=(n)=>new Date(Date.now()+n*86400000).toISOString().slice(0,10);
+assert.equal((await api.createJob('piscina',{...jobBase,structureId:'piscina',expiryDays:7})).expiresAt,day(7));
+await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',salaryMin:2000,salaryMax:1000}),400);
+await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:'Oggi'}),400);
+await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:day(90)}),400);
+await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:day(2),sosShift:'pomeriggio'}),400);
+const sos=await api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:day(2),sosShift:'15:00–19:00'});
+assert.equal(sos.expiresAt,day(2)); assert.equal(sos.isSOS,true);
 
 // Bordo Vasca Live
 const room=await api.createLiveRoom('piscina',{title:'Didattica vasca piccola',hostId:'bob'});

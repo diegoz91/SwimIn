@@ -6,6 +6,8 @@ import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { NetworkView } from '@/features/network/components/NetworkView';
 import { Icon } from '@/components/ui/Icon';
+import { formatDate } from '@/utils/dates';
+import { CreateMeetModal } from '@/features/network/components/CreateMeetModal';
 import type { UserProfile, StructureProfile, Facility, SwimMeet } from '@/types/types';
 import type { EnrichedConnectionRequest } from '@/features/network/components/ConnectionRequestCard';
 
@@ -37,9 +39,6 @@ const Network: React.FC = () => {
     const [meets, setMeets] = useState<SwimMeet[]>([]);
     const [isLoadingMeets, setIsLoadingMeets] = useState(false);
     const [isCreatingMeet, setIsCreatingMeet] = useState(false);
-    const [meetForm, setMeetForm] = useState({
-        title: '', description: '', date: '', time: '', city: '', address: '', maxParticipants: ''
-    });
 
     // ========================================================
     // NETWORK DIGITALE
@@ -156,27 +155,6 @@ const Network: React.FC = () => {
         if (activeTab === 'meets') loadMeetsData();
     }, [activeTab, loadMeetsData]);
 
-    const handleCreateMeet = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!currentUser) return;
-        try {
-            await databaseService.createSwimMeet({
-                title: meetForm.title,
-                description: meetForm.description,
-                date: meetForm.date,
-                time: meetForm.time,
-                city: meetForm.city,
-                address: meetForm.address,
-                creatorId: currentUser.$id,
-                maxParticipants: meetForm.maxParticipants ? parseInt(meetForm.maxParticipants) : undefined
-            });
-            showToast('Evento creato con successo!', 'success');
-            setIsCreatingMeet(false);
-            setMeetForm({ title: '', description: '', date: '', time: '', city: '', address: '', maxParticipants: '' });
-            loadMeetsData();
-        } catch (error) { showToast('Errore durante la creazione.', 'error'); }
-    };
-
     const handleJoinMeet = async (meetId: string) => {
         if (!currentUser) return;
         try {
@@ -287,7 +265,7 @@ const Network: React.FC = () => {
                                         <div className="space-y-2.5 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                             <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
                                                 <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm text-green-500"><Icon type="calendar" className="w-4 h-4" /></div> 
-                                                {new Date(meet.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })} alle {meet.time}
+                                                {formatDate(meet.date)} alle {meet.time}
                                             </div>
                                             <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
                                                 <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm text-blue-500"><Icon type="location" className="w-4 h-4" /></div> 
@@ -326,58 +304,7 @@ const Network: React.FC = () => {
                 </div>
             )}
 
-            {/* MODALE CREAZIONE SWIM-MEET */}
-            {isCreatingMeet && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg my-auto overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                                <Icon type="location" className="w-6 h-6 text-green-600" /> Crea Swim-Meet
-                            </h2>
-                            <button onClick={() => setIsCreatingMeet(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400"><Icon type="x" className="w-5 h-5"/></button>
-                        </div>
-                        <form onSubmit={handleCreateMeet} className="p-5 sm:p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Titolo dell'Evento *</label>
-                                <input required type="text" placeholder="Es. Allenamento Master condiviso" value={meetForm.title} onChange={e=>setMeetForm({...meetForm, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Descrizione *</label>
-                                <textarea required rows={3} placeholder="Di cosa si tratta? Chi può partecipare?" value={meetForm.description} onChange={e=>setMeetForm({...meetForm, description: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white resize-none transition-colors" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1">Data *</label>
-                                    <input required type="date" value={meetForm.date} onChange={e=>setMeetForm({...meetForm, date: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1">Ora *</label>
-                                    <input required type="time" value={meetForm.time} onChange={e=>setMeetForm({...meetForm, time: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1">Città *</label>
-                                    <input required type="text" placeholder="Es. Milano" value={meetForm.city} onChange={e=>setMeetForm({...meetForm, city: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1">Max Partecipanti (Opz.)</label>
-                                    <input type="number" placeholder="Nessun limite" value={meetForm.maxParticipants} onChange={e=>setMeetForm({...meetForm, maxParticipants: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Indirizzo preciso (Opzionale)</label>
-                                <input type="text" placeholder="Es. Piscina Comunale, Via Roma 1" value={meetForm.address} onChange={e=>setMeetForm({...meetForm, address: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-slate-50 focus:bg-white transition-colors" />
-                            </div>
-                            <div className="pt-4">
-                                <button type="submit" className="w-full bg-green-600 text-white font-extrabold py-3.5 rounded-xl hover:bg-green-700 transition-all shadow-md active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-green-500 text-lg">
-                                    Pubblica Evento
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <CreateMeetModal open={isCreatingMeet} onClose={() => setIsCreatingMeet(false)} onCreated={loadMeetsData} />
         </div>
     );
 };

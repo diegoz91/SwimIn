@@ -42,6 +42,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Elemento distintivo: la corsia. Logo = `<Brand />`/`<BrandMark />` (T di fine corsia), classe `.lane-rope` per il galleggiante. Usarlo con parsimonia (header, landing, live).
 - Avatar: `avatarOf()` / `displayNameOf()` / `headlineOf()` in `utils/profile.ts`; mai servizi esterni per le iniziali.
 - Testi in sentence case, niente maiuscolo per etichette o pulsanti, niente emoji decorative nei controlli.
+- Form: usare `useForm` (`hooks/useForm.ts`) con regole da `utils/validation.ts`, campi `Field` / `ProvinceSelect` / `MonthYearPicker` da `components/form/` e la modale `FormModal` (foglio dal basso su mobile, conferma se ci sono modifiche). Date di calendario come stringhe ISO (`YYYY-MM-DD`, mesi `YYYY-MM`) con gli helper di `utils/dates.ts`; mai date in testo libero. Elenchi del settore (ruoli, brevetti, enti, servizi) in `data/swimming.ts`, province in `data/italy.ts`.
 - Revisione visiva: il workflow `Schermate` pubblica le schermate (dati di esempio in `scripts/screenshots/fixtures.mjs`) sul branch `ci-screenshots/<branch>`; per vederle `git clone -b ci-screenshots/<branch> …`.
 
 ## Convenzioni

@@ -72,6 +72,13 @@ const fail = (status, message) => {
   throw new HttpError(status, message);
 };
 
+/** Data di calendario UTC "YYYY-MM-DD". */
+const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+const clampInt = (v, min, max, fallback) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+};
+
 // ---------------------------------------------------------------------------
 // Helper
 // ---------------------------------------------------------------------------
@@ -550,8 +557,19 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
         isSOS: !!data.isSOS,
         sosDate: str(data.sosDate, 100),
         sosShift: str(data.sosShift, 100),
+        expiresAt: isoDay(Date.now() + clampInt(data.expiryDays, 1, 90, 30) * 86_400_000),
         candidates: [],
       };
+      if (job.salaryMin !== undefined && job.salaryMax !== undefined && job.salaryMin > job.salaryMax) fail(400, 'Il compenso minimo supera il massimo.');
+      if (job.isSOS) {
+        // Le sostituzioni urgenti hanno una data precisa: entro 60 giorni, non nel passato.
+        const today = isoDay(Date.now());
+        if (!job.sosDate || !/^\d{4}-\d{2}-\d{2}$/.test(job.sosDate)) fail(400, 'Indica la data della sostituzione.');
+        if (job.sosDate < isoDay(Date.now() - 86_400_000) || job.sosDate > isoDay(Date.now() + 60 * 86_400_000)) fail(400, 'La data della sostituzione deve essere entro 60 giorni.');
+        if (job.sosShift && !/^([01]\d|2[0-3]):[0-5]\d–([01]\d|2[0-3]):[0-5]\d$/.test(job.sosShift)) fail(400, 'Orario del turno non valido.');
+        // L'annuncio SOS sparisce il giorno dopo il turno.
+        job.expiresAt = job.sosDate > today ? job.sosDate : today;
+      }
       for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
       return create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
     },

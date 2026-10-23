@@ -2,6 +2,7 @@ import { ExecutionMethod, ID, Models, Permission, Query, Role } from 'appwrite';
 import { databases, functions } from '@/services/appwrite';
 import { storageService } from '@/services/storage';
 import { getPostContent } from '@/utils/postMedia';
+import { isJobOpen } from '@/utils/jobs';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import type { 
     UserProfile, 
@@ -457,7 +458,7 @@ export const databaseService = {
             Query.equal('isActive', true), 
             Query.orderDesc('$createdAt')
         ]);
-        return response.documents;
+        return response.documents.filter((j) => isJobOpen(j));
     },
 
     async applyForJob(applicationData: Partial<Application>) {
@@ -529,6 +530,18 @@ export const databaseService = {
 
     async rejectConnectionRequest(connectionId: string) {
         return await callApi<Connection>('respondConnectionRequest', { connectionId, accept: false });
+    },
+
+    /** Professionisti che hanno indicato almeno una delle fasce, preferendo la stessa provincia. */
+    async getAvailableProfessionals(slots: string[], province?: string, limit = 5) {
+        if (!slots.length) return [] as UserProfile[];
+        const base = [Query.equal('userType', 'professional'), Query.contains('availability', slots), Query.orderDesc('$updatedAt')];
+        const near = province
+            ? (await databases.listDocuments<UserProfile>(databaseId, collections.profiles, [...base, Query.equal('province', province), Query.limit(limit)])).documents
+            : [];
+        if (near.length >= limit) return near;
+        const others = (await databases.listDocuments<UserProfile>(databaseId, collections.profiles, [...base, Query.limit(limit * 2)])).documents;
+        return [...near, ...others.filter((o) => !near.some((n) => n.$id === o.$id))].slice(0, limit);
     },
 
     async getNetworkSuggestions(currentUserId: string, currentConnections: string[] = []) {
@@ -630,7 +643,7 @@ export const databaseService = {
             Query.orderDesc('$createdAt'),
             Query.limit(limit),
         ]);
-        return res.documents;
+        return res.documents.filter((j) => isJobOpen(j));
     },
 
     // ==========================================
