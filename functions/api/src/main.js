@@ -11,6 +11,7 @@
  */
 import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
 import { profileActions } from './profile.js';
+import { reviewActions } from './reviews.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -31,6 +32,7 @@ const C = {
   reports: 'reports',
   endorsements: 'endorsements',
   liveMessages: 'live_messages',
+  reviews: 'reviews',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility'];
@@ -58,7 +60,7 @@ const postMediaUrls = (post) => {
 
 const APPLICATION_STATUSES = ['pending', 'reviewed', 'accepted', 'rejected', 'hired'];
 const POST_TYPES = ['text', 'image', 'video', 'link', 'video-analysis'];
-const POST_CATEGORIES = ['generale', 'allenamento', 'gara', 'tecnica', 'normative'];
+const POST_CATEGORIES = ['generale', 'allenamento', 'gara', 'tecnica', 'normative', 'pensiero', 'esperienza'];
 const MAX_POST_MEDIA = 10;
 
 /** Errore "atteso": il messaggio viene mostrato all'utente. */
@@ -185,6 +187,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   return {
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
     ...profileActions({ find, get, create, update, fail, users, endpoint, C }),
+    ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
 
     // ---------------- MESSAGGI ----------------
     async sendMessage(me, { receiverId, content }) {

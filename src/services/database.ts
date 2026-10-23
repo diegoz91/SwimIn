@@ -11,6 +11,7 @@ import type {
     Job, 
     Application, 
     Connection,
+    Review,
     Like,
     Comment,
     Message,
@@ -536,6 +537,54 @@ export const databaseService = {
      * Persone da conoscere: esclude chi è già collegato e chi ha una richiesta
      * in sospeso con l'utente, in entrambe le direzioni.
      */
+    // ==========================================
+    // RECENSIONI E ELENCO STRUTTURE
+    // ==========================================
+    async getReviews(structureId: string, limit = 50) {
+        const res = await databases.listDocuments<Review>(databaseId, collections.reviews, [
+            Query.equal('structureId', structureId),
+            Query.equal('status', 'published'),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
+
+    async upsertReview(data: { structureId: string; rating: number; content: string; visitedAt?: string }) {
+        return await callApi<{ review: Review; ratingSum: number; ratingCount: number }>('upsertReview', data);
+    },
+
+    async deleteReview(reviewId: string) {
+        return await callApi<{ deleted: boolean; ratingSum: number; ratingCount: number }>('deleteReview', { reviewId });
+    },
+
+    async replyReview(reviewId: string, reply: string) {
+        return await callApi<Review>('replyReview', { reviewId, reply });
+    },
+
+    /** Strutture (profili Struttura e pagine struttura), filtrabili per provincia e nome. */
+    async getStructuresDirectory(opts: { province?: string; search?: string } = {}) {
+        const term = (opts.search || '').trim();
+        const profileQ = [Query.equal('userType', 'structure'), Query.limit(100)];
+        const facilityQ = [Query.limit(100)];
+        if (opts.province) {
+            profileQ.push(Query.equal('province', opts.province));
+            facilityQ.push(Query.equal('province', opts.province));
+        }
+        if (term.length >= 2) {
+            profileQ.push(Query.or([Query.contains('structureName', term), Query.contains('city', term)]));
+            facilityQ.push(Query.or([Query.contains('name', term), Query.contains('city', term)]));
+        }
+        const [profiles, facilities] = await Promise.all([
+            databases.listDocuments<StructureProfile>(databaseId, collections.profiles, profileQ),
+            databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, facilityQ).catch((e) => {
+                console.warn('Pagine struttura non disponibili:', e);
+                return { documents: [] as Facility[] };
+            }),
+        ]);
+        return { profiles: profiles.documents, facilities: facilities.documents };
+    },
+
     async getNetworkSuggestions(currentUserId: string, currentConnections: string[] = []) {
         const [res, pending] = await Promise.all([
             databases.listDocuments<Profile>(databaseId, collections.profiles, [

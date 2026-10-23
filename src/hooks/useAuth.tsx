@@ -8,6 +8,8 @@ import type { AuthenticatedUser, UserProfile, StructureProfile } from '@/types/t
 
 export interface RegistrationData {
   userType: 'professional' | 'structure';
+  /** Solo persone: lavora nel nuoto o lo pratica per passione. */
+  personType?: 'professional' | 'enthusiast';
   firstName?: string;
   lastName?: string;
   structureName?: string;

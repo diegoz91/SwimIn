@@ -90,10 +90,17 @@ const PRIVATE_PAGES = [
     ['impostazioni', '/profile?tab=impostazioni'],
     ['benvenuto', '/benvenuto'],
     ['salvati', '/salvati'],
+    ['strutture', '/strutture'],
+    ['appassionato', '/profile/u_paolo'],
 ];
 
 /** Schermate di form aperti: [nome, pagina, azione da eseguire prima dello scatto]. */
 const PRIVATE_INTERACTIONS = [
+    ['recensioni', '/profile/u_lido', async (p) => {
+        await p.locator('#reviews-title').scrollIntoViewIfNeeded();
+        await p.mouse.wheel(0, -80);
+    }],
+    ['form-recensione', '/profile/u_lido', (p) => p.getByRole('button', { name: /Scrivi una recensione/ }).click()],
     ['form-profilo', '/profile', (p) => p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click()],
     ['form-esperienza', '/profile', (p) => p.locator('section[aria-labelledby="career-title"] button').first().click()],
     ['form-brevetto-errori', '/profile', async (p) => {
@@ -122,6 +129,7 @@ const PRIVATE_INTERACTIONS = [
     }],
 ];
 const PUBLIC_INTERACTIONS = [
+    ['registrazione-passione', '/register?tipo=passione', async () => undefined],
     ['registrazione-errori', '/register', (p) => p.getByRole('button', { name: 'Crea account' }).click()],
 ];
 

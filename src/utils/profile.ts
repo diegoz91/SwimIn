@@ -23,7 +23,21 @@ export function avatarOf(p?: AnyProfile | null): string {
 /** Qualifica o tipologia della struttura. */
 export function headlineOf(p?: AnyProfile | null): string {
     if (!p) return '';
-    if ('userType' in p && p.userType === 'professional') return (p as Partial<UserProfile>).title || 'Professionista del nuoto';
+    if ('userType' in p && p.userType === 'professional') {
+        const u = p as Partial<UserProfile>;
+        return u.title || (u.personType === 'enthusiast' ? 'Appassionato di nuoto' : 'Professionista del nuoto');
+    }
     if ('userType' in p) return (p as Partial<StructureProfile>).structureType || 'Struttura sportiva';
     return (p as Partial<Facility>).type || 'Struttura sportiva';
+}
+
+/** Persona che pratica il nuoto per passione (non cerca lavoro nel settore). */
+export const isEnthusiast = (p?: AnyProfile | null): boolean =>
+    !!p && 'userType' in p && p.userType === 'professional' && (p as Partial<UserProfile>).personType === 'enthusiast';
+
+/** Media delle recensioni (1 decimale) o null se non ce ne sono. */
+export function ratingOf(p?: { ratingSum?: number; ratingCount?: number } | null): { average: number; count: number } | null {
+    const count = p?.ratingCount || 0;
+    if (!count) return null;
+    return { average: Math.round(((p?.ratingSum || 0) / count) * 10) / 10, count };
 }

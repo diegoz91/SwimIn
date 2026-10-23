@@ -77,6 +77,11 @@ const profiles = [
         userId: 'u_luca', userType: 'professional', email: 'luca@example.com', firstName: 'Luca', lastName: 'Rinaldi',
         title: 'Allenatore pallanuoto under 16', city: 'Bergamo', province: 'BG', connections: [],
     }),
+    doc('profiles', 'u_paolo', {
+        userId: 'u_paolo', userType: 'professional', personType: 'enthusiast', email: 'paolo@example.com', firstName: 'Paolo', lastName: 'Riva',
+        title: 'Nuotatore master', city: 'Milano', province: 'MI', connections: [ME], sports: ['Nuoto master', 'Nuoto in acque libere', 'Triathlon'],
+        bio: 'Nuoto tre volte a settimana alla Lido, d’estate traversate al lago.',
+    }),
     doc('profiles', 'u_elena', {
         userId: 'u_elena', userType: 'professional', email: 'elena@example.com', firstName: 'Elena', lastName: 'Marchi',
         title: 'Coordinatrice scuola nuoto', city: 'Milano', province: 'MI', connections: [],
@@ -86,7 +91,7 @@ const profiles = [
         structureType: 'Piscina comunale', city: 'Milano', province: 'MI', connections: [ME],
         bio: 'Vasca olimpionica scoperta, vasca coperta da 25 m e vasca didattica. Corsi per tutte le età.',
         address: 'Piazza Lombardia 1', postalCode: '20131', phone: '02 1234567', website: 'https://piscinalido.example',
-        poolLength: 50, lanes: 8, poolSetting: 'entrambe', services: ['Scuola nuoto', 'Nuoto libero', 'Agonismo', 'Acquafitness', 'Corsi di salvamento'],
+        poolLength: 50, lanes: 8, poolSetting: 'entrambe', ratingSum: 13, ratingCount: 3, services: ['Scuola nuoto', 'Nuoto libero', 'Agonismo', 'Acquafitness', 'Corsi di salvamento'],
     }),
     doc('profiles', 'u_aquae', {
         userId: 'u_aquae', userType: 'structure', email: 'staff@aquae.example', structureName: 'Aquae Sport Center',
@@ -168,6 +173,11 @@ export const collections = {
         doc('live_messages', 'lm1', { roomId: 'r1', authorId: 'u_elena', content: 'Benvenuti! Oggi parliamo dei giochi per l\'acquaticità dei 4-5 anni.', kind: 'message' }, 14),
         doc('live_messages', 'lm2', { roomId: 'r1', authorId: 'u_marco', content: 'Come gestite i bambini che hanno paura di mettere la testa sott\'acqua?', kind: 'question' }, 10),
         doc('live_messages', 'lm3', { roomId: 'r1', authorId: 'u_luca', content: '✋', kind: 'hand' }, 6),
+    ],
+    reviews: [
+        doc('reviews', 'r1', { structureId: 'u_lido', authorId: 'u_paolo', rating: 5, content: 'Vasca da 50 sempre ben organizzata per corsie di velocità, acqua pulita e personale gentile. Il martedì sera c’è un bel gruppo master.', visitedAt: '2026-09', status: 'published', reply: 'Grazie Paolo, ci vediamo in vasca!', replyAt: iso(60 * 20) }, 60 * 24 * 3),
+        doc('reviews', 'r2', { structureId: 'u_lido', authorId: 'u_sara', rating: 4, content: 'Ottimi corsi di acquafitness, spogliatoi un po’ affollati nelle ore di punta.', status: 'published' }, 60 * 24 * 9),
+        doc('reviews', 'r3', { structureId: 'u_lido', authorId: 'u_marco', rating: 4, content: 'Ci alleno il gruppo master da due stagioni: orari comodi e corsie dedicate.', status: 'published' }, 60 * 24 * 20),
     ],
     saves: [doc('saves', 's1', { userId: ME, targetType: 'post', targetId: 'p1' }), doc('saves', 's2', { userId: ME, targetType: 'job', targetId: 'j2' })],
     swim_meets: [],

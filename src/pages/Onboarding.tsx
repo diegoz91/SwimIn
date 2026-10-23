@@ -10,7 +10,7 @@ import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { SUGGESTED_SKILLS } from '@/features/profile/components/SkillsSection';
 import { avatarOf } from '@/utils/profile';
 import type { Certification, StructureProfile, UserProfile } from '@/types/types';
-import { COMMON_CERTS, POOL_SERVICES, PROFESSIONAL_ROLES as ROLES, STRUCTURE_TYPES } from '@/data/swimming';
+import { COMMON_CERTS, POOL_SERVICES, PROFESSIONAL_ROLES as ROLES, STRUCTURE_TYPES, SWIM_ACTIVITIES } from '@/data/swimming';
 import { Field, ChoiceChips } from '@/components/form/Field';
 import { DatePicker, SuggestInput } from '@/components/form/Pickers';
 import { LocationFields } from '@/components/form/LocationFields';
@@ -32,6 +32,8 @@ const Onboarding: React.FC = () => {
     const { showToast } = useToast();
     const navigate = useNavigate();
     const isProfessional = user?.userType === 'professional';
+    /** Chi nuota per passione: niente brevetti, competenze e disponibilità al lavoro. */
+    const isFan = isProfessional && (user as Partial<UserProfile> | null)?.personType === 'enthusiast';
     // Campi di entrambi i tipi di profilo, letti in modo tollerante.
     const u = user as (Partial<Omit<UserProfile, 'userType'>> & Partial<Omit<StructureProfile, 'userType'>> & { userType?: string }) | null;
 
@@ -45,20 +47,21 @@ const Onboarding: React.FC = () => {
     const [skills, setSkills] = useState<string[]>(u?.skills || []);
     const [sos, setSos] = useState(!!u?.availableForEmergencies);
     const [services, setServices] = useState<string[]>(u?.services || []);
+    const [sports, setSports] = useState<string[]>(u?.sports || []);
     const [showErrors, setShowErrors] = useState(false);
 
     const { comuni } = useComuni(province);
     const step0Errors = {
-        title: isProfessional ? check(title, required('Indica cosa fai: compare sotto il tuo nome.'), minLength(2), maxLength(100)) : check(title, maxLength(80)),
-        city: check(city, required('Indica il comune: serve per le offerte vicine.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(province))),
+        title: isProfessional && !isFan ? check(title, required('Indica cosa fai: compare sotto il tuo nome.'), minLength(2), maxLength(100)) : check(title, maxLength(80)),
+        city: check(city, required(isFan ? 'Indica il comune: serve per trovare piscine e persone vicine.' : 'Indica il comune: serve per le offerte vicine.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(province))),
         province: check(province, required('Scegli la provincia.'), provinceRule),
     };
     const certErrors = certs.map((c) => check(c.expiry || '', isoDate, notBefore(todayISO(), 'Questa data è già passata: il brevetto risulterebbe scaduto.'), notAfter(addDaysISO(todayISO(), 365 * 10), 'Controlla l’anno.')));
-    const stepErrors = step === 0 ? Object.values(step0Errors).filter(Boolean) : step === 1 && isProfessional ? certErrors.filter(Boolean) : [];
+    const stepErrors = step === 0 ? Object.values(step0Errors).filter(Boolean) : step === 1 && isProfessional && !isFan ? certErrors.filter(Boolean) : [];
 
     const steps = useMemo(
-        () => (isProfessional ? ['Chi sei', 'Brevetti', 'Competenze', 'Disponibilità'] : ['La struttura', 'Presentazione']),
-        [isProfessional]
+        () => (isFan ? ['Chi sei', 'Cosa pratichi'] : isProfessional ? ['Chi sei', 'Brevetti', 'Competenze', 'Disponibilità'] : ['La struttura', 'Presentazione']),
+        [isProfessional, isFan]
     );
 
     if (!user || !u) return null;
@@ -77,7 +80,9 @@ const Onboarding: React.FC = () => {
         try {
             const base = { city: city.trim().replace(/\s+/g, ' '), province: province.trim().toUpperCase(), bio: bio.trim() };
             const existing = (u.certificationsList || []) as string[];
-            const data = isProfessional
+            const data = isFan
+                ? { ...base, title: title.trim(), sports: sports.slice(0, 15) }
+                : isProfessional
                 ? {
                     ...base,
                     title: title.trim(),
@@ -159,8 +164,8 @@ const Onboarding: React.FC = () => {
                                     {isProfessional ? 'Una foto riconoscibile aiuta colleghi e strutture a fidarsi di te.' : 'Il logo rende riconoscibili i tuoi annunci.'}
                                 </p>
                             </div>
-                            <Field id="ob-title" label={isProfessional ? 'Che cosa fai?' : 'Tipo di struttura'} optional={!isProfessional} error={showErrors ? step0Errors.title : undefined}>
-                                <SuggestInput value={title} onChange={setTitle} options={isProfessional ? ROLES : STRUCTURE_TYPES} label={isProfessional ? 'Ruoli' : 'Tipi di struttura'} placeholder={isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={110} />
+                            <Field id="ob-title" label={isFan ? 'Come ti descrivi' : isProfessional ? 'Che cosa fai?' : 'Tipo di struttura'} optional={!isProfessional || isFan} error={showErrors ? step0Errors.title : undefined}>
+                                <SuggestInput value={title} onChange={setTitle} options={isFan ? ['Nuotatore master', 'Appassionato di nuoto', 'Triatleta', 'Genitore di un piccolo nuotatore', 'Ex agonista'] : isProfessional ? ROLES : STRUCTURE_TYPES} label={isProfessional ? 'Ruoli' : 'Tipi di struttura'} placeholder={isFan ? 'Es. Nuotatore master' : isProfessional ? 'Es. Istruttore di nuoto' : 'Es. Piscina comunale'} maxLength={110} />
                             </Field>
                             <LocationFields
                                 idPrefix="ob"
@@ -174,7 +179,18 @@ const Onboarding: React.FC = () => {
                         </div>
                     )}
 
-                    {step === 1 && isProfessional && (
+                    {step === 1 && isFan && (
+                        <div className="space-y-5">
+                            <h1 className="text-4xl font-bold text-abisso leading-none">Come vivi il nuoto?</h1>
+                            <p className="text-slate-600">Scegli cosa pratichi: ti mostreremo persone, piscine e post vicini ai tuoi interessi.</p>
+                            <ChoiceChips label="Attività praticate" multiple max={15} options={SWIM_ACTIVITIES.map((x) => ({ value: x, label: x }))} value={sports} onChange={setSports} />
+                            <Field id="ob-fan-bio" label="Qualcosa su di te" optional count={{ value: bio, max: 2500 }} hint="Es. dove nuoti, da quanto, cosa ti piacerebbe migliorare.">
+                                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} maxLength={2600} className={inputClass} />
+                            </Field>
+                        </div>
+                    )}
+
+                    {step === 1 && isProfessional && !isFan && (
                         <div className="space-y-5">
                             <h1 className="text-4xl font-bold text-abisso leading-none">Quali brevetti hai?</h1>
                             <p className="text-slate-600">Selezionali qui e, per quelli che scadono, indica la data: ti avviseremo due mesi prima.</p>

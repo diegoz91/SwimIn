@@ -29,14 +29,18 @@ const makeValidator = (userType: AccountType) => (v: Values): FormErrors<Values>
     acceptedTerms: v.acceptedTerms ? undefined : 'Per creare l’account devi accettare Termini e Privacy Policy.',
 });
 
-const ACCOUNT_TYPES: { id: AccountType; title: string; description: string; icon: 'user' | 'building' }[] = [
-    { id: 'professional', title: 'Professionista', description: 'Istruttore, assistente bagnanti, allenatore…', icon: 'user' },
-    { id: 'structure', title: 'Struttura', description: 'Piscina, centro sportivo, società', icon: 'building' },
+type Choice = 'lavoro' | 'passione' | 'struttura';
+const ACCOUNT_TYPES: { id: Choice; title: string; description: string; icon: 'briefcase' | 'heart' | 'building' }[] = [
+    { id: 'lavoro', title: 'Lavoro nel nuoto', description: 'Istruttore, assistente bagnanti, allenatore…', icon: 'briefcase' },
+    { id: 'passione', title: 'Nuoto per passione', description: 'Corsi, master, nuoto libero, community', icon: 'heart' },
+    { id: 'struttura', title: 'Struttura', description: 'Piscina, centro sportivo, società', icon: 'building' },
 ];
+const initialChoice = (tipo: string | null): Choice => (tipo === 'struttura' ? 'struttura' : tipo === 'passione' ? 'passione' : 'lavoro');
 
 export const RegisterForm: React.FC = () => {
     const [params] = useSearchParams();
-    const [userType, setUserType] = useState<AccountType>(params.get('tipo') === 'struttura' ? 'structure' : 'professional');
+    const [choice, setChoice] = useState<Choice>(initialChoice(params.get('tipo')));
+    const userType: AccountType = choice === 'struttura' ? 'structure' : 'professional';
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const validate = useCallback((v: Values) => makeValidator(userType)(v), [userType]);
@@ -52,6 +56,7 @@ export const RegisterForm: React.FC = () => {
         try {
             await register(v.email.trim().toLowerCase(), v.password, {
                 userType,
+                personType: choice === 'passione' ? 'enthusiast' : choice === 'lavoro' ? 'professional' : undefined,
                 firstName: v.firstName.trim().replace(/\s+/g, ' '),
                 lastName: v.lastName.trim().replace(/\s+/g, ' '),
                 structureName: v.structureName.trim().replace(/\s+/g, ' '),
@@ -67,30 +72,32 @@ export const RegisterForm: React.FC = () => {
         <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8 animate-in fade-in duration-300">
             <div className="text-center mb-6">
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Unisciti a SwimIn</h1>
-                <p className="text-slate-500 mt-2">Il network professionale del mondo del nuoto.</p>
+                <p className="text-slate-500 mt-2">La community di chi vive il nuoto: per lavoro o per passione.</p>
             </div>
 
             <form ref={form.formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <fieldset>
                     <legend className="block text-sm font-semibold text-slate-700 mb-2">Mi iscrivo come</legend>
-                    <div className="grid grid-cols-2 gap-3" role="radiogroup">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="radiogroup">
                         {ACCOUNT_TYPES.map((t) => {
-                            const selected = userType === t.id;
+                            const selected = choice === t.id;
                             return (
                                 <button
                                     key={t.id}
                                     type="button"
                                     role="radio"
                                     aria-checked={selected}
-                                    onClick={() => setUserType(t.id)}
+                                    onClick={() => setChoice(t.id)}
                                     disabled={isLoading}
-                                    className={`text-left p-3 rounded-2xl border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                                        selected ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-slate-300 bg-white'
+                                    className={`text-left p-3 rounded-2xl border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 flex sm:block items-center gap-3 ${
+                                        selected ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300 bg-white'
                                     }`}
                                 >
-                                    <Icon type={t.icon} className={`w-6 h-6 mb-1 ${selected ? 'text-blue-600' : 'text-slate-400'}`} />
-                                    <span className={`block font-bold text-sm ${selected ? 'text-blue-800' : 'text-slate-800'}`}>{t.title}</span>
-                                    <span className="block text-[11px] leading-tight text-slate-500 mt-0.5">{t.description}</span>
+                                    <Icon type={t.icon} className={`w-6 h-6 sm:mb-1 flex-shrink-0 ${selected ? 'text-corsia-600' : 'text-slate-400'}`} />
+                                    <span>
+                                        <span className={`block font-bold text-sm ${selected ? 'text-corsia-800' : 'text-slate-800'}`}>{t.title}</span>
+                                        <span className="block text-[11px] leading-tight text-slate-500 mt-0.5">{t.description}</span>
+                                    </span>
                                 </button>
                             );
                         })}

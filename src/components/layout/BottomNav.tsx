@@ -4,6 +4,7 @@ import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { isEnthusiast } from '@/utils/profile';
 
 const ITEMS: { to: string; icon: IconType; label: string; end?: boolean }[] = [
     { to: '/', icon: 'home', label: 'Home', end: true },
@@ -32,7 +33,7 @@ const BottomNav: React.FC = () => {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             aria-label="Navigazione principale"
         >
-            {ITEMS.map((item) => (
+            {(isEnthusiast(user) ? ITEMS.map((n) => (n.to === '/jobs' ? { to: '/strutture', icon: 'building' as IconType, label: 'Piscine' } : n)) : ITEMS).map((item) => (
                 <NavLink
                     key={item.to}
                     to={item.to}
