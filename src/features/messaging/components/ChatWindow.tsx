@@ -143,7 +143,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             APPWRITE_CONFIG.collections.messages,
             [Query.equal('conversationId', conversationId), Query.orderDesc('$createdAt'), Query.limit(200)]
         );
-        if (isMounted) setMessages(msgs.documents.reverse());
+        if (isMounted) setMessages([...msgs.documents].sort((a, b) => a.$createdAt.localeCompare(b.$createdAt)));
 
         await databaseService.markMessagesAsRead(conversationId, currentUserId);
       } catch (error) {
@@ -371,7 +371,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const lastMineRead = useMemo(() => [...messages].reverse().find((m) => m.senderId === currentUserId && m.isRead)?.$id, [messages, currentUserId]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0">
+    <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0 min-w-0 w-full">
       <div className="flex items-center p-3 sm:p-4 border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm">
         <button
             onClick={onBack}
@@ -403,7 +403,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       <div
-        className="flex-1 p-4 overflow-y-auto custom-scrollbar"
+        className="flex-1 p-4 overflow-y-auto overflow-x-hidden custom-scrollbar"
         onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
         onDrop={(e) => { if (e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); } }}
       >
@@ -484,10 +484,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       </div>
                     )}
 
-                    <div className={`flex flex-col max-w-[85%] sm:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className={`flex flex-col min-w-0 max-w-[85%] sm:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
                       <div
                         id={`msg-${msg.$id}`}
-                        className={`relative rounded-2xl shadow-sm transition-shadow ${msg.deleted ? 'px-3 py-2 bg-transparent border border-dashed border-slate-300 text-slate-500' : isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-sm'} ${!msg.deleted ? (images.length && !msg.content && !docs.length && !reply ? 'p-1' : 'px-3 py-2 sm:px-4 sm:py-2.5') : ''} ${isTemp ? 'opacity-70' : ''}`}
+                        className={`relative max-w-full min-w-0 rounded-2xl shadow-sm transition-shadow ${msg.deleted ? 'px-3 py-2 bg-transparent border border-dashed border-slate-300 text-slate-500' : isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-sm'} ${!msg.deleted ? (images.length && !msg.content && !docs.length && !reply ? 'p-1' : 'px-3 py-2 sm:px-4 sm:py-2.5') : ''} ${isTemp ? 'opacity-70' : ''}`}
                       >
                         {msg.deleted ? (
                           <p className="text-sm italic flex items-center gap-1.5"><Icon type="x" className="w-4 h-4" /> Messaggio eliminato</p>
@@ -497,7 +497,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               <button
                                 type="button"
                                 onClick={() => scrollToMessage(reply.id)}
-                                className={`block w-full text-left mb-2 rounded-lg px-2.5 py-1.5 border-l-4 text-xs ${isMe ? 'bg-white/15 border-white/70 text-blue-50' : 'bg-slate-50 border-corsia-400 text-slate-600'}`}
+                                className={`block w-full min-w-0 max-w-[16rem] sm:max-w-sm text-left mb-2 rounded-lg px-2.5 py-1.5 border-l-4 text-xs ${isMe ? 'bg-white/15 border-white/70 text-blue-50' : 'bg-slate-50 border-corsia-400 text-slate-600'}`}
                               >
                                 <span className="block font-semibold">{nameOf(reply.senderId)}</span>
                                 <span className="block truncate">{reply.text || 'Messaggio'}</span>

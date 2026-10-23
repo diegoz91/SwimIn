@@ -168,7 +168,7 @@ const GroupPage: React.FC = () => {
     const memberRow = (m: GroupMember, actions: React.ReactNode) => {
         const p = profiles.get(m.userId);
         return (
-            <li key={m.$id} className="flex items-center gap-3 px-4 py-3">
+            <li key={m.$id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3">
                 <Link to={`/profile/${m.userId}`} className="flex-shrink-0">
                     <img src={p ? avatarOf(p) : ''} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                 </Link>
@@ -180,7 +180,7 @@ const GroupPage: React.FC = () => {
                     </p>
                     <p className="text-sm text-slate-500 truncate">{p ? headlineOf(p) : ''}</p>
                 </Link>
-                {actions && <div className="flex flex-wrap justify-end gap-1.5">{actions}</div>}
+                {actions && <div className="w-full sm:w-auto pl-12 sm:pl-0 -ml-3 sm:ml-0 flex flex-wrap sm:justify-end gap-1.5">{actions}</div>}
             </li>
         );
     };

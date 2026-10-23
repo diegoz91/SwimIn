@@ -240,7 +240,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
         </div>
       </div>
 
-      <div className={`flex-1 flex-col bg-white ${!showList ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`flex-1 min-w-0 flex-col bg-white ${!showList ? 'flex' : 'hidden md:flex'}`}>
         {chatParticipant && selectedConversationId ? (
           <ChatWindow
             key={selectedConversationId}
