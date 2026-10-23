@@ -74,7 +74,9 @@ export const SuggestInput: React.FC<Props> = ({ value, onChange, onBlur, options
                     onChange(e.target.value);
                     setOpen(true);
                 }}
-                onFocus={() => setOpen(true)}
+                // Le proposte si aprono quando si scrive o si clicca, non col solo focus
+                // (le modali mettono il focus sul primo campo e il menu coprirebbe il form).
+                onClick={() => setOpen(true)}
                 onBlur={() => window.setTimeout(() => { setOpen(false); onBlur?.(); }, 120)}
                 onKeyDown={onKey}
                 className={className ?? fieldClass(a11y['aria-invalid'] ? 'x' : undefined)}
