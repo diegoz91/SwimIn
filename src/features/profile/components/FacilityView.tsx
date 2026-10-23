@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
 import type { StructureProfile, Job, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +21,9 @@ import { Checkbox, Field } from '@/components/form/Field';
 import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
 import { addDaysISO, formatDate, isValidISODate, todayISO, weekStartISO } from '@/utils/dates';
 import { ShiftWeek } from './ShiftWeek';
+
+// Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
+const ApplicationsChart = lazy(() => import('./ApplicationsChart'));
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -281,13 +283,29 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
     return (
         <div className="max-w-5xl mx-auto w-full pb-8 animate-in fade-in duration-500">
+            <div className="mb-4 flex items-center justify-between gap-3">
             <button 
                 onClick={onBack} 
-                className="mb-4 text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
+                className="text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
             >
                 <Icon type="arrow-left" className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
                 Torna indietro
             </button>
+                <button
+                    onClick={async () => {
+                        const url = `${window.location.origin}/u/${facilityId}`;
+                        try {
+                            if (navigator.share) await navigator.share({ title: `${structureName} su SwimIn`, url });
+                            else { await navigator.clipboard.writeText(url); showToast('Link della pagina copiato.', 'success'); }
+                        } catch (err) {
+                            if ((err as Error)?.name !== 'AbortError') console.error('Condivisione:', err);
+                        }
+                    }}
+                    className="bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-full hover:bg-slate-50 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                >
+                    <Icon type="share" className="w-4 h-4" /> Condividi
+                </button>
+            </div>
             
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
                 <div className="h-48 sm:h-64 relative bg-gradient-to-br from-blue-700 via-sky-600 to-cyan-500">
@@ -779,15 +797,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         <h3 className="text-sm font-semibold text-abisso mb-3">Candidature per annuncio</h3>
                         {metrics.perJob.some((j) => j.candidature > 0) ? (
                             <div className="h-72 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={metrics.perJob} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                                        <YAxis type="category" dataKey="name" width={150} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#0A2738' }} />
-                                        <Tooltip cursor={{ fill: '#F2F8FA' }} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }} />
-                                        <Bar dataKey="candidature" name="Candidature" fill="#0E6A97" radius={[0, 6, 6, 0]} barSize={18} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <Suspense fallback={<div className="h-full w-full bg-slate-50 rounded-xl animate-pulse" />}>
+                                    <ApplicationsChart data={metrics.perJob} />
+                                </Suspense>
                             </div>
                         ) : (
                             <p className="text-sm text-slate-500 bg-slate-50 rounded-xl p-6 text-center">Le candidature ai tuoi annunci compariranno qui.</p>

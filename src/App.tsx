@@ -42,6 +42,7 @@ const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Structures = lazy(() => import('@/pages/Structures'));
 const Talent = lazy(() => import('@/pages/Talent'));
+const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const MyShifts = lazy(() => import('@/pages/MyShifts'));
 const Admin = lazy(() => import('@/pages/Admin'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -103,6 +104,7 @@ const AppContent: React.FC = () => {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/termini" element={<Terms />} />
               <Route path="/cookie" element={<Cookies />} />
+              <Route path="/u/:id" element={<PublicProfile />} />
 
               {/* Rotte protette */}
               <Route path="/" element={<HomeGate />} />

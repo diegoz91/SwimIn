@@ -34,6 +34,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `src/types/types.ts` — tipi di dominio; tenerli allineati allo schema in `setup-db.js`
 - `setup-db.js` — **fonte di verità dello schema** Appwrite (tabelle, colonne, indici, permessi). Usa l'API **TablesDB** (Appwrite 1.8+); la vecchia API Databases per schema/collezioni è deprecata e la console non offre più i suoi scope
 - `functions/api/` — Appwrite Function per le operazioni che toccano dati di più utenti; il client la chiama con `callApi()` in `database.ts`
+- `api/` — funzioni Vercel: `/u/:id` (anteprime social del profilo pubblico), `/sitemap.xml`, `/robots.txt`. Chiamano solo le azioni pubbliche della Function (`PUBLIC_ACTIONS` in `functions/api/src/public.js`), senza chiavi segrete; test in `scripts/vercel/api.test.mjs`
 - `.github/workflows/ci.yml` — CI su ogni PR: sincronizza `package-lock.json`, type-check, build, test della Function
 
 ## Design system (SwimIn, "acqua premium")
@@ -63,6 +64,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Area staff di una struttura (bacheca, turni, membri): solo amministratori e membri di `staff` (Facility o profilo Struttura), verificati dalla Function a ogni lettura (`functions/api/src/team.js`). Un collegamento o un follower **non** è staff. Le tabelle `announcements` e `shifts` non hanno permessi per i client.
 - Dati privati: email solo nell'account (mai sul profilo); telefono delle persone in `private_info`, restituito da `getContactInfo` solo alla persona, ai collegamenti reciproci e a chi valuta una sua candidatura.
 - Post, swim-meet e dirette si modificano/annullano solo via Function (`updatePost`, `createSwimMeet`, `cancelSwimMeet`, `endLiveRoom`).
+- Profili pubblici (`/u/:id`): strutture sempre, persone solo con `publicProfile` attivo. La Function è eseguibile anche dagli ospiti, ma senza login accetta solo `PUBLIC_ACTIONS`, che restituiscono dati non sensibili.
 - Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow

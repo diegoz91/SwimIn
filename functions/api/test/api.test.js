@@ -215,6 +215,16 @@ await rejects(api.initProfile('yan',{userType:'admin'}),400);
 await rejects(api.initProfile('yan',{userType:'professional',firstName:'Y4n',lastName:'Ok'}),400);
 const up=await api.updateMyProfile('zoe',{city:'segrate',province:'mi',phone:'333 123 4567',website:'zoe.it',connections:['anna'],userType:'structure',bio:' ciao '});
 assert.equal(up.city,'Segrate'); assert.equal(up.province,'MI'); assert.equal(up.phone,null); assert.equal(col('private_info').zoe.phone,'3331234567'); assert.deepEqual(col('private_info').zoe.$permissions,[]);
+// Profilo pubblico: strutture sempre, persone solo se lo scelgono; nessun dato privato
+await rejects(api.publicProfile(null,{id:'zoe'}),403);
+await api.updateMyProfile('zoe',{publicProfile:true});
+const pub=await api.publicProfile(null,{id:'zoe'});
+assert.equal(pub.kind,'person'); assert.equal(pub.name,"Zoe D'Angelo"); assert.equal(pub.phone,undefined); assert.equal(pub.email,undefined);
+assert.equal((await api.publicProfile(null,{id:'piscina'})).kind,'structure');
+await rejects(api.publicProfile(null,{id:'nessuno'}),404);
+await rejects(api.publicProfile(null,{id:'../x'}),400);
+assert.ok((await api.publicSitemap(null)).some((r)=>r.id==='zoe'));
+await api.updateMyProfile('zoe',{publicProfile:false});
 // Contatti privati: solo la persona, i collegamenti reciproci e chi valuta una sua candidatura
 assert.deepEqual(await api.getContactInfo('zoe',{profileId:'zoe'}),{phone:'3331234567',email:'zoe@esempio.it',allowed:true});
 assert.deepEqual(await api.getContactInfo('eve',{profileId:'zoe'}),{phone:'',email:'',allowed:false});

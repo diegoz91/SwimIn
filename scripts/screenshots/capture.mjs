@@ -77,6 +77,7 @@ const PUBLIC_PAGES = [
     ['registrazione', '/register'],
     ['privacy', '/privacy'],
     ['404', '/pagina-inesistente'],
+    ['profilo-pubblico', '/u/u_giulia'],
 ];
 
 const PRIVATE_PAGES = [

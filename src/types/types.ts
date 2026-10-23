@@ -68,6 +68,10 @@ export interface BaseProfile extends AppwriteDocument {
   connections?: string[];
   typingTo?: string | null;
   readReceipts?: boolean;
+  /** Scheda visibile anche senza account su /u/:id (le strutture lo sono sempre). */
+  publicProfile?: boolean;
+  /** Preferenze di notifica push/email per categoria (JSON, scritto dalla Function). */
+  notificationPrefs?: string;
   isOnline?: boolean;
   lastActive?: string;
   phone?: string;

@@ -106,6 +106,31 @@ const ownedBy = (userId: string) => [
     Permission.delete(Role.user(userId)),
 ];
 
+export interface PublicProfile {
+    kind: 'person' | 'structure';
+    id: string;
+    name: string;
+    headline: string;
+    enthusiast?: boolean;
+    city: string;
+    province: string;
+    avatar: string;
+    cover: string;
+    bio: string;
+    skills?: string[];
+    languages?: string[];
+    experiences?: { title: string; company: string; startDate: string; endDate: string; current: boolean }[];
+    certifications?: { name: string; issuer: string; category: string; verified: boolean }[];
+    connections?: number;
+    address?: string;
+    website?: string;
+    phone?: string;
+    services?: string[];
+    poolLength?: number | null;
+    lanes?: number | null;
+    poolSetting?: string | null;
+    rating?: { average: number; count: number } | null;
+}
 export interface TeamMember {
     $id: string; userId: string; firstName: string; lastName: string; title: string; avatar: string; city: string;
     isOnline: boolean; certificationsList: string[];
@@ -276,6 +301,11 @@ export const databaseService = {
         return await callApi<Certification>('adminVerifyCert', { profileId, certId, approve, note });
     },
 
+    /** Scheda pubblica di un profilo: funziona anche senza login (azione pubblica della Function). */
+    async getPublicProfile(id: string) {
+        return await callApi<PublicProfile>('publicProfile', { id });
+    },
+
     /** Email e telefono di un profilo, se chi chiama può vederli (decide il server). */
     async getContactInfo(profileId: string) {
         return await callApi<{ phone: string; email: string; allowed: boolean }>('getContactInfo', { profileId });
@@ -319,8 +349,10 @@ export const databaseService = {
         const strip = <T extends AppwriteDocument>(rows: T[]) =>
             rows.map(({ $permissions, $databaseId, $collectionId, ...rest }) => rest);
 
-        const [profile, posts, comments, likes, applications, notifications] = await Promise.all([
+        const [profile, contact, posts, comments, likes, applications, notifications] = await Promise.all([
             this.getProfile(userId),
+            // Email e telefono non sono sul profilo pubblico: li chiediamo al server.
+            this.getContactInfo(userId).catch(() => null),
             all<Post>(collections.posts, [Query.equal('authorId', userId)]),
             all<Comment>(collections.comments, [Query.equal('authorId', userId)]),
             all<Like>(collections.likes, [Query.equal('userId', userId)]),
@@ -329,7 +361,7 @@ export const databaseService = {
         ]);
         return {
             exportedAt: new Date().toISOString(),
-            profile: strip([profile])[0],
+            profile: { ...strip([profile])[0], email: contact?.email || undefined, phone: contact?.phone || (profile as Profile).phone || undefined },
             posts: strip(posts),
             comments: strip(comments),
             likes: likes.map((l) => ({ postId: l.postId, date: l.$createdAt })),

@@ -196,5 +196,12 @@ export const apiResponses = {
             { $id: 'sh2', structureId: 'u_lido', structureName: 'Piscina Lido di Milano', userId: ME, userName: 'Giulia Ferri', date: day(3), shiftTime: '16:00–20:00', role: 'Istruttrice', status: 'confirmed' },
         ];
     },
+    publicProfile: () => ({
+        kind: 'person', id: ME, name: 'Giulia Ferri', headline: 'Istruttrice di nuoto FIN e assistente bagnante', city: 'Milano', province: 'MI',
+        avatar: '', cover: '', bio: 'Insegno ai bambini dai 4 anni e alleno la preagonistica. Brevetto di salvamento sempre aggiornato.',
+        skills: ['Scuola nuoto bambini', 'Preagonistica', 'Salvamento'], languages: ['Italiano', 'Inglese'], connections: 48,
+        experiences: [{ title: 'Istruttrice di nuoto', company: 'Piscina Lido di Milano', startDate: '2021-09', endDate: '', current: true }],
+        certifications: [{ name: 'Istruttore di nuoto 2° livello', issuer: 'FIN – Federazione Italiana Nuoto', category: 'istruzione', verified: true }, { name: 'Brevetto Assistente Bagnanti', issuer: 'Società Nazionale di Salvamento', category: 'salvamento', verified: false }],
+    }),
     getPushConfig: () => ({ publicKey: null, emailAvailable: false, devices: 0, prefs: null, categories: [] }),
 };

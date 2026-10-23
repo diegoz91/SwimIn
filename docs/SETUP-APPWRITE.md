@@ -82,6 +82,12 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
   - messaggi: solo push.
 - **SOS.** Una sostituzione urgente avvisa i professionisti della stessa provincia che hanno indicato disponibilità per quel giorno e quella fascia, al massimo 100 persone.
 
+## 8. Profili pubblici e motori di ricerca
+
+- `/u/:id` mostra la scheda pubblica anche senza account. Le strutture sono sempre pubbliche; le persone lo diventano solo attivando *Impostazioni › Privacy › Pagina pubblica del profilo*.
+- Su Vercel le funzioni in `api/` generano le anteprime per WhatsApp, LinkedIn e Facebook, oltre a `sitemap.xml` e `robots.txt`. Usano le stesse variabili `VITE_APPWRITE_ENDPOINT` e `VITE_APPWRITE_PROJECT_ID` del frontend: non serve altro.
+- La Function `api` è eseguibile anche dagli ospiti (`execute: any`). Senza login accetta solo le azioni pubbliche, che restituiscono dati non sensibili: niente email, telefono delle persone, post o messaggi.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
