@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { JobCard } from './JobCard';
 import { Icon } from '@/components/ui/Icon';
 import { CreateJobModal } from './CreateJobModal';
+import { CreateSOSModal } from './CreateSOSModal';
 import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
 import type { Job } from '@/types/types';
 import { useToast } from '@/context/ToastContext';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { formatDate } from '@/utils/dates';
 
 interface LavoroViewProps {
   onSelectJob: (id: string) => void;
@@ -27,95 +29,6 @@ const FilterPill: React.FC<{ label: string; active?: boolean; onClick?: () => vo
         <span>{label}</span>
     </button>
 );
-
-const CreateSOSModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreated: () => void; structureId: string; }> = ({ isOpen, onClose, onCreated, structureId }) => {
-    const { showToast } = useToast();
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({ role: 'Bagnino', date: '', shift: '', salary: '', city: '', qualification: 'Brevetto Salvamento' });
-
-    if (!isOpen) return null;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await databaseService.createJob({
-                structureId,
-                title: `Sostituzione urgente: ${formData.role}`,
-                description: `Richiesta di sostituzione urgente per il giorno ${formData.date} in orario ${formData.shift}.\nCompenso previsto: €${formData.salary} netti.\nCandidati solo se hai disponibilità immediata!`,
-                role: formData.role.toLowerCase(),
-                contractType: 'collaborazione',
-                city: formData.city,
-                salaryMin: parseInt(formData.salary),
-                salaryMax: parseInt(formData.salary),
-                isActive: true,
-                isSOS: true,
-                sosDate: formData.date,
-                sosShift: formData.shift,
-                requirements: ['Disponibilità immediata', 'Residenza in zona'],
-                qualificationsRequired: [formData.qualification]
-            });
-            showToast('SOS Vasca lanciato con successo! Il network è allertato.', 'success');
-            onCreated();
-            onClose();
-        } catch(err) {
-            showToast('Errore durante l\'invio.', 'error');
-        } finally { 
-            setLoading(false); 
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden transform transition-all" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-5 border-b border-red-600 bg-red-600 text-white">
-                    <h2 className="text-xl font-extrabold flex items-center gap-2"><Icon type="alert-triangle" className="w-6 h-6 animate-pulse" /> Lancia SOS Vasca</h2>
-                    <button onClick={onClose} className="hover:bg-red-700 p-2 rounded-full transition-colors"><Icon type="x" className="w-5 h-5"/></button>
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-red-50/30">
-                    <p className="text-sm text-red-700 font-medium mb-4">Usa questo modulo solo per emergenze (assenteismo, malattia, ecc). L'annuncio verrà segnalato con priorità assoluta.</p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Ruolo Mancante *</label>
-                            <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg">
-                                <option value="Bagnino">Assistente Bagnanti</option>
-                                <option value="Istruttore">Istruttore Nuoto</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Compenso Netto (€) *</label>
-                            <input required type="number" placeholder="Es. 50" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Data *</label>
-                            <input required type="text" placeholder="Es. Oggi o 12/04" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Fascia Oraria *</label>
-                            <input required type="text" placeholder="Es. 15:00 - 19:00" value={formData.shift} onChange={e => setFormData({...formData, shift: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Città *</label>
-                            <input required type="text" placeholder="Es. Roma" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">Brevetto *</label>
-                            <input required type="text" placeholder="Es. Brevetto Salvamento" value={formData.qualification} onChange={e => setFormData({...formData, qualification: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg" />
-                        </div>
-                    </div>
-                    <button type="submit" disabled={loading} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors shadow-lg disabled:opacity-50">
-                        {loading ? 'Invio Allarme...' : 'INVIA SOS A TUTTI'}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-};
 
 // 🧠 FUZZY MATCH LOGIC
 const fuzzyMatch = (pattern: string, str: string) => {
@@ -350,7 +263,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                                             <div className="grid grid-cols-2 gap-2 mt-4 mb-4">
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
                                                     <p className="text-[10px] text-red-500 uppercase font-bold">Data</p>
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{job.sosDate}</p>
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{formatDate(job.sosDate, 'weekday')}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
                                                     <p className="text-[10px] text-red-500 uppercase font-bold">Turno</p>

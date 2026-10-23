@@ -9,6 +9,8 @@ import { useToast } from '@/context/ToastContext';
 import { authErrorMessage } from '@/utils/authErrors';
 import type { AuthenticatedUser } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
+import { PasswordMeter } from '@/components/form/PasswordMeter';
+import { email as emailRule, passwordStrength } from '@/utils/validation';
 
 interface SettingsProps {
   currentUser: AuthenticatedUser;
@@ -163,7 +165,9 @@ const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 8) return showToast('La nuova password deve avere almeno 8 caratteri.', 'error');
+    const strength = passwordStrength(newPassword, [user.email.split('@')[0]]);
+    if (strength.score < 1) return showToast(strength.hint || 'Scegli una password più robusta.', 'error');
+    if (newPassword === oldPassword) return showToast('La nuova password deve essere diversa da quella attuale.', 'error');
     if (newPassword !== confirm) return showToast('Le due password non coincidono.', 'error');
     setBusy('password');
     try {
@@ -179,10 +183,13 @@ const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
 
   const changeEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    const next = newEmail.trim().toLowerCase();
+    if (emailRule(next)) return showToast('Indirizzo email non valido.', 'error');
+    if (next === user.email.toLowerCase()) return showToast('È già la tua email attuale.', 'info');
     setBusy('email');
     try {
-      await account.updateEmail(newEmail.trim(), emailPassword);
-      await databaseService.updateProfile(user.$id, { email: newEmail.trim() });
+      await account.updateEmail(next, emailPassword);
+      await databaseService.updateProfile(user.$id, { email: next });
       await account.createVerification(`${window.location.origin}/verifica-email`).catch(() => undefined);
       await refreshProfile();
       setNewEmail(''); setEmailPassword('');
@@ -212,8 +219,14 @@ const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
       <Card title="Cambia password">
         <form onSubmit={changePassword} className="space-y-3 max-w-sm">
           <input type="password" autoComplete="current-password" placeholder="Password attuale" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className={inputClass} required aria-label="Password attuale" />
-          <input type="password" autoComplete="new-password" placeholder="Nuova password (min. 8 caratteri)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} minLength={8} required aria-label="Nuova password" />
-          <input type="password" autoComplete="new-password" placeholder="Ripeti la nuova password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} required aria-label="Ripeti la nuova password" />
+          <div>
+            <input type="password" autoComplete="new-password" placeholder="Nuova password (almeno 8 caratteri)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} minLength={8} required aria-label="Nuova password" aria-describedby="new-password-strength" />
+            <PasswordMeter id="new-password-strength" password={newPassword} personal={[user.email.split('@')[0]]} />
+          </div>
+          <div>
+            <input type="password" autoComplete="new-password" placeholder="Ripeti la nuova password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} required aria-label="Ripeti la nuova password" aria-invalid={confirm && confirm !== newPassword ? 'true' : undefined} />
+            {confirm && confirm !== newPassword && <p className="text-xs text-galleggiante mt-1.5">Le due password non coincidono.</p>}
+          </div>
           <button type="submit" disabled={busy !== null} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-60">
             {busy === 'password' ? 'Salvataggio…' : 'Aggiorna password'}
           </button>

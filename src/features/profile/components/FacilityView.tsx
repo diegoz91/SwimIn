@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { StructureProfile, Job, UserProfile, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +10,12 @@ import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
-import { jobDisplayTitle } from '@/utils/jobs';
+import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
+import { ProfileEditModal } from './ProfileEditModal';
+import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
+import { PoolSection } from './PoolSection';
+import { Field } from '@/components/form/Field';
+import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -60,7 +65,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [isImportant, setIsImportant] = useState(false);
     const [showAddShift, setShowAddShift] = useState(false);
-    const [newShift, setNewShift] = useState({ userId: '', userName: '', date: '', shiftTime: '', role: '' });
+    const [newShift, setNewShift] = useState({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
+    const [shiftErrors, setShiftErrors] = useState<Partial<Record<'userId' | 'date' | 'start' | 'end', string>>>({});
     
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
@@ -84,29 +90,11 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         if (onUpdateProfile) onUpdateProfile(updated as StructureProfile | Facility);
     };
 
-    const [editForm, setEditForm] = useState({
-        name: structureName || '',
-        type: structureType || '',
-        city: city || '',
-        province: province || '',
-        bio: bio || '',
-        logo: logo || ''
-    });
 
     useEffect(() => {
         setLocalJobs(openJobs);
     }, [openJobs]);
 
-    useEffect(() => {
-        setEditForm({
-            name: structureName || '',
-            type: structureType || '',
-            city: city || '',
-            province: province || '',
-            bio: bio || '',
-            logo: logo || ''
-        });
-    }, [facility, structureName, structureType, city, province, bio, logo]);
 
     // 💡 INIZIALIZZAZIONE FOLLOWERS ALL'AVVIO
     useEffect(() => {
@@ -150,29 +138,16 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         }
     }, [activeTab, isAdmin, isStaff, facilityId, facility, isLegacyStructure]);
 
-    const { totalVisits, totalCandidates, chartData } = useMemo(() => {
-        let candidates = 0;
-        localJobs.forEach(job => { candidates += (job.candidates?.length || 0); });
-        
-        // Calcolo basato sui veri Followers invece che sui connectionsCount!
-        const baseVisits = (followersCount * 15) + (candidates * 30) + 120;
-        const days = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
-        const today = new Date();
-        const data = [];
-        
-        for(let i=6; i>=0; i--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - i);
-            const dayName = days[d.getDay()];
-            
-            const dailyCand = Math.round(candidates / 7) + (i % 2 === 0 ? 1 : -1);
-            const dailyVisits = Math.round(baseVisits / 7) + (i % 3 === 0 ? 15 : -10);
-            
-            data.push({ name: dayName, visite: Math.max(0, dailyVisits), candidature: Math.max(0, dailyCand) });
-        }
-        
-        return { totalVisits: baseVisits, totalCandidates: candidates, chartData: data };
-    }, [localJobs, followersCount]);
+    /** Numeri reali della pagina: annunci, candidature ricevute per annuncio, follower. */
+    const metrics = useMemo(() => {
+        const open = localJobs.filter((j) => isJobOpen(j));
+        const candidates = localJobs.reduce((sum, j) => sum + (j.candidates?.length || 0), 0);
+        const perJob = localJobs
+            .map((j) => ({ name: jobDisplayTitle(j).slice(0, 22) + (jobDisplayTitle(j).length > 22 ? '…' : ''), candidature: j.candidates?.length || 0 }))
+            .sort((a, b) => b.candidature - a.candidature)
+            .slice(0, 8);
+        return { openJobs: open.length, sosJobs: open.filter((j) => j.isSOS).length, candidates, perJob };
+    }, [localJobs]);
 
     // 💡 LOGICA AZIONE "SEGUI PAGINA"
     const handleToggleFollow = async () => {
@@ -185,30 +160,14 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         }
     };
 
-    const handleSaveProfile = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            let updated;
-            if (isLegacyStructure) {
-                const dataToSave = {
-                    structureName: editForm.name,
-                    structureType: editForm.type,
-                    city: editForm.city,
-                    province: editForm.province,
-                    bio: editForm.bio,
-                };
-                updated = await databaseService.updateProfile(facilityId, dataToSave);
-            } else {
-                const { logo: _logo, ...facilityData } = editForm;
-                updated = await databaseService.updateFacility(facilityId, facilityData);
-            }
-            if (!updated) throw new Error('Salvataggio non riuscito.');
-            if(onUpdateProfile) onUpdateProfile(updated as any);
-            setIsEditingProfile(false);
-            showToast('Informazioni aggiornate!', 'success');
-        } catch(err) {
-            showToast('Errore durante il salvataggio.', 'error');
+    const handleSaveFacility = async (values: FacilityFormValues) => {
+        const updated = await databaseService.updateFacility(facilityId, values);
+        if (!updated) {
+            showToast('Non è stato possibile salvare le modifiche.', 'error');
+            throw new Error('updateFacility');
         }
+        onUpdateProfile?.(updated as Facility);
+        showToast('Pagina aggiornata.', 'success');
     };
 
     const handleJobCreated = async () => {
@@ -239,17 +198,28 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     };
 
     const handleConfirmShift = async () => {
-        if(!newShift.userId || !newShift.date || !newShift.shiftTime) {
-            showToast('Compila tutti i campi obbligatori del turno', 'error'); return;
-        }
+        const today = todayISO();
+        const errors: typeof shiftErrors = {};
+        if (!newShift.userId) errors.userId = 'Scegli chi coprirà il turno.';
+        if (!newShift.date) errors.date = 'Indica la data.';
+        else if (newShift.date < today) errors.date = 'La data è già passata.';
+        else if (newShift.date > addDaysISO(today, 180)) errors.date = 'Massimo 6 mesi in anticipo.';
+        if (!newShift.start) errors.start = 'Indica l’inizio.';
+        if (!newShift.end) errors.end = 'Indica la fine.';
+        else if (newShift.start && newShift.end <= newShift.start) errors.end = 'La fine deve essere dopo l’inizio.';
+        setShiftErrors(errors);
+        if (Object.keys(errors).length) return;
+        const { start, end, ...rest } = newShift;
         const result = await databaseService.createSquadShift({
-            structureId: facilityId, ...newShift, status: 'scheduled'
+            structureId: facilityId, ...rest, shiftTime: `${start}–${end}`, status: 'scheduled'
         });
         if(result) {
             setShifts([...shifts, result]);
             setShowAddShift(false);
-            setNewShift({ userId: '', userName: '', date: '', shiftTime: '', role: '' });
-            showToast('Turno assegnato!', 'success');
+            setNewShift({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
+            showToast('Turno assegnato.', 'success');
+        } else {
+            showToast('Non è stato possibile salvare il turno.', 'error');
         }
     };
 
@@ -287,7 +257,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         return diffDays <= 30; 
     };
 
-    const sosJobs = localJobs.filter(j => j.isSOS && j.isActive);
+    const sosJobs = localJobs.filter(j => j.isSOS && isJobOpen(j));
     const regularJobs = localJobs.filter(j => !j.isSOS && j.isActive);
 
     return (
@@ -334,7 +304,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 onClick={handleToggleFollow}
                                 className={`font-bold py-2.5 px-6 rounded-full transition shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 flex items-center gap-2 ${isFollowing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:ring-slate-500' : 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500'}`}
                             >
-                                {isFollowing ? <><Icon type="check-double" className="w-4 h-4"/> Pagina Seguita</> : <><Icon type="plus" className="w-4 h-4"/> Segui Pagina</>}
+                                {isFollowing ? <><Icon type="check-double" className="w-4 h-4"/> Segui già</> : <><Icon type="plus" className="w-4 h-4"/> Segui</>}
                             </button>
                         )}
 
@@ -367,12 +337,22 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-500">
                             <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                                 <Icon type="location" className="w-4 h-4 text-slate-400" />
-                                {city}{province ? ` (${province})` : ''}
+                                {city}{province ? ` (${province.toUpperCase()})` : ''}
                             </span>
+                            {facility.phone && (
+                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                    <Icon type="phone" className="w-4 h-4" /> {facility.phone}
+                                </a>
+                            )}
+                            {facility.website && (
+                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                    <Icon type="globe" className="w-4 h-4" /> {facility.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                                </a>
+                            )}
                             <span className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 text-blue-700">
                                 <Icon type="users" className="w-4 h-4" />
                                 {/* 💡 Stampa il counter dei veri Followers */}
-                                {followersCount} {isLegacyStructure ? 'Collegamenti' : 'Followers'}
+                                {followersCount} {isLegacyStructure ? (followersCount === 1 ? 'collegamento' : 'collegamenti') : 'follower'}
                             </span>
                         </div>
                     </div>
@@ -383,17 +363,17 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         Informazioni
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'jobs' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                        Posizioni Aperte <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs">{localJobs.filter(j => j.isActive).length}</span>
+                        Posizioni aperte <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs">{localJobs.filter(j => j.isActive).length}</span>
                     </button>
                     {/* 💡 ACCESSO AREA TEAM PER ADMIN E STAFF! */}
                     {(isAdmin || isStaff) && (
                         <button onClick={() => setActiveTab('staff')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'staff' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                            <Icon type="shield" className="w-4 h-4" /> {isAdmin ? 'Gestione Team' : 'Area Team'}
+                            <Icon type="shield" className="w-4 h-4" /> {isAdmin ? 'Gestione staff' : 'Area staff'}
                         </button>
                     )}
                     {isAdmin && (
                         <button onClick={() => setActiveTab('analytics')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'analytics' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                            <Icon type="star" className="w-4 h-4" /> Acqua-Metrics
+                            <Icon type="star" className="w-4 h-4" /> Statistiche
                         </button>
                     )}
                 </div>
@@ -410,14 +390,19 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 Chi siamo
                             </h2>
                             {isAdmin && (
-                                <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2">
-                                    Modifica Info
+                                <button onClick={() => setIsEditingProfile(true)} className="text-sm font-semibold text-corsia-700 bg-corsia-50 px-4 py-2 rounded-full hover:bg-corsia-100 transition-colors flex items-center gap-2">
+                                    <Icon type="edit" className="w-4 h-4" /> Modifica
                                 </button>
                             )}
                         </div>
                         <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
-                            {bio || 'La struttura non ha ancora inserito una descrizione aziendale.'}
+                            {bio || (isAdmin ? 'Aggiungi una presentazione: vasche, servizi, ambiente di lavoro.' : 'La struttura non ha ancora inserito una presentazione.')}
                         </p>
+                    </div>
+                )}
+                {activeTab === 'info' && isLegacyStructure && (
+                    <div className="mt-6">
+                        <PoolSection profile={facility as StructureProfile} isOwnProfile={isAdmin} onEdit={() => setIsEditingProfile(true)} />
                     </div>
                 )}
 
@@ -431,7 +416,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     onClick={() => setIsCreateModalOpen(true)}
                                     className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 >
-                                    <Icon type="plus" className="w-5 h-5" /> Pubblica Nuovo Annuncio
+                                    <Icon type="plus" className="w-5 h-5" /> Pubblica annuncio
                                 </button>
                             </div>
                         )}
@@ -439,7 +424,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         {sosJobs.length > 0 && (
                             <div className="mb-6 space-y-4">
                                 <h3 className="font-extrabold text-red-600 flex items-center gap-2 mb-2 px-2">
-                                    <Icon type="alert-triangle" className="w-5 h-5 animate-pulse" /> Emergenze SOS
+                                    <Icon type="alert-triangle" className="w-5 h-5 animate-pulse" /> Sostituzioni urgenti
                                 </h3>
                                 {sosJobs.map(job => (
                                     <div key={job.$id} className="bg-red-50 border-2 border-red-500 p-5 rounded-2xl shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
@@ -447,7 +432,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                         <div className="pt-2 sm:pt-0 pr-20 sm:pr-0">
                                             <h3 className="font-bold text-lg text-red-800">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-red-700 font-medium">
-                                                <span className="flex items-center gap-1"><Icon type="calendar" className="w-3.5 h-3.5" /> {job.sosDate}</span>
+                                                <span className="flex items-center gap-1"><Icon type="calendar" className="w-3.5 h-3.5" /> {formatDate(job.sosDate, 'weekday')}</span>
                                                 <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {job.sosShift}</span>
                                                 <span className="flex items-center gap-1 bg-white/60 px-2 py-0.5 rounded border border-red-200">€{job.salaryMin} netti</span>
                                             </div>
@@ -588,29 +573,31 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 </div>
                                 
                                 {isAdmin && showAddShift && (
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-8 grid grid-cols-1 sm:grid-cols-5 gap-4 items-end animate-in slide-in-from-top-4 shadow-inner">
-                                        <div className="sm:col-span-2">
-                                            <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Membro Staff</label>
-                                            {staff.length === 0 ? (
-                                                <p className="text-xs text-amber-600 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200">Non ci sono dipendenti assunti in questa pagina.</p>
-                                            ) : (
-                                                <select value={newShift.userId} onChange={(e) => { const s = staff.find(st => st.$id === e.target.value || st.userId === e.target.value); if(s) setNewShift({...newShift, userId: s.userId || s.$id, userName: `${s.firstName} ${s.lastName}`, role: s.title || 'Staff'}); }} className="w-full p-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 bg-white">
-                                                    <option value="">Seleziona...</option>
-                                                    {staff.map(s=><option key={s.$id} value={s.userId || s.$id}>{s.firstName} {s.lastName}</option>)}
-                                                </select>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Data</label>
-                                            <input type="date" value={newShift.date} onChange={e=>setNewShift({...newShift, date: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 bg-white text-slate-700"/>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Orario</label>
-                                            <input type="text" placeholder="es. 15:00-19:00" value={newShift.shiftTime} onChange={e=>setNewShift({...newShift, shiftTime: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 bg-white"/>
-                                        </div>
-                                        <button onClick={handleConfirmShift} disabled={staff.length === 0} className="bg-blue-600 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                                            Salva
-                                        </button>
+                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-4 items-start animate-in slide-in-from-top-4">
+                                        {staff.length === 0 ? (
+                                            <p className="sm:col-span-2 lg:col-span-5 text-sm text-amber-800 bg-amber-50 p-3 rounded-lg border border-amber-200">Non ci sono ancora membri dello staff in questa pagina: assumi un candidato da un annuncio per assegnargli dei turni.</p>
+                                        ) : (
+                                            <>
+                                                <Field id="shift-user" label="Membro dello staff" error={shiftErrors.userId}>
+                                                    <select value={newShift.userId} onChange={(e) => { const s = staff.find(st => st.$id === e.target.value || st.userId === e.target.value); setNewShift(s ? {...newShift, userId: s.userId || s.$id, userName: `${s.firstName} ${s.lastName}`, role: s.title || 'Staff'} : {...newShift, userId: ''}); }}>
+                                                        <option value="">Scegli…</option>
+                                                        {staff.map(s=><option key={s.$id} value={s.userId || s.$id}>{s.firstName} {s.lastName}</option>)}
+                                                    </select>
+                                                </Field>
+                                                <Field id="shift-date" label="Data" error={shiftErrors.date}>
+                                                    <input type="date" min={todayISO()} max={addDaysISO(todayISO(), 180)} value={newShift.date} onChange={e=>setNewShift({...newShift, date: e.target.value})} />
+                                                </Field>
+                                                <Field id="shift-start" label="Inizio" error={shiftErrors.start}>
+                                                    <input type="time" step={900} value={newShift.start} onChange={e=>setNewShift({...newShift, start: e.target.value})} />
+                                                </Field>
+                                                <Field id="shift-end" label="Fine" error={shiftErrors.end}>
+                                                    <input type="time" step={900} min={newShift.start || undefined} value={newShift.end} onChange={e=>setNewShift({...newShift, end: e.target.value})} />
+                                                </Field>
+                                                <button onClick={handleConfirmShift} className="lg:mt-7 bg-corsia-600 text-white font-semibold py-3 px-5 rounded-xl hover:bg-corsia-700 transition-colors">
+                                                    Assegna
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                                 
@@ -632,7 +619,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                         {shift.userId === user?.$id && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
                                                         {shift.userName}
                                                     </td>
-                                                    <td className="py-4 px-4 text-slate-600 text-sm font-medium">{new Date(shift.date).toLocaleDateString('it-IT')}</td>
+                                                    <td className="py-4 px-4 text-slate-600 text-sm font-medium">{formatDate(shift.date, 'weekday')}</td>
                                                     <td className="py-4 px-4">
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-slate-800 text-sm font-bold flex items-center gap-1.5"><Icon type="clock" className="w-3.5 h-3.5 text-slate-400"/>{shift.shiftTime}</span>
@@ -737,96 +724,57 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     </div>
                 )}
 
-                {/* 4. ACQUA-METRICS DASHBOARD (Solo Admin) */}
+                {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
                 {activeTab === 'analytics' && isAdmin && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in slide-in-from-right-4">
-                        <div className="mb-6 border-b border-slate-100 pb-4">
-                            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <Icon type="star" className="w-5 h-5 text-amber-500" /> Acqua-Metrics (Ultimi 7 Giorni)
-                            </h2>
-                            <p className="text-sm text-slate-500 mt-1">Dati analitici calcolati in base alle candidature attive e alla grandezza del tuo network.</p>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-abisso">Statistiche</h2>
+                            <p className="text-sm text-slate-500 mt-1">Annunci pubblicati da questa pagina e candidature ricevute.</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-center">
-                                <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Visite Profilo</p>
-                                <p className="text-3xl font-extrabold text-blue-800">{totalVisits}</p>
-                                <p className="text-[10px] text-green-600 font-bold mt-1 flex items-center justify-center"><Icon type="plus" className="w-3 h-3" /> Trend Positivo</p>
+                        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                            {[
+                                { label: 'Annunci aperti', value: metrics.openJobs },
+                                { label: 'SOS in corso', value: metrics.sosJobs },
+                                { label: 'Candidature ricevute', value: metrics.candidates },
+                                { label: isLegacyStructure ? 'Collegamenti' : 'Follower', value: followersCount },
+                            ].map((m) => (
+                                <div key={m.label} className="rounded-2xl bg-piastrella px-4 py-3">
+                                    <dt className="text-xs text-slate-500">{m.label}</dt>
+                                    <dd className="font-display text-3xl font-bold text-abisso">{m.value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                        <h3 className="text-sm font-semibold text-abisso mb-3">Candidature per annuncio</h3>
+                        {metrics.perJob.some((j) => j.candidature > 0) ? (
+                            <div className="h-72 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={metrics.perJob} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                        <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                        <YAxis type="category" dataKey="name" width={150} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#0A2738' }} />
+                                        <Tooltip cursor={{ fill: '#F2F8FA' }} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }} />
+                                        <Bar dataKey="candidature" name="Candidature" fill="#0E6A97" radius={[0, 6, 6, 0]} barSize={18} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
-                            <div className="bg-green-50 border border-green-100 p-4 rounded-xl text-center">
-                                <p className="text-green-600 text-xs font-bold uppercase tracking-wider mb-1">Candidature DB</p>
-                                <p className="text-3xl font-extrabold text-green-800">{totalCandidates}</p>
-                                <p className="text-[10px] text-green-600 font-bold mt-1 flex items-center justify-center"><Icon type="plus" className="w-3 h-3" /> Da {localJobs.length} annunci</p>
-                            </div>
-                        </div>
-                        <div className="h-72 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorVisite" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                        </linearGradient>
-                                        <linearGradient id="colorCand" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                    <Area type="monotone" dataKey="visite" name="Visite" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorVisite)" />
-                                    <Area type="monotone" dataKey="candidature" name="Candidature" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorCand)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
+                        ) : (
+                            <p className="text-sm text-slate-500 bg-slate-50 rounded-xl p-6 text-center">Le candidature ai tuoi annunci compariranno qui.</p>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* MODAL MODIFICA INFORMAZIONI STRUTTURA */}
-            {isEditingProfile && (
-                <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                        <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
-                            <h2 className="text-xl font-extrabold text-slate-800">Modifica Pagina Aziendale</h2>
-                            <button onClick={() => setIsEditingProfile(false)} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-200/50 rounded-full">
-                                <Icon type="x" className="w-5 h-5"/>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSaveProfile} className="p-6 overflow-y-auto custom-scrollbar space-y-5 flex-1">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Nome Struttura</label>
-                                    <input required type="text" value={editForm.name} onChange={e=>setEditForm({...editForm, name: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Tipologia (Es. Centro Sportivo)</label>
-                                    <input type="text" value={editForm.type} onChange={e=>setEditForm({...editForm, type: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Città</label>
-                                    <input type="text" value={editForm.city} onChange={e=>setEditForm({...editForm, city: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Provincia (Sigla)</label>
-                                    <input type="text" maxLength={2} value={editForm.province} onChange={e=>setEditForm({...editForm, province: e.target.value.toUpperCase()})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Descrizione (Bio)</label>
-                                <textarea rows={4} value={editForm.bio} onChange={e=>setEditForm({...editForm, bio: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Descrivi i tuoi impianti, i servizi offerti..." />
-                            </div>
-                            <p className="text-xs text-slate-500">Logo e copertina si cambiano dal pulsante con la fotocamera sulla pagina.</p>
-                            <div className="pt-4 border-t border-slate-100 flex gap-3">
-                                <button type="button" onClick={()=>setIsEditingProfile(false)} className="flex-1 font-bold text-slate-600 bg-slate-100 py-3 rounded-xl hover:bg-slate-200 transition">Annulla</button>
-                                <button type="submit" className="flex-1 font-bold text-white bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition shadow-md">Salva Modifiche</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {isAdmin && isLegacyStructure && (
+                <ProfileEditModal open={isEditingProfile} profile={facility as StructureProfile} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p as StructureProfile)} />
+            )}
+            {isAdmin && !isLegacyStructure && (
+                <FacilityFormModal
+                    open={isEditingProfile}
+                    mode="edit"
+                    initial={{ name: structureName, type: structureType, city, province, bio }}
+                    onClose={() => setIsEditingProfile(false)}
+                    onSubmit={handleSaveFacility}
+                />
             )}
 
             {/* MODAL ELIMINAZIONE ANNUNCIO */}

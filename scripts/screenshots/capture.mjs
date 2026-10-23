@@ -26,6 +26,12 @@ function applyQueries(rows, rawQueries) {
         }
         if (q.method === 'equal' && q.attribute === '$id') out = out.filter((r) => q.values.includes(r.$id));
         if (q.method === 'notEqual' && q.attribute) out = out.filter((r) => !q.values.includes(r[q.attribute]));
+        if (q.method === 'contains' && q.attribute) {
+            out = out.filter((r) => {
+                const v = r[q.attribute];
+                return Array.isArray(v) ? v.some((x) => q.values.includes(x)) : typeof v === 'string' && q.values.some((x) => v.toLowerCase().includes(String(x).toLowerCase()));
+            });
+        }
         if (q.method === 'limit') out = out.slice(0, q.values[0]);
     }
     return out;
@@ -86,6 +92,21 @@ const PRIVATE_PAGES = [
     ['salvati', '/salvati'],
 ];
 
+/** Schermate di form aperti: [nome, pagina, azione da eseguire prima dello scatto]. */
+const PRIVATE_INTERACTIONS = [
+    ['form-profilo', '/profile', (p) => p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click()],
+    ['form-esperienza', '/profile', (p) => p.locator('section[aria-labelledby="career-title"] button').first().click()],
+    ['form-brevetto-errori', '/profile', async (p) => {
+        await p.locator('section[aria-labelledby="certs-title"] button').first().click();
+        await p.waitForTimeout(300);
+        await p.getByRole('dialog').getByRole('button', { name: 'Aggiungi' }).click();
+    }],
+    ['form-disponibilita', '/profile', (p) => p.locator('section[aria-labelledby="availability-title"] button').first().click()],
+];
+const PUBLIC_INTERACTIONS = [
+    ['registrazione-errori', '/register', (p) => p.getByRole('button', { name: 'Crea account' }).click()],
+];
+
 const VIEWPORTS = [
     ['desktop', { width: 1440, height: 900 }],
     ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 2 }],
@@ -106,6 +127,19 @@ for (const [vpName, viewport] of VIEWPORTS) {
                 await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
                 await page.waitForTimeout(800);
                 await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: vpName === 'desktop' ? false : false });
+                console.log(`✓ ${vpName}-${name}`);
+            } catch (e) {
+                console.error(`✗ ${vpName}-${name}: ${e.message}`);
+            }
+        }
+        for (const [name, path, act] of loggedIn ? PRIVATE_INTERACTIONS : PUBLIC_INTERACTIONS) {
+            try {
+                await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+                await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
+                await page.waitForTimeout(600);
+                await act(page);
+                await page.waitForTimeout(700);
+                await page.screenshot({ path: `${OUT}/${vpName}-${name}.png` });
                 console.log(`✓ ${vpName}-${name}`);
             } catch (e) {
                 console.error(`✗ ${vpName}-${name}: ${e.message}`);

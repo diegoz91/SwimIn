@@ -84,6 +84,8 @@ const AppContent: React.FC = () => {
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
+            {/* Ogni cambio di pagina entra con una breve dissolvenza dal basso. */}
+            <div key={pathname} className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none">
             <Routes>
               {/* Rotte pubbliche */}
               <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
@@ -110,6 +112,7 @@ const AppContent: React.FC = () => {
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </div>
           </Suspense>
         </ErrorBoundary>
       </main>

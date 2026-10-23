@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
                             onClick={() => setActiveTab('profile')}
                             className={`px-6 py-2 rounded-full text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            Il mio Profilo
+                            Il mio profilo
                         </button>
                         <button 
                             onClick={() => setActiveTab('settings')}

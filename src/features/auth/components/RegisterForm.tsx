@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { authErrorMessage } from '@/utils/authErrors';
+import { Field, fieldClass } from '@/components/form/Field';
+import { PasswordMeter } from '@/components/form/PasswordMeter';
+import { useForm, type FormErrors } from '@/hooks/useForm';
+import { check, email as emailRule, maxLength, minLength, passwordStrength, personName, required } from '@/utils/validation';
 
 type AccountType = RegistrationData['userType'];
 
-const inputClass =
-    'w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-slate-50 focus:bg-white disabled:opacity-60';
+type Values = { firstName: string; lastName: string; structureName: string; email: string; password: string; acceptedTerms: boolean };
+
+const makeValidator = (userType: AccountType) => (v: Values): FormErrors<Values> => ({
+    ...(userType === 'professional'
+        ? {
+              firstName: check(v.firstName, required('Indica il nome.'), minLength(2), maxLength(50), personName),
+              lastName: check(v.lastName, required('Indica il cognome.'), minLength(2), maxLength(50), personName),
+          }
+        : { structureName: check(v.structureName, required('Indica il nome della struttura.'), minLength(2), maxLength(120)) }),
+    email: check(v.email, required('Indica la tua email.'), emailRule),
+    password:
+        check(v.password, required('Scegli una password.')) ||
+        (passwordStrength(v.password, [v.firstName, v.lastName, v.email.split('@')[0]]).score < 1
+            ? passwordStrength(v.password, [v.firstName, v.lastName, v.email.split('@')[0]]).hint || 'Password troppo debole.'
+            : undefined),
+    acceptedTerms: v.acceptedTerms ? undefined : 'Per creare l’account devi accettare Termini e Privacy Policy.',
+});
 
 const ACCOUNT_TYPES: { id: AccountType; title: string; description: string; icon: 'user' | 'building' }[] = [
     { id: 'professional', title: 'Professionista', description: 'Istruttore, assistente bagnanti, allenatore…', icon: 'user' },
@@ -18,40 +37,31 @@ const ACCOUNT_TYPES: { id: AccountType; title: string; description: string; icon
 export const RegisterForm: React.FC = () => {
     const [params] = useSearchParams();
     const [userType, setUserType] = useState<AccountType>(params.get('tipo') === 'struttura' ? 'structure' : 'professional');
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [structureName, setStructureName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const validate = useCallback((v: Values) => makeValidator(userType)(v), [userType]);
+    const form = useForm<Values>({ firstName: '', lastName: '', structureName: '', email: '', password: '', acceptedTerms: false }, validate);
+    const { values, errors, bind } = form;
 
     const { register, isLoading } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = form.handleSubmit(async (v) => {
         setError(null);
-
-        if (password.length < 8) {
-            setError('La password deve contenere almeno 8 caratteri.');
-            return;
-        }
-        if (!acceptedTerms) {
-            setError('Per creare l\'account devi accettare Termini e Privacy Policy.');
-            return;
-        }
-
         try {
-            await register(email.trim(), password, { userType, firstName, lastName, structureName });
+            await register(v.email.trim().toLowerCase(), v.password, {
+                userType,
+                firstName: v.firstName.trim().replace(/\s+/g, ' '),
+                lastName: v.lastName.trim().replace(/\s+/g, ' '),
+                structureName: v.structureName.trim().replace(/\s+/g, ' '),
+            });
             showToast('Account creato. Benvenuto in SwimIn!', 'success');
             navigate('/benvenuto', { replace: true });
         } catch (err) {
             setError(authErrorMessage(err, 'Registrazione non riuscita. Controlla i dati e riprova.'));
         }
-    };
+    });
 
     return (
         <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8 animate-in fade-in duration-300">
@@ -60,7 +70,7 @@ export const RegisterForm: React.FC = () => {
                 <p className="text-slate-500 mt-2">Il network professionale del mondo del nuoto.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
+            <form ref={form.formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <fieldset>
                     <legend className="block text-sm font-semibold text-slate-700 mb-2">Mi iscrivo come</legend>
                     <div className="grid grid-cols-2 gap-3" role="radiogroup">
@@ -89,69 +99,70 @@ export const RegisterForm: React.FC = () => {
 
                 {userType === 'professional' ? (
                     <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="firstName">Nome</label>
-                            <input id="firstName" autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} placeholder="Mario" disabled={isLoading} required maxLength={100} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="lastName">Cognome</label>
-                            <input id="lastName" autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} placeholder="Rossi" disabled={isLoading} required maxLength={100} />
-                        </div>
+                        <Field id="firstName" label="Nome" error={errors.firstName}>
+                            <input {...bind('firstName')} autoComplete="given-name" placeholder="Mario" disabled={isLoading} maxLength={60} />
+                        </Field>
+                        <Field id="lastName" label="Cognome" error={errors.lastName}>
+                            <input {...bind('lastName')} autoComplete="family-name" placeholder="Rossi" disabled={isLoading} maxLength={60} />
+                        </Field>
                     </div>
                 ) : (
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="structureName">Nome della struttura</label>
-                        <input id="structureName" autoComplete="organization" value={structureName} onChange={(e) => setStructureName(e.target.value)} className={inputClass} placeholder="Es. Piscina Comunale di Segrate" disabled={isLoading} required maxLength={200} />
-                    </div>
+                    <Field id="structureName" label="Nome della struttura" error={errors.structureName}>
+                        <input {...bind('structureName')} autoComplete="organization" placeholder="Es. Piscina comunale di Segrate" disabled={isLoading} maxLength={130} />
+                    </Field>
                 )}
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="email">Email</label>
-                    <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="nome@esempio.com" disabled={isLoading} required />
-                </div>
+                <Field id="email" label="Email" error={errors.email}>
+                    <input {...bind('email')} type="email" inputMode="email" autoComplete="email" placeholder="nome@esempio.com" disabled={isLoading} autoCapitalize="none" spellCheck={false} />
+                </Field>
 
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="password">Password</label>
-                    <div className="relative">
+                    <Field
+                        id="password"
+                        label="Password"
+                        error={errors.password}
+                        trailing={
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg"
+                                aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
+                            >
+                                {showPassword ? 'Nascondi' : 'Mostra'}
+                            </button>
+                        }
+                    >
                         <input
-                            id="password"
+                            {...bind('password')}
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="new-password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className={`${inputClass} pr-20`}
-                            placeholder="Minimo 8 caratteri"
-                            minLength={8}
+                            className={fieldClass(errors.password, 'pr-24')}
+                            placeholder="Almeno 8 caratteri"
                             disabled={isLoading}
-                            required
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword((v) => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg"
-                            aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
-                        >
-                            {showPassword ? 'Nascondi' : 'Mostra'}
-                        </button>
-                    </div>
+                    </Field>
+                    {!errors.password && <PasswordMeter password={values.password} personal={[values.firstName, values.lastName, values.email.split('@')[0]]} />}
                 </div>
 
-                <label className="flex items-start gap-3 text-sm text-slate-600 cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={acceptedTerms}
-                        onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                    />
-                    <span>
-                        Ho letto e accetto i{' '}
-                        <Link to="/termini" target="_blank" className="text-blue-600 font-semibold hover:underline">Termini di servizio</Link>{' '}
-                        e la{' '}
-                        <Link to="/privacy" target="_blank" className="text-blue-600 font-semibold hover:underline">Privacy Policy</Link>.
-                    </span>
-                </label>
+                <div>
+                    <label className="flex items-start gap-3 text-sm text-slate-600 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={values.acceptedTerms}
+                            onChange={(e) => form.set('acceptedTerms', e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-corsia-600"
+                            disabled={isLoading}
+                            aria-invalid={errors.acceptedTerms ? 'true' : undefined}
+                        />
+                        <span>
+                            Ho letto e accetto i{' '}
+                            <Link to="/termini" target="_blank" className="text-blue-600 font-semibold hover:underline">Termini di servizio</Link>{' '}
+                            e la{' '}
+                            <Link to="/privacy" target="_blank" className="text-blue-600 font-semibold hover:underline">Privacy Policy</Link>.
+                        </span>
+                    </label>
+                    {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante">{errors.acceptedTerms}</p>}
+                </div>
 
                 {error && (
                     <p role="alert" className="text-sm font-medium text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">

@@ -8,6 +8,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import { certificationsNeedingAttention, describeExpiry, parseCertifications } from '@/utils/certifications';
 import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { PARTS, currentPart, normalizeAvailability, remainingSlotsToday } from '@/utils/availability';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -62,7 +63,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
             </dl>
             {isProfessional && (user as UserProfile).availableForEmergencies && (
                 <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-galleggiante flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-galleggiante" aria-hidden="true" /> Disponibile per SOS Vasca
+                    <span className="w-2 h-2 rounded-full bg-galleggiante" aria-hidden="true" /> Disponibile per sostituzioni urgenti
                 </p>
             )}
         </Panel>
@@ -95,6 +96,55 @@ export const CertificationAlert: React.FC<{ user: AuthenticatedUser }> = ({ user
     );
 };
 
+/**
+ * Per chi gestisce una struttura: professionisti liberi nelle prossime ore di oggi,
+ * dalla stessa provincia quando possibile. Pensato per coprire un turno all'ultimo.
+ */
+const AvailableTodayPanel: React.FC<{ province?: string }> = ({ province }) => {
+    const [people, setPeople] = useState<UserProfile[] | null>(null);
+    const slots = remainingSlotsToday();
+    const part = PARTS.find((p) => p.key === currentPart())!;
+
+    useEffect(() => {
+        databaseService
+            .getAvailableProfessionals(slots, province)
+            .then(setPeople)
+            .catch((e) => {
+                console.warn('Disponibili oggi:', e);
+                setPeople([]);
+            });
+    }, [province]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!people || people.length === 0) return null;
+    return (
+        <Panel title="Liberi oggi">
+            <p className="px-4 text-xs text-slate-500 -mt-0.5 mb-1">Hanno indicato disponibilità da {part.label.toLowerCase()} in poi.</p>
+            <ul className="pb-2">
+                {people.map((p) => {
+                    const id = p.userId || p.$id;
+                    const todayParts = normalizeAvailability(p.availability).filter((s) => slots.includes(s)).map((s) => s.split('-')[1]);
+                    return (
+                        <li key={id}>
+                            <Link to={`/profile/${id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-piastrella">
+                                <span className="relative flex-shrink-0">
+                                    <img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-cloro-500 ring-2 ring-white" aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-sm font-semibold text-abisso truncate">{displayNameOf(p)}</span>
+                                    <span className="block text-xs text-slate-500 truncate">
+                                        {[headlineOf(p), todayParts.join(', ')].filter(Boolean).join(' · ')}
+                                    </span>
+                                </span>
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </Panel>
+    );
+};
+
 /** Colonna destra: offerte recenti, persone da conoscere, dirette attive. */
 export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isLoadingJobs: boolean }> = ({ user, jobs, isLoadingJobs }) => {
     const navigate = useNavigate();
@@ -124,6 +174,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
 
     return (
         <div className="space-y-4">
+            {(user.userType === 'structure' || ((user as UserProfile).managedFacilities || []).length > 0) && <AvailableTodayPanel province={user.province} />}
             {rooms.length > 0 && (
                 <Panel title="In diretta ora">
                     <ul className="pb-2">

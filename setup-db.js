@@ -77,6 +77,14 @@ const schema = [
             bool('availableForEmergencies', { default: false }),
             str('managedFacilities', 36, { array: true }),
             str('skills', 60, { array: true }), // competenze (max 20), confermabili dai collegamenti
+            // Contatti e dettagli (validati nei form del client)
+            str('phone', 30), str('website', 500),
+            str('languages', 40, { array: true }), // professionisti: lingue parlate
+            str('availability', 20, { array: true }), // professionisti: fasce "lun-mattina", "sab-sera"…
+            // Strutture: sede e impianto
+            str('address', 255), str('postalCode', 10), str('vatNumber', 20),
+            int('poolLength'), int('lanes'), str('poolSetting', 20), // 'coperta' | 'scoperta' | 'entrambe'
+            str('services', 60, { array: true }),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -118,6 +126,7 @@ const schema = [
             str('candidates', 36, { array: true }), str('requirements', 500, { array: true }),
             str('qualificationsRequired', 500, { array: true }),
             bool('isSOS', { default: false }), str('sosDate', 100), str('sosShift', 100),
+            str('expiresAt', 100), // data (YYYY-MM-DD) dopo la quale l'annuncio non è più mostrato
         ],
         indexes: [idx('by_active', ['isActive']), idx('by_structure', ['structureId'])],
     },

@@ -13,15 +13,29 @@ export type UserType = 'professional' | 'structure';
 export interface Certification {
   name: string;
   issuer: string;
+  /** Chiave di CERT_CATEGORIES (i dati vecchi possono contenere l'etichetta). */
   category: string;
+  /** Data di rilascio YYYY-MM-DD. */
+  issueDate?: string;
+  /** Data di scadenza YYYY-MM-DD; assente se non scade. */
   expiry?: string;
+  /** Numero del brevetto o della tessera. */
+  credentialId?: string;
 }
 
 export interface Experience {
   role: string;
   facility: string;
-  period: string;
-  description: string;
+  employmentType?: string;
+  city?: string;
+  /** Inizio YYYY-MM. */
+  startDate?: string;
+  /** Fine YYYY-MM; assente se in corso. */
+  endDate?: string;
+  current?: boolean;
+  /** Formato vecchio, testo libero ("Set 2020 - Attuale"): solo lettura. */
+  period?: string;
+  description?: string;
 }
 
 export interface Media {
@@ -47,6 +61,8 @@ export interface BaseProfile extends AppwriteDocument {
   readReceipts?: boolean;
   isOnline?: boolean;
   lastActive?: string;
+  phone?: string;
+  website?: string;
 }
 
 export interface UserProfile extends BaseProfile {
@@ -61,6 +77,9 @@ export interface UserProfile extends BaseProfile {
   managedFacilities?: string[]; 
   /** Competenze dichiarate, confermabili dai collegamenti. */
   skills?: string[];
+  languages?: string[];
+  /** Fasce di disponibilità settimanale, es. "lun-mattina" (vedi utils/availability). */
+  availability?: string[];
 }
 
 export interface StructureProfile extends BaseProfile {
@@ -68,6 +87,14 @@ export interface StructureProfile extends BaseProfile {
   structureName?: string;
   structureType?: string;
   logo?: string;
+  address?: string;
+  postalCode?: string;
+  vatNumber?: string;
+  /** Lunghezza della vasca principale in metri. */
+  poolLength?: number | null;
+  lanes?: number | null;
+  poolSetting?: 'coperta' | 'scoperta' | 'entrambe' | null;
+  services?: string[];
 }
 
 export type AuthenticatedUser = Models.User<Models.Preferences> & (UserProfile | StructureProfile);
@@ -136,6 +163,8 @@ export interface Job extends AppwriteDocument {
   isSOS?: boolean;
   sosDate?: string;
   sosShift?: string;
+  /** YYYY-MM-DD: dopo questa data l'annuncio non viene più mostrato. */
+  expiresAt?: string;
 }
 
 export interface Application extends AppwriteDocument {
