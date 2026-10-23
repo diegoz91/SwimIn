@@ -78,7 +78,12 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
         return [...starts, ...contains].slice(0, MAX_RESULTS);
     }, [query, source, province]);
 
-    useEffect(() => setActive(0), [query]);
+    useEffect(() => {
+        setActive(0);
+        // Nuova ricerca: si riparte dall'inizio dell'elenco.
+        const scroller = listRef.current?.closest('.overflow-y-auto');
+        if (scroller) scroller.scrollTop = 0;
+    }, [query]);
     useEffect(() => {
         if (open) listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
     }, [active, open]);

@@ -98,7 +98,11 @@ export function Select<V extends string = string>({
         return () => window.clearTimeout(t);
     }, [open]);
 
-    useEffect(() => setActive(0), [query]);
+    useEffect(() => {
+        setActive(0);
+        const scroller = listRef.current?.closest('.overflow-y-auto');
+        if (scroller && query) scroller.scrollTop = 0;
+    }, [query]);
 
     const onListKey = (e: React.KeyboardEvent) => {
         const last = filtered.length - 1;
