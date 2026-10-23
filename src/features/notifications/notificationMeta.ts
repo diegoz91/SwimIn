@@ -24,6 +24,10 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'sparkles', tone: 'bg-green-100 text-green-600', href: n.relatedId ? `/profile/${n.relatedId}` : '/jobs' };
         case 'endorsement':
             return { icon: 'star', tone: 'bg-amber-100 text-amber-600', href: '/profile' };
+        case 'repost':
+            return { icon: 'share', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/post/${n.relatedId}` : '/' };
+        case 'profile_view':
+            return { icon: 'user', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/profile/${n.relatedId}` : '/profile?visite=1' };
         case 'shift':
             return { icon: 'calendar', tone: 'bg-corsia-100 text-corsia-700', href: '/turni' };
         case 'sos':

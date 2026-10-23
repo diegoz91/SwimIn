@@ -9,7 +9,7 @@ import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 const CATEGORY_LABELS: Record<NotifyCategory, { label: string; hint: string }> = {
     messages: { label: 'Messaggi', hint: 'Quando qualcuno ti scrive.' },
     connections: { label: 'Collegamenti', hint: 'Richieste ricevute e accettate.' },
-    social: { label: 'Attività sui tuoi contenuti', hint: 'Consigli, commenti, conferme di competenze.' },
+    social: { label: 'Attività e visite', hint: 'Reazioni, commenti, ripubblicazioni, conferme di competenze, visite al profilo.' },
     jobs: { label: 'Candidature e lavoro', hint: 'Nuove candidature, esiti, assunzioni.' },
     sos: { label: 'Sostituzioni urgenti', hint: 'SOS nella tua provincia quando sei disponibile.' },
     general: { label: 'Turni, verifiche e avvisi', hint: 'Turni assegnati, brevetti verificati, risposte alle recensioni.' },

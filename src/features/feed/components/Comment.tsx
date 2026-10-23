@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Models } from 'appwrite';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
 import { useBlocks } from '@/context/BlocksContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/context/ToastContext';
+import { databaseService } from '@/services/database';
+import { Icon } from '@/components/ui/Icon';
 
 export interface EnrichedComment extends Models.Document {
     postId: string;
@@ -13,6 +17,8 @@ export interface EnrichedComment extends Models.Document {
     createdAt: string;
     author?: UserProfile | StructureProfile | null;
     replies?: EnrichedComment[];
+    likesCount?: number;
+    likedByMe?: boolean;
 }
 
 interface CommentProps {
@@ -32,7 +38,33 @@ export const Comment: React.FC<CommentProps> = ({
     onDelete,
 }) => {
     const blocks = useBlocks();
+    const { user } = useAuth();
+    const { showToast } = useToast();
     const deleteAction = onDelete?.(comment);
+    const [liked, setLiked] = useState(!!comment.likedByMe);
+    const [likes, setLikes] = useState(comment.likesCount || 0);
+    const [liking, setLiking] = useState(false);
+
+    const toggleLike = async () => {
+        if (!user || liking) return;
+        setLiking(true);
+        const was = liked;
+        setLiked(!was);
+        setLikes((n) => Math.max(0, n + (was ? -1 : 1)));
+        try {
+            const res = await databaseService.toggleCommentLike(comment.$id);
+            setLiked(res.liked);
+            setLikes(res.likesCount);
+            onLike?.(comment.$id);
+        } catch (err) {
+            console.error('Mi piace al commento:', err);
+            setLiked(was);
+            setLikes(comment.likesCount || 0);
+            showToast('Non è stato possibile registrare il mi piace.', 'error');
+        } finally {
+            setLiking(false);
+        }
+    };
     let authorName = 'Utente Sconosciuto';
     let authorSubtitle = '';
     let avatarUrl = '';
@@ -94,13 +126,21 @@ export const Comment: React.FC<CommentProps> = ({
                 </div>
                 
                 <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1.5 px-2">
-                    {onLike && (
-                        <button 
-                            onClick={() => onLike(comment.$id)}
-                            className="font-semibold hover:text-blue-600 transition-colors outline-none focus-visible:text-blue-600"
+                    {user && (
+                        <button
+                            onClick={toggleLike}
+                            disabled={liking}
+                            aria-pressed={liked}
+                            className={`font-semibold transition-colors outline-none focus-visible:text-corsia-700 ${liked ? 'text-corsia-700' : 'hover:text-corsia-700'}`}
                         >
-                            Mi piace
+                            {liked ? 'Ti piace' : 'Mi piace'}
                         </button>
+                    )}
+                    {likes > 0 && (
+                        <span className="inline-flex items-center gap-1 text-slate-500" aria-label={likes === 1 ? '1 mi piace' : `${likes} mi piace`}>
+                            <span className="bg-corsia-100 p-0.5 rounded-full"><Icon type="thumb-up" className="w-2.5 h-2.5 text-corsia-700" /></span>
+                            {likes}
+                        </span>
                     )}
                     {onReply && (
                         <button 

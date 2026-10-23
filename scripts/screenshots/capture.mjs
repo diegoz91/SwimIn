@@ -106,6 +106,11 @@ const PRIVATE_INTERACTIONS = [
         await p.locator('#reviews-title').scrollIntoViewIfNeeded();
         await p.mouse.wheel(0, -80);
     }],
+    ['commenti', '/', (p) => p.getByRole('button', { name: /^Commenta$/ }).first().click()],
+    ['reazioni', '/', (p) => p.getByRole('button', { name: /^Consiglia$/ }).first().hover()],
+    ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
+    ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
+    ['ripubblica', '/', (p) => p.getByRole('button', { name: /Ripubblica/ }).first().click()],
     ['form-recensione', '/profile/u_lido', (p) => p.getByRole('button', { name: /Scrivi una recensione/ }).click()],
     ['form-profilo', '/profile', (p) => p.getByRole('button', { name: /^Modifica( profilo)?$/ }).first().click()],
     ['form-esperienza', '/profile', (p) => p.locator('section[aria-labelledby="career-title"] button').first().click()],

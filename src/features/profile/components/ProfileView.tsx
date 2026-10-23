@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile, StructureProfile, Experience, Certification, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
@@ -16,6 +16,9 @@ import { useBlocks } from '@/context/BlocksContext';
 import { initialsAvatar } from '@/utils/avatar';
 import { isEnthusiast } from '@/utils/profile';
 import { useContactInfo } from '@/hooks/useContactInfo';
+import { PeopleModal, type PersonRow } from '@/components/common/PeopleModal';
+import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
+import { formatRelativeTime } from '@/utils/format';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -44,7 +47,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const { showToast } = useToast();
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
-    const [confettiFired, setConfettiFired] = useState(false);
     
     const isProfessional = user.userType === 'professional';
     /** Nuota per passione: il profilo mette in primo piano attività e community, non il lavoro. */
@@ -107,23 +109,57 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const completionScore = completionSteps.reduce((sum, s) => sum + (s.done ? s.weight : 0), 0);
     const missingSteps = completionSteps.filter((s) => !s.done);
 
+    // Collegamenti e visite al profilo (elenchi in finestra).
+    const [connectionsOpen, setConnectionsOpen] = useState(false);
+    const [viewsOpen, setViewsOpen] = useState(() => isOwnProfile && new URLSearchParams(window.location.search).get('visite') === '1');
+    const [viewsCount, setViewsCount] = useState<number | null>(null);
+    const profileKey = user.userId || user.$id;
     useEffect(() => {
-        if (completionScore === 100 && !confettiFired && isOwnProfile) {
-            const duration = 3 * 1000;
-            const end = Date.now() + duration;
-            // Libreria caricata solo per la festa del profilo completo.
-            void import('canvas-confetti').then(({ default: confetti }) => {
-            const frame = () => {
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
-                if (Date.now() < end) requestAnimationFrame(frame);
-            };
-            frame();
-            }).catch((err) => console.error('Coriandoli:', err));
-            setConfettiFired(true);
-            showToast('Complimenti! Hai sbloccato il Badge Pioniere SwimIn!', 'success');
+        if (isOwnProfile) {
+            databaseService.listProfileViews().then((r) => setViewsCount(r?.total ?? 0)).catch((err) => console.warn('Visite al profilo:', err));
+        } else {
+            // Avvisa il proprietario della visita (il server evita doppioni nelle 24 ore).
+            databaseService.recordProfileView(profileKey).catch((err) => console.warn('Visita non registrata:', err));
         }
-    }, [completionScore, confettiFired, isOwnProfile, showToast]);
+    }, [isOwnProfile, profileKey]);
+    const loadConnections = async (): Promise<PersonRow[]> =>
+        (await databaseService.getProfilesByIds(user.connections || []))
+            .filter((p) => !blocks.isHidden(p.$id) && !p.suspended)
+            .map((p) => ({ id: p.$id, name: displayNameOf(p), headline: headlineOf(p), avatar: avatarOf(p) }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'it'));
+    const loadViews = async (): Promise<PersonRow[]> => {
+        const r = await databaseService.listProfileViews();
+        setViewsCount(r?.total ?? 0);
+        return (r?.viewers || []).map((v) => ({ id: v.id, name: v.name, headline: v.headline, avatar: v.avatar, meta: formatRelativeTime(v.viewedAt) }));
+    };
+
+    // Coriandoli una volta sola: quando il punteggio passa a 100% durante la sessione,
+    // mai se il profilo era già completo all'apertura (né su altri dispositivi dopo).
+    const previousScore = useRef<number | null>(null);
+    const ownerId = user.userId || user.$id;
+    useEffect(() => {
+        if (!isOwnProfile) return;
+        const key = `swimin:profilo-completo:${ownerId}`;
+        const prev = previousScore.current;
+        previousScore.current = completionScore;
+        if (completionScore < 100) return;
+        let celebrated = false;
+        try { celebrated = localStorage.getItem(key) === '1'; localStorage.setItem(key, '1'); } catch (err) { console.warn('Preferenza non salvata:', err); }
+        if (celebrated || prev === null || prev >= 100) return;
+        const end = Date.now() + 3000;
+        // Libreria caricata solo per la festa del profilo completo.
+        void import('canvas-confetti')
+            .then(({ default: confetti }) => {
+                const frame = () => {
+                    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'], disableForReducedMotion: true });
+                    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'], disableForReducedMotion: true });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                };
+                frame();
+            })
+            .catch((err) => console.error('Coriandoli:', err));
+        showToast('Profilo completo al 100%: ora le strutture ti trovano più facilmente.', 'success');
+    }, [completionScore, isOwnProfile, ownerId, showToast]);
 
     // FETCH PAGINE AZIENDALI
     useEffect(() => {
@@ -490,7 +526,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       {experienceMonths >= 12 && (
                           <span className="flex items-center gap-1.5"><Icon type="briefcase" className="w-4 h-4" /> {formatDuration(Math.floor(experienceMonths / 12) * 12)} di esperienza</span>
                       )}
-                      <span className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg"><Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}</span>
+                      <button
+                          type="button"
+                          onClick={() => setConnectionsOpen(true)}
+                          disabled={!(user.connections?.length)}
+                          className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg font-semibold hover:bg-corsia-100 disabled:hover:bg-corsia-50 disabled:cursor-default outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                      >
+                          <Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}
+                      </button>
+                      {isOwnProfile && viewsCount !== null && (
+                          <button
+                              type="button"
+                              onClick={() => setViewsOpen(true)}
+                              data-html2canvas-ignore="true"
+                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                          >
+                              <Icon type="user" className="w-4 h-4" /> {viewsCount === 1 ? '1 visita al profilo' : `${viewsCount} visite al profilo`}
+                          </button>
+                      )}
                   </div>
                   {(phone || email || user.website || (profUser?.languages || []).length > 0) && (
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm">
@@ -716,6 +769,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         experience={experienceModal.experience}
         mode={experienceModal.mode}
       />
+      <PeopleModal
+        open={connectionsOpen}
+        title={isOwnProfile ? 'I tuoi collegamenti' : `Collegamenti di ${displayName}`}
+        subtitle={(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}
+        load={loadConnections}
+        empty={isOwnProfile ? 'Non hai ancora collegamenti: trovali nella sezione Rete.' : 'Nessun collegamento.'}
+        onClose={() => setConnectionsOpen(false)}
+      />
+      {isOwnProfile && (
+        <PeopleModal
+          open={viewsOpen}
+          title="Chi ha visto il tuo profilo"
+          subtitle="Negli ultimi 30 giorni"
+          load={loadViews}
+          empty="Ancora nessuna visita negli ultimi 30 giorni. Un profilo completo e qualche post aiutano a farsi trovare."
+          onClose={() => setViewsOpen(false)}
+        />
+      )}
       <CertificationModal
         isOpen={certificationModal.isOpen}
         onClose={() => setCertificationModal({ isOpen: false, mode: 'add' })}

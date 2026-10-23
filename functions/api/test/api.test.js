@@ -45,9 +45,17 @@ assert.ok(Object.values(col('notifications')).every(n=>n.$permissions.every(p=>p
 
 // Like e commenti
 col('posts').p1={$id:'p1',authorId:'eve',likesCount:99,commentsCount:0,$permissions:['update("user:eve")']};
-assert.deepEqual(await api.toggleLike('anna',{postId:'p1'}),{liked:true,likesCount:1});
-assert.deepEqual(await api.toggleLike('bob',{postId:'p1'}),{liked:true,likesCount:2});
-assert.deepEqual(await api.toggleLike('anna',{postId:'p1'}),{liked:false,likesCount:1});
+const pick=({liked,likesCount})=>({liked,likesCount});
+assert.deepEqual(pick(await api.toggleLike('anna',{postId:'p1'})),{liked:true,likesCount:1});
+assert.deepEqual(pick(await api.toggleLike('bob',{postId:'p1'})),{liked:true,likesCount:2});
+assert.deepEqual(pick(await api.toggleLike('anna',{postId:'p1'})),{liked:false,likesCount:1});
+// Reazioni: cambiare tipo non duplica, la stessa reazione la toglie
+let rx=await api.react('anna',{postId:'p1',reaction:'applauso'});
+assert.equal(rx.reaction,'applauso'); assert.equal(rx.likesCount,2); assert.deepEqual(rx.reactionCounts,{applauso:1,consiglio:1});
+rx=await api.react('anna',{postId:'p1',reaction:'adoro'}); assert.equal(rx.likesCount,2); assert.deepEqual(rx.reactionCounts,{adoro:1,consiglio:1});
+rx=await api.react('anna',{postId:'p1',reaction:'adoro'}); assert.equal(rx.reaction,null); assert.equal(rx.likesCount,1);
+await rejects(api.react('anna',{postId:'p1',reaction:'odio'}),400);
+assert.equal(JSON.parse(col('posts').p1.reactionCounts).consiglio,1);
 const cm=await api.createComment('bob',{postId:'p1',content:' bello '});
 assert.equal(cm.content,'bello'); assert.equal(col('posts').p1.commentsCount,1);
 await api.createComment('anna',{postId:'p1',content:'risposta',parentCommentId:cm.$id});
@@ -230,6 +238,38 @@ await rejects(api.publicProfile(null,{id:'nessuno'}),404);
 await rejects(api.publicProfile(null,{id:'../x'}),400);
 assert.ok((await api.publicSitemap(null)).some((r)=>r.id==='zoe'));
 await api.updateMyProfile('zoe',{publicProfile:false});
+// Mi piace ai commenti
+{ col('posts').ps={$id:'ps',authorId:'anna',content:'Allenamento',likesCount:0,commentsCount:0};
+  const cs=await api.createComment('bob',{postId:'ps',content:'Grande!'});
+  assert.deepEqual(await api.toggleCommentLike('anna',{commentId:cs.$id}),{liked:true,likesCount:1});
+  assert.ok(notifs('bob').some(n=>n.content.includes('apprezzato il tuo commento')));
+  assert.deepEqual(await api.toggleCommentLike('anna',{commentId:cs.$id}),{liked:false,likesCount:0});
+  await api.toggleCommentLike('eve',{commentId:cs.$id});
+  await api.deleteComment('bob',{commentId:cs.$id}); assert.equal(Object.values(col('comment_likes')).length,0);
+// Ripubblicazione: sempre dell'originale, una sola senza pensiero, conteggio aggiornato
+  const r1=await api.repost('bob',{postId:'ps'});
+  assert.equal(r1.repostOf,'ps'); assert.equal(r1.authorId,'bob'); assert.equal(col('posts').ps.repostsCount,1);
+  assert.ok(notifs('anna').some(n=>n.type==='repost'));
+  await rejects(api.repost('bob',{postId:'ps'}),409);
+  const r2=await api.repost('eve',{postId:r1.$id,content:'Da leggere'}); assert.equal(r2.repostOf,'ps'); assert.equal(col('posts').ps.repostsCount,2);
+  assert.deepEqual(await api.undoRepost('bob',{postId:'ps'}),{removed:1,repostsCount:1});
+  await api.deletePost('eve',{postId:r2.$id}); assert.equal(col('posts').ps.repostsCount,0);
+  delete col('posts').ps; }
+
+// Visite al profilo: notifica una volta al giorno, anonime se scelto, mai a se stessi
+{ const before=notifs('bob','profile_view').length;
+  assert.deepEqual(await api.recordProfileView('anna',{profileId:'anna'}),{recorded:false});
+  assert.equal((await api.recordProfileView('anna',{profileId:'bob'})).notified,true);
+  assert.equal((await api.recordProfileView('anna',{profileId:'bob'})).notified,false);
+  assert.equal(notifs('bob','profile_view').length,before+1);
+  assert.ok(notifs('bob','profile_view').at(-1).content.startsWith('anna'));
+  col('profiles').eve.hideProfileViews=true;
+  await api.recordProfileView('eve',{profileId:'bob'});
+  assert.equal(notifs('bob','profile_view').at(-1).content,'Qualcuno ha visualizzato il tuo profilo.');
+  const views=await api.listProfileViews('bob'); assert.equal(views.viewers.length,2);
+  assert.ok(views.viewers.some(v=>v.id===null)); assert.ok(views.viewers.some(v=>v.id==='anna'));
+  delete col('profiles').eve.hideProfileViews; }
+
 // Contatti privati: solo la persona, i collegamenti reciproci e chi valuta una sua candidatura
 assert.deepEqual(await api.getContactInfo('zoe',{profileId:'zoe'}),{phone:'3331234567',email:'zoe@esempio.it',allowed:true});
 assert.deepEqual(await api.getContactInfo('eve',{profileId:'zoe'}),{phone:'',email:'',allowed:false});

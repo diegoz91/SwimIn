@@ -3,6 +3,7 @@ import { databaseService } from '@/services/database';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { initialsAvatar } from '@/utils/avatar';
+import { REACTIONS, reactionOf } from '@/data/reactions';
 
 interface LikesModalProps {
     postId: string;
@@ -11,7 +12,8 @@ interface LikesModalProps {
 }
 
 export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavigate }) => {
-    const [likers, setLikers] = useState<(UserProfile | StructureProfile)[]>([]);
+    const [likers, setLikers] = useState<((UserProfile | StructureProfile) & { reaction: string })[]>([]);
+    const [filter, setFilter] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -60,14 +62,33 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
             >
                 <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/80">
                     <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                        <Icon type="heart" className="w-5 h-5 text-red-500 fill-current" />
-                        Mi piace ({likers.length})
+                        Reazioni ({likers.length})
                     </h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
                         <Icon type="x" className="w-5 h-5" />
                     </button>
                 </div>
                 
+                {likers.length > 0 && (
+                    <div className="flex gap-1 px-3 pt-3 overflow-x-auto" role="tablist" aria-label="Filtra per reazione">
+                        {[{ key: 'all', label: 'Tutte', emoji: '' }, ...REACTIONS.filter((r) => likers.some((l) => l.reaction === r.key))].map((r) => {
+                            const n = r.key === 'all' ? likers.length : likers.filter((l) => l.reaction === r.key).length;
+                            return (
+                                <button
+                                    key={r.key}
+                                    role="tab"
+                                    aria-selected={filter === r.key}
+                                    onClick={() => setFilter(r.key)}
+                                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${filter === r.key ? 'bg-corsia-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                >
+                                    {r.emoji && <span aria-hidden="true" className="mr-1">{r.emoji}</span>}
+                                    {r.key === 'all' ? `${r.label} ${n}` : <><span className="sr-only">{r.label}</span>{n}</>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="overflow-y-auto custom-scrollbar flex-1 p-2">
                     {isLoading ? (
                         <div className="flex justify-center items-center py-10">
@@ -75,12 +96,14 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                         </div>
                     ) : likers.length > 0 ? (
                         <div className="space-y-1">
-                            {likers.map(user => {
+                            {likers.filter((l) => filter === 'all' || l.reaction === filter).map(user => {
                                 const id = user.userId || user.$id;
                                 const name = getUserName(user);
+                                const r = reactionOf(user.reaction);
                                 return (
                                     <div key={id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors group">
                                         <div className="flex items-center gap-3 min-w-0">
+                                            <span className="relative flex-shrink-0">
                                             <img 
                                                 src={getUserAvatar(user, name)} 
                                                 alt={`Profilo di ${name}`}
@@ -88,6 +111,8 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                                                 onClick={() => { onClose(); onNavigate('profile', id); }}
                                                 loading="lazy"
                                             />
+                                            {r && <span className="absolute -bottom-1 -right-1 w-6 h-6 grid place-items-center rounded-full bg-white shadow text-sm leading-none" title={r.label}>{r.emoji}</span>}
+                                            </span>
                                             <div className="min-w-0">
                                                 <p 
                                                     className="font-bold text-slate-800 cursor-pointer hover:text-blue-600 truncate leading-tight outline-none focus-visible:underline"
@@ -112,9 +137,9 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                     ) : (
                         <div className="text-center py-12 px-4">
                             <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Icon type="heart" className="w-8 h-8 text-slate-300" />
+                                <Icon type="thumb-up" className="w-8 h-8 text-slate-300" />
                             </div>
-                            <p className="text-slate-500 font-medium">Nessun "Mi piace" ancora.</p>
+                            <p className="text-slate-500 font-medium">Ancora nessuna reazione.</p>
                             <p className="text-sm text-slate-400 mt-1">Sii il primo a reagire a questo post!</p>
                         </div>
                     )}

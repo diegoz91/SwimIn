@@ -15,6 +15,7 @@ import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
+import { socialActions } from './social.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 
@@ -41,6 +42,8 @@ const C = {
   blocks: 'blocks',
   clientErrors: 'client_errors',
   privateInfo: 'private_info',
+  commentLikes: 'comment_likes',
+  profileViews: 'profile_views',
   pushSubscriptions: 'push_subscriptions',
 };
 
@@ -224,6 +227,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
+  const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
   const assertNotBlocked = moderation._assertNotBlocked;
@@ -234,6 +238,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   return {
     ...moderation,
     ...team,
+    ...social,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
@@ -354,26 +359,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       }, [Permission.read(Role.users())]); // modifiche ed eliminazione solo tramite la Function
     },
 
+    /** Compatibilità: il vecchio "consiglia" è la reazione predefinita. */
     async toggleLike(me, { postId }) {
-      postId = requireString(postId, 'postId', 36);
-      const post = await get(C.posts, postId);
-      const existing = await list(C.likes, [Query.equal('postId', postId), Query.equal('userId', me), Query.limit(10)]);
-      let liked;
-      if (existing.total > 0) {
-        await Promise.all(existing.documents.map((l) => remove(C.likes, l.$id)));
-        liked = false;
-      } else {
-        await create(C.likes, { postId, userId: me }, [Permission.read(Role.users())]);
-        liked = true;
-      }
-      // Ricalcolo dal numero reale di like: corretto anche con click simultanei.
-      const likesCount = await count(C.likes, [Query.equal('postId', postId)]);
-      await update(C.posts, postId, { likesCount });
-      if (liked && post.authorId !== me) {
-        const liker = await find(C.profiles, me);
-        await notify(post.authorId, 'like', `${liker ? displayName(liker) : 'Qualcuno'} ha consigliato il tuo post.`, postId);
-      }
-      return { liked, likesCount };
+      const res = await social.react(me, { postId, reaction: 'consiglio' });
+      return { liked: res.liked, likesCount: res.likesCount, reaction: res.reaction, reactionCounts: res.reactionCounts };
     },
 
     async createComment(me, { postId, content, parentCommentId = null }) {
@@ -421,10 +410,11 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       postId = requireString(postId, 'postId', 36);
       const post = await get(C.posts, postId);
       if (post.authorId !== me && !ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
-      for (const tableId of [C.likes, C.comments]) {
+      for (const tableId of [C.likes, C.comments, C.commentLikes]) {
         await removeAll(tableId, [Query.equal('postId', postId)]);
       }
       await remove(C.posts, postId);
+      if (post.repostOf) await social._recountReposts(post.repostOf);
       return { deleted: true };
     },
 
@@ -436,6 +426,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && (post.authorId === me || ownersOf(post).includes(me)));
       if (!allowed) fail(403, 'Non puoi eliminare questo commento.');
 
+      for (const reply of await listAll(C.comments, [Query.equal('parentCommentId', commentId)])) {
+        await removeAll(C.commentLikes, [Query.equal('commentId', reply.$id)]);
+      }
+      await removeAll(C.commentLikes, [Query.equal('commentId', commentId)]);
       await removeAll(C.comments, [Query.equal('parentCommentId', commentId)]);
       await remove(C.comments, commentId);
       if (post) {
@@ -521,8 +515,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         files.push(...postMediaUrls(post));
         await removeAll(C.likes, [Query.equal('postId', post.$id)]);
         await removeAll(C.comments, [Query.equal('postId', post.$id)]);
+        await removeAll(C.commentLikes, [Query.equal('postId', post.$id)]);
         await remove(C.posts, post.$id);
+        if (post.repostOf) await social._recountReposts(post.repostOf);
       }
+      await removeAll(C.commentLikes, [Query.equal('userId', me)]);
+      await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
+      await removeAll(C.profileViews, [Query.equal('profileId', me)]);
       // Like e commenti lasciati su post altrui: i contatori vanno ricalcolati.
       for (const like of await listAll(C.likes, [Query.equal('userId', me)])) {
         touchedPosts.add(like.postId);

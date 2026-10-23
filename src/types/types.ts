@@ -70,6 +70,8 @@ export interface BaseProfile extends AppwriteDocument {
   readReceipts?: boolean;
   /** Scheda visibile anche senza account su /u/:id (le strutture lo sono sempre). */
   publicProfile?: boolean;
+  /** Visita i profili in forma anonima ("Qualcuno ha visualizzato il tuo profilo"). */
+  hideProfileViews?: boolean;
   /** Preferenze di notifica push/email per categoria (JSON, scritto dalla Function). */
   notificationPrefs?: string;
   isOnline?: boolean;
@@ -131,7 +133,7 @@ export interface Post extends AppwriteDocument {
   authorId: string;
   authorType: UserType;
   content: string;
-  postType: 'text' | 'image' | 'video' | 'link' | 'video-analysis';
+  postType: 'text' | 'image' | 'video' | 'link' | 'video-analysis' | 'repost';
   /** Ogni elemento è un oggetto Media serializzato in JSON: usa getPostContent() per leggerli. */
   media?: string[];
   category?: string;
@@ -140,12 +142,19 @@ export interface Post extends AppwriteDocument {
   commentsCount: number;
   /** ISO date dell'ultima modifica del testo da parte dell'autore. */
   editedAt?: string | null;
+  /** Conteggi per reazione (JSON), scritti dalla Function: usa parseReactionCounts(). */
+  reactionCounts?: string | null;
+  /** Ripubblicazione: id del post originale. */
+  repostOf?: string | null;
+  repostsCount?: number;
 }
 
 export interface EnrichedPost extends Post {
     recommendedBy?: { id: string; name: string };
-    /** L'utente corrente ha consigliato il post. */
+    /** L'utente corrente ha reagito al post. */
     likedByMe?: boolean;
+    /** La reazione dell'utente corrente (consiglio, applauso…), se c'è. */
+    myReaction?: string | null;
 }
 
 // ----------------------------------------------------
@@ -157,9 +166,18 @@ export interface Comment extends AppwriteDocument {
   content: string;
   parentCommentId?: string | null;
   videoTimestamp?: number; 
+  likesCount?: number;
 }
 
 export interface Like extends AppwriteDocument {
+  postId: string;
+  userId: string;
+  /** Tipo di reazione; assente nei like creati prima delle reazioni (= consiglio). */
+  reaction?: string | null;
+}
+
+export interface CommentLike extends AppwriteDocument {
+  commentId: string;
   postId: string;
   userId: string;
 }
@@ -260,7 +278,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view';
   content: string;
   relatedId?: string;
   isRead: boolean;

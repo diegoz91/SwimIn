@@ -65,6 +65,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Dati privati: email solo nell'account (mai sul profilo); telefono delle persone in `private_info`, restituito da `getContactInfo` solo alla persona, ai collegamenti reciproci e a chi valuta una sua candidatura.
 - Post, swim-meet e dirette si modificano/annullano solo via Function (`updatePost`, `createSwimMeet`, `cancelSwimMeet`, `endLiveRoom`).
 - Profili pubblici (`/u/:id`): strutture sempre, persone solo con `publicProfile` attivo. La Function è eseguibile anche dagli ospiti, ma senza login accetta solo `PUBLIC_ACTIONS`, che restituiscono dati non sensibili.
+- Interazioni social (`functions/api/src/social.js`): reazioni ai post (`react`, tipi in `data/reactions.ts` e `REACTIONS` lato server), mi piace ai commenti, ripubblicazioni (`repost`/`undoRepost`, sempre dell'originale) e visite al profilo (`recordProfileView`, notifica al massimo una volta ogni 24 ore per visitatore, anonima con `hideProfileViews`; la tabella `profile_views` la legge solo la Function).
 - Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow

@@ -11,6 +11,11 @@ import { useSaved } from '@/context/SavedContext';
 import { getPostContent } from '@/utils/postMedia';
 import { formatRelativeTime } from '@/utils/format';
 import { initialsAvatar } from '@/utils/avatar';
+import { avatarOf, displayNameOf } from '@/utils/profile';
+import { parseReactionCounts, topReactions, type ReactionKey } from '@/data/reactions';
+import { ReactionButton } from './ReactionButton';
+import { CommentsThread } from './CommentsThread';
+import { FormModal } from '@/components/form/FormModal';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -19,6 +24,12 @@ interface PostCardProps {
     onDeleted?: (postId: string) => void;
     /** Chiamato dopo una modifica, con il post aggiornato. */
     onUpdated?: (post: EnrichedPost) => void;
+    /** Ripubblicazione senza pensiero: chi l'ha ripubblicato (si mostra l'originale con questa intestazione). */
+    repostedBy?: { id: string; name: string; repostId: string; mine: boolean };
+    /** Chiamato quando l'utente ripubblica: la nuova ripubblicazione da mettere in cima al feed. */
+    onReposted?: (post: EnrichedPost) => void;
+    /** Al posto dei commenti sotto al post (es. nella pagina del post, che ha già i suoi). */
+    onCommentClick?: () => void;
 }
 
 const CATEGORY_STYLES: Record<string, { icon: IconType; text: string; style: string }> = {
@@ -31,15 +42,31 @@ const CATEGORY_STYLES: Record<string, { icon: IconType; text: string; style: str
 const CONTENT_MAX_LENGTH = 4000;
 const COLLAPSED_LENGTH = 400;
 
-export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, onUpdated }) => {
+/** Smista: le ripubblicazioni senza pensiero mostrano il post originale. */
+export const PostCard: React.FC<PostCardProps> = (props) => {
+    if (props.post.repostOf && !props.post.content?.trim() && !props.repostedBy) return <PureRepost {...props} />;
+    return <PostCardBody {...props} />;
+};
+
+const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, onUpdated, repostedBy, onReposted, onCommentClick }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
     const { isSaved, toggle: toggleSaved } = useSaved();
 
     const [likes, setLikes] = useState(post.likesCount || 0);
-    const [liked, setLiked] = useState(!!post.likedByMe);
+    const [reaction, setReaction] = useState<string | null>(post.myReaction ?? (post.likedByMe ? 'consiglio' : null));
+    const [counts, setCounts] = useState(() => parseReactionCounts(post.reactionCounts, post.likesCount || 0));
     const [isLiking, setIsLiking] = useState(false);
+    const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
+    const [showComments, setShowComments] = useState(false);
+    const [reposts, setReposts] = useState(post.repostsCount || 0);
+    const [repostOpen, setRepostOpen] = useState(false);
+    const [thoughtOpen, setThoughtOpen] = useState(false);
+    const [thought, setThought] = useState('');
+    const [reposting, setReposting] = useState(false);
+    const [alreadyReposted, setAlreadyReposted] = useState<boolean | null>(null);
+    const repostRef = useRef<HTMLDivElement>(null);
     const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [author, setAuthor] = useState<UserProfile | StructureProfile | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -55,8 +82,26 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
 
     useEffect(() => {
         setLikes(post.likesCount || 0);
-        setLiked(!!post.likedByMe);
-    }, [post.likesCount, post.likedByMe]);
+        setReaction(post.myReaction ?? (post.likedByMe ? 'consiglio' : null));
+        setCounts(parseReactionCounts(post.reactionCounts, post.likesCount || 0));
+    }, [post.likesCount, post.likedByMe, post.myReaction, post.reactionCounts]);
+    useEffect(() => setCommentsCount(post.commentsCount || 0), [post.commentsCount]);
+    useEffect(() => setReposts(post.repostsCount || 0), [post.repostsCount]);
+
+    useEffect(() => {
+        if (!repostOpen) return;
+        if (alreadyReposted === null && user) {
+            databaseService.hasReposted(post.$id, user.$id).then(setAlreadyReposted).catch((err) => { console.warn('Ripubblicazioni:', err); setAlreadyReposted(false); });
+        }
+        const close = (e: MouseEvent) => repostRef.current && !repostRef.current.contains(e.target as Node) && setRepostOpen(false);
+        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setRepostOpen(false);
+        document.addEventListener('mousedown', close);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', close);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [repostOpen, alreadyReposted, user, post.$id]);
 
     useEffect(() => {
         let isMounted = true;
@@ -83,24 +128,65 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
         };
     }, [isMenuOpen]);
 
-    const handleLike = async () => {
+    const handleReact = async (next: ReactionKey | null) => {
         if (!user || isLiking) return;
         setIsLiking(true);
-        // Aggiornamento ottimistico, poi allineamento con il valore del server.
-        const wasLiked = liked;
-        setLiked(!wasLiked);
-        setLikes((n) => Math.max(0, n + (wasLiked ? -1 : 1)));
+        // Aggiornamento ottimistico, poi allineamento con i valori del server.
+        const prev = { reaction, likes, counts };
+        const optimistic = { ...counts };
+        if (reaction) optimistic[reaction as ReactionKey] = Math.max(0, (optimistic[reaction as ReactionKey] || 1) - 1);
+        if (next) optimistic[next] = (optimistic[next] || 0) + 1;
+        setReaction(next);
+        setCounts(optimistic);
+        setLikes((n) => Math.max(0, n + (next ? 1 : 0) - (reaction ? 1 : 0)));
         try {
-            const res = await databaseService.toggleLike(post.$id, user.$id);
-            setLiked(res.liked);
+            const res = await databaseService.react(post.$id, next);
+            setReaction(res.reaction);
             setLikes(res.likesCount);
+            setCounts(res.reactionCounts);
         } catch (error) {
-            console.error('toggleLike:', error);
-            setLiked(wasLiked);
-            setLikes(post.likesCount || 0);
-            showToast('Non è stato possibile registrare il consiglio.', 'error');
+            console.error('Reazione:', error);
+            setReaction(prev.reaction);
+            setLikes(prev.likes);
+            setCounts(prev.counts);
+            showToast('Non è stato possibile registrare la reazione.', 'error');
         } finally {
             setIsLiking(false);
+        }
+    };
+
+    const doRepost = async (content = '') => {
+        if (!user || reposting) return;
+        setReposting(true);
+        try {
+            const created = await databaseService.repost(post.$id, content);
+            setReposts(created.originalRepostsCount);
+            setAlreadyReposted(!content || alreadyReposted);
+            setRepostOpen(false);
+            setThoughtOpen(false);
+            setThought('');
+            showToast(content ? 'Hai ripubblicato il post con il tuo pensiero.' : 'Hai ripubblicato il post con i tuoi collegamenti.', 'success');
+            onReposted?.({ ...created, likedByMe: false, myReaction: null });
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Ripubblicazione non riuscita.', 'error');
+        } finally {
+            setReposting(false);
+        }
+    };
+
+    const undoRepost = async () => {
+        setReposting(true);
+        try {
+            const res = await databaseService.undoRepost(post.$id);
+            setReposts(res.repostsCount);
+            setAlreadyReposted(false);
+            setRepostOpen(false);
+            showToast('Ripubblicazione annullata.', 'info');
+            if (repostedBy?.mine) onDeleted?.(repostedBy.repostId);
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        } finally {
+            setReposting(false);
         }
     };
 
@@ -179,6 +265,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
 
     return (
         <article className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in duration-300 ${isBusy ? 'opacity-60 pointer-events-none' : ''}`}>
+            {repostedBy && (
+                <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <Icon type="share" className="w-3.5 h-3.5 text-corsia-600" />
+                    <button className="hover:text-corsia-700 hover:underline" onClick={() => navigate(`/profile/${repostedBy.id}`)}>
+                        {repostedBy.mine ? 'Hai' : repostedBy.name}
+                    </button>
+                    {repostedBy.mine ? 'ripubblicato questo post' : 'ha ripubblicato questo post'}
+                </div>
+            )}
             {post.recommendedBy && (
                 <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-xs font-bold text-slate-500">
                     <Icon type="thumb-up" className="w-3.5 h-3.5 text-blue-500" />
@@ -281,6 +376,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
                     )
                 )}
 
+                {post.repostOf && <EmbeddedOriginal postId={post.repostOf} />}
+
                 {media.length > 0 && (
                     <div className={`grid gap-1 rounded-xl overflow-hidden relative ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {isVideoAnalysis && (
@@ -306,50 +403,100 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onSelectPost, onDelete
                     </div>
                 )}
 
-                {(likes > 0 || post.commentsCount > 0) && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                {(likes > 0 || commentsCount > 0 || reposts > 0) && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-500 font-medium">
                         {likes > 0 ? (
-                            <button onClick={() => setIsLikesModalOpen(true)} className="hover:text-blue-600 hover:underline flex items-center gap-1.5">
-                                <span className="bg-blue-100 p-1 rounded-full"><Icon type="thumb-up" className="w-3 h-3 text-blue-600" /></span>
-                                {likes} {likes === 1 ? 'consiglio' : 'consigli'}
+                            <button onClick={() => setIsLikesModalOpen(true)} className="hover:text-corsia-700 hover:underline flex items-center gap-1.5">
+                                <span className="flex -space-x-1" aria-hidden="true">
+                                    {topReactions(counts).map((r) => (
+                                        <span key={r.key} className="w-5 h-5 grid place-items-center rounded-full bg-white ring-2 ring-white text-sm leading-none">{r.emoji}</span>
+                                    ))}
+                                </span>
+                                {likes === 1 && reaction ? 'Tu' : reaction ? `Tu e altri ${likes - 1}` : likes}
                             </button>
                         ) : <span />}
-                        {post.commentsCount > 0 && (
-                            <button onClick={openDetail} className="hover:text-blue-600 hover:underline">
-                                {post.commentsCount} {post.commentsCount === 1 ? 'commento' : 'commenti'}
-                            </button>
-                        )}
+                        <span className="flex items-center gap-3">
+                            {commentsCount > 0 && (
+                                <button onClick={() => (onCommentClick ? onCommentClick() : setShowComments((v) => !v))} className="hover:text-corsia-700 hover:underline">
+                                    {commentsCount} {commentsCount === 1 ? 'commento' : 'commenti'}
+                                </button>
+                            )}
+                            {reposts > 0 && <span>{reposts} {reposts === 1 ? 'ripubblicazione' : 'ripubblicazioni'}</span>}
+                        </span>
                     </div>
                 )}
             </div>
 
-            <div className="px-2 py-1.5 bg-slate-50 border-t border-slate-200 flex justify-around">
+            <div className="px-2 py-1.5 bg-slate-50 border-t border-slate-200 flex justify-around gap-1">
+                <ReactionButton value={reaction} disabled={isLiking || !user} onReact={handleReact} />
                 <button
-                    onClick={handleLike}
-                    disabled={isLiking || !user}
-                    aria-pressed={liked}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${liked ? 'text-blue-600 hover:bg-blue-50' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
-                >
-                    <Icon type="thumb-up" className={`w-5 h-5 transition-transform ${liked ? 'scale-110 fill-blue-100' : ''}`} /> {liked ? 'Consigliato' : 'Consiglia'}
-                </button>
-                <button
-                    onClick={openDetail}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${isVideoAnalysis ? 'text-purple-600 hover:bg-purple-100' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+                    onClick={() => (onCommentClick ? onCommentClick() : isVideoAnalysis ? openDetail() : setShowComments((v) => !v))}
+                    aria-expanded={isVideoAnalysis ? undefined : showComments}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${isVideoAnalysis ? 'text-purple-600 hover:bg-purple-100' : showComments ? 'text-corsia-700 bg-corsia-50' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
                 >
                     <Icon type="chat-bubble" className="w-5 h-5" />
                     {isVideoAnalysis ? 'Analizza video' : 'Commenta'}
                 </button>
-                <button
-                    onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                    <Icon type="share" className="w-5 h-5" /> <span className="hidden sm:inline">Condividi</span>
-                </button>
+                <div className="relative flex-1 flex" ref={repostRef}>
+                    <button
+                        onClick={() => setRepostOpen((v) => !v)}
+                        disabled={!user}
+                        aria-haspopup="menu"
+                        aria-expanded={repostOpen}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                    >
+                        <Icon type="share" className="w-5 h-5" /> <span className="hidden sm:inline">Ripubblica</span>
+                    </button>
+                    {repostOpen && (
+                        <div role="menu" className="absolute bottom-full right-0 mb-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lift z-30 py-1 animate-in fade-in zoom-in-95 duration-150 origin-bottom-right">
+                            {alreadyReposted ? (
+                                <RepostItem icon="x" title="Annulla la ripubblicazione" text="Il post sparisce dal feed dei tuoi collegamenti." onClick={undoRepost} disabled={reposting} />
+                            ) : (
+                                <RepostItem icon="share" title="Ripubblica" text="Subito, con i tuoi collegamenti." onClick={() => doRepost()} disabled={reposting || alreadyReposted === null} />
+                            )}
+                            <RepostItem icon="pencil" title="Ripubblica con un tuo pensiero" text="Aggiungi un commento sopra al post." onClick={() => { setRepostOpen(false); setThoughtOpen(true); }} disabled={reposting} />
+                            <RepostItem icon="link" title="Copia il link" text="Per inviarlo fuori da SwimIn." onClick={() => { setRepostOpen(false); void handleShare(); }} />
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {showComments && !isVideoAnalysis && (
+                <CommentsThread postId={post.$id} postAuthorId={post.authorId} autoFocus onCountChange={(d) => setCommentsCount((n) => Math.max(0, n + d))} />
+            )}
+
+            <FormModal
+                open={thoughtOpen}
+                title="Ripubblica con un pensiero"
+                description="Il post comparirà sotto al tuo commento, nel feed dei tuoi collegamenti."
+                icon="share"
+                dirty={!!thought.trim()}
+                busy={reposting}
+                submitLabel="Ripubblica"
+                busyLabel="Pubblicazione…"
+                onClose={() => setThoughtOpen(false)}
+                onSubmit={(e) => { e.preventDefault(); if (thought.trim()) void doRepost(thought.trim()); }}
+            >
+                <label htmlFor={`thought-${post.$id}`} className="sr-only">Il tuo pensiero</label>
+                <textarea
+                    id={`thought-${post.$id}`}
+                    value={thought}
+                    onChange={(e) => setThought(e.target.value.slice(0, 3000))}
+                    rows={4}
+                    autoFocus
+                    placeholder="Perché lo consigli ai tuoi collegamenti?"
+                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none resize-none text-[15px]"
+                />
+                <p className="text-xs text-slate-400 text-right">{thought.length}/3000</p>
+                <div className="rounded-xl border border-slate-200 p-3 bg-piastrella">
+                    <p className="text-sm font-semibold text-abisso">{authorName}</p>
+                    <p className="text-sm text-slate-600 line-clamp-3 whitespace-pre-wrap">{displayContent || (media.length ? 'Post con foto o video' : '')}</p>
+                </div>
+            </FormModal>
 
             {isReportOpen && <ReportModal targetType="post" targetId={post.$id} onClose={() => setIsReportOpen(false)} />}
             {isLikesModalOpen && (
-                <LikesModal postId={post.$id} onClose={() => setIsLikesModalOpen(false)} onNavigate={(view, id) => navigate(`/${view}/${id}`)} />
+                <LikesModal postId={post.$id} onClose={() => setIsLikesModalOpen(false)} onNavigate={(view, id) => (view === 'messages' ? navigate('/messages', { state: { startChatWithUserId: id } }) : navigate(`/profile/${id}`))} />
             )}
         </article>
     );
@@ -364,3 +511,84 @@ const MenuItem: React.FC<{ icon: IconType; label: string; onClick: () => void; d
         <Icon type={icon} className="w-4 h-4" /> {label}
     </button>
 );
+
+const RepostItem: React.FC<{ icon: IconType; title: string; text: string; onClick: () => void; disabled?: boolean }> = ({ icon, title, text, onClick, disabled }) => (
+    <button role="menuitem" onClick={onClick} disabled={disabled} className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-piastrella outline-none focus-visible:bg-piastrella disabled:opacity-50">
+        <Icon type={icon} className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+        <span>
+            <span className="block text-sm font-semibold text-abisso">{title}</span>
+            <span className="block text-xs text-slate-500">{text}</span>
+        </span>
+    </button>
+);
+
+/** Ripubblicazione senza pensiero: l'originale, con l'intestazione "X ha ripubblicato". */
+const PureRepost: React.FC<PostCardProps> = ({ post, ...rest }) => {
+    const { user } = useAuth();
+    const { showToast } = useToast();
+    const [original, setOriginal] = useState<EnrichedPost | null | undefined>(undefined);
+    const [reposter, setReposter] = useState<UserProfile | StructureProfile | null>(null);
+
+    useEffect(() => {
+        let alive = true;
+        databaseService.getPost(post.repostOf!, user?.$id).then((p) => alive && setOriginal(p)).catch(() => alive && setOriginal(null));
+        databaseService.getProfile(post.authorId).then((p) => alive && setReposter(p)).catch((err) => console.warn('Autore ripubblicazione:', err));
+        return () => { alive = false; };
+    }, [post.repostOf, post.authorId, user?.$id]);
+
+    const mine = !!user && post.authorId === user.$id;
+    if (original === undefined) return <div className="h-40 bg-white rounded-2xl border border-slate-200 animate-pulse" aria-hidden="true" />;
+    if (original === null) {
+        return (
+            <article className="bg-white rounded-2xl border border-slate-200 p-5 text-sm text-slate-500 flex items-center justify-between gap-3">
+                <span>{mine ? 'Hai ripubblicato' : `${displayNameOf(reposter)} ha ripubblicato`} un post che non è più disponibile.</span>
+                {mine && (
+                    <button
+                        className="font-semibold text-slate-600 hover:text-galleggiante"
+                        onClick={async () => {
+                            try { await databaseService.deletePost(post); rest.onDeleted?.(post.$id); } catch (err) { showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error'); }
+                        }}
+                    >
+                        Rimuovi
+                    </button>
+                )}
+            </article>
+        );
+    }
+    return <PostCardBody {...rest} post={original} repostedBy={{ id: post.authorId, name: displayNameOf(reposter), repostId: post.$id, mine }} />;
+};
+
+/** Anteprima del post originale dentro una ripubblicazione con pensiero. */
+const EmbeddedOriginal: React.FC<{ postId: string }> = ({ postId }) => {
+    const navigate = useNavigate();
+    const [original, setOriginal] = useState<EnrichedPost | null | undefined>(undefined);
+    const [author, setAuthor] = useState<UserProfile | StructureProfile | null>(null);
+    useEffect(() => {
+        let alive = true;
+        databaseService
+            .getPost(postId)
+            .then((p) => {
+                if (!alive) return;
+                setOriginal(p);
+                return databaseService.getProfile(p.authorId).then((a) => alive && setAuthor(a));
+            })
+            .catch(() => alive && setOriginal(null));
+        return () => { alive = false; };
+    }, [postId]);
+    if (original === undefined) return <div className="mt-3 h-24 rounded-xl bg-slate-100 animate-pulse" aria-hidden="true" />;
+    if (original === null) return <p className="mt-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">Il post originale non è più disponibile.</p>;
+    const { text, media } = getPostContent(original);
+    return (
+        <button onClick={() => navigate(`/post/${original.$id}`)} className="mt-3 mb-1 w-full text-left rounded-xl border border-slate-200 hover:border-corsia-300 overflow-hidden transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+            <span className="flex items-center gap-2 px-4 pt-3">
+                <img src={avatarOf(author)} alt="" className="w-8 h-8 rounded-full object-cover" />
+                <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-abisso truncate">{displayNameOf(author)}</span>
+                    <span className="block text-[11px] text-slate-400">{formatRelativeTime(original.$createdAt)}</span>
+                </span>
+            </span>
+            {text && <span className="block px-4 pt-2 pb-3 text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">{text}</span>}
+            {media[0] && media[0].type !== 'video' && <img src={media[0].url} alt={media[0].alt || ''} className="w-full max-h-72 object-cover" loading="lazy" />}
+        </button>
+    );
+};

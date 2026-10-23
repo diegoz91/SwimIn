@@ -97,7 +97,8 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
-| push_subscriptions, blocks, client_errors | solo Function | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors, profile_views | solo Function | solo Function | solo Function |
+| comment_likes | utenti loggati | solo Function | solo Function |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |
 | comments, likes | utenti loggati | solo Function | autore (commenti) |

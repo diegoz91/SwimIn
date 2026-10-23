@@ -14,6 +14,7 @@ import type {
     Review,
     Certification,
     Like,
+    CommentLike,
     Comment,
     Message,
     EnrichedPost,
@@ -516,8 +517,8 @@ export const databaseService = {
                 Query.equal('postId', posts.map(p => p.$id).slice(0, 100)),
                 Query.limit(100),
             ]);
-            const liked = new Set(res.documents.map(l => l.postId));
-            return posts.map(p => ({ ...p, likedByMe: liked.has(p.$id) }));
+            const mine = new Map(res.documents.map((l) => [l.postId, l.reaction || 'consiglio']));
+            return posts.map((p) => ({ ...p, likedByMe: mine.has(p.$id), myReaction: mine.get(p.$id) || null }));
         } catch (error) {
             console.warn('Stato dei like non disponibile:', error);
             return posts;
@@ -552,34 +553,91 @@ export const databaseService = {
         return await callApi<{ liked: boolean; likesCount: number }>('toggleLike', { postId });
     },
 
-    async getPostLikers(postId: string): Promise<Profile[]> {
-        const likes = await databases.listDocuments<Like>(databaseId, collections.likes, [Query.equal('postId', postId)]);
+    /** Reazione a un post: la stessa di nuovo la toglie, una diversa la sostituisce. */
+    async react(postId: string, reaction: string | null) {
+        return await callApi<{ reaction: string | null; liked: boolean; likesCount: number; reactionCounts: Record<string, number> }>('react', { postId, reaction });
+    },
+
+    async toggleCommentLike(commentId: string) {
+        return await callApi<{ liked: boolean; likesCount: number }>('toggleCommentLike', { commentId });
+    },
+
+    /** Ripubblica con i propri collegamenti, eventualmente con un pensiero. */
+    async repost(postId: string, content = '') {
+        return await callApi<Post & { originalRepostsCount: number }>('repost', { postId, content });
+    },
+
+    async undoRepost(postId: string) {
+        return await callApi<{ removed: number; repostsCount: number }>('undoRepost', { postId });
+    },
+
+    /** Ho già ripubblicato (senza pensiero) questo post? */
+    async hasReposted(postId: string, userId: string) {
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [Query.equal('authorId', userId), Query.equal('repostOf', postId), Query.limit(5)]);
+        return res.documents.some((p) => !p.content);
+    },
+
+    /** Visita di un profilo altrui (notifica al proprietario, decide il server). */
+    async recordProfileView(profileId: string) {
+        return await callApi<{ recorded: boolean }>('recordProfileView', { profileId });
+    },
+
+    async listProfileViews() {
+        return await callApi<{ total: number; viewers: { id: string | null; name: string; headline: string; avatar: string; viewedAt: string }[] }>('listProfileViews');
+    },
+
+    /** Profili per id (fino a 100), es. l'elenco dei collegamenti. */
+    async getProfilesByIds(ids: string[]): Promise<Profile[]> {
+        const unique = [...new Set(ids)].slice(0, 100);
+        if (unique.length === 0) return [];
+        const res = await databases.listDocuments<Profile>(databaseId, collections.profiles, [Query.equal('$id', unique), Query.limit(100)]);
+        return res.documents;
+    },
+
+    /** Chi ha reagito al post, con il tipo di reazione. */
+    async getPostLikers(postId: string): Promise<(Profile & { reaction: string })[]> {
+        const likes = await databases.listDocuments<Like>(databaseId, collections.likes, [Query.equal('postId', postId), Query.limit(100)]);
         if (likes.documents.length === 0) return [];
-        const userIds = likes.documents.map(like => like.userId);
-        const profiles = await Promise.all(userIds.map(id => databases.getDocument<Profile>(databaseId, collections.profiles, id).catch(() => null)));
-        return profiles.filter((p): p is Profile => p !== null);
+        const reactionBy = new Map(likes.documents.map((l) => [l.userId, l.reaction || 'consiglio']));
+        const profiles = await this.getProfilesByIds([...reactionBy.keys()]);
+        return profiles.map((p) => ({ ...p, reaction: reactionBy.get(p.$id) || 'consiglio' }));
     },
 
     async createComment(postId: string, _authorId: string, content: string, parentCommentId: string | null = null) {
         return await callApi<Comment>('createComment', { postId, content, parentCommentId });
     },
 
-    async getPostComments(postId: string) {
+    /** Commenti del post con autore, risposte, mi piace e se li ho apprezzati io. */
+    async getPostComments(postId: string, currentUserId?: string) {
         const response = await databases.listDocuments<Comment>(databaseId, collections.comments, [
-            Query.equal('postId', postId), 
-            Query.orderAsc('$createdAt')
+            Query.equal('postId', postId),
+            Query.orderAsc('$createdAt'),
+            Query.limit(200),
         ]);
-        const enrichedComments = await Promise.all(response.documents.map(async (comment) => {
-            try {
-                const author = await databases.getDocument<Profile>(databaseId, collections.profiles, comment.authorId);
-                return { ...comment, author, authorType: author.userType, createdAt: comment.$createdAt };
-            } catch {
-                return { ...comment, author: null, authorType: 'professional', createdAt: comment.$createdAt };
-            }
-        }));
-        const mainComments = enrichedComments.filter(c => !c.parentCommentId);
-        const replies = enrichedComments.filter(c => c.parentCommentId);
-        return mainComments.map(mc => ({ ...mc, replies: replies.filter(r => r.parentCommentId === mc.$id) }));
+        const [authors, myLikes] = await Promise.all([
+            this.getProfilesByIds(response.documents.map((c) => c.authorId)).catch(() => [] as Profile[]),
+            currentUserId
+                ? databases
+                      .listDocuments<CommentLike>(databaseId, collections.comment_likes, [Query.equal('postId', postId), Query.equal('userId', currentUserId), Query.limit(200)])
+                      .then((r) => new Set(r.documents.map((l) => l.commentId)))
+                      .catch(() => new Set<string>())
+                : Promise.resolve(new Set<string>()),
+        ]);
+        const byId = new Map(authors.map((p) => [p.$id, p]));
+        const enrichedComments = response.documents.map((comment) => {
+            const author = byId.get(comment.authorId) || null;
+            return {
+                ...comment,
+                author,
+                authorType: author?.userType || 'professional',
+                createdAt: comment.$createdAt,
+                likesCount: comment.likesCount || 0,
+                likedByMe: myLikes.has(comment.$id),
+            };
+        });
+        const mainComments = enrichedComments.filter((c) => !c.parentCommentId);
+        const replies = enrichedComments.filter((c) => c.parentCommentId);
+        return mainComments.map((mc) => ({ ...mc, replies: replies.filter((r) => r.parentCommentId === mc.$id) }));
     },
 
     // ==========================================

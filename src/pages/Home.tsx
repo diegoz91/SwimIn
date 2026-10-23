@@ -181,6 +181,7 @@ const Home: React.FC = () => {
                                     onSelectPost={(p) => navigate(`/post/${p.$id}`, { state: { post: p } })}
                                     onDeleted={(id) => setPosts((prev) => prev.filter((x) => x.$id !== id))}
                                     onUpdated={(updated) => setPosts((prev) => prev.map((x) => (x.$id === updated.$id ? updated : x)))}
+                                    onReposted={(created) => { setPosts((prev) => [created, ...prev]); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                 />
                             ))}
                             {hasMore && (
