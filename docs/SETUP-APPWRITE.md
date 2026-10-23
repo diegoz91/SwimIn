@@ -88,6 +88,20 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
 - Su Vercel le funzioni in `api/` generano le anteprime per WhatsApp, LinkedIn e Facebook, oltre a `sitemap.xml` e `robots.txt`. Usano le stesse variabili `VITE_APPWRITE_ENDPOINT` e `VITE_APPWRITE_PROJECT_ID` del frontend: non serve altro.
 - La Function `api` è eseguibile anche dagli ospiti (`execute: any`). Senza login accetta solo le azioni pubbliche, che restituiscono dati non sensibili: niente email, telefono delle persone, post o messaggi.
 
+## 9. Deploy automatico della Function
+
+Vercel aggiorna il sito a ogni merge, ma **non** la Function `api` né lo schema del database. Se non si aggiornano, le funzioni nuove rispondono "Azione sconosciuta".
+
+Per aggiornarli in automatico:
+
+1. Aggiungi tre secret in GitHub → *Settings → Secrets and variables → Actions*:
+   - `APPWRITE_ENDPOINT`
+   - `APPWRITE_PROJECT_ID`
+   - `APPWRITE_API_KEY` (la stessa chiave di `.env.setup`)
+2. Facoltativo: aggiungi tra le *Variables* `APP_URL` ed `EMAIL_NOTIFICATIONS`.
+
+Da quel momento il workflow **Deploy Appwrite** lancia `npm run setup-db` a ogni merge che tocca `functions/api/` o `setup-db.js`, e aspetta che la build della Function sia pronta. Si può avviare anche a mano da *Actions → Deploy Appwrite → Run workflow*.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

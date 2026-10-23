@@ -539,9 +539,31 @@ async function deployFunction() {
             entrypoint: settings.entrypoint,
             commands: settings.commands,
         });
-        console.log(`   🚀 Deploy avviato (${deployment.$id}). Lo stato della build è visibile in Console → Functions.`);
+        console.log(`   🚀 Deploy avviato (${deployment.$id}): attendo la build…`);
+        await waitForDeployment(deployment.$id);
     } finally {
         rmSync(tmp, { recursive: true, force: true });
+    }
+}
+
+/**
+ * Aspetta che la build della Function sia pronta: finché non lo è, l'app
+ * risponderebbe "Azione sconosciuta" alle funzioni nuove. Fallisce se la build fallisce.
+ */
+async function waitForDeployment(deploymentId) {
+    const started = Date.now();
+    for (;;) {
+        const d = await functions.getDeployment({ functionId: FUNCTION_ID, deploymentId });
+        if (d.status === 'ready') {
+            console.log(`   ✅ Function aggiornata e attiva (${Math.round((Date.now() - started) / 1000)} s)`);
+            return;
+        }
+        if (d.status === 'failed' || d.status === 'canceled') {
+            console.error(d.buildLogs || '');
+            throw new Error(`Build della Function non riuscita (${d.status}): vedi i log sopra o in Console → Functions.`);
+        }
+        if (Date.now() - started > 10 * 60_000) throw new Error('La build della Function sta impiegando più di 10 minuti: controlla in Console → Functions.');
+        await new Promise((r) => setTimeout(r, 5000));
     }
 }
 
@@ -575,9 +597,13 @@ async function setupFunctionVariables() {
     }
     const appUrl = (env.APP_URL || '').replace(/\/$/, '');
     await set('APP_URL', appUrl || undefined);
-    await set('VAPID_SUBJECT', env.VAPID_SUBJECT || (appUrl.startsWith('https://') ? appUrl : 'mailto:privacy@swimin.app'));
-    await set('EMAIL_NOTIFICATIONS', env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off');
-    console.log(`   ✉️  Email di notifica: ${env.EMAIL_NOTIFICATIONS === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);
+    if (env.VAPID_SUBJECT || appUrl || !current.VAPID_SUBJECT) {
+        await set('VAPID_SUBJECT', env.VAPID_SUBJECT || (appUrl.startsWith('https://') ? appUrl : 'mailto:privacy@swimin.app'));
+    }
+    // Se la variabile non è indicata (es. deploy automatico) si mantiene la scelta già fatta.
+    const email = env.EMAIL_NOTIFICATIONS ? (env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off') : current.EMAIL_NOTIFICATIONS?.value || 'off';
+    await set('EMAIL_NOTIFICATIONS', email);
+    console.log(`   ✉️  Email di notifica: ${email === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);
 }
 
 async function main() {
