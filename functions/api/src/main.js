@@ -12,6 +12,7 @@
 import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
 import { profileActions } from './profile.js';
 import { reviewActions } from './reviews.js';
+import { moderationActions } from './moderation.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -33,9 +34,11 @@ const C = {
   endorsements: 'endorsements',
   liveMessages: 'live_messages',
   reviews: 'reviews',
+  blocks: 'blocks',
+  clientErrors: 'client_errors',
 };
 
-const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility'];
+const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
 const REPORT_REASONS = ['spam', 'molestie', 'contenuto_inappropriato', 'falso_profilo', 'offerta_ingannevole', 'altro'];
 const DELETE_ACCOUNT_CONFIRMATION = 'ELIMINA';
 
@@ -181,10 +184,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
+  const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
+  const assertNotBlocked = moderation._assertNotBlocked;
+
   // -------------------------------------------------------------------------
   // Azioni
   // -------------------------------------------------------------------------
   return {
+    ...moderation,
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
     ...profileActions({ find, get, create, update, fail, users, endpoint, C }),
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
@@ -195,6 +202,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       content = requireString(content, 'content', 4000);
       if (receiverId === me) fail(400, 'Non puoi scrivere a te stesso.');
       await get(C.profiles, receiverId);
+      await assertNotBlocked(me, receiverId);
       return create(
         C.messages,
         { conversationId: conversationIdFor(me, receiverId), senderId: me, receiverId, content, isRead: false },
@@ -218,6 +226,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
     async sendConnectionRequest(me, { receiverId }) {
       receiverId = requireString(receiverId, 'receiverId', 36);
       if (receiverId === me) fail(400, 'Non puoi collegarti con te stesso.');
+      await assertNotBlocked(me, receiverId);
       const [sender] = await Promise.all([get(C.profiles, me), get(C.profiles, receiverId)]);
       if ((sender.connections || []).includes(receiverId)) fail(409, 'Siete già collegati.');
 
@@ -319,6 +328,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       postId = requireString(postId, 'postId', 36);
       content = requireString(content, 'content', 2000);
       const post = await get(C.posts, postId);
+      await assertNotBlocked(me, post.authorId);
       let parent = null;
       if (parentCommentId) {
         parent = await get(C.comments, parentCommentId);
@@ -462,6 +472,15 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
       // Rete: richieste di collegamento e presenza negli elenchi altrui.
       await removeAll(C.connections, [Query.equal('senderId', me)]);
       await removeAll(C.connections, [Query.equal('receiverId', me)]);
+      await removeAll(C.blocks, [Query.equal('blockerId', me)]);
+      await removeAll(C.blocks, [Query.equal('blockedId', me)]);
+      // Recensioni scritte: rimosse, con media delle strutture ricalcolata.
+      for (const r of await listAll(C.reviews, [Query.equal('authorId', me)])) {
+        await remove(C.reviews, r.$id);
+        const published = await listAll(C.reviews, [Query.equal('structureId', r.structureId), Query.equal('status', 'published')]);
+        const table = (await find(C.profiles, r.structureId)) ? C.profiles : C.facilities;
+        await update(table, r.structureId, { ratingSum: published.reduce((sum, x) => sum + x.rating, 0), ratingCount: published.length }).catch(() => null);
+      }
       for (const otherId of profile?.connections || []) {
         const other = await find(C.profiles, otherId);
         if (other) await update(C.profiles, otherId, { connections: removeFromArray(other.connections, me) });
@@ -775,7 +794,8 @@ export default async ({ req, res, log, error }) => {
     endpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || '',
   });
   const { action, ...params } = body;
-  const handler = Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
+  // Le azioni che iniziano con "_" sono helper interni, non chiamabili dal client.
+  const handler = typeof action === 'string' && !action.startsWith('_') && Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
   if (!handler) return res.json({ ok: false, error: `Azione sconosciuta: ${action}` }, 400);
 
   try {

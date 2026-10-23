@@ -18,6 +18,7 @@ const TARGET_LABEL: Record<ReportTarget, string> = {
     profile: 'il profilo',
     job: "l'annuncio",
     facility: 'la pagina',
+    review: 'la recensione',
 };
 
 interface ReportModalProps {

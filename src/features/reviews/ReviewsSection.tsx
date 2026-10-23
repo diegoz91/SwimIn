@@ -14,6 +14,7 @@ import { formatMonth } from '@/utils/dates';
 import { formatRelativeTime } from '@/utils/format';
 import { Icon } from '@/components/ui/Icon';
 import { Stars, StarInput } from './Stars';
+import { useBlocks } from '@/context/BlocksContext';
 
 type Values = { rating: number; content: string; visitedAt: string };
 const MAX = 2000;
@@ -90,6 +91,7 @@ export const ReviewsSection: React.FC<{
     const { user } = useAuth();
     const { showToast } = useToast();
     const [reviews, setReviews] = useState<Review[] | null>(null);
+    const blocks = useBlocks();
     const [authors, setAuthors] = useState<Record<string, UserProfile>>({});
     const [open, setOpen] = useState(false);
     const [replying, setReplying] = useState<string | null>(null);
@@ -199,7 +201,7 @@ export const ReviewsSection: React.FC<{
                 </p>
             ) : (
                 <ul className="divide-y divide-slate-100">
-                    {reviews.map((r) => {
+                    {reviews.filter((r) => !blocks.isHidden(r.authorId)).map((r) => {
                         const a = authors[r.authorId];
                         return (
                             <li key={r.$id} className="py-5 first:pt-0">

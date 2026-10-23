@@ -16,8 +16,8 @@ const db={
  async createRow({tableId,rowId,data,permissions}){const d={$id:rowId,$permissions:permissions||[],...data};col(tableId)[rowId]=d;return d},
  async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
  async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
-const deletedUsers=[]; const deletedFiles=[];
-const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`})},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
+const deletedUsers=[]; const deletedFiles=[]; const statusChanges=[];
+const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`,labels:userId==='boss'?['admin']:[]}),updateStatus:async({userId,status})=>statusChanges.push([userId,status])},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
@@ -216,6 +216,40 @@ assert.equal((await api.deleteReview('anna',{reviewId:r1.review.$id})).ratingCou
 col('facilities').fr={$id:'fr',name:'Centro Rev',admins:['eve'],staff:[],followers:[]};
 await rejects(api.upsertReview('eve',{structureId:'fr',rating:5,content:'La mia piscina è la migliore di tutte, venite!'}),403);
 assert.equal((await api.upsertReview('anna',{structureId:'fr',rating:3,content:'Nella media, vasca un po\' affollata la sera.'})).ratingCount,1);
+}
+
+// Blocco, silenziamento e moderazione
+{
+P('boss'); P('troll');
+col('profiles').anna.connections=['troll']; col('profiles').troll.connections=['anna'];
+await api.blockUser('anna',{userId:'troll'});
+assert.deepEqual(col('profiles').anna.connections,[]); assert.deepEqual(col('profiles').troll.connections,[]);
+await rejects(api.sendMessage('troll',{receiverId:'anna',content:'ciao'}),403);
+await rejects(api.sendMessage('anna',{receiverId:'troll',content:'ciao'}),403);
+await rejects(api.sendConnectionRequest('troll',{receiverId:'anna'}),403);
+const rel=await api.listBlockRelations('troll'); assert.deepEqual(rel.blockedBy,['anna']); assert.equal(rel.isAdmin,false);
+await api.blockUser('anna',{userId:'bob',kind:'mute'});
+assert.deepEqual((await api.listBlockRelations('anna')).muted,['bob']);
+await api.unblockUser('anna',{userId:'troll'});
+await api.sendMessage('troll',{receiverId:'anna',content:'scusa'});
+assert.ok(Object.values(col('blocks')).every(b=>b.$permissions.length===1&&b.$permissions[0]===`read("user:${b.blockerId}")`));
+// pannello admin
+await rejects(api.adminOverview('anna'),403);
+assert.equal((await api.listBlockRelations('boss')).isAdmin,true);
+col('posts').pt={$id:'pt',authorId:'troll',content:'spam spam',likesCount:0,commentsCount:0,$permissions:['update("user:troll")']};
+await api.reportContent('anna',{targetType:'post',targetId:'pt',reason:'spam'});
+await api.reportContent('bob',{targetType:'post',targetId:'pt',reason:'spam'});
+const reps=await api.adminListReports('boss',{status:'open'});
+const rp=reps.find(r=>r.targetId==='pt'); assert.equal(rp.target.authorId,'troll'); assert.equal(rp.target.text,'spam spam');
+assert.equal((await api.adminResolveReport('boss',{reportId:rp.$id,decision:'remove'})).closed,2);
+assert.equal(col('posts').pt,undefined);
+await rejects(api.adminSetSuspended('boss',{userId:'boss',suspended:true}),400);
+await api.adminSetSuspended('boss',{userId:'troll',suspended:true});
+assert.deepEqual(statusChanges.at(-1),['troll',false]); assert.equal(col('profiles').troll.suspended,true);
+await rejects(api.adminSetSuspended('anna',{userId:'troll',suspended:false}),403);
+await api.logClientError('anna',{message:'TypeError: x is undefined',url:'/home'});
+assert.equal((await api.adminListErrors('boss')).length,1);
+assert.ok((await api.adminOverview('boss')).openReports>=0);
 }
 
 // Bordo Vasca Live

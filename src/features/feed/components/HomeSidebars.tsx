@@ -10,6 +10,7 @@ import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } 
 import { jobDisplayTitle } from '@/utils/jobs';
 import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
 import { PARTS, currentPart, normalizeAvailability, remainingSlotsToday } from '@/utils/availability';
+import { useBlocks } from '@/context/BlocksContext';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -151,6 +152,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [suggestions, setSuggestions] = useState<(UserProfile | StructureProfile)[]>([]);
+    const blocks = useBlocks();
     const [requested, setRequested] = useState<string[]>([]);
     const [rooms, setRooms] = useState<LiveRoom[]>([]);
 
@@ -243,7 +245,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
             {suggestions.length > 0 && (
                 <Panel title="Potresti conoscere">
                     <ul className="pb-2">
-                        {suggestions.map((p) => {
+                        {suggestions.filter((p) => !blocks.isHidden(p.userId || p.$id)).map((p) => {
                             const id = p.userId || p.$id;
                             const sent = requested.includes(id);
                             return (

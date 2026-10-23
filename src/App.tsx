@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { ToastProvider } from '@/context/ToastContext';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { SavedProvider } from '@/context/SavedContext';
+import { BlocksProvider } from '@/context/BlocksContext';
+import { ErrorReporter } from '@/components/common/ErrorReporter';
 
 // Layout & Common
 import Header from '@/components/layout/Header';
@@ -38,6 +40,7 @@ const Saved = lazy(() => import('@/pages/Saved'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Structures = lazy(() => import('@/pages/Structures'));
+const Admin = lazy(() => import('@/pages/Admin'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
 const Cookies = lazy(() => import('@/pages/legal/Cookies'));
 
@@ -110,6 +113,7 @@ const AppContent: React.FC = () => {
               <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
               <Route path="/strutture" element={<ProtectedRoute><Structures /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
 
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
@@ -135,7 +139,10 @@ export const App: React.FC = () => {
       <ToastProvider>
         <AuthProvider>
           <SavedProvider>
-            <AppContent />
+            <BlocksProvider>
+              <ErrorReporter />
+              <AppContent />
+            </BlocksProvider>
           </SavedProvider>
         </AuthProvider>
       </ToastProvider>

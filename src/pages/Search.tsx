@@ -9,6 +9,7 @@ import { PostCard } from '@/features/feed/components/PostCard';
 import { initialsAvatar } from '@/utils/avatar';
 import type { EnrichedPost, Facility, Job, StructureProfile, UserProfile } from '@/types/types';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { useBlocks } from '@/context/BlocksContext';
 
 type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'post';
 
@@ -56,6 +57,7 @@ const Search: React.FC = () => {
     const [params, setParams] = useSearchParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const blocks = useBlocks();
     const q = (params.get('q') || '').trim();
     const [input, setInput] = useState(q);
     const [tab, setTab] = useState<Tab>('tutti');
@@ -80,10 +82,10 @@ const Search: React.FC = () => {
             if (cancelled) return;
             const net = network.status === 'fulfilled' ? network.value : { profiles: [], facilities: [] };
             setResults({
-                people: net.profiles.filter((p): p is UserProfile => p.userType === 'professional'),
+                people: net.profiles.filter((p): p is UserProfile => p.userType === 'professional' && !blocks.isHidden(p.userId || p.$id)),
                 structures: [...net.profiles.filter((p): p is StructureProfile => p.userType === 'structure'), ...net.facilities],
                 jobs: jobs.status === 'fulfilled' ? jobs.value : [],
-                posts: posts.status === 'fulfilled' ? posts.value : [],
+                posts: posts.status === 'fulfilled' ? posts.value.filter((p) => !blocks.isHidden(p.authorId)) : [],
             });
             setIsLoading(false);
         });

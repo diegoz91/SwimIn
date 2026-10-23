@@ -44,7 +44,7 @@ export type ConnectionStatus =
     | { state: 'sent' }
     | { state: 'received'; connectionId: string }
     | { state: 'connected' };
-export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility';
+export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility' | 'review';
 export type ReportReason = 'spam' | 'molestie' | 'contenuto_inappropriato' | 'falso_profilo' | 'offerta_ingannevole' | 'altro';
 
 const profileDisplayName = (p: Profile) =>
@@ -83,6 +83,24 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
 }
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
+export interface AdminOverview { people: number; structures: number; posts: number; openReports: number; errors24h: number; pendingCerts: number }
+export interface AdminReport {
+    $id: string;
+    $createdAt: string;
+    reporterId: string;
+    reporterName: string;
+    targetType: string;
+    targetId: string;
+    reason: string;
+    details?: string;
+    status: string;
+    resolution?: string;
+    note?: string;
+    target: { exists: boolean; authorId?: string; authorName?: string; suspended?: boolean; text?: string; status?: string };
+}
+export interface ClientErrorRow { $id: string; $createdAt: string; userId: string; message: string; stack?: string; url?: string; userAgent?: string }
+export interface AdminUserRow { $id: string; name: string; email: string; userType: string; personType?: string; city?: string; suspended: boolean }
+
 const ownedBy = (userId: string) => [
     Permission.read(Role.users()),
     Permission.update(Role.user(userId)),
@@ -184,6 +202,45 @@ export const databaseService = {
 
     async markAllNotificationsRead() {
         return await callApi<{ updated: number }>('markAllNotificationsRead');
+    },
+
+    // ==========================================
+    // MODERAZIONE
+    // ==========================================
+    async listBlockRelations() {
+        return await callApi<{ blocked: string[]; muted: string[]; blockedBy: string[]; isAdmin: boolean }>('listBlockRelations');
+    },
+    async blockUser(userId: string, kind: 'block' | 'mute' = 'block') {
+        return await callApi('blockUser', { userId, kind });
+    },
+    async unblockUser(userId: string, kind: 'block' | 'mute' = 'block') {
+        return await callApi('unblockUser', { userId, kind });
+    },
+    /** Registra un errore del client per il pannello admin (mai bloccante). */
+    async logClientError(error: { message: string; stack?: string; url?: string }) {
+        try {
+            await callApi('logClientError', { ...error, userAgent: navigator.userAgent });
+        } catch (e) {
+            console.warn('Errore non registrato:', e);
+        }
+    },
+    async adminOverview() {
+        return await callApi<AdminOverview>('adminOverview');
+    },
+    async adminListReports(status: 'open' | 'resolved' | 'dismissed' = 'open') {
+        return await callApi<AdminReport[]>('adminListReports', { status });
+    },
+    async adminResolveReport(reportId: string, decision: 'dismiss' | 'remove' | 'suspend', note = '') {
+        return await callApi<{ ok: boolean; closed: number }>('adminResolveReport', { reportId, decision, note });
+    },
+    async adminSetSuspended(userId: string, suspended: boolean) {
+        return await callApi('adminSetSuspended', { userId, suspended });
+    },
+    async adminListErrors() {
+        return await callApi<ClientErrorRow[]>('adminListErrors');
+    },
+    async adminSearchUsers(query: string) {
+        return await callApi<AdminUserRow[]>('adminSearchUsers', { query });
     },
 
     async reportContent(report: { targetType: ReportTarget; targetId: string; reason: ReportReason; details?: string }) {

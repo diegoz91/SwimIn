@@ -8,6 +8,7 @@ import { APPWRITE_CONFIG } from '@/config/constants';
 import type { UserProfile, StructureProfile, Message } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
+import { useBlocks } from '@/context/BlocksContext';
 
 interface Conversation {
   conversationId: string;
@@ -33,6 +34,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   onProfileClick 
 }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+    const blocks = useBlocks();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,7 +225,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {conversations.map(conv => (
+              {conversations.filter((conv) => !blocks.isHidden(conv.participant?.userId || conv.participant?.$id)).map(conv => (
                 <ConversationListItem
                   key={conv.conversationId}
                   conversation={conv}

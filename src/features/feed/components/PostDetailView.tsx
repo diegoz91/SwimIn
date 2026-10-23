@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { getPostContent } from '@/utils/postMedia';
 import { initialsAvatar } from '@/utils/avatar';
 import { displayNameOf } from '@/utils/profile';
+import { useBlocks } from '@/context/BlocksContext';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -25,6 +26,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
     useEffect(() => setPost(initialPost), [initialPost]);
     const { showToast } = useToast();
     const [comments, setComments] = useState<EnrichedComment[]>([]);
+    const blocks = useBlocks();
     const [newCommentText, setNewCommentText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -210,7 +212,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                         <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-300 border-t-blue-600"></div></div>
                     ) : comments.length > 0 ? (
                         <div className="space-y-6">
-                            {comments.map(comment => {
+                            {comments.filter((c) => !blocks.isHidden(c.authorId)).map(comment => {
                                 const timeMatch = comment.content.match(/^\[TIME:([\d.]+)\]\s*([\s\S]*)/);
                                 let displayComment = comment;
                                 let timeVal: number | null = null;
