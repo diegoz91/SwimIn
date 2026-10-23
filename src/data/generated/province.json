@@ -1,12 +1,12 @@
 [
  {
-  "code": "AQ",
-  "name": "L'Aquila",
+  "code": "CH",
+  "name": "Chieti",
   "region": "Abruzzo"
  },
  {
-  "code": "CH",
-  "name": "Chieti",
+  "code": "AQ",
+  "name": "L'Aquila",
   "region": "Abruzzo"
  },
  {
@@ -116,7 +116,7 @@
  },
  {
   "code": "RE",
-  "name": "Reggio Emilia",
+  "name": "Reggio nell'Emilia",
   "region": "Emilia-Romagna"
  },
  {
@@ -231,7 +231,7 @@
  },
  {
   "code": "MB",
-  "name": "Monza e Brianza",
+  "name": "Monza e della Brianza",
   "region": "Lombardia"
  },
  {
@@ -360,28 +360,8 @@
   "region": "Sardegna"
  },
  {
-  "code": "CI",
-  "name": "Carbonia-Iglesias",
-  "region": "Sardegna"
- },
- {
-  "code": "OT",
-  "name": "Gallura",
-  "region": "Sardegna"
- },
- {
-  "code": "VS",
-  "name": "Medio Campidano",
-  "region": "Sardegna"
- },
- {
   "code": "NU",
   "name": "Nuoro",
-  "region": "Sardegna"
- },
- {
-  "code": "OG",
-  "name": "Ogliastra",
   "region": "Sardegna"
  },
  {
@@ -516,7 +496,7 @@
  },
  {
   "code": "AO",
-  "name": "Aosta",
+  "name": "Valle d'Aosta",
   "region": "Valle d'Aosta"
  },
  {

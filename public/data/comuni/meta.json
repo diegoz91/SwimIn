@@ -1,1 +1,5 @@
-{"source":"in attesa del primo aggiornamento ISTAT","comuni":0,"province":0}
+{
+  "source": "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv",
+  "comuni": 7896,
+  "province": 107
+}
