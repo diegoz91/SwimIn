@@ -91,6 +91,13 @@ export function Select<V extends string = string>({
         listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
     }, [active, open, filtered]);
 
+    // All'apertura la voce scelta è già in vista, al centro dell'elenco.
+    useEffect(() => {
+        if (!open) return;
+        const t = window.setTimeout(() => listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'center' }), 40);
+        return () => window.clearTimeout(t);
+    }, [open]);
+
     useEffect(() => setActive(0), [query]);
 
     const onListKey = (e: React.KeyboardEvent) => {
@@ -144,7 +151,7 @@ export function Select<V extends string = string>({
                 <Icon type="chevron-right" className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-150 ${open ? '-rotate-90' : 'rotate-90'}`} />
             </button>
 
-            <Popover open={open} anchorRef={triggerRef} onClose={() => close(false)} title={label} id={`${listId}-panel`} minWidth={withSearch ? 260 : undefined}>
+            <Popover open={open} anchorRef={triggerRef} onClose={() => close(false)} title={label} id={`${listId}-panel`} minWidth={withSearch ? 260 : undefined} tallSheet={withSearch}>
                 {withSearch && (
                     <div className={`sticky top-0 bg-white p-2 border-b border-slate-100 z-10 ${sheet ? 'px-4' : ''}`}>
                         <div className="relative">

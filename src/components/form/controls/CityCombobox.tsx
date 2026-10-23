@@ -37,7 +37,10 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
     const [all, setAll] = useState<[string, string][] | null>(null);
     const [open, setOpen] = useState(false);
     const [text, setText] = useState(value);
+    /** Ricerca nel foglio su mobile: parte vuota per mostrare tutti i comuni. */
+    const [sheetQuery, setSheetQuery] = useState('');
     const [active, setActive] = useState(0);
+    const query = sheet ? sheetQuery : text;
     const prevProvince = useRef(province);
 
     useEffect(() => setText(value), [value]);
@@ -62,7 +65,7 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
     );
 
     const results = useMemo(() => {
-        const q = normalizeText(text);
+        const q = normalizeText(query);
         if (!q) return province ? source.slice(0, 300) : [];
         const starts: typeof source = [];
         const contains: typeof source = [];
@@ -73,14 +76,20 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
             if (starts.length >= MAX_RESULTS) break;
         }
         return [...starts, ...contains].slice(0, MAX_RESULTS);
-    }, [text, source, province]);
+    }, [query, source, province]);
 
-    useEffect(() => setActive(0), [text]);
+    useEffect(() => setActive(0), [query]);
     useEffect(() => {
         if (open) listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
     }, [active, open]);
     useEffect(() => {
-        if (open && sheet) window.setTimeout(() => sheetSearchRef.current?.focus(), 30);
+        if (!open || !sheet) return;
+        setSheetQuery('');
+        const t = window.setTimeout(() => {
+            sheetSearchRef.current?.focus();
+            listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'center' });
+        }, 40);
+        return () => window.clearTimeout(t);
     }, [open, sheet]);
 
     const choose = (c: { name: string; code?: string }) => {
@@ -109,7 +118,7 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
     };
 
     const status = !province
-        ? text.trim().length < 2
+        ? query.trim().length < 2
             ? 'Scrivi almeno due lettere del comune.'
             : !all
               ? 'Caricamento dei comuni…'
@@ -125,7 +134,7 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
             {status && <li className="px-3 py-4 text-sm text-slate-500">{status}</li>}
             {!status && results.length === 0 && (
                 <li className="px-3 py-4 text-sm text-slate-500">
-                    {province ? `Nessun comune della provincia di ${provinceName(province) || province} corrisponde a “${text}”.` : `Nessun comune corrisponde a “${text}”.`}
+                    {province ? `Nessun comune della provincia di ${provinceName(province) || province} corrisponde a “${query}”.` : `Nessun comune corrisponde a “${query}”.`}
                 </li>
             )}
             {!status &&
@@ -144,7 +153,7 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
                         }`}
                     >
                         <span className="flex-1 truncate">
-                            <Highlight text={c.name} query={text} />
+                            <Highlight text={c.name} query={query} />
                         </span>
                         {c.code && <span className="text-xs text-slate-400">{c.code}</span>}
                         {c.name === value && <Icon type="check" className="w-4 h-4 text-corsia-600" />}
@@ -193,13 +202,14 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
                 }}
                 title={province ? `Comuni in provincia di ${provinceName(province) || province}` : label}
                 maxHeight={300}
+                tallSheet
             >
                 {sheet && (
                     <div className="sticky top-0 bg-white px-4 pb-2 pt-1 border-b border-slate-100 z-10">
                         <input
                             ref={sheetSearchRef}
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
+                            value={sheetQuery}
+                            onChange={(e) => setSheetQuery(e.target.value)}
                             onKeyDown={onKey}
                             placeholder="Cerca il comune"
                             aria-label="Cerca il comune"

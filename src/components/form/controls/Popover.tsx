@@ -31,6 +31,8 @@ interface PopoverProps {
     children: React.ReactNode;
     /** Contenuto fisso in fondo (es. pulsanti "Oggi"/"Cancella"). */
     footer?: React.ReactNode;
+    /** Su mobile il foglio occupa sempre la stessa altezza (elenchi con ricerca: non "salta" filtrando). */
+    tallSheet?: boolean;
 }
 
 /**
@@ -38,7 +40,7 @@ interface PopoverProps {
  * su mobile come foglio dal basso. Vive in un portale, così non viene tagliato
  * dalle modali con scorrimento. Esc e clic fuori lo chiudono.
  */
-export const Popover: React.FC<PopoverProps> = ({ open, anchorRef, onClose, title, minWidth, maxHeight = 320, id, children, footer }) => {
+export const Popover: React.FC<PopoverProps> = ({ open, anchorRef, onClose, title, minWidth, maxHeight = 320, id, children, footer, tallSheet }) => {
     const sheet = useIsSheet();
     const panelRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState<{ top: number; left: number; width: number; placement: 'below' | 'above'; available: number } | null>(null);
@@ -112,7 +114,7 @@ export const Popover: React.FC<PopoverProps> = ({ open, anchorRef, onClose, titl
                 <div
                     ref={panelRef}
                     id={id}
-                    className="relative w-full max-h-[78vh] flex flex-col bg-white rounded-t-3xl shadow-lift animate-in slide-in-from-bottom-6 duration-200 ease-out pb-[env(safe-area-inset-bottom)]"
+                    className={`relative w-full ${tallSheet ? 'h-[78vh]' : 'max-h-[78vh]'} flex flex-col bg-white rounded-t-3xl shadow-lift animate-in slide-in-from-bottom-6 duration-200 ease-out pb-[env(safe-area-inset-bottom)]`}
                 >
                     <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-200" aria-hidden="true" />
                     <div className="flex items-center justify-between px-5 pt-3 pb-2">
