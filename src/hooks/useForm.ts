@@ -58,6 +58,16 @@ export function useForm<T extends Record<string, unknown>>(initial: T, validate:
         [values, set, touch]
     );
 
+    /** Collega un controllo personalizzato (Select, DatePicker, CityCombobox…): valore, onChange(valore), onBlur. */
+    const field = useCallback(
+        <K extends keyof T>(key: K) => ({
+            value: values[key],
+            onChange: (value: T[K]) => set(key, value),
+            onBlur: () => touch(key),
+        }),
+        [values, set, touch]
+    );
+
     const handleSubmit = useCallback(
         (onValid: (values: T) => void | Promise<void>) => (e?: React.FormEvent) => {
             e?.preventDefault();
@@ -68,5 +78,5 @@ export function useForm<T extends Record<string, unknown>>(initial: T, validate:
         [isValid, values]
     );
 
-    return { values, set, patch, errors, allErrors, isValid, isDirty, touch, bind, reset, handleSubmit, formRef, submitCount };
+    return { values, set, patch, errors, allErrors, isValid, isDirty, touch, bind, field, reset, handleSubmit, formRef, submitCount };
 }

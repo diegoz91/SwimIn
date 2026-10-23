@@ -2,14 +2,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import type { StructureProfile, UserProfile } from '@/types/types';
 import { FormModal, FormSection } from '@/components/form/FormModal';
 import { ChoiceChips, Field, fieldClass } from '@/components/form/Field';
-import { ProvinceSelect, Suggestions } from '@/components/form/Pickers';
+import { Select, SuggestInput } from '@/components/form/Pickers';
+import { LocationFields } from '@/components/form/LocationFields';
+import { useComuniSync } from '@/data/comuni';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
-import { LANGUAGES } from '@/data/italy';
+import { LANGUAGES, provinceName } from '@/data/italy';
 import { POOL_SERVICES, POOL_SETTINGS, PROFESSIONAL_ROLES, STRUCTURE_TYPES } from '@/data/swimming';
 import {
-    check, integerBetween, maxLength, minLength, normalizePhone, normalizeUrl, personName, phone, postalCode, province, required, url, vatNumber,
+    check, comuneOf, integerBetween, maxLength, minLength, normalizePhone, normalizeUrl, personName, phone, postalCode, province, required, url, vatNumber,
 } from '@/utils/validation';
 
 const BIO_MAX = 2500;
@@ -60,9 +62,9 @@ const toValues = (p: UserProfile | StructureProfile): Values => {
     };
 };
 
-export const validateProfile = (v: Values, isProfessional: boolean): FormErrors<Values> => {
+export const validateProfile = (v: Values, isProfessional: boolean, comuni: string[] = []): FormErrors<Values> => {
     const common: FormErrors<Values> = {
-        city: check(v.city, required('Indica la città: serve per le offerte vicine.'), minLength(2), maxLength(80)),
+        city: check(v.city, required('Indica il comune: serve per le offerte vicine.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(v.province))),
         province: check(v.province, required('Scegli la provincia.'), province),
         phone: check(v.phone, phone),
         website: check(v.website, url, maxLength(500)),
@@ -100,9 +102,11 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
     const { showToast } = useToast();
     const [saving, setSaving] = useState(false);
     const isProfessional = profile.userType === 'professional';
-    const validate = useCallback((v: Values) => validateProfile(v, isProfessional), [isProfessional]);
+    const [comuni, setComuni] = useState<string[]>([]);
+    const validate = useCallback((v: Values) => validateProfile(v, isProfessional, comuni), [isProfessional, comuni]);
     const form = useForm<Values>(toValues(profile), validate);
     const { values, errors, bind, set, reset } = form;
+    useComuniSync(values.province, setComuni);
 
     useEffect(() => {
         if (open) reset(toValues(profile));
@@ -170,9 +174,8 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                         </Field>
                     </div>
                     <Field id="pe-title" label="Qualifica" error={errors.title} hint="Compare sotto il tuo nome in tutto SwimIn.">
-                        <input {...bind('title')} list="pe-title-options" placeholder="Es. Istruttore di nuoto FIN" maxLength={110} />
+                        <SuggestInput {...form.field('title')} options={PROFESSIONAL_ROLES} label="Qualifiche" placeholder="Es. Istruttore di nuoto FIN" maxLength={110} />
                     </Field>
-                    <Suggestions id="pe-title-options" options={PROFESSIONAL_ROLES} />
                 </FormSection>
             ) : (
                 <FormSection title="La struttura">
@@ -180,9 +183,8 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                         <input {...bind('structureName')} autoComplete="organization" maxLength={130} />
                     </Field>
                     <Field id="pe-stype" label="Tipo" optional error={errors.structureType}>
-                        <input {...bind('structureType')} list="pe-stype-options" placeholder="Es. Piscina comunale" maxLength={90} />
+                        <SuggestInput {...form.field('structureType')} options={STRUCTURE_TYPES} label="Tipi di struttura" placeholder="Es. Piscina comunale" maxLength={90} />
                     </Field>
-                    <Suggestions id="pe-stype-options" options={STRUCTURE_TYPES} />
                     <Field id="pe-vat" label="Partita IVA" optional error={errors.vatNumber} hint="Non viene mostrata sul profilo: serve a verificare la struttura.">
                         <input {...bind('vatNumber')} inputMode="numeric" placeholder="11 cifre" maxLength={16} autoComplete="off" />
                     </Field>
@@ -195,19 +197,22 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                         <input {...bind('address')} placeholder="Es. Viale Tunisia 35" autoComplete="street-address" maxLength={170} />
                     </Field>
                 )}
-                <div className={`grid grid-cols-1 gap-4 ${isProfessional ? 'sm:grid-cols-2' : 'sm:grid-cols-[1fr_1fr_8rem]'}`}>
-                    <Field id="pe-city" label="Città" error={errors.city}>
-                        <input {...bind('city')} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
-                    </Field>
-                    <Field id="pe-prov" label="Provincia" error={errors.province}>
-                        <ProvinceSelect value={values.province} onChange={(c) => set('province', c)} onBlur={() => form.touch('province')} />
-                    </Field>
-                    {!isProfessional && (
-                        <Field id="pe-cap" label="CAP" optional error={errors.postalCode}>
-                            <input {...bind('postalCode')} inputMode="numeric" maxLength={5} autoComplete="postal-code" />
-                        </Field>
-                    )}
-                </div>
+                <LocationFields
+                    idPrefix="pe"
+                    province={values.province}
+                    city={values.city}
+                    onProvince={(c) => set('province', c)}
+                    onCity={(c) => set('city', c)}
+                    onTouch={(k) => form.touch(k)}
+                    errors={{ province: errors.province, city: errors.city }}
+                    extra={
+                        !isProfessional ? (
+                            <Field id="pe-cap" label="CAP" optional error={errors.postalCode}>
+                                <input {...bind('postalCode')} inputMode="numeric" maxLength={5} autoComplete="postal-code" />
+                            </Field>
+                        ) : undefined
+                    }
+                />
             </FormSection>
 
             <FormSection title="Contatti" description="Visibili agli utenti registrati di SwimIn.">
@@ -225,24 +230,19 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                 <FormSection title="L’impianto" description="Aiuta i professionisti a capire dove andranno a lavorare.">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <Field id="pe-length" label="Vasca principale" optional error={errors.poolLength}>
-                            <select {...bind('poolLength')}>
-                                <option value="">—</option>
-                                {['25', '33', '50'].map((m) => (
-                                    <option key={m} value={m}>{m} metri</option>
-                                ))}
-                                {values.poolLength && !['25', '33', '50'].includes(values.poolLength) && <option value={values.poolLength}>{values.poolLength} metri</option>}
-                            </select>
+                            <Select
+                                {...form.field('poolLength')}
+                                label="Vasca principale"
+                                placeholder="—"
+                                clearLabel="Non indicata"
+                                options={[...new Set(['25', '33', '50', ...(values.poolLength ? [values.poolLength] : [])])].map((m) => ({ value: m, label: `${m} metri` }))}
+                            />
                         </Field>
                         <Field id="pe-lanes" label="Corsie" optional error={errors.lanes}>
                             <input {...bind('lanes')} type="number" inputMode="numeric" min={1} max={20} step={1} placeholder="Es. 6" />
                         </Field>
                         <Field id="pe-setting" label="Vasche" optional className="col-span-2 sm:col-span-1">
-                            <select {...bind('poolSetting')}>
-                                <option value="">—</option>
-                                {POOL_SETTINGS.map((p) => (
-                                    <option key={p.value} value={p.value}>{p.label}</option>
-                                ))}
-                            </select>
+                            <Select {...form.field('poolSetting')} label="Vasche" placeholder="—" clearLabel="Non indicato" options={POOL_SETTINGS.map((p) => ({ value: p.value, label: p.label }))} />
                         </Field>
                     </div>
                     <div>

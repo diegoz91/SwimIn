@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type ConnectionStatus } from '@/services/database';
+import { emitNetworkChange } from '@/utils/networkEvents';
 
 /**
  * Pulsante di collegamento con lo stato reale: "Collegati", "Richiesta inviata",
@@ -33,6 +34,7 @@ export const ConnectButton: React.FC<{ profileId: string; className?: string }> 
             await fn();
             setStatus(next);
             showToast(success, 'success');
+            emitNetworkChange({ type: next.state === 'connected' ? 'accepted' : 'sent', userId: profileId });
             if (next.state === 'connected') await refreshProfile();
         } catch (error) {
             showToast(error instanceof Error ? error.message : 'Operazione non riuscita.', 'error');

@@ -3,6 +3,7 @@ import type { Job, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
+import { contractLabel } from '@/data/swimming';
 import { jobDisplayTitle } from '@/utils/jobs';
 
 interface JobListingProps {
@@ -92,7 +93,7 @@ export const JobListing: React.FC<JobListingProps> = ({
                         {job.contractType && (
                             <span className="flex items-center text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded capitalize">
                                 <Icon type="briefcase" className="w-3.5 h-3.5 mr-1" />
-                                <span>{job.contractType}</span>
+                                <span>{contractLabel(job.contractType)}</span>
                             </span>
                         )}
                     </div>

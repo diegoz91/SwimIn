@@ -68,9 +68,12 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
                     {REASONS.map((r) => (
                         <label
                             key={r.id}
-                            className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${reason === r.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                            className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${reason === r.id ? 'border-corsia-400 bg-corsia-50' : 'border-slate-200 hover:bg-slate-50'}`}
                         >
-                            <input type="radio" name="reason" value={r.id} checked={reason === r.id} onChange={() => setReason(r.id)} className="mt-1 text-blue-600 focus:ring-blue-500" />
+                            <input type="radio" name="reason" value={r.id} checked={reason === r.id} onChange={() => setReason(r.id)} className="peer sr-only" />
+                            <span aria-hidden="true" className={`mt-0.5 w-5 h-5 flex-shrink-0 rounded-full border-2 grid place-items-center transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${reason === r.id ? 'border-corsia-600' : 'border-slate-300'}`}>
+                                <span className={`w-2.5 h-2.5 rounded-full bg-corsia-600 transition-transform duration-150 ${reason === r.id ? 'scale-100' : 'scale-0'}`} />
+                            </span>
                             <span>
                                 <span className="block text-sm font-bold text-slate-800">{r.label}</span>
                                 <span className="block text-xs text-slate-500">{r.hint}</span>

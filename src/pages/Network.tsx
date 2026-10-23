@@ -6,6 +6,7 @@ import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { NetworkView } from '@/features/network/components/NetworkView';
 import { Icon } from '@/components/ui/Icon';
+import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
 import { formatDate } from '@/utils/dates';
 import { CreateMeetModal } from '@/features/network/components/CreateMeetModal';
 import type { UserProfile, StructureProfile, Facility, SwimMeet } from '@/types/types';
@@ -15,7 +16,7 @@ type Profile = UserProfile | StructureProfile;
 
 const Network: React.FC = () => {
     usePageTitle('Il mio network');
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, refreshProfile } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
     
@@ -70,6 +71,11 @@ const Network: React.FC = () => {
 
     useEffect(() => { loadNetworkData(); }, [loadNetworkData]);
 
+    // Cambiamenti fatti altrove (es. "Accetta" dal profilo o dall'altra persona): riallinea gli elenchi.
+    useNetworkChange((change) => {
+        if (change.type === 'remote') loadNetworkData();
+    });
+
     useEffect(() => {
         if (!currentUser) return;
         const timer = setTimeout(async () => {
@@ -97,9 +103,13 @@ const Network: React.FC = () => {
         if (!req) return;
         try {
             await databaseService.acceptConnectionRequest(connectionId, req.senderId, req.receiverId);
-            showToast('Collegamento accettato!', 'success');
+            showToast('Ora siete collegati.', 'success');
             setPendingRequests(prev => prev.filter(r => r.$id !== connectionId));
-            if (req.senderProfile) setActiveConnections(prev => [req.senderProfile!, ...prev]);
+            setSuggestions(prev => prev.filter(s => (s.userId || s.$id) !== req.senderId));
+            setSearchResults(prev => ({ ...prev, profiles: prev.profiles.filter(p => (p.userId || p.$id) !== req.senderId) }));
+            if (req.senderProfile) setActiveConnections(prev => prev.some(c => (c.userId || c.$id) === req.senderId) ? prev : [req.senderProfile!, ...prev]);
+            emitNetworkChange({ type: 'accepted', userId: req.senderId });
+            refreshProfile().catch((e) => console.warn('Aggiornamento profilo:', e));
         } catch (error) {
             showToast(error instanceof Error ? error.message : 'Errore durante l\'accettazione.', 'error');
         }
@@ -109,7 +119,9 @@ const Network: React.FC = () => {
         try {
             await databaseService.rejectConnectionRequest(connectionId);
             showToast('Richiesta rifiutata.', 'info');
-            setPendingRequests(prev => prev.filter(req => req.$id !== connectionId));
+            const req = pendingRequests.find(r => r.$id === connectionId);
+            setPendingRequests(prev => prev.filter(r => r.$id !== connectionId));
+            emitNetworkChange({ type: 'rejected', userId: req?.senderId });
         } catch (error) { showToast('Errore durante il rifiuto.', 'error'); }
     };
 
@@ -117,8 +129,9 @@ const Network: React.FC = () => {
         if (!currentUser) return;
         try {
             await databaseService.sendConnectionRequest(currentUser.$id, targetUserId);
-            showToast('Richiesta inviata!', 'success');
+            showToast('Richiesta inviata.', 'success');
             setSuggestions(prev => prev.filter(s => (s.userId || s.$id) !== targetUserId));
+            emitNetworkChange({ type: 'sent', userId: targetUserId });
             setSearchResults(prev => ({...prev, profiles: prev.profiles.filter(p => (p.userId || p.$id) !== targetUserId)}));
         } catch (error) {
             showToast(error instanceof Error ? error.message : 'Impossibile inviare la richiesta.', 'error');
@@ -132,6 +145,8 @@ const Network: React.FC = () => {
             if (success) {
                 showToast('Collegamento rimosso.', 'info');
                 setActiveConnections(prev => prev.filter(c => (c.userId || c.$id) !== targetUserId));
+                emitNetworkChange({ type: 'removed', userId: targetUserId });
+                refreshProfile().catch((e) => console.warn('Aggiornamento profilo:', e));
             } else showToast('Errore durante la rimozione.', 'error');
         }
     };

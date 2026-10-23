@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { initialsAvatar } from '@/utils/avatar';
 import { swimMatchScore } from '@/utils/swimMatch';
 import { jobDisplayTitle, jobExpiryLabel } from '@/utils/jobs';
+import { contractLabel, jobRoleLabel } from '@/data/swimming';
 
 interface JobCardProps {
     job: Job;
@@ -95,8 +96,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
                 </div>
                 
                 <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500 mt-4">
-                    {job.role && <span className="bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 capitalize">{job.role}</span>}
-                    {job.contractType && <span className="flex items-center bg-slate-100 px-2.5 py-1 rounded-md capitalize"><Icon type="briefcase" className="w-3.5 h-3.5 mr-1" />{job.contractType}</span>}
+                    {job.role && <span className="bg-slate-100 px-2.5 py-1 rounded-md text-slate-700">{jobRoleLabel(job.role)}</span>}
+                    {job.contractType && <span className="flex items-center bg-slate-100 px-2.5 py-1 rounded-md"><Icon type="briefcase" className="w-3.5 h-3.5 mr-1" />{contractLabel(job.contractType)}</span>}
                     {job.city && <span className="flex items-center bg-slate-100 px-2.5 py-1 rounded-md"><Icon type="location" className="w-3.5 h-3.5 mr-1" /><span className="truncate max-w-[120px]">{capitalize(job.city)}{job.province ? ` (${job.province})` : ''}</span></span>}
                 </div>
                 

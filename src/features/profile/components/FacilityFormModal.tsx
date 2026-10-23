@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormModal } from '@/components/form/FormModal';
 import { Field, fieldClass } from '@/components/form/Field';
-import { ProvinceSelect, Suggestions } from '@/components/form/Pickers';
+import { SuggestInput } from '@/components/form/Pickers';
+import { LocationFields } from '@/components/form/LocationFields';
+import { useComuniSync } from '@/data/comuni';
+import { provinceName } from '@/data/italy';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { STRUCTURE_TYPES } from '@/data/swimming';
-import { check, maxLength, minLength, province, required } from '@/utils/validation';
+import { check, comuneOf, maxLength, minLength, province, required } from '@/utils/validation';
 
 export interface FacilityFormValues {
     name: string;
@@ -17,10 +20,10 @@ export interface FacilityFormValues {
 
 const BIO_MAX = 2500;
 
-const validate = (v: FacilityFormValues): FormErrors<FacilityFormValues> => ({
+const validate = (v: FacilityFormValues, comuni: string[] = []): FormErrors<FacilityFormValues> => ({
     name: check(v.name, required('Indica il nome della struttura.'), minLength(2), maxLength(120)),
     type: check(v.type, maxLength(80)),
-    city: check(v.city, required('Indica la città.'), minLength(2), maxLength(80)),
+    city: check(v.city, required('Indica il comune.'), minLength(2), maxLength(80), comuneOf(comuni, provinceName(v.province))),
     province: check(v.province, required('Scegli la provincia.'), province),
     bio: check(v.bio, maxLength(BIO_MAX)),
 });
@@ -44,8 +47,10 @@ export const FacilityFormModal: React.FC<Props> = ({ open, mode, initial, onClos
         province: (initial?.province || '').toUpperCase(),
         bio: initial?.bio || '',
     });
-    const form = useForm<FacilityFormValues>(toValues(), useCallback(validate, []));
+    const [comuni, setComuni] = useState<string[]>([]);
+    const form = useForm<FacilityFormValues>(toValues(), useCallback((v: FacilityFormValues) => validate(v, comuni), [comuni]));
     const { values, errors, bind, set } = form;
+    useComuniSync(values.province, setComuni);
 
     useEffect(() => {
         if (open) form.reset(toValues());
@@ -81,17 +86,17 @@ export const FacilityFormModal: React.FC<Props> = ({ open, mode, initial, onClos
                 <input {...bind('name')} placeholder="Es. Piscina comunale Segrate" autoComplete="organization" maxLength={130} />
             </Field>
             <Field id="fac-type" label="Tipo" optional error={errors.type}>
-                <input {...bind('type')} list="fac-type-options" placeholder="Es. Centro sportivo" maxLength={90} />
+                <SuggestInput value={values.type} onChange={(v) => set('type', v)} onBlur={() => form.touch('type')} options={STRUCTURE_TYPES} label="Tipi di struttura" placeholder="Es. Centro sportivo" maxLength={90} />
             </Field>
-            <Suggestions id="fac-type-options" options={STRUCTURE_TYPES} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field id="fac-city" label="Città" error={errors.city}>
-                    <input {...bind('city')} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
-                </Field>
-                <Field id="fac-prov" label="Provincia" error={errors.province}>
-                    <ProvinceSelect value={values.province} onChange={(c) => set('province', c)} onBlur={() => form.touch('province')} />
-                </Field>
-            </div>
+            <LocationFields
+                idPrefix="fac"
+                province={values.province}
+                city={values.city}
+                onProvince={(c) => set('province', c)}
+                onCity={(c) => set('city', c)}
+                onTouch={(k) => form.touch(k)}
+                errors={{ province: errors.province, city: errors.city }}
+            />
             {mode === 'edit' && (
                 <Field id="fac-bio" label="Presentazione" optional error={errors.bio} count={{ value: values.bio, max: BIO_MAX }} hint="Vasche, servizi, orari, ambiente di lavoro.">
                     <textarea {...bind('bio')} rows={5} className={fieldClass(errors.bio, 'resize-y min-h-[7rem]')} />

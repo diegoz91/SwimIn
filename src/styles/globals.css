@@ -32,6 +32,17 @@
     outline-color: theme('colors.corsia.500');
   }
 
+  /* Numeri senza le freccette del browser: i valori si scrivono. */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   ::selection {
     @apply bg-cloro-200 text-abisso;
   }

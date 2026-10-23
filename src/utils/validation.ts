@@ -6,6 +6,7 @@
  */
 import { isProvinceCode } from '@/data/italy';
 import { isValidISODate, isValidMonth } from '@/utils/dates';
+import { normalizeText } from '@/utils/text';
 
 export type Rule = (value: string) => string | undefined;
 
@@ -138,3 +139,11 @@ export function passwordStrength(pw: string, personal: string[] = []): PasswordS
     const hint = score < 3 ? 'Allungala o aggiungi maiuscole, numeri e simboli.' : undefined;
     return { score: score as PasswordStrength['score'], label: labels[score], hint };
 }
+
+/** Il comune deve appartenere alla provincia (se l'elenco dei comuni è disponibile). */
+export const comuneOf = (comuni: string[], provinceLabel?: string): Rule => (v) => {
+    if (empty(v) || !comuni.length) return undefined;
+    const n = normalizeText(v);
+    const ok = comuni.some((c) => normalizeText(c) === n);
+    return ok ? undefined : `Scegli un comune ${provinceLabel ? `della provincia di ${provinceLabel}` : 'dall’elenco'}.`;
+};

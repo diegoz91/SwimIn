@@ -92,3 +92,62 @@ export function totalExperienceMonths(list: Experience[], now: Date = new Date()
 
 /** Turno "HH:MM–HH:MM" (o testo libero dei dati vecchi). */
 export const formatShift = (start?: string, end?: string) => (start && end ? `${start}–${end}` : start || end || '');
+
+// ---------------------------------------------------------------------------
+// Formato italiano gg/mm/aaaa per i campi data
+
+/** "2026-10-23" -> "23/10/2026" (il testo non valido resta com'è). */
+export const isoToIt = (iso: string) => (isValidISODate(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso);
+
+/** "23/10/2026" -> "2026-10-23"; se incompleto o inesistente restituisce il testo (lo segnala la validazione). */
+export function itToIso(text: string): string {
+    const m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(text.trim());
+    if (!m) return text.trim();
+    const iso = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    return isValidISODate(iso) ? iso : text.trim();
+}
+
+/**
+ * Maschera di digitazione gg/mm/aaaa: inserisce le barre da sola ("23102026" -> "23/10/2026")
+ * e rispetta quelle scritte dall'utente ("1/2/2026"). Cancellando non le reinserisce.
+ */
+export function maskDate(raw: string, prev = ''): string {
+    const cleaned = raw.replace(/[^\d/.-]/g, '').replace(/[.-]/g, '/');
+    if (cleaned.length < prev.length) return cleaned;
+    if (cleaned.includes('/')) {
+        const [d = '', mo = '', y = ''] = cleaned.split('/');
+        const parts = [d.slice(0, 2), mo.slice(0, 2), y.slice(0, 4)];
+        const segments = cleaned.split('/').length;
+        let out = parts[0];
+        if (segments > 1 || parts[0].length === 2) out += '/' + parts[1];
+        if (segments > 2 || (segments > 1 && parts[1].length === 2)) out += '/' + parts[2];
+        return out.slice(0, 10);
+    }
+    const digits = cleaned.slice(0, 8);
+    if (digits.length < 2) return digits;
+    if (digits.length < 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+/** Orario digitato: "930" -> "09:30", "9:5" resta com'è finché non è completo. */
+export function maskTime(raw: string, prev = ''): string {
+    const cleaned = raw.replace(/[^\d:.]/g, '').replace('.', ':');
+    if (cleaned.length < prev.length) return cleaned;
+    if (cleaned.includes(':')) {
+        const [h = '', m = ''] = cleaned.split(':');
+        return `${h.slice(0, 2)}:${m.slice(0, 2)}`;
+    }
+    const d = cleaned.slice(0, 4);
+    if (d.length < 2) return d;
+    if (d.length === 2) return `${d}:`;
+    return `${d.slice(0, 2)}:${d.slice(2)}`;
+}
+
+/** "9:30" -> "09:30" se valido, altrimenti il testo. */
+export function normalizeTime(text: string): string {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+    if (!m) return text.trim();
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    return h < 24 && min < 60 ? `${String(h).padStart(2, '0')}:${m[2]}` : text.trim();
+}

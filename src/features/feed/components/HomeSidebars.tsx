@@ -8,6 +8,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import { certificationsNeedingAttention, describeExpiry, parseCertifications } from '@/utils/certifications';
 import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
 import { PARTS, currentPart, normalizeAvailability, remainingSlotsToday } from '@/utils/availability';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
@@ -153,19 +154,32 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
     const [requested, setRequested] = useState<string[]>([]);
     const [rooms, setRooms] = useState<LiveRoom[]>([]);
 
-    useEffect(() => {
+    const loadSuggestions = () =>
         databaseService
             .getNetworkSuggestions(user.$id, user.connections || [])
             .then((list) => setSuggestions(list.slice(0, 3)))
             .catch((e) => console.warn('Suggerimenti non disponibili:', e));
-        databaseService.getActiveLiveRooms().then((r) => setRooms(r.slice(0, 2)));
-    }, [user.$id, user.connections]);
+
+    useEffect(() => {
+        loadSuggestions();
+    }, [user.$id, (user.connections || []).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        databaseService.getActiveLiveRooms().then((r) => setRooms(r.slice(0, 2))).catch((e) => console.warn('Live non disponibili:', e));
+    }, []);
+
+    // Collegamenti cambiati altrove: chi è appena diventato un collegamento esce subito dai suggerimenti.
+    useNetworkChange((change) => {
+        if (change.userId) setSuggestions((prev) => prev.filter((p) => (p.userId || p.$id) !== change.userId));
+        if (change.type !== 'sent') loadSuggestions();
+    });
 
     const connect = async (id: string) => {
         setRequested((r) => [...r, id]);
         try {
             await databaseService.sendConnectionRequest(user.$id, id);
             showToast('Richiesta di collegamento inviata.', 'success');
+            emitNetworkChange({ type: 'sent', userId: id });
         } catch (error) {
             setRequested((r) => r.filter((x) => x !== id));
             showToast(error instanceof Error ? error.message : 'Richiesta non inviata.', 'error');

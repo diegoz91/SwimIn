@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Checkbox } from '@/components/form/Field';
 import { Link } from 'react-router-dom';
 import { client } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
@@ -226,10 +227,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                         </button>
                     </div>
                     <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
-                            <input type="checkbox" checked={asQuestion} onChange={(e) => setAsQuestion(e.target.checked)} className="rounded border-slate-300 text-corsia-600 focus:ring-corsia-500" />
-                            È una domanda
-                        </label>
+                        <Checkbox id="live-question" checked={asQuestion} onChange={setAsQuestion} label="È una domanda" />
                         {!isHost && !speakers.includes(user.$id) && (
                             <button type="button" onClick={() => send('hand')} disabled={sending} className="text-sm font-semibold text-corsia-700 hover:text-corsia-900">
                                 ✋ Alza la mano

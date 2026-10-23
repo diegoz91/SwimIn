@@ -53,6 +53,9 @@ jobs:
           VITE_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
           VITE_APPWRITE_PROJECT_ID: ci-placeholder
 
+      - name: Test del lettore ISTAT (anagrafica comuni)
+        run: node --test scripts/anagrafica/istat.test.mjs
+
       - name: Controllo sintassi script Appwrite
         run: |
           node --check setup-db.js

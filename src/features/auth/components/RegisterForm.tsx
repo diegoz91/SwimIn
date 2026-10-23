@@ -4,7 +4,7 @@ import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { authErrorMessage } from '@/utils/authErrors';
-import { Field, fieldClass } from '@/components/form/Field';
+import { Checkbox, Field, fieldClass } from '@/components/form/Field';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { check, email as emailRule, maxLength, minLength, passwordStrength, personName, required } from '@/utils/validation';
@@ -145,22 +145,21 @@ export const RegisterForm: React.FC = () => {
                 </div>
 
                 <div>
-                    <label className="flex items-start gap-3 text-sm text-slate-600 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={values.acceptedTerms}
-                            onChange={(e) => form.set('acceptedTerms', e.target.checked)}
-                            className="mt-0.5 w-4 h-4 accent-corsia-600"
-                            disabled={isLoading}
-                            aria-invalid={errors.acceptedTerms ? 'true' : undefined}
-                        />
-                        <span>
-                            Ho letto e accetto i{' '}
-                            <Link to="/termini" target="_blank" className="text-blue-600 font-semibold hover:underline">Termini di servizio</Link>{' '}
-                            e la{' '}
-                            <Link to="/privacy" target="_blank" className="text-blue-600 font-semibold hover:underline">Privacy Policy</Link>.
-                        </span>
-                    </label>
+                    <Checkbox
+                        id="accept-terms"
+                        checked={values.acceptedTerms}
+                        onChange={(c) => form.set('acceptedTerms', c)}
+                        disabled={isLoading}
+                        invalid={!!errors.acceptedTerms}
+                        label={
+                            <span className="font-normal text-slate-600">
+                                Ho letto e accetto i{' '}
+                                <Link to="/termini" target="_blank" className="text-corsia-700 font-semibold hover:underline">Termini di servizio</Link>{' '}
+                                e la{' '}
+                                <Link to="/privacy" target="_blank" className="text-corsia-700 font-semibold hover:underline">Privacy Policy</Link>.
+                            </span>
+                        }
+                    />
                     {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante">{errors.acceptedTerms}</p>}
                 </div>
 

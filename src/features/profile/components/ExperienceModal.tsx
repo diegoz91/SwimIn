@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import type { Experience } from '@/types/types';
 import { FormModal } from '@/components/form/FormModal';
 import { Checkbox, Field, fieldClass } from '@/components/form/Field';
-import { MonthYearPicker, Suggestions } from '@/components/form/Pickers';
+import { CityCombobox, MonthYearPicker, Select, SuggestInput } from '@/components/form/Pickers';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
 import { EMPLOYMENT_TYPES, PROFESSIONAL_ROLES } from '@/data/swimming';
@@ -145,9 +145,8 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({ isOpen, onClos
             )}
 
             <Field id="exp-role" label="Ruolo" error={errors.role}>
-                <input {...bind('role')} list="exp-role-options" placeholder="Es. Istruttore di nuoto" autoComplete="organization-title" maxLength={120} />
+                <SuggestInput {...form.field('role')} options={PROFESSIONAL_ROLES} label="Ruoli" placeholder="Es. Istruttore di nuoto" autoComplete="organization-title" maxLength={120} />
             </Field>
-            <Suggestions id="exp-role-options" options={PROFESSIONAL_ROLES} />
 
             <Field id="exp-facility" label="Struttura o società" error={errors.facility}>
                 <input {...bind('facility')} placeholder="Es. Piscina comunale Cozzi" autoComplete="organization" maxLength={140} />
@@ -155,17 +154,10 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({ isOpen, onClos
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="exp-type" label="Tipo di rapporto" optional>
-                    <select {...bind('employmentType')}>
-                        <option value="">Non specificato</option>
-                        {EMPLOYMENT_TYPES.map((t) => (
-                            <option key={t.value} value={t.value}>
-                                {t.label}
-                            </option>
-                        ))}
-                    </select>
+                    <Select {...form.field('employmentType')} label="Tipo di rapporto" options={EMPLOYMENT_TYPES} clearLabel="Non specificato" placeholder="Non specificato" />
                 </Field>
                 <Field id="exp-city" label="Città" optional error={errors.city}>
-                    <input {...bind('city')} placeholder="Es. Milano" autoComplete="address-level2" maxLength={90} />
+                    <CityCombobox value={values.city} onChange={(c) => set('city', c)} onBlur={() => form.touch('city')} label="Città" placeholder="Es. Milano" />
                 </Field>
             </div>
 

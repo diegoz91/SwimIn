@@ -3,6 +3,8 @@ import { JobCard } from './JobCard';
 import { Icon } from '@/components/ui/Icon';
 import { CreateJobModal } from './CreateJobModal';
 import { CreateSOSModal } from './CreateSOSModal';
+import { Select } from '@/components/form/Pickers';
+import { contractLabel } from '@/data/swimming';
 import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
 import type { Job } from '@/types/types';
@@ -195,15 +197,9 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
 
             <div className="flex flex-wrap items-center gap-3 -mt-2 mb-2">
                 {contractTypes.length > 0 && (
-                    <select
-                        value={contractFilter}
-                        onChange={(e) => setContractFilter(e.target.value)}
-                        aria-label="Tipo di contratto"
-                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                        <option value="">Tutti i contratti</option>
-                        {contractTypes.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <div className="w-52">
+                        <Select size="sm" label="Tipo di contratto" value={contractFilter} onChange={setContractFilter} placeholder="Tutti i contratti" clearLabel="Tutti i contratti" options={contractTypes.map((c) => ({ value: c, label: contractLabel(c) }))} />
+                    </div>
                 )}
                 <button
                     onClick={() => setNearMe((v) => !v)}
@@ -214,15 +210,9 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                 >
                     <Icon type="location" className="w-4 h-4" /> Nella mia zona
                 </button>
-                <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'recent' | 'salary')}
-                    aria-label="Ordina offerte"
-                    className="ml-auto px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                    <option value="recent">Più recenti</option>
-                    <option value="salary">Retribuzione più alta</option>
-                </select>
+                <div className="ml-auto w-44">
+                    <Select size="sm" label="Ordina offerte" value={sortBy} onChange={(v) => setSortBy(v as 'recent' | 'salary')} options={[{ value: 'recent', label: 'Più recenti' }, { value: 'salary', label: 'Retribuzione più alta' }]} />
+                </div>
             </div>
             {!isLoading && (
                 <p className="text-sm text-slate-500" aria-live="polite">

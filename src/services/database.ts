@@ -544,13 +544,31 @@ export const databaseService = {
         return [...near, ...others.filter((o) => !near.some((n) => n.$id === o.$id))].slice(0, limit);
     },
 
+    /**
+     * Persone da conoscere: esclude chi è già collegato e chi ha una richiesta
+     * in sospeso con l'utente, in entrambe le direzioni.
+     */
     async getNetworkSuggestions(currentUserId: string, currentConnections: string[] = []) {
-        const res = await databases.listDocuments<Profile>(databaseId, collections.profiles, [
-            Query.notEqual('userId', currentUserId), 
-            Query.orderDesc('$createdAt'), 
-            Query.limit(20)
+        const [res, pending] = await Promise.all([
+            databases.listDocuments<Profile>(databaseId, collections.profiles, [
+                Query.notEqual('userId', currentUserId),
+                Query.orderDesc('$createdAt'),
+                Query.limit(30),
+            ]),
+            databases
+                .listDocuments<Connection>(databaseId, collections.connections, [
+                    Query.or([Query.equal('senderId', currentUserId), Query.equal('receiverId', currentUserId)]),
+                    Query.equal('status', 'pending'),
+                    Query.limit(100),
+                ])
+                .then((r) => r.documents)
+                .catch((e) => {
+                    console.warn('Richieste in sospeso non disponibili:', e);
+                    return [] as Connection[];
+                }),
         ]);
-        return res.documents.filter(p => !currentConnections.includes(p.userId || p.$id));
+        const excluded = new Set([...currentConnections, ...pending.flatMap((c) => [c.senderId, c.receiverId])]);
+        return res.documents.filter((p) => !excluded.has(p.userId || p.$id)).slice(0, 20);
     },
 
     async getConnectionsProfiles(connectionIds: string[]) {

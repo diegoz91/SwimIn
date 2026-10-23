@@ -64,3 +64,27 @@ export const POOL_SETTINGS = [
     { value: 'scoperta', label: 'Scoperta' },
     { value: 'entrambe', label: 'Coperta e scoperta' },
 ] as const;
+
+/** Ruoli e contratti degli annunci (valori salvati nel database). */
+export const JOB_ROLES = [
+    { value: 'istruttore', label: 'Istruttore di nuoto' },
+    { value: 'bagnino', label: 'Assistente bagnanti' },
+    { value: 'allenatore', label: 'Allenatore' },
+    { value: 'acquafitness', label: 'Istruttore di acquafitness' },
+    { value: 'coordinatore', label: 'Coordinatore' },
+    { value: 'tecnico', label: 'Tecnico manutentore' },
+    { value: 'receptionist', label: 'Receptionist' },
+    { value: 'altro', label: 'Altro' },
+];
+
+export const JOB_CONTRACTS = [
+    { value: 'full-time', label: 'Tempo pieno' },
+    { value: 'part-time', label: 'Part-time' },
+    { value: 'stagionale', label: 'Stagionale' },
+    { value: 'collaborazione', label: 'Collaborazione sportiva' },
+    { value: 'tirocinio', label: 'Tirocinio' },
+];
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+export const contractLabel = (v?: string) => (v ? JOB_CONTRACTS.find((c) => c.value === v)?.label || cap(v) : '');
+export const jobRoleLabel = (v?: string) => (v ? JOB_ROLES.find((r) => r.value === v)?.label || cap(v) : '');

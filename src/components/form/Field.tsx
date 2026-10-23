@@ -73,25 +73,39 @@ export const Field: React.FC<FieldProps> = ({ id, label, optional, hint, error, 
     );
 };
 
-/** Casella di controllo con etichetta cliccabile. */
-export const Checkbox: React.FC<{ id: string; checked: boolean; onChange: (checked: boolean) => void; label: React.ReactNode; description?: React.ReactNode; disabled?: boolean }> = ({
-    id, checked, onChange, label, description, disabled,
-}) => (
-    <label htmlFor={id} className={`flex items-start gap-3 ${disabled ? 'opacity-60' : 'cursor-pointer'}`}>
-        <input
-            id={id}
-            type="checkbox"
-            checked={checked}
-            disabled={disabled}
-            onChange={(e) => onChange(e.target.checked)}
-            className="mt-0.5 w-5 h-5 flex-shrink-0 accent-corsia-600 cursor-pointer"
-        />
-        <span>
-            <span className="block text-sm font-semibold text-abisso">{label}</span>
-            {description && <span className="block text-xs text-slate-500 mt-0.5">{description}</span>}
-        </span>
-    </label>
-);
+/** Casella di controllo del sito, con etichetta cliccabile. */
+export const Checkbox: React.FC<{ id: string; checked: boolean; onChange: (checked: boolean) => void; label: React.ReactNode; description?: React.ReactNode; disabled?: boolean; invalid?: boolean; tone?: 'default' | 'danger' }> = ({
+    id, checked, onChange, label, description, disabled, invalid, tone = 'default',
+}) => {
+    const on = tone === 'danger' ? 'bg-galleggiante border-galleggiante' : 'bg-corsia-600 border-corsia-600';
+    return (
+        <label htmlFor={id} className={`group flex items-start gap-3 ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+            <input
+                id={id}
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                aria-invalid={invalid ? 'true' : undefined}
+                onChange={(e) => onChange(e.target.checked)}
+                className="peer sr-only"
+            />
+            <span
+                aria-hidden="true"
+                className={`mt-0.5 w-5 h-5 flex-shrink-0 rounded-md border-2 grid place-items-center transition-colors duration-150 peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${
+                    checked ? on : invalid ? 'border-galleggiante bg-white' : 'border-slate-300 bg-white group-hover:border-corsia-400'
+                }`}
+            >
+                <svg viewBox="0 0 16 16" className={`w-3.5 h-3.5 text-white transition-transform duration-150 ${checked ? 'scale-100' : 'scale-0'}`} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3.5 8.5l3 3 6-7" />
+                </svg>
+            </span>
+            <span className="min-w-0">
+                <span className="block text-sm font-semibold text-abisso">{label}</span>
+                {description && <span className="block text-xs text-slate-500 mt-0.5">{description}</span>}
+            </span>
+        </label>
+    );
+};
 
 /** Gruppo di scelte a pillola (selezione singola o multipla). */
 export function ChoiceChips<T extends string>({
