@@ -21,7 +21,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Client, Functions, Permission, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
+import { Client, Functions, Permission, Query, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
@@ -62,7 +62,8 @@ const idx = (key, columns, type = TablesDBIndexType.Key) => ({ key, columns, typ
 
 const schema = [
     {
-        id: 'profiles', name: 'Profiles', permissions: READ_CREATE,
+        // Scritture solo dalla Function (profile.js): validazione e campi protetti.
+        id: 'profiles', name: 'Profiles', permissions: READ_ONLY,
         attributes: [
             str('userId', 36, { required: true }),
             str('userType', 50, { required: true }),
@@ -174,7 +175,7 @@ const schema = [
         indexes: [idx('by_structure', ['structureId'])],
     },
     {
-        id: 'facilities', name: 'Facilities', permissions: READ_CREATE,
+        id: 'facilities', name: 'Facilities', permissions: READ_ONLY,
         attributes: [
             str('name', 255, { required: true }), str('type', 255), str('city', 255, { required: true }),
             str('province', 10), str('bio', 2500), str('logo', 2048), str('cover', 2048),
@@ -340,6 +341,32 @@ async function setupDatabase() {
     }
 }
 
+/**
+ * Tabelle passate alla Function: le righe create in passato dai client hanno ancora
+ * permessi di modifica del proprietario. Li togliamo (lettura dagli utenti resta
+ * garantita dal permesso della tabella).
+ */
+async function lockClientWrites(tableId) {
+    let cursor = null;
+    let changed = 0;
+    for (;;) {
+        const { rows } = await tablesDB.listRows({
+            databaseId: DB_ID, tableId,
+            queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])],
+        });
+        for (const row of rows) {
+            const writable = (row.$permissions || []).some((p) => /^(update|delete)\(/.test(p));
+            if (writable) {
+                await tablesDB.updateRow({ databaseId: DB_ID, tableId, rowId: row.$id, permissions: [Permission.read(Role.users())] });
+                changed++;
+            }
+        }
+        if (rows.length < 100) break;
+        cursor = rows[rows.length - 1].$id;
+    }
+    if (changed) console.log(`   🔐 ${tableId}: tolti i permessi di modifica dal client a ${changed} righe`);
+}
+
 async function setupBuckets() {
     console.log('\n🗂️  Storage');
     for (const b of buckets) {
@@ -404,6 +431,7 @@ async function deployFunction() {
 async function main() {
     console.log('🚀 Configurazione Appwrite per SwimWaveUp…');
     await setupDatabase();
+    for (const t of ['profiles', 'facilities']) await lockClientWrites(t);
     await setupBuckets();
     if (!process.argv.includes('--skip-function')) await deployFunction();
     console.log('\n🎉 Setup completato.');

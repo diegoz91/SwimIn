@@ -163,10 +163,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     };
 
     const handleSaveFacility = async (values: FacilityFormValues) => {
-        const updated = await databaseService.updateFacility(facilityId, values);
-        if (!updated) {
-            showToast('Non è stato possibile salvare le modifiche.', 'error');
-            throw new Error('updateFacility');
+        let updated: Facility;
+        try {
+            updated = await databaseService.updateFacility(facilityId, values);
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Non è stato possibile salvare le modifiche.', 'error');
+            throw error;
         }
         onUpdateProfile?.(updated as Facility);
         showToast('Pagina aggiornata.', 'success');

@@ -44,7 +44,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git add -A public/data/comuni src/data/generated
+          git add -A public/data/comuni src/data/generated functions/api/src/data
           if git diff --cached --quiet; then
             echo "Anagrafica già aggiornata."
             exit 0

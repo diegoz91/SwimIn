@@ -69,6 +69,11 @@ writeFileSync(
 );
 writeFileSync(join(dataDir, 'meta.json'), JSON.stringify({ source, comuni: total, province: province.length }, null, 2) + '\n');
 
+// Copia compatta per la Function "api", che valida provincia e comune lato server.
+const fnDir = join(ROOT, 'functions', 'api', 'src', 'data');
+mkdirSync(fnDir, { recursive: true });
+writeFileSync(join(fnDir, 'comuni.json'), JSON.stringify(Object.fromEntries(Object.entries(comuni).sort(([a], [b]) => a.localeCompare(b)))));
+
 const genDir = join(ROOT, 'src', 'data', 'generated');
 mkdirSync(genDir, { recursive: true });
 writeFileSync(join(genDir, 'province.json'), JSON.stringify(province, null, 1) + '\n');

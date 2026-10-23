@@ -17,7 +17,7 @@ const db={
  async updateRow({tableId,rowId,data}){Object.assign(col(tableId)[rowId],data);return structuredClone(col(tableId)[rowId])},
  async deleteRow({tableId,rowId}){delete col(tableId)[rowId]}};
 const deletedUsers=[]; const deletedFiles=[];
-const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId)},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
+const api=createApi(db,{endpoint:'https://cloud.appwrite.io/v1',users:{delete:async({userId})=>deletedUsers.push(userId),get:async({userId})=>({email:`${userId}@esempio.it`})},storage:{deleteFile:async(f)=>deletedFiles.push(f.fileId)}});
 const P=(id,extra)=>col('profiles')[id]={$id:id,userId:id,userType:'professional',firstName:id,connections:[],$permissions:[`update("user:${id}")`],...extra};
 P('anna');P('bob');P('piscina',{userType:'structure',structureName:'Piscina Blu'});P('eve');
 const rejects=async(p,status)=>{try{await p;assert.fail('doveva fallire')}catch(e){assert.equal(e.status,status,e.message)}};
@@ -161,6 +161,40 @@ await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:tr
 await rejects(api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:day(2),sosShift:'pomeriggio'}),400);
 const sos=await api.createJob('piscina',{...jobBase,structureId:'piscina',isSOS:true,sosDate:day(2),sosShift:'15:00–19:00'});
 assert.equal(sos.expiresAt,day(2)); assert.equal(sos.isSOS,true);
+
+// Profili: scritture solo dal server, con validazione
+{
+const nuovo=await api.initProfile('zoe',{userType:'professional',personType:'enthusiast',firstName:'Zoe',lastName:"D'Angelo"});
+assert.equal(nuovo.email,'zoe@esempio.it'); assert.equal(nuovo.personType,'enthusiast'); assert.deepEqual(nuovo.$permissions,['read("users")']);
+assert.equal((await api.initProfile('zoe',{userType:'structure',structureName:'X'})).userType,'professional'); // idempotente
+await rejects(api.initProfile('yan',{userType:'admin'}),400);
+await rejects(api.initProfile('yan',{userType:'professional',firstName:'Y4n',lastName:'Ok'}),400);
+const up=await api.updateMyProfile('zoe',{city:'segrate',province:'mi',phone:'333 123 4567',website:'zoe.it',connections:['anna'],userType:'structure',bio:' ciao '});
+assert.equal(up.city,'Segrate'); assert.equal(up.province,'MI'); assert.equal(up.phone,'3331234567'); assert.equal(up.website,'https://zoe.it/');
+assert.equal(up.bio,'ciao'); assert.deepEqual(up.connections,[]); assert.equal(up.userType,'professional'); // campi protetti ignorati
+await rejects(api.updateMyProfile('zoe',{city:'Roma',province:'MI'}),400); // comune fuori provincia
+await rejects(api.updateMyProfile('zoe',{avatar:'https://evil.example/pixel.gif'}),400);
+await api.updateMyProfile('zoe',{avatar:'https://fra.cloud.appwrite.io/v1/storage/buckets/avatars/files/abc/view?project=p'});
+await rejects(api.updateMyProfile('zoe',{experienceList:[JSON.stringify({role:'Istruttrice',facility:'Lido',startDate:'2099-01'})]}),400);
+const exp=await api.updateMyProfile('zoe',{experienceList:[{role:'Istruttrice',facility:'Lido',startDate:'2020-01',endDate:'2021-02',extra:'x'}]});
+assert.deepEqual(JSON.parse(exp.experienceList[0]),{role:'Istruttrice',facility:'Lido',startDate:'2020-01',endDate:'2021-02'});
+const c1=await api.updateMyProfile('zoe',{certificationsList:[{name:'BLSD esecutore',issuer:'IRC',category:'primo_soccorso',expiry:'2030-01-01',verified:true}]});
+const cert=JSON.parse(c1.certificationsList[0]); assert.equal(cert.verified,undefined); assert.ok(cert.id); // il client non può verificarsi da solo
+col('profiles').zoe.certificationsList=[JSON.stringify({...cert,verified:true,verifiedBy:'admin'})];
+const c2=await api.updateMyProfile('zoe',{certificationsList:[{...cert}]});
+assert.equal(JSON.parse(c2.certificationsList[0]).verified,true); // invariato: la verifica resta
+const c3=await api.updateMyProfile('zoe',{certificationsList:[{...cert,expiry:'2035-01-01'}]});
+assert.equal(JSON.parse(c3.certificationsList[0]).verified,undefined); // modificato: verifica persa
+assert.deepEqual((await api.updateMyProfile('zoe',{availability:['lun-sera','xx','lun-sera']})).availability,['lun-sera']);
+await api.setPresence('zoe',{isOnline:false,typingTo:'anna'}); assert.equal(col('profiles').zoe.isOnline,false); assert.equal(col('profiles').zoe.typingTo,'anna');
+// Pagine struttura
+await rejects(api.createFacility('piscina',{name:'Doppia',city:'Milano',province:'MI'}),403);
+const fac=await api.createFacility('zoe',{name:'Piscina Zoe',city:'Milano',province:'MI'});
+assert.deepEqual(fac.admins,['zoe']); assert.ok(col('profiles').zoe.managedFacilities.includes(fac.$id));
+await rejects(api.updateFacility('anna',{facilityId:fac.$id,name:'Mia'}),403);
+assert.equal((await api.updateFacility('zoe',{facilityId:fac.$id,name:'Piscina Zoe 2',admins:['anna']})).name,'Piscina Zoe 2');
+assert.deepEqual(col('facilities')[fac.$id].admins,['zoe']);
+}
 
 // Bordo Vasca Live
 const room=await api.createLiveRoom('piscina',{title:'Didattica vasca piccola',hostId:'bob'});
