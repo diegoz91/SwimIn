@@ -53,8 +53,8 @@ const Privacy: React.FC = () => (
                 body: (
                     <>
                         <p>
-                            Il profilo e i post sono visibili agli altri utenti registrati. I messaggi privati sono visibili solo ai partecipanti
-                            alla conversazione. Le candidature sono visibili a te e a chi gestisce l'annuncio. Le notifiche sono visibili solo a te.
+                            Il profilo e i post sono visibili agli altri utenti registrati. I messaggi privati e i loro allegati (foto e documenti) sono visibili solo ai
+                            partecipanti alla conversazione; chi li invia può eliminarli per entrambi. Le candidature sono visibili a te e a chi gestisce l'annuncio. Le notifiche sono visibili solo a te.
                         </p>
                         <p>I dati sono trattati, in qualità di responsabili del trattamento, dai fornitori tecnici necessari al funzionamento del servizio:</p>
                         <ul>

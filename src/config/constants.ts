@@ -42,6 +42,7 @@ export interface AppwriteConfig {
         avatars: string;
         postMedia: string;
         certificates: string;
+        chatFiles: string;
     };
 }
 
@@ -80,6 +81,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         avatars: 'avatars',
         postMedia: 'post_media',
         certificates: 'certificates',
+        chatFiles: 'chat_files',
     }
 };
 

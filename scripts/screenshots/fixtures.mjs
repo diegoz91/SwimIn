@@ -190,6 +190,9 @@ const endorsements = [
 const connections = [doc('connections', 'c1', { senderId: 'u_luca', receiverId: ME, status: 'pending' }, 60 * 30)];
 
 const messages = [
+    doc('messages', 'm0a', { conversationId: [ME, 'u_marco'].sort().join('_'), senderId: ME, receiverId: 'u_marco', content: 'Ciao Marco, ti giro il calendario dei turni di novembre.', isRead: true, attachments: [JSON.stringify({ fileId: 'f1', name: 'turni-novembre.pdf', mime: 'application/pdf', size: 248000 })] }, 60 * 26),
+    doc('messages', 'm0b', { conversationId: [ME, 'u_marco'].sort().join('_'), senderId: 'u_marco', receiverId: ME, content: '', isRead: true, deleted: true }, 60 * 25),
+    doc('messages', 'm0c', { conversationId: [ME, 'u_marco'].sort().join('_'), senderId: 'u_marco', receiverId: ME, content: 'Grazie! Lo stampo per lo staff.', isRead: true, reactions: JSON.stringify({ [ME]: 'adoro' }), replyToId: 'm0a', replyPreview: JSON.stringify({ id: 'm0a', senderId: ME, text: 'Ciao Marco, ti giro il calendario dei turni di novembre.' }) }, 60 * 24),
     doc('messages', 'm1', { conversationId: [ME, 'u_marco'].sort().join('_'), senderId: 'u_marco', receiverId: ME, content: 'Ciao Giulia! Sabato riesci a coprire il turno delle 9?', isRead: false }, 20),
     doc('messages', 'm2', { conversationId: [ME, 'u_sara'].sort().join('_'), senderId: ME, receiverId: 'u_sara', content: 'Perfetto, ci vediamo al corso BLSD.', isRead: true }, 60 * 5),
 ];

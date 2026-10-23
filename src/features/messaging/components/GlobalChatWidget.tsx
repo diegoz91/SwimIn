@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Query } from 'appwrite';
 import { ChatWindow } from './ChatWindow';
+import { messagePreview } from '@/services/chatFiles';
 import { ConversationListItem } from './ConversationListItem';
 import { databaseService } from '@/services/database'; 
 import { databases, client } from '@/services/appwrite';
@@ -83,7 +84,7 @@ export const GlobalChatWidget: React.FC = () => {
           if (conv) {
               conv.unreadCount += 1;
               if (msg.$createdAt > conv.lastMessage.sentAt) {
-                 conv.lastMessage = { content: msg.content, sentAt: msg.$createdAt, senderId: msg.senderId };
+                 conv.lastMessage = { content: messagePreview(msg), sentAt: msg.$createdAt, senderId: msg.senderId };
               }
           }
       });
@@ -123,7 +124,7 @@ export const GlobalChatWidget: React.FC = () => {
             
             const newConvs = [...prev];
             if (isCreation) {
-                newConvs[convIndex].lastMessage = { content: payload.content, sentAt: payload.$createdAt, senderId: payload.senderId };
+                newConvs[convIndex].lastMessage = { content: messagePreview(payload), sentAt: payload.$createdAt, senderId: payload.senderId };
                 if (payload.receiverId === user.$id && selectedConversationId !== payload.conversationId) {
                     newConvs[convIndex].unreadCount += 1;
                 }

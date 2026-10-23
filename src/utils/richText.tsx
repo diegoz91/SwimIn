@@ -7,7 +7,8 @@ import { Link } from 'react-router-dom';
  */
 const TOKEN = /(@\[([^\]\n]{1,80})\]\(([A-Za-z0-9_.-]{1,36})\))|(^|[^\p{L}\p{N}_&/])#([\p{L}\p{N}_]{2,40})|(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/gu;
 
-export function RichText({ text, className }: { text: string; className?: string }) {
+export function RichText({ text, className, inverse = false }: { text: string; className?: string; /** Su sfondo scuro (es. i propri messaggi). */ inverse?: boolean }) {
+    const linkTone = inverse ? 'text-white underline decoration-white/60' : 'text-corsia-700';
     const parts: React.ReactNode[] = [];
     let last = 0;
     let i = 0;
@@ -16,7 +17,7 @@ export function RichText({ text, className }: { text: string; className?: string
         if (start > last) parts.push(text.slice(last, start));
         if (m[1]) {
             parts.push(
-                <Link key={i++} to={`/profile/${m[3]}`} className="font-semibold text-corsia-700 hover:underline" onClick={(e) => e.stopPropagation()}>
+                <Link key={i++} to={`/profile/${m[3]}`} className={`font-semibold ${linkTone} hover:underline`} onClick={(e) => e.stopPropagation()}>
                     {m[2]}
                 </Link>
             );
@@ -24,13 +25,13 @@ export function RichText({ text, className }: { text: string; className?: string
             const tag = m[5];
             if (m[4]) parts.push(m[4]);
             parts.push(
-                <Link key={i++} to={`/hashtag/${encodeURIComponent(tag.toLocaleLowerCase('it-IT'))}`} className="font-semibold text-corsia-700 hover:underline" onClick={(e) => e.stopPropagation()}>
+                <Link key={i++} to={`/hashtag/${encodeURIComponent(tag.toLocaleLowerCase('it-IT'))}`} className={`font-semibold ${linkTone} hover:underline`} onClick={(e) => e.stopPropagation()}>
                     #{tag}
                 </Link>
             );
         } else if (m[6]) {
             parts.push(
-                <a key={i++} href={m[6]} target="_blank" rel="noopener noreferrer nofollow ugc" className="text-corsia-700 underline break-all" onClick={(e) => e.stopPropagation()}>
+                <a key={i++} href={m[6]} target="_blank" rel="noopener noreferrer nofollow ugc" className={`${linkTone} underline break-all`} onClick={(e) => e.stopPropagation()}>
                     {m[6].replace(/^https?:\/\/(www\.)?/, '')}
                 </a>
             );

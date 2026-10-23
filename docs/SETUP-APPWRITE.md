@@ -40,7 +40,7 @@ Lo script:
 
 - crea le tabelle con **row security** attiva e permessi minimi;
 - crea gli indici per le query più usate;
-- crea i bucket `avatars` e `post_media` (lettura pubblica, modifica solo del proprietario);
+- crea i bucket `avatars` e `post_media` (lettura pubblica, modifica solo del proprietario), `certificates` e `chat_files` (privati: ogni file è leggibile solo da chi lo carica e, per gli allegati dei messaggi, dal destinatario);
 - crea la Function **`api`** e ne carica il codice da `functions/api`.
 
 Si può rilanciare in sicurezza: crea solo ciò che manca e riallinea i permessi.

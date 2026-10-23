@@ -10,7 +10,7 @@ export type IconType =
   | 'thumb-up' | 'document' | 'bookmark' | 'check' | 'paper-plane' 
   | 'arrow-left' | 'check-circle' | 'trash' | 'pencil'
   | 'lock-closed' | 'alert-triangle' | 'shield' | 'user-minus' | 'chevron-right' | 'edit'
-  | 'play' | 'chart' | 'hashtag' | 'user-plus';
+  | 'play' | 'chart' | 'hashtag' | 'user-plus' | 'paperclip' | 'reply' | 'face-smile' | 'download';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   type: IconType;
@@ -20,6 +20,18 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 }
 
 const ICON_MAP: Record<IconType, React.ReactNode> = {
+  paperclip: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+  ),
+  reply: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+  ),
+  'face-smile': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
+  ),
+  download: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+  ),
   briefcase: (
     <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.05a2.25 2.25 0 0 1-2.25 2.25h-13.5a2.25 2.25 0 0 1-2.25-2.25V14.15M10.5 12h3m-6.75-4.5h10.5a2.25 2.25 0 0 1 2.25 2.25v2.25a2.25 2.25 0 0 1-2.25 2.25H6.75a2.25 2.25 0 0 1-2.25-2.25V9.75A2.25 2.25 0 0 1 6.75 7.5Z" />
   ),
