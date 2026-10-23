@@ -15,7 +15,9 @@ import { provinceName } from '@/data/italy';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { isPremium } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
-import type { EnrichedPost, Group, GroupMember, Profile } from '@/types/types';
+import type { EnrichedPost, Group, GroupMember, StructureProfile, UserProfile } from '@/types/types';
+
+type Profile = UserProfile | StructureProfile;
 
 type Tab = 'discussione' | 'membri' | 'info';
 type Moderation = 'approve' | 'reject' | 'remove' | 'ban' | 'promote' | 'demote';
