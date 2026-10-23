@@ -35,6 +35,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `setup-db.js` — **fonte di verità dello schema** Appwrite (tabelle, colonne, indici, permessi). Usa l'API **TablesDB** (Appwrite 1.8+); la vecchia API Databases per schema/collezioni è deprecata e la console non offre più i suoi scope
 - `functions/api/` — Appwrite Function per le operazioni che toccano dati di più utenti; il client la chiama con `callApi()` in `database.ts`
 - `api/` — funzioni Vercel: `/u/:id` (anteprime social del profilo pubblico), `/sitemap.xml`, `/robots.txt`. Chiamano solo le azioni pubbliche della Function (`PUBLIC_ACTIONS` in `functions/api/src/public.js`), senza chiavi segrete; test in `scripts/vercel/api.test.mjs`
+- `.github/workflows/deploy-appwrite.yml` — su main lancia `setup-db` (schema + Function) se ci sono i secret `APPWRITE_*`; senza, va lanciato a mano dopo ogni merge che tocca `functions/api/` o `setup-db.js`
 - `.github/workflows/ci.yml` — CI su ogni PR: sincronizza `package-lock.json`, type-check, build, test della Function
 
 ## Design system (SwimIn, "acqua premium")

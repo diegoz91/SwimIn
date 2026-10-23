@@ -1,0 +1,63 @@
+name: Deploy Appwrite
+
+# A ogni modifica su main dello schema o della Function `api`, riallinea il
+# database e pubblica la nuova versione della Function (come `npm run setup-db`).
+# Senza questo passaggio il sito su Vercel si aggiorna ma la Function resta
+# vecchia, e le funzioni nuove rispondono "Azione sconosciuta".
+#
+# Richiede i secret del repository (Settings → Secrets and variables → Actions):
+#   APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY
+# e, facoltative, le variabili APP_URL ed EMAIL_NOTIFICATIONS.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/api/**'
+      - 'setup-db.js'
+      - 'scripts/check-sdk.js'
+      - '.github/workflows/deploy-appwrite.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-appwrite
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controllo configurazione
+        id: cfg
+        env:
+          KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::warning::Secret APPWRITE_API_KEY non impostato: deploy automatico saltato. Lancia 'npm run setup-db' a mano oppure aggiungi i secret."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.skip != 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        if: steps.cfg.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Schema e Function
+        if: steps.cfg.outputs.skip != 'true'
+        run: npm run setup-db
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          APP_URL: ${{ vars.APP_URL }}
+          EMAIL_NOTIFICATIONS: ${{ vars.EMAIL_NOTIFICATIONS }}

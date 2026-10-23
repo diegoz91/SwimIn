@@ -77,9 +77,22 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
         throw new Error('Risposta del server non valida. Riprova tra poco.');
     }
     if (!payload.ok) {
+        // La Function su Appwrite è più vecchia del sito: va ridistribuita (npm run setup-db).
+        if (/^Azione sconosciuta/.test(payload.error || '')) {
+            console.error(`Function "api" non aggiornata: manca l'azione "${action}". Lancia npm run setup-db.`);
+            throw new ApiOutdatedError(action);
+        }
         throw new Error(payload.error || 'Operazione non riuscita.');
     }
     return payload.data;
+}
+
+/** Il server non conosce ancora l'azione: il sito è stato aggiornato prima della Function. */
+export class ApiOutdatedError extends Error {
+    constructor(public action: string) {
+        super('Questa funzione è in aggiornamento: riprova tra qualche minuto.');
+        this.name = 'ApiOutdatedError';
+    }
 }
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
@@ -555,7 +568,14 @@ export const databaseService = {
 
     /** Reazione a un post: la stessa di nuovo la toglie, una diversa la sostituisce. */
     async react(postId: string, reaction: string | null) {
-        return await callApi<{ reaction: string | null; liked: boolean; likesCount: number; reactionCounts: Record<string, number> }>('react', { postId, reaction });
+        try {
+            return await callApi<{ reaction: string | null; liked: boolean; likesCount: number; reactionCounts: Record<string, number> }>('react', { postId, reaction });
+        } catch (err) {
+            // Function non ancora aggiornata: il semplice "consiglia" funziona comunque con l'azione vecchia.
+            if (!(err instanceof ApiOutdatedError) || (reaction !== null && reaction !== 'consiglio')) throw err;
+            const res = await callApi<{ liked: boolean; likesCount: number }>('toggleLike', { postId });
+            return { reaction: res.liked ? 'consiglio' : null, liked: res.liked, likesCount: res.likesCount, reactionCounts: res.likesCount ? { consiglio: res.likesCount } : {} };
+        }
     },
 
     async toggleCommentLike(commentId: string) {
