@@ -30,7 +30,8 @@ export const BlocksProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!user) return setState({ blocked: [], muted: [], blockedBy: [], isAdmin: false });
         databaseService
             .listBlockRelations()
-            .then(setState)
+            // Risposta incompleta (es. Function non aggiornata): elenchi vuoti invece di un errore.
+            .then((r) => setState({ blocked: r?.blocked || [], muted: r?.muted || [], blockedBy: r?.blockedBy || [], isAdmin: !!r?.isAdmin }))
             .catch((e) => console.warn('Blocchi non disponibili:', e));
     }, [user?.$id]); // eslint-disable-line react-hooks/exhaustive-deps
 

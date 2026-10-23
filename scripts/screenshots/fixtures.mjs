@@ -187,6 +187,7 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: false }),
     getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
     getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [] }),
     listMyShifts: () => {
