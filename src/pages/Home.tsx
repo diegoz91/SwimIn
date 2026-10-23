@@ -83,7 +83,8 @@ const Home: React.FC = () => {
 
         try {
             const connections = user.connections || [];
-            const fetchedPosts = await databaseService.getFeed(user.$id || user.userId, connections, POSTS_PER_PAGE, offset);
+            const following = await databaseService.getFollowingIds(user.$id).catch(() => [] as string[]);
+            const fetchedPosts = await databaseService.getFeed(user.$id || user.userId, connections, POSTS_PER_PAGE, offset, following);
             
             if (fetchedPosts.length < POSTS_PER_PAGE) setHasMore(false);
             

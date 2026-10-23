@@ -24,6 +24,8 @@ const CATEGORY_OF = {
   endorsement: 'social',
   review: 'social',
   repost: 'social',
+  mention: 'social',
+  follow: 'connections',
   profile_view: 'social',
   application: 'jobs',
   rejected: 'jobs',
@@ -46,6 +48,8 @@ export function targetUrl(type, relatedId) {
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';
+    case 'mention': return relatedId ? `/post/${relatedId}` : '/';
+    case 'follow': return relatedId ? `/profile/${relatedId}` : '/network';
     case 'repost': return relatedId ? `/post/${relatedId}` : '/';
     case 'profile_view': return relatedId ? `/profile/${relatedId}` : '/profile?visite=1';
     default: return '/notifiche';

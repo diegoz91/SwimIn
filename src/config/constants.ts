@@ -33,6 +33,8 @@ export interface AppwriteConfig {
         saves: string;
         reviews: string;
         comment_likes: string;
+        follows: string;
+        poll_votes: string;
     };
     buckets: {
         avatars: string;
@@ -67,6 +69,8 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         saves: 'saves',
         reviews: 'reviews',
         comment_likes: 'comment_likes',
+        follows: 'follows',
+        poll_votes: 'poll_votes',
     },
     buckets: {
         avatars: 'avatars',

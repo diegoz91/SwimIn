@@ -81,6 +81,8 @@ export interface BaseProfile extends AppwriteDocument {
   premiumTrialUsed?: boolean;
   inmailCredits?: number | null;
   inmailResetAt?: string | null;
+  followersCount?: number;
+  followingCount?: number;
   isOnline?: boolean;
   lastActive?: string;
   phone?: string;
@@ -154,6 +156,12 @@ export interface Post extends AppwriteDocument {
   /** Ripubblicazione: id del post originale. */
   repostOf?: string | null;
   repostsCount?: number;
+  hashtags?: string[];
+  mentions?: string[];
+  /** Sondaggio: opzioni, scadenza (ISO) e totali per opzione (JSON). */
+  pollOptions?: string[];
+  pollEndsAt?: string | null;
+  pollCounts?: string | null;
 }
 
 export interface EnrichedPost extends Post {
@@ -162,6 +170,8 @@ export interface EnrichedPost extends Post {
     likedByMe?: boolean;
     /** La reazione dell'utente corrente (consiglio, applauso…), se c'è. */
     myReaction?: string | null;
+    /** Voto dell'utente corrente al sondaggio (indice), se ha votato. */
+    myVote?: number | null;
 }
 
 // ----------------------------------------------------
@@ -181,6 +191,17 @@ export interface Like extends AppwriteDocument {
   userId: string;
   /** Tipo di reazione; assente nei like creati prima delle reazioni (= consiglio). */
   reaction?: string | null;
+}
+
+export interface Follow extends AppwriteDocument {
+  followerId: string;
+  followeeId: string;
+}
+
+export interface PollVote extends AppwriteDocument {
+  postId: string;
+  userId: string;
+  option: number;
 }
 
 export interface CommentLike extends AppwriteDocument {
@@ -287,7 +308,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow';
   content: string;
   relatedId?: string;
   isRead: boolean;

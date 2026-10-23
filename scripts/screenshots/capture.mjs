@@ -98,6 +98,7 @@ const PRIVATE_PAGES = [
     ['appassionato', '/profile/u_paolo'],
     ['talenti', '/talenti'],
     ['premium', '/premium'],
+    ['hashtag', '/hashtag/master'],
     ['turni', '/turni'],
 ];
 

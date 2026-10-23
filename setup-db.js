@@ -114,6 +114,7 @@ const schema = [
             // SwimIn Premium (scritti solo dalla Function): attivo finché premiumUntil è nel futuro
             str('premiumUntil', 40), str('premiumSince', 40), str('premiumSource', 20), bool('premiumTrialUsed', { default: false }),
             int('inmailCredits'), str('inmailResetAt', 40),
+            int('followersCount', { default: 0 }), int('followingCount', { default: 0 }),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -130,6 +131,8 @@ const schema = [
             str('reactionCounts', 500), // JSON {consiglio, applauso, …}: conteggi per reazione (Function)
             str('repostOf', 36), // ripubblicazione: id del post originale
             int('repostsCount', { default: 0 }),
+            str('hashtags', 40, { array: true }), str('mentions', 36, { array: true }), // estratti dal testo dalla Function
+            str('pollOptions', 80, { array: true }), str('pollEndsAt', 40), str('pollCounts', 200), // sondaggio (facoltativo)
         ],
         indexes: [idx('by_author', ['authorId']), idx('by_repost', ['repostOf'])],
     },
@@ -243,6 +246,18 @@ const schema = [
     },
     {
         // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
+        // Chi segue chi (senza collegarsi): pubblico come su LinkedIn, scritto dalla Function.
+        id: 'follows', name: 'Follows', permissions: READ_ONLY,
+        attributes: [str('followerId', 36, { required: true }), str('followeeId', 36, { required: true })],
+        indexes: [idx('by_follower', ['followerId']), idx('by_followee', ['followeeId'])],
+    },
+    {
+        // Voti ai sondaggi: ognuno vede solo il proprio (permesso sulla riga), i totali sono sul post.
+        id: 'poll_votes', name: 'Poll votes', permissions: SERVER_ONLY,
+        attributes: [str('postId', 36, { required: true }), str('userId', 36, { required: true }), int('option', { required: true })],
+        indexes: [idx('by_post', ['postId']), idx('by_user', ['userId'])],
+    },
+    {
         // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
         id: 'subscriptions', name: 'Subscriptions', permissions: SERVER_ONLY,
         attributes: [

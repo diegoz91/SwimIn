@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
+import { RichText } from '@/utils/richText';
 
 export interface EnrichedComment extends Models.Document {
     postId: string;
@@ -121,7 +122,7 @@ export const Comment: React.FC<CommentProps> = ({
                         <p className="text-xs text-slate-500 mb-1.5 line-clamp-1">{authorSubtitle}</p>
                     )}
                     <p className="text-slate-700 text-sm whitespace-pre-wrap break-words">
-                        {comment.content}
+                        <RichText text={comment.content} />
                     </p>
                 </div>
                 
