@@ -56,3 +56,13 @@ jobs:
           git add -A
           git commit -q -m "Schermate di ${{ github.sha }}"
           git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$BRANCH"
+
+      # Prova di fumo: ogni pagina e ogni interazione devono riuscire senza errori JavaScript.
+      # Le schermate vengono pubblicate comunque (passo precedente), così si vede cosa non va.
+      - name: Controllo errori
+        run: |
+          if grep -q "^✗" screenshots/log.txt || grep -q "Errori JavaScript rilevati" screenshots/log.txt; then
+            echo "::error::Alcune schermate non sono riuscite o ci sono errori JavaScript (vedi log.txt sul branch ci-screenshots)."
+            grep -E "^✗|^ - " screenshots/log.txt | head -40
+            exit 1
+          fi
