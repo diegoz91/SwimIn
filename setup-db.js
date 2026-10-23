@@ -21,7 +21,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Client, Functions, Permission, Query, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
+import { Client, Functions, ID, Permission, Query, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
 import { generateVapidKeys } from './functions/api/src/webpush.js';
 import { InputFile } from 'node-appwrite/file';
 
@@ -591,7 +591,7 @@ async function setupFunctionVariables() {
     const set = async (key, value, secret = false) => {
         if (value === undefined || value === null) return;
         const v = current[key];
-        if (!v) await functions.createVariable({ functionId: FUNCTION_ID, key, value: String(value), secret });
+        if (!v) await functions.createVariable({ functionId: FUNCTION_ID, variableId: ID.unique(), key, value: String(value), secret });
         else if (!v.secret && v.value !== String(value)) await functions.updateVariable({ functionId: FUNCTION_ID, variableId: v.$id, key, value: String(value), secret });
     };
     const env = process.env;
