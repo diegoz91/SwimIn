@@ -8,7 +8,7 @@
 export const GROUP_CATEGORIES = ['master', 'istruttori', 'salvamento', 'allenatori', 'appassionati', 'strutture', 'territorio', 'altro'];
 export const GROUP_PRIVACY = ['open', 'approval'];
 
-export function groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl = (v) => v || '' }) {
+export function groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl = (v) => v || '', onGroupDeleted = async () => {} }) {
   const text = (v, label, min, max, required = true) => {
     const t = typeof v === 'string' ? v.trim() : '';
     if (!t && !required) return '';
@@ -139,6 +139,7 @@ export function groupActions({ find, get, list, listAll, create, update, remove,
         await remove(C.posts, post.$id);
       }
       await removeAll(C.groupMembers, [Query.equal('groupId', groupId)]);
+      await onGroupDeleted(groupId);
       await remove(C.groups, groupId);
       return { deleted: true };
     },

@@ -157,6 +157,27 @@ const group_members = [
     doc('group_members', 'gm4', { groupId: 'g1', userId: 'u_luca', role: 'member', status: 'pending' }, 60 * 3),
 ];
 
+const inDays = (n) => new Date(now + n * 86400000).toISOString().slice(0, 10);
+const swim_meets = [
+    doc('swim_meets', 'e1', {
+        type: 'corso', title: 'Corso BLSD per assistenti bagnanti', creatorId: 'u_lido', status: 'upcoming',
+        description: 'Rianimazione cardiopolmonare e uso del defibrillatore, con prova pratica e attestato valido per il rinnovo del brevetto.\n\nPortare un documento e abbigliamento comodo.',
+        date: inDays(9), time: '09:00', endTime: '13:00', city: 'Milano', province: 'MI', address: 'Lido di Milano, piazzale Lotto 15',
+        price: 60, maxParticipants: 4, participants: ['u_lido', 'u_marco', 'u_sara', 'u_elena'], waitlist: ['u_luca'],
+    }, 60 * 24 * 2),
+    doc('swim_meets', 'e2', {
+        type: 'allenamento', title: 'Allenamento master condiviso in vasca lunga', creatorId: 'u_marco', status: 'upcoming', groupId: 'g1',
+        description: 'Serie aerobiche e tecnica di virata per chi prepara le gare invernali. Corsie divise per livello.',
+        date: inDays(3), time: '19:30', endTime: '21:00', city: 'Milano', province: 'MI', address: 'Piscina Cozzi, viale Tunisia 35',
+        price: 0, participants: ['u_marco', ME, 'u_sara'], waitlist: [],
+    }, 60 * 24),
+    doc('swim_meets', 'e3', {
+        type: 'webinar', title: 'Didattica per i corsi 4–6 anni', creatorId: 'u_elena', status: 'upcoming', isOnline: true, onlineUrl: 'https://meet.example.com/didattica',
+        description: 'Giochi e progressioni per l’acquaticità dei più piccoli, con domande finali.',
+        date: inDays(12), time: '21:00', city: 'Online', price: 0, participants: ['u_elena', 'u_luca'], waitlist: [],
+    }, 60 * 5),
+];
+
 const jobs = [
     doc('jobs', 'j1', {
         structureId: 'u_lido', structureName: 'Piscina Lido di Milano', title: 'Assistente bagnanti turni serali', role: 'Bagnino',
@@ -227,7 +248,7 @@ export const collections = {
         doc('reviews', 'r3', { structureId: 'u_lido', authorId: 'u_marco', rating: 4, content: 'Ci alleno il gruppo master da due stagioni: orari comodi e corsie dedicate.', status: 'published' }, 60 * 24 * 20),
     ],
     saves: [doc('saves', 's1', { userId: ME, targetType: 'post', targetId: 'p1' }), doc('saves', 's2', { userId: ME, targetType: 'job', targetId: 'j2' })],
-    swim_meets: [],
+    swim_meets,
     groups,
     group_members,
     announcements: [],

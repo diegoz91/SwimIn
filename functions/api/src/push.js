@@ -26,6 +26,7 @@ const CATEGORY_OF = {
   repost: 'social',
   mention: 'social',
   follow: 'connections',
+  group: 'social',
   profile_view: 'social',
   application: 'jobs',
   rejected: 'jobs',
@@ -49,6 +50,7 @@ export function targetUrl(type, relatedId) {
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
+    case 'event': return relatedId ? `/eventi/${relatedId}` : '/eventi';
     case 'mention': return relatedId ? `/post/${relatedId}` : '/';
     case 'follow': return relatedId ? `/profile/${relatedId}` : '/network';
     case 'repost': return relatedId ? `/post/${relatedId}` : '/';

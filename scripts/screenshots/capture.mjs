@@ -102,6 +102,8 @@ const PRIVATE_PAGES = [
     ['hashtag', '/hashtag/master'],
     ['gruppi', '/gruppi'],
     ['gruppo', '/gruppi/g1'],
+    ['eventi', '/eventi'],
+    ['evento', '/eventi/e1'],
     ['turni', '/turni'],
 ];
 
@@ -117,6 +119,7 @@ const PRIVATE_INTERACTIONS = [
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
+    ['form-evento', '/eventi', (p) => p.getByRole('button', { name: 'Crea un evento' }).first().click()],
     ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],
     ['ripubblica', '/', (p) => p.getByRole('button', { name: /Ripubblica/ }).first().click()],
     ['form-recensione', '/profile/u_lido', (p) => p.getByRole('button', { name: /Scrivi una recensione/ }).click()],

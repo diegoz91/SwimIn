@@ -31,11 +31,30 @@ import type {
     AppNotification,
     LiveRoom,
     SwimMeet,
+    EventType,
     AppwriteDocument,
     Endorsement,
     LiveMessage,
     SavedItem,
 } from '@/types/types';
+
+export interface EventInput {
+    title: string;
+    description: string;
+    type: EventType;
+    date: string;
+    time: string;
+    endTime?: string;
+    isOnline?: boolean;
+    onlineUrl?: string;
+    city: string;
+    province?: string;
+    address?: string;
+    price?: number;
+    maxParticipants?: number | null;
+    cover?: string;
+    groupId?: string;
+}
 
 export interface GroupInput {
     name: string;
@@ -1286,39 +1305,57 @@ export const databaseService = {
     },
 
     // ==========================================
-    // 🟢 SWIM-MEETS
+    // EVENTI (tabella swim_meets)
     // ==========================================
-    /** Crea l'incontro tramite il server (organizzatore = chi chiama). Lancia un errore con il motivo. */
-    async createSwimMeet(data: Pick<SwimMeet, 'title' | 'description' | 'date' | 'time' | 'city'> & Partial<Pick<SwimMeet, 'address' | 'maxParticipants'>>) {
-        return await callApi<SwimMeet>('createSwimMeet', data as Record<string, unknown>);
+    /** Crea l'evento tramite il server (organizzatore = chi chiama). Lancia un errore con il motivo. */
+    async createSwimMeet(data: EventInput) {
+        return await callApi<SwimMeet>('createSwimMeet', data as unknown as Record<string, unknown>);
+    },
+    async updateSwimMeet(meetId: string, data: Partial<EventInput>) {
+        return await callApi<SwimMeet>('updateSwimMeet', { meetId, ...data });
     },
 
-    async getActiveSwimMeets() {
+    /** Eventi in programma (dal più vicino), compresi quelli di oggi. */
+    async getActiveSwimMeets(limit = 100) {
         try {
-            const res = await databases.listDocuments<SwimMeet>(
-                databaseId, 
-                SWIM_MEETS_COLLECTION, 
-                [
-                    Query.equal('status', 'upcoming'),
-                    Query.orderAsc('date')
-                ]
-            );
+            const res = await databases.listDocuments<SwimMeet>(databaseId, SWIM_MEETS_COLLECTION, [
+                Query.equal('status', 'upcoming'),
+                Query.greaterThanEqual('date', new Date().toISOString().slice(0, 10)),
+                Query.orderAsc('date'),
+                Query.limit(limit),
+            ]);
             return res.documents;
-        } catch (e) { return []; }
+        } catch (e) {
+            console.error('Eventi:', e);
+            return [];
+        }
+    },
+    async getGroupEvents(groupId: string) {
+        const res = await databases.listDocuments<SwimMeet>(databaseId, SWIM_MEETS_COLLECTION, [
+            Query.equal('groupId', groupId),
+            Query.equal('status', 'upcoming'),
+            Query.greaterThanEqual('date', new Date().toISOString().slice(0, 10)),
+            Query.orderAsc('date'),
+            Query.limit(50),
+        ]);
+        return res.documents;
     },
 
     async getSwimMeet(meetId: string) {
         try {
             return await databases.getDocument<SwimMeet>(databaseId, SWIM_MEETS_COLLECTION, meetId);
-        } catch (e) { return null; }
+        } catch (e) {
+            console.warn('Evento:', e);
+            return null;
+        }
     },
 
-    /** Lancia un errore con il motivo (es. evento pieno), mostrato all'utente. */
-    async joinSwimMeet(meetId: string, _userId: string) {
-        return await callApi<SwimMeet>('joinSwimMeet', { meetId });
+    /** Iscrizione: myStatus dice se si è dentro o in lista d'attesa. */
+    async joinSwimMeet(meetId: string, _userId?: string) {
+        return await callApi<SwimMeet & { myStatus: 'going' | 'waitlist' }>('joinSwimMeet', { meetId });
     },
 
-    async leaveSwimMeet(meetId: string, _userId: string) {
+    async leaveSwimMeet(meetId: string, _userId?: string) {
         return await callApi<SwimMeet>('leaveSwimMeet', { meetId });
     },
 

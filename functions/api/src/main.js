@@ -19,6 +19,7 @@ import { socialActions } from './social.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { groupActions } from './groups.js';
 import { chatActions } from './chat.js';
+import { eventActions } from './events.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -275,7 +276,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     return url;
   };
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
-  const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage });
+  const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
+  const events = eventActions({ get, list, listAll, create, update, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
@@ -292,6 +294,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...content_,
     ...groups,
     ...chat,
+    ...events,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
@@ -685,13 +688,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       }
 
       // Eventi, dirette, turni, bacheca e notifiche.
-      for (const meet of await listAll(C.swimMeets, [Query.equal('creatorId', me)])) {
-        await update(C.swimMeets, meet.$id, { status: 'cancelled', participants: [] });
-      }
-      for (const meet of await listAll(C.swimMeets, [Query.contains('participants', [me])])) {
-        const current = await find(C.swimMeets, meet.$id);
-        if (current) await update(C.swimMeets, meet.$id, { participants: removeFromArray(current.participants, me) });
-      }
+      await events._leaveAllEvents(me);
       for (const room of await listAll(C.liveRooms, [Query.equal('hostId', me)])) {
         await update(C.liveRooms, room.$id, { status: 'ended', speakers: [], listeners: [] });
       }
@@ -944,70 +941,6 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         speakers: removeFromArray(room.speakers, me),
         listeners: removeFromArray(room.listeners, me),
       });
-    },
-
-    // ---------------- SWIM-MEETS ----------------
-    /** Nuovo incontro: l'organizzatore è chi chiama (non un campo del client). */
-    async createSwimMeet(me, data = {}) {
-      const text = (v, label, min, max, required = true) => {
-        const t = typeof v === 'string' ? v.trim() : '';
-        if (!t && !required) return undefined;
-        if (t.length < min) fail(400, `${label}: almeno ${min} caratteri.`);
-        if (t.length > max) fail(400, `${label}: massimo ${max} caratteri.`);
-        return t;
-      };
-      const date = String(data.date || '');
-      const time = String(data.time || '');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(400, 'Data non valida.');
-      if (date < isoDay(Date.now()) || date > isoDay(Date.now() + 365 * 86_400_000)) fail(400, 'La data deve essere entro i prossimi 12 mesi.');
-      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) fail(400, 'Orario non valido.');
-      const max = data.maxParticipants === undefined || data.maxParticipants === null || data.maxParticipants === '' ? undefined : Number(data.maxParticipants);
-      if (max !== undefined && (!Number.isInteger(max) || max < 2 || max > 500)) fail(400, 'Partecipanti: da 2 a 500.');
-      const meet = {
-        title: text(data.title, 'Titolo', 3, 120),
-        description: text(data.description, 'Descrizione', 10, 2000),
-        date,
-        time,
-        city: text(data.city, 'Città', 2, 80),
-        address: text(data.address, 'Indirizzo', 1, 200, false),
-        creatorId: me,
-        participants: [me],
-        maxParticipants: max,
-        status: 'upcoming',
-      };
-      for (const k of Object.keys(meet)) if (meet[k] === undefined) delete meet[k];
-      return create(C.swimMeets, meet, [Permission.read(Role.users())]);
-    },
-
-    async cancelSwimMeet(me, { meetId }) {
-      meetId = requireString(meetId, 'meetId', 36);
-      const meet = await get(C.swimMeets, meetId);
-      if (meet.creatorId !== me) fail(403, "Solo l'organizzatore può annullare l'evento.");
-      if (meet.status === 'cancelled') return meet;
-      const updated = await update(C.swimMeets, meetId, { status: 'cancelled' });
-      for (const id of meet.participants || []) {
-        if (id !== me) await notify(id, 'general', `L'incontro "${meet.title}" del ${meet.date.slice(8, 10)}/${meet.date.slice(5, 7)} è stato annullato.`, meetId);
-      }
-      return updated;
-    },
-
-    async joinSwimMeet(me, { meetId }) {
-      meetId = requireString(meetId, 'meetId', 36);
-      const meet = await get(C.swimMeets, meetId);
-      if (meet.status !== 'upcoming') fail(409, "L'evento non è più aperto.");
-      const participants = meet.participants || [];
-      if (participants.includes(me)) return meet;
-      if (meet.maxParticipants && participants.length >= meet.maxParticipants) {
-        fail(409, "L'evento ha raggiunto il limite massimo di partecipanti.");
-      }
-      return update(C.swimMeets, meetId, { participants: [...participants, me] });
-    },
-
-    async leaveSwimMeet(me, { meetId }) {
-      meetId = requireString(meetId, 'meetId', 36);
-      const meet = await get(C.swimMeets, meetId);
-      if (meet.creatorId === me) fail(400, "Sei l'organizzatore: puoi annullare l'evento invece di lasciarlo.");
-      return update(C.swimMeets, meetId, { participants: removeFromArray(meet.participants, me) });
     },
   };
 };

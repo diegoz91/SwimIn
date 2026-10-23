@@ -392,8 +392,12 @@ const schema = [
             str('date', 100, { required: true }), str('time', 100, { required: true }),
             str('city', 255, { required: true }), str('address', 500), str('creatorId', 36, { required: true }),
             str('participants', 36, { array: true }), int('maxParticipants'), str('status', 50, { required: true }),
+            // Eventi: tipo, orario di fine, online, provincia, quota (€, 0 = gratuito), lista d'attesa, gruppo.
+            str('type', 20), str('endTime', 5), bool('isOnline', { default: false }), str('onlineUrl', 500),
+            str('province', 2), int('price', { default: 0 }), str('waitlist', 36, { array: true }),
+            str('cover', 1000), str('groupId', 36),
         ],
-        indexes: [idx('by_status', ['status'])],
+        indexes: [idx('by_status', ['status']), idx('by_group', ['groupId'])],
     },
 ];
 

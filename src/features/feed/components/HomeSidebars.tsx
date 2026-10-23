@@ -11,6 +11,7 @@ import { jobDisplayTitle } from '@/utils/jobs';
 import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
 import { PARTS, currentPart, normalizeAvailability, remainingSlotsToday } from '@/utils/availability';
 import { TrendsCard } from './TrendsCard';
+import { UpcomingEventsCard } from '@/features/events/UpcomingEventsCard';
 import { useBlocks } from '@/context/BlocksContext';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
@@ -196,6 +197,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
     return (
         <div className="space-y-4">
             {(user.userType === 'structure' || ((user as UserProfile).managedFacilities || []).length > 0) && <AvailableTodayPanel province={user.province} />}
+            <UpcomingEventsCard province={user.province} userId={user.$id} />
             <TrendsCard />
             {rooms.length > 0 && (
                 <Panel title="In diretta ora">

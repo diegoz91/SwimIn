@@ -350,7 +350,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event';
   content: string;
   relatedId?: string;
   isRead: boolean;
@@ -414,6 +414,19 @@ export interface SwimMeet extends AppwriteDocument {
   address?: string;
   creatorId: string;
   participants: string[];
-  maxParticipants?: number;
+  maxParticipants?: number | null;
   status: 'upcoming' | 'completed' | 'cancelled';
+  type?: EventType | null;
+  endTime?: string | null;
+  isOnline?: boolean;
+  onlineUrl?: string | null;
+  province?: string | null;
+  /** Quota in euro; 0 o assente = gratuito. */
+  price?: number | null;
+  /** Lista d'attesa quando i posti sono finiti (in ordine). */
+  waitlist?: string[];
+  cover?: string | null;
+  groupId?: string | null;
 }
+
+export type EventType = 'allenamento' | 'gara' | 'corso' | 'open_day' | 'webinar' | 'incontro' | 'altro';

@@ -143,7 +143,7 @@ col('live_rooms').r1={$id:'r1',hostId:'eve',status:'active',speakers:['eve'],lis
 let r=await api.joinLiveRoom('bob',{roomId:'r1',role:'speaker'}); assert.deepEqual(r.speakers,['eve']); assert.deepEqual(r.listeners,['bob']);
 r=await api.leaveLiveRoom('bob',{roomId:'r1'}); assert.deepEqual(r.listeners,[]);
 col('swim_meets').s1={$id:'s1',creatorId:'eve',status:'upcoming',participants:['eve'],maxParticipants:2};
-await api.joinSwimMeet('bob',{meetId:'s1'}); await rejects(api.joinSwimMeet('anna',{meetId:'s1'}),409);
+await api.joinSwimMeet('bob',{meetId:'s1'}); assert.equal((await api.joinSwimMeet('anna',{meetId:'s1'})).myStatus,'waitlist');
 await rejects(api.leaveSwimMeet('eve',{meetId:'s1'}),400);
 // Swim-meet creato dal server: l'organizzatore è chi chiama
 const meetDay=new Date(Date.now()+10*86400000).toISOString().slice(0,10);
@@ -156,7 +156,7 @@ await api.joinSwimMeet('eve',{meetId:meet.$id});
 await rejects(api.cancelSwimMeet('eve',{meetId:meet.$id}),403);
 assert.equal((await api.cancelSwimMeet('bob',{meetId:meet.$id})).status,'cancelled');
 assert.ok(notifs('eve').some(n=>n.content.includes('annullato')));
-await api.leaveSwimMeet('bob',{meetId:'s1'}); assert.deepEqual(col('swim_meets').s1.participants,['eve']);
+await api.leaveSwimMeet('bob',{meetId:'s1'}); assert.deepEqual(col('swim_meets').s1.participants,['eve','anna']); // il primo in attesa entra
 
 // Notifiche di consigli e commenti
 col('posts').p3={$id:'p3',authorId:'eve',likesCount:0,commentsCount:0,$permissions:['update("user:eve")']};
