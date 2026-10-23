@@ -47,6 +47,8 @@ const Premium = lazy(() => import('@/pages/Premium'));
 const Hashtag = lazy(() => import('@/pages/Hashtag'));
 const Groups = lazy(() => import('@/pages/Groups'));
 const GroupPage = lazy(() => import('@/pages/GroupPage'));
+const Events = lazy(() => import('@/pages/Events'));
+const EventPage = lazy(() => import('@/pages/EventPage'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const MyShifts = lazy(() => import('@/pages/MyShifts'));
 const Admin = lazy(() => import('@/pages/Admin'));
@@ -130,6 +132,8 @@ const AppContent: React.FC = () => {
               <Route path="/hashtag/:tag" element={<ProtectedRoute><Hashtag /></ProtectedRoute>} />
               <Route path="/gruppi" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
               <Route path="/gruppi/:id" element={<ProtectedRoute><GroupPage /></ProtectedRoute>} />
+              <Route path="/eventi" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+              <Route path="/eventi/:id" element={<ProtectedRoute><EventPage /></ProtectedRoute>} />
               <Route path="/turni" element={<ProtectedRoute><MyShifts /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
 

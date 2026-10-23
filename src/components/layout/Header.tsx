@@ -253,6 +253,9 @@ const Header: React.FC = () => {
                   <Link to="/gruppi" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="users" className="w-5 h-5 text-slate-400" /> Gruppi
                   </Link>
+                  <Link to="/eventi" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                    <Icon type="calendar" className="w-5 h-5 text-slate-400" /> Eventi
+                  </Link>
                   <Link to="/salvati" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="bookmark" className="w-5 h-5 text-slate-400" /> Elementi salvati
                   </Link>

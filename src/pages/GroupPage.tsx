@@ -9,17 +9,19 @@ import { Icon } from '@/components/ui/Icon';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { PostCreator } from '@/features/feed/components/PostCreator';
 import { GroupFormModal } from '@/features/groups/GroupFormModal';
+import { EventCard } from '@/features/events/EventCard';
+import { EventFormModal } from '@/features/events/EventFormModal';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { groupCategoryLabel } from '@/data/groups';
 import { provinceName } from '@/data/italy';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { isPremium } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
-import type { EnrichedPost, Group, GroupMember, StructureProfile, UserProfile } from '@/types/types';
+import type { EnrichedPost, Group, GroupMember, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
 
 type Profile = UserProfile | StructureProfile;
 
-type Tab = 'discussione' | 'membri' | 'info';
+type Tab = 'discussione' | 'eventi' | 'membri' | 'info';
 type Moderation = 'approve' | 'reject' | 'remove' | 'ban' | 'promote' | 'demote';
 
 async function profilesFor(ids: string[]) {
@@ -42,6 +44,8 @@ const GroupPage: React.FC = () => {
     const [tab, setTab] = useState<Tab>('discussione');
     const [busy, setBusy] = useState(false);
     const [editing, setEditing] = useState(false);
+    const [events, setEvents] = useState<SwimMeet[] | null>(null);
+    const [creatingEvent, setCreatingEvent] = useState(false);
     usePageTitle(group?.name || 'Gruppo');
 
     const loadMembers = useCallback(async () => {
@@ -70,6 +74,8 @@ const GroupPage: React.FC = () => {
             .catch((err) => { console.warn('Gruppo:', err); if (alive) setGroup(null); });
         loadMembers().catch((err) => console.error('Membri del gruppo:', err));
         loadPosts();
+        setEvents(null);
+        databaseService.getGroupEvents(id).then((e) => alive && setEvents(e)).catch((err) => { console.warn('Eventi del gruppo:', err); if (alive) setEvents([]); });
         return () => { alive = false; };
     }, [id, loadMembers, loadPosts]);
 
@@ -154,6 +160,7 @@ const GroupPage: React.FC = () => {
 
     const tabs: { key: Tab; label: string }[] = [
         { key: 'discussione', label: 'Discussione' },
+        { key: 'eventi', label: events?.length ? `Eventi · ${events.length}` : 'Eventi' },
         { key: 'membri', label: isAdmin && pending.length ? `Membri · ${pending.length} in attesa` : 'Membri' },
         { key: 'info', label: 'Informazioni' },
     ];
@@ -280,6 +287,30 @@ const GroupPage: React.FC = () => {
                     </>
                 )}
 
+                {tab === 'eventi' && (
+                    <>
+                        {isMember && (
+                            <div className="flex justify-end">
+                                <button onClick={() => setCreatingEvent(true)} className="px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700 flex items-center gap-2">
+                                    <Icon type="plus" className="w-5 h-5" /> Crea un evento del gruppo
+                                </button>
+                            </div>
+                        )}
+                        {events === null ? (
+                            <div className="h-32 bg-white border border-slate-200 rounded-2xl animate-pulse" aria-hidden="true" />
+                        ) : events.length === 0 ? (
+                            <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-300 px-4">
+                                <p className="font-semibold text-abisso">Nessun evento in programma.</p>
+                                <p className="text-sm text-slate-500 mt-1">{isMember ? 'Proponi un allenamento insieme, una trasferta o un corso.' : 'Entra nel gruppo per proporne uno.'}</p>
+                            </div>
+                        ) : (
+                            <ul className="grid sm:grid-cols-2 gap-4">
+                                {events.map((e) => <li key={e.$id}><EventCard event={e} currentUserId={user?.$id} /></li>)}
+                            </ul>
+                        )}
+                    </>
+                )}
+
                 {tab === 'membri' && (
                     <>
                         {isAdmin && pending.length > 0 && (
@@ -344,6 +375,7 @@ const GroupPage: React.FC = () => {
                 )}
             </div>
 
+            <EventFormModal open={creatingEvent} groupId={group.$id} onClose={() => setCreatingEvent(false)} onSaved={(e) => navigate(`/eventi/${e.$id}`)} />
             <GroupFormModal open={editing} group={group} onClose={() => setEditing(false)} onSaved={(g) => setGroup(g)} />
         </div>
     );
