@@ -108,7 +108,7 @@ const posts = [
     doc('posts', 'p4', {
         authorId: 'u_sara', authorType: 'professional', postType: 'repost', visibility: 'public', category: 'generale', repostOf: 'p2',
         content: 'Ottima notizia per chi lavora in zona: la vasca coperta del Lido è tra le più belle di Milano.',
-        likesCount: 3, commentsCount: 3, media: [], reactionCounts: JSON.stringify({ adoro: 2, consiglio: 1 }),
+        likesCount: 3, commentsCount: 0, media: [], reactionCounts: JSON.stringify({ adoro: 2, consiglio: 1 }),
     }, 30),
     doc('posts', 'p2', {
         authorId: 'u_lido', authorType: 'structure', postType: 'text', visibility: 'public', category: 'normative',
@@ -169,9 +169,9 @@ export const collections = {
     messages,
     likes: [],
     comments: [
-        doc('comments', 'c1', { postId: 'p4', authorId: 'u_marco', content: 'Confermo, ci porto il gruppo master il giovedì: corsie larghe e acqua sempre a temperatura.', likesCount: 3 }, 20),
-        doc('comments', 'c2', { postId: 'p4', authorId: 'u_lido', content: 'Grazie Sara! Vi aspettiamo dal 1° novembre.', likesCount: 1 }, 12),
-        doc('comments', 'c3', { postId: 'p4', authorId: 'u_sara', content: 'A presto allora!', parentCommentId: 'c2' }, 8),
+        doc('comments', 'c1', { postId: 'p1', authorId: 'u_marco', content: 'Confermo, ci porto il gruppo master il giovedì: corsie larghe e acqua sempre a temperatura.', likesCount: 3 }, 20),
+        doc('comments', 'c2', { postId: 'p1', authorId: 'u_sara', content: 'Io la faccio con le pinne corte: ottima per la gambata.', likesCount: 1 }, 12),
+        doc('comments', 'c3', { postId: 'p1', authorId: 'u_marco', content: 'Ottima idea, la proviamo giovedì.', parentCommentId: 'c2' }, 8),
     ],
     applications: [],
     facilities: [],

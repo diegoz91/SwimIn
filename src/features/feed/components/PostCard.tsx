@@ -441,6 +441,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                     <button
                         onClick={() => setRepostOpen((v) => !v)}
                         disabled={!user}
+                        aria-label="Ripubblica"
                         aria-haspopup="menu"
                         aria-expanded={repostOpen}
                         className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
