@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile, StructureProfile, Experience, Certification, Facility } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
@@ -114,12 +111,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         if (completionScore === 100 && !confettiFired && isOwnProfile) {
             const duration = 3 * 1000;
             const end = Date.now() + duration;
+            // Libreria caricata solo per la festa del profilo completo.
+            void import('canvas-confetti').then(({ default: confetti }) => {
             const frame = () => {
                 confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
                 confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#0E6A97', '#12B5AE', '#ffffff'] });
                 if (Date.now() < end) requestAnimationFrame(frame);
             };
             frame();
+            }).catch((err) => console.error('Coriandoli:', err));
             setConfettiFired(true);
             showToast('Complimenti! Hai sbloccato il Badge Pioniere SwimIn!', 'success');
         }
@@ -158,6 +158,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             const element = document.getElementById('passaporto-natatorio');
             if (!element) throw new Error("Elemento non trovato");
 
+            // Librerie del PDF caricate solo quando servono (pesano diverse centinaia di kB).
+            const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
             const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#f8fafc' });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -266,7 +268,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="flex items-center gap-3">
             <button
                 onClick={async () => {
-                    const url = `${window.location.origin}/profile/${user.userId || user.$id}`;
+                    // Link pubblico se il profilo lo è (si apre anche senza account), altrimenti quello interno.
+                    const isPublic = !isProfessional || !!user.publicProfile;
+                    const url = `${window.location.origin}/${isPublic ? 'u' : 'profile'}/${user.userId || user.$id}`;
                     try {
                         if (navigator.share) await navigator.share({ title: `${displayName} su SwimIn`, url });
                         else { await navigator.clipboard.writeText(url); showToast('Link del profilo copiato.', 'success'); }

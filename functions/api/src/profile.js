@@ -246,6 +246,8 @@ export function profileActions({ find, get, create, update, fail, users, endpoin
     if (has('website')) out.website = take(validators.url(data.website));
     if (has('cover')) out.cover = storageUrl(data.cover, 'Copertina');
     if (has('readReceipts')) out.readReceipts = !!data.readReceipts;
+    // Scheda pubblica (anche senza account): le persone scelgono, le strutture sono sempre pubbliche.
+    if (has('publicProfile') && isPerson) out.publicProfile = !!data.publicProfile;
 
     if (isPerson) {
       if (has('firstName')) out.firstName = take(validators.personName(data.firstName, 'Nome'));

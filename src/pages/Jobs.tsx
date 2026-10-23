@@ -121,15 +121,11 @@ const Jobs: React.FC = () => {
     const handleWithdrawApplication = async (applicationId: string) => {
         if (!window.confirm('Sicuro di voler ritirare la candidatura?')) return;
         try {
-            await databases.deleteDocument(
-                APPWRITE_CONFIG.databaseId,
-                APPWRITE_CONFIG.collections.applications,
-                applicationId
-            );
+            await databaseService.withdrawApplication(applicationId);
             showToast('Candidatura ritirata.', 'info');
             fetchMyApplications();
         } catch (error) {
-            showToast('Errore nel ritiro della candidatura.', 'error');
+            showToast(error instanceof Error ? error.message : 'Errore nel ritiro della candidatura.', 'error');
         }
     };
 

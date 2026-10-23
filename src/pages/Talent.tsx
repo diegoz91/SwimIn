@@ -155,7 +155,8 @@ const Talent: React.FC = () => {
                                                 )}
                                             </span>
                                             <span className="block text-sm text-slate-600 truncate">{headlineOf(p)}</span>
-                                            <span className="block text-xs text-slate-500 mt-0.5">{[p.city && `${p.city}${p.province ? ` (${p.province})` : ''}`, availability && `Disponibile: ${availability.toLowerCase()}`].filter(Boolean).join(' · ')}</span>
+                                            {p.city && <span className="block text-xs text-slate-500 mt-0.5">{p.city}{p.province ? ` (${p.province})` : ''}</span>}
+                                            {availability && <span className="block text-xs text-slate-500 mt-0.5"><Icon type="calendar" className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />{availability}</span>}
                                             <span className="flex flex-wrap gap-1.5 mt-2">
                                                 {validCategories.map((c) => (
                                                     <span key={c} className="text-xs font-semibold text-corsia-800 bg-corsia-50 px-2 py-0.5 rounded-md">{certCategoryLabel(c)}</span>

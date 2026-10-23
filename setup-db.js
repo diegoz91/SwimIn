@@ -94,6 +94,7 @@ const schema = [
             // Moderazione e verifiche
             bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
             str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
+            bool('publicProfile', { default: false }), // scheda visibile anche senza account (scelta della persona)
             str('notificationPrefs', 1000), // scelte push/email per categoria (JSON), scritte dalla Function
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
@@ -485,7 +486,8 @@ async function deployFunction() {
         functionId: FUNCTION_ID,
         name: 'SwimWaveUp API',
         runtime: process.env.APPWRITE_FUNCTION_RUNTIME || 'node-22',
-        execute: ['users'], // solo utenti loggati
+        // Anche senza login, ma la Function accetta da ospiti solo le azioni pubbliche (PUBLIC_ACTIONS).
+        execute: ['any'],
         timeout: 15,
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',

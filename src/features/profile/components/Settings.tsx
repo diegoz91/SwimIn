@@ -262,6 +262,22 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
   const { showToast } = useToast();
   const { updateProfile } = useAuth();
   const [readReceipts, setReadReceipts] = useState(user.readReceipts !== false);
+  const isPerson = user.userType === 'professional';
+  const [publicProfile, setPublicProfile] = useState(!!user.publicProfile);
+  const publicUrl = `${window.location.origin}/u/${user.$id}`;
+
+  const togglePublic = async () => {
+    const next = !publicProfile;
+    setPublicProfile(next);
+    try {
+      await updateProfile({ publicProfile: next });
+      showToast(next ? 'Il tuo profilo ora ha una pagina pubblica.' : 'Il tuo profilo è visibile solo agli iscritti.', 'success');
+    } catch (err) {
+      console.error('Profilo pubblico:', err);
+      setPublicProfile(!next);
+      showToast('Impostazione non salvata.', 'error');
+    }
+  };
   const [isExporting, setIsExporting] = useState(false);
 
   const toggleReadReceipts = async () => {
@@ -307,6 +323,32 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
           <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${readReceipts ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
       </Card>
+
+      {isPerson ? (
+        <Card
+          title="Pagina pubblica del profilo"
+          description="Se attiva, chiunque abbia il link (o lo trovi su un motore di ricerca) vede nome, qualifica, comune, esperienze e brevetti validi. Telefono, email, post e messaggi restano riservati."
+        >
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              role="switch"
+              aria-checked={publicProfile}
+              onClick={togglePublic}
+              className={`relative inline-flex h-7 w-12 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${publicProfile ? 'bg-blue-600' : 'bg-slate-300'}`}
+            >
+              <span className="sr-only">Pagina pubblica del profilo</span>
+              <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${publicProfile ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+            {publicProfile && (
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-corsia-700 hover:underline break-all">{publicUrl.replace(/^https?:\/\//, '')}</a>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <Card title="Pagina pubblica" description="La pagina della struttura è pubblica: chi cerca una piscina la trova anche senza account, con recensioni e servizi.">
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-corsia-700 hover:underline break-all">{publicUrl.replace(/^https?:\/\//, '')}</a>
+        </Card>
+      )}
 
       <BlockedPeopleCard />
 

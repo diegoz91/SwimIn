@@ -15,6 +15,7 @@ import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
+import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 
 const DB = 'swimwaveup_db';
@@ -233,6 +234,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   return {
     ...moderation,
     ...team,
+    ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
@@ -707,6 +709,18 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       return application;
     },
 
+    /** Il candidato ritira la propria candidatura (non dopo l'assunzione). */
+    async withdrawApplication(me, { applicationId }) {
+      applicationId = requireString(applicationId, 'applicationId', 36);
+      const application = await get(C.applications, applicationId);
+      if (application.applicantId !== me) fail(403, 'Puoi ritirare solo le tue candidature.');
+      if (application.status === 'hired') fail(409, 'Sei già stato assunto per questa posizione.');
+      await remove(C.applications, applicationId);
+      const job = await find(C.jobs, application.jobId);
+      if (job) await update(C.jobs, job.$id, { candidates: removeFromArray(job.candidates, me) });
+      return { withdrawn: true };
+    },
+
     async updateApplicationStatus(me, { applicationId, status }) {
       applicationId = requireString(applicationId, 'applicationId', 36);
       if (!APPLICATION_STATUSES.includes(status) || status === 'hired') fail(400, 'Stato non valido.');
@@ -898,8 +912,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
 // Entrypoint Appwrite
 // ---------------------------------------------------------------------------
 export default async ({ req, res, log, error }) => {
-  const userId = req.headers['x-appwrite-user-id'];
-  if (!userId) return res.json({ ok: false, error: 'Devi effettuare il login.' }, 401);
+  const userId = req.headers['x-appwrite-user-id'] || null;
 
   let body = req.bodyJson;
   if (!body || typeof body !== 'object') {
@@ -927,6 +940,8 @@ export default async ({ req, res, log, error }) => {
     log: (m) => log(m),
   });
   const { action, ...params } = body;
+  // Senza login si possono chiamare solo le azioni pubbliche (profili pubblici, sitemap).
+  if (!userId && !PUBLIC_ACTIONS.includes(action)) return res.json({ ok: false, error: 'Devi effettuare il login.' }, 401);
   // Le azioni che iniziano con "_" sono helper interni, non chiamabili dal client.
   const handler = typeof action === 'string' && !action.startsWith('_') && Object.prototype.hasOwnProperty.call(api, action) ? api[action] : null;
   if (!handler) return res.json({ ok: false, error: `Azione sconosciuta: ${action}` }, 400);
