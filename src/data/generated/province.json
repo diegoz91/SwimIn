@@ -360,8 +360,23 @@
   "region": "Sardegna"
  },
  {
+  "code": "OT",
+  "name": "Gallura Nord-Est Sardegna",
+  "region": "Sardegna"
+ },
+ {
+  "code": "VS",
+  "name": "Medio Campidano",
+  "region": "Sardegna"
+ },
+ {
   "code": "NU",
   "name": "Nuoro",
+  "region": "Sardegna"
+ },
+ {
+  "code": "OG",
+  "name": "Ogliastra",
   "region": "Sardegna"
  },
  {
@@ -375,8 +390,8 @@
   "region": "Sardegna"
  },
  {
-  "code": "SU",
-  "name": "Sud Sardegna",
+  "code": "CI",
+  "name": "Sulcis Iglesiente",
   "region": "Sardegna"
  },
  {

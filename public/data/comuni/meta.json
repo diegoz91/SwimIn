@@ -1,5 +1,5 @@
 {
-  "source": "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv",
-  "comuni": 7896,
-  "province": 107
+  "source": "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx",
+  "comuni": 7894,
+  "province": 110
 }
