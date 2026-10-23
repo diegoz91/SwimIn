@@ -10,6 +10,7 @@
  * Risposta:  { ok: true, data } oppure { ok: false, error } con status HTTP 4xx/5xx
  */
 import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users } from 'node-appwrite';
+import { profileActions } from './profile.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -182,6 +183,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '' } = {}) => 
   // Azioni
   // -------------------------------------------------------------------------
   return {
+    // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
+    ...profileActions({ find, get, create, update, fail, users, endpoint, C }),
+
     // ---------------- MESSAGGI ----------------
     async sendMessage(me, { receiverId, content }) {
       receiverId = requireString(receiverId, 'receiverId', 36);

@@ -154,10 +154,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const handleCreateFacility = async (data: { name: string; type: string; city: string; province: string }) => {
         if (!profUser) return;
         const adminId = profUser.userId || profUser.$id;
-        const newFac = await databaseService.createFacility({ name: data.name, type: data.type, city: data.city, province: data.province }, adminId);
-        if (!newFac) {
-            showToast('Non è stato possibile creare la pagina. Riprova.', 'error');
-            throw new Error('createFacility');
+        let newFac: Facility;
+        try {
+            newFac = await databaseService.createFacility({ name: data.name, type: data.type, city: data.city, province: data.province }, adminId);
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Non è stato possibile creare la pagina. Riprova.', 'error');
+            throw error;
         }
         setManagedFacilities([newFac, ...managedFacilities]);
         showToast('Pagina della struttura creata.', 'success');
@@ -281,8 +283,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 aria-label="Disponibilità per sostituzioni urgenti"
                 onClick={async () => {
                     const newState = !profUser.availableForEmergencies;
-                    const updated = await databaseService.updateProfile(profUser.userId || profUser.$id, { availableForEmergencies: newState });
-                    if (onUpdateProfile) onUpdateProfile(updated as UserProfile);
+                    let updated: UserProfile;
+                    try {
+                        updated = (await databaseService.updateProfile(profUser.userId || profUser.$id, { availableForEmergencies: newState })) as UserProfile;
+                    } catch (error) {
+                        showToast(error instanceof Error ? error.message : 'Impostazione non salvata.', 'error');
+                        return;
+                    }
+                    if (onUpdateProfile) onUpdateProfile(updated);
                     showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
                 }}
                 className={`relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${profUser.availableForEmergencies ? 'bg-red-600 shadow-inner' : 'bg-red-200'}`}

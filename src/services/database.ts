@@ -92,44 +92,32 @@ export const databaseService = {
     // ==========================================
     // PROFILI & PRESENZA
     // ==========================================
+    /** Crea il profilo alla registrazione (lato server: email e id vengono dall'account). */
     async initializeProfile(
-        userId: string,
-        email: string,
-        data: { userType: 'professional' | 'structure'; firstName?: string; lastName?: string; structureName?: string }
+        _userId: string,
+        _email: string,
+        data: { userType: 'professional' | 'structure'; personType?: 'professional' | 'enthusiast'; firstName?: string; lastName?: string; structureName?: string }
     ) {
-        const profileData = data.userType === 'professional' 
-            ? {
-                userId, email, userType: data.userType,
-                firstName: (data.firstName || '').trim(), lastName: (data.lastName || '').trim(),
-                readReceipts: true, availableForEmergencies: false, isOnline: true,
-            }
-            : { userId, email, userType: data.userType, structureName: (data.structureName || '').trim(), readReceipts: true, isOnline: true };
-
-        return await databases.createDocument(databaseId, collections.profiles, userId, profileData, ownedBy(userId));
+        return await callApi<Profile>('initProfile', data as Record<string, unknown>);
     },
 
     async getProfile(userId: string): Promise<Profile> {
         return await databases.getDocument<Profile>(databaseId, collections.profiles, userId);
     },
 
-    async updateProfile(userId: string, data: Partial<Profile>) {
-        const cleanData = { ...data };
-        delete (cleanData as any).$id;
-        delete (cleanData as any).$createdAt;
-        delete (cleanData as any).$updatedAt;
-        delete (cleanData as any).$permissions;
-        delete (cleanData as any).$databaseId;
-        delete (cleanData as any).$collectionId;
-
-        return await databases.updateDocument<Profile>(databaseId, collections.profiles, userId, cleanData);
+    /**
+     * Modifica del proprio profilo. Passa dalla Function, che accetta solo i campi
+     * modificabili e li valida: il client non ha permessi di scrittura sui profili.
+     */
+    async updateProfile(_userId: string, data: Partial<Profile>) {
+        const clean: Record<string, unknown> = { ...data };
+        for (const k of Object.keys(clean)) if (k.startsWith('$')) delete clean[k];
+        return await callApi<Profile>('updateMyProfile', clean);
     },
 
-    async updatePresence(userId: string, isOnline: boolean) {
+    async updatePresence(_userId: string, isOnline: boolean) {
         try {
-            return await databases.updateDocument(databaseId, collections.profiles, userId, {
-                isOnline,
-                lastActive: new Date().toISOString()
-            });
+            return await callApi('setPresence', { isOnline });
         } catch (error) {
             console.warn('updatePresence non riuscito:', error);
         }
@@ -143,9 +131,9 @@ export const databaseService = {
         return await callApi<Message>('sendMessage', { receiverId, content });
     },
 
-    async setTypingStatus(userId: string, targetUserId: string | null) {
-        try { 
-            return await databases.updateDocument(databaseId, collections.profiles, userId, { typingTo: targetUserId }); 
+    async setTypingStatus(_userId: string, targetUserId: string | null) {
+        try {
+            return await callApi('setPresence', { typingTo: targetUserId });
         } catch (error) {
             console.warn('setTypingStatus non riuscito:', error);
         }
@@ -712,38 +700,25 @@ export const databaseService = {
     // ==========================================
     // 🏢 FACILITIES
     // ==========================================
-    async createFacility(data: Partial<Facility>, adminId: string) {
-        try {
-            const facilityData = {
-                ...data,
-                admins: [adminId],
-                staff: [],
-                followers: []
-            };
-            const facility = await databases.createDocument<Facility>(databaseId, FACILITIES_COLLECTION, ID.unique(), facilityData);
-            
-            const userProfile = await this.getProfile(adminId) as UserProfile;
-            const managed = userProfile.managedFacilities || [];
-            await this.updateProfile(adminId, { managedFacilities: [...managed, facility.$id] });
-            
-            return facility;
-        } catch(e) { return null; }
-    },
-    
     async getFacility(facilityId: string) {
         try {
             return await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, facilityId);
-        } catch(e) { return null; }
+        } catch (e) {
+            return null;
+        }
     },
-    
+
+    /** Nuova pagina struttura: la crea il server, con chi chiama come amministratore. */
+    async createFacility(data: Partial<Facility>, _adminId?: string) {
+        return await callApi<Facility>('createFacility', data as Record<string, unknown>);
+    },
+
     async updateFacility(facilityId: string, data: Partial<Facility>) {
-        try {
-            const cleanData = { ...data };
-            delete (cleanData as any).$id; delete (cleanData as any).$createdAt; delete (cleanData as any).$updatedAt;
-            return await databases.updateDocument<Facility>(databaseId, FACILITIES_COLLECTION, facilityId, cleanData);
-        } catch(e) { return null; }
+        const clean: Record<string, unknown> = { ...data };
+        for (const k of Object.keys(clean)) if (k.startsWith('$')) delete clean[k];
+        return await callApi<Facility>('updateFacility', { ...clean, facilityId });
     },
-    
+
     async getManagedFacilities(adminId: string) {
         try {
             const userProfile = await this.getProfile(adminId) as UserProfile;
