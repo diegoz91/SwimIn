@@ -32,6 +32,7 @@ export interface AppwriteConfig {
         live_messages: string;
         saves: string;
         reviews: string;
+        comment_likes: string;
     };
     buckets: {
         avatars: string;
@@ -65,6 +66,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         live_messages: 'live_messages',
         saves: 'saves',
         reviews: 'reviews',
+        comment_likes: 'comment_likes',
     },
     buckets: {
         avatars: 'avatars',

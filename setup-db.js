@@ -94,7 +94,7 @@ const schema = [
             // Moderazione e verifiche
             bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
             str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
-            bool('publicProfile', { default: false }), // scheda visibile anche senza account (scelta della persona)
+            bool('publicProfile', { default: false }), bool('hideProfileViews', { default: false }), // scheda visibile anche senza account (scelta della persona)
             str('notificationPrefs', 1000), // scelte push/email per categoria (JSON), scritte dalla Function
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
@@ -109,21 +109,40 @@ const schema = [
             str('media', 1000, { array: true }), // ogni elemento: JSON {type,url,alt}
             str('editedAt', 100), // data dell'ultima modifica del testo (non dei contatori)
             int('likesCount', { default: 0 }), int('commentsCount', { default: 0 }),
+            str('reactionCounts', 500), // JSON {consiglio, applauso, …}: conteggi per reazione (Function)
+            str('repostOf', 36), // ripubblicazione: id del post originale
+            int('repostsCount', { default: 0 }),
         ],
-        indexes: [idx('by_author', ['authorId'])],
+        indexes: [idx('by_author', ['authorId']), idx('by_repost', ['repostOf'])],
     },
     {
         id: 'comments', name: 'Comments', permissions: READ_ONLY,
         attributes: [
             str('postId', 36, { required: true }), str('authorId', 36, { required: true }),
             str('content', 2000, { required: true }), str('parentCommentId', 36),
+            int('likesCount', { default: 0 }),
         ],
         indexes: [idx('by_post', ['postId'])],
     },
     {
         id: 'likes', name: 'Likes', permissions: READ_ONLY,
-        attributes: [str('postId', 36, { required: true }), str('userId', 36, { required: true })],
+        attributes: [str('postId', 36, { required: true }), str('userId', 36, { required: true }), str('reaction', 20)],
         indexes: [idx('by_post', ['postId']), idx('by_user', ['userId']), idx('by_post_user', ['postId', 'userId'])],
+    },
+    {
+        // Mi piace ai commenti: creati dalla Function, leggibili da tutti gli utenti.
+        id: 'comment_likes', name: 'Comment likes', permissions: READ_ONLY,
+        attributes: [str('commentId', 36, { required: true }), str('postId', 36, { required: true }), str('userId', 36, { required: true })],
+        indexes: [idx('by_comment', ['commentId']), idx('by_post', ['postId']), idx('by_user', ['userId'])],
+    },
+    {
+        // Visite ai profili: le legge solo la Function (il proprietario le vede con listProfileViews).
+        id: 'profile_views', name: 'Profile views', permissions: SERVER_ONLY,
+        attributes: [
+            str('profileId', 36, { required: true }), str('viewerId', 36, { required: true }),
+            str('viewedAt', 40, { required: true }), bool('anonymous', { default: false }),
+        ],
+        indexes: [idx('by_profile', ['profileId']), idx('by_viewer', ['viewerId'])],
     },
     {
         // Creati dalla Function (struttura verificata); chi pubblica può modificarli.

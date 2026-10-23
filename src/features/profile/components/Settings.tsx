@@ -266,6 +266,19 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
   const [publicProfile, setPublicProfile] = useState(!!user.publicProfile);
   const publicUrl = `${window.location.origin}/u/${user.$id}`;
 
+  const [hideViews, setHideViews] = useState(!!user.hideProfileViews);
+  const toggleHideViews = async () => {
+    const next = !hideViews;
+    setHideViews(next);
+    try {
+      await updateProfile({ hideProfileViews: next });
+    } catch (err) {
+      console.error('Visite anonime:', err);
+      setHideViews(!next);
+      showToast('Impostazione non salvata.', 'error');
+    }
+  };
+
   const togglePublic = async () => {
     const next = !publicProfile;
     setPublicProfile(next);
@@ -349,6 +362,21 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
           <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-corsia-700 hover:underline break-all">{publicUrl.replace(/^https?:\/\//, '')}</a>
         </Card>
       )}
+
+      <Card
+        title="Visite anonime ai profili"
+        description="Quando visiti un profilo, la persona riceve una notifica con il tuo nome. Se attivi questa opzione vedrà solo “Qualcuno ha visualizzato il tuo profilo”."
+      >
+        <button
+          role="switch"
+          aria-checked={hideViews}
+          onClick={toggleHideViews}
+          className={`relative inline-flex h-7 w-12 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${hideViews ? 'bg-blue-600' : 'bg-slate-300'}`}
+        >
+          <span className="sr-only">Visite anonime ai profili</span>
+          <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${hideViews ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+      </Card>
 
       <BlockedPeopleCard />
 

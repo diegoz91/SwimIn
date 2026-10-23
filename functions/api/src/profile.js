@@ -248,6 +248,8 @@ export function profileActions({ find, get, create, update, fail, users, endpoin
     if (has('readReceipts')) out.readReceipts = !!data.readReceipts;
     // Scheda pubblica (anche senza account): le persone scelgono, le strutture sono sempre pubbliche.
     if (has('publicProfile') && isPerson) out.publicProfile = !!data.publicProfile;
+    // Visite ai profili altrui in forma anonima ("Qualcuno ha visualizzato il tuo profilo").
+    if (has('hideProfileViews')) out.hideProfileViews = !!data.hideProfileViews;
 
     if (isPerson) {
       if (has('firstName')) out.firstName = take(validators.personName(data.firstName, 'Nome'));

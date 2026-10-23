@@ -56,6 +56,11 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     // o un follower non dà accesso all'area staff (lo verifica comunque il server).
     const isStaff = !isAdmin && !!user && (facility.staff || []).includes(user.$id);
     
+    // Visita alla pagina di una struttura (profilo): la struttura riceve la notifica, come per le persone.
+    useEffect(() => {
+        if (isLegacyStructure && user && !isAdmin) databaseService.recordProfileView(facilityId).catch((err) => console.warn('Visita non registrata:', err));
+    }, [isLegacyStructure, facilityId, user?.$id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // 💡 STATI PER I FOLLOWERS
     const [isFollowing, setIsFollowing] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);

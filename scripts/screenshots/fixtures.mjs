@@ -103,12 +103,17 @@ const posts = [
     doc('posts', 'p1', {
         authorId: 'u_marco', authorType: 'professional', postType: 'text', visibility: 'public', category: 'allenamento',
         content: 'Serie della settimana per il gruppo master: 10x100 stile libero partenza 1\'40", con gli ultimi 25 in apnea controllata. Chi vuole la versione per principianti mi scriva.\n\nFeedback sulle vostre serie di soglia?',
-        likesCount: 24, commentsCount: 6, media: [],
+        likesCount: 24, commentsCount: 6, media: [], reactionCounts: JSON.stringify({ consiglio: 14, applauso: 7, interessante: 3 }), repostsCount: 2,
     }, 45),
+    doc('posts', 'p4', {
+        authorId: 'u_sara', authorType: 'professional', postType: 'repost', visibility: 'public', category: 'generale', repostOf: 'p2',
+        content: 'Ottima notizia per chi lavora in zona: la vasca coperta del Lido è tra le più belle di Milano.',
+        likesCount: 3, commentsCount: 0, media: [], reactionCounts: JSON.stringify({ adoro: 2, consiglio: 1 }),
+    }, 30),
     doc('posts', 'p2', {
         authorId: 'u_lido', authorType: 'structure', postType: 'text', visibility: 'public', category: 'normative',
         content: 'Dal 1° novembre riapre la vasca coperta da 25 metri dopo la sostituzione dell\'impianto di trattamento acqua. Stiamo cercando due assistenti bagnanti per i turni serali: trovate l\'annuncio nella bacheca lavoro.',
-        likesCount: 41, commentsCount: 3, media: [],
+        likesCount: 41, commentsCount: 3, media: [], reactionCounts: JSON.stringify({ consiglio: 30, sostegno: 6, felice: 5 }),
     }, 180),
     doc('posts', 'p3', {
         authorId: 'u_sara', authorType: 'professional', postType: 'text', visibility: 'public', category: 'tecnica',
@@ -163,7 +168,11 @@ export const collections = {
     connections,
     messages,
     likes: [],
-    comments: [],
+    comments: [
+        doc('comments', 'c1', { postId: 'p1', authorId: 'u_marco', content: 'Confermo, ci porto il gruppo master il giovedì: corsie larghe e acqua sempre a temperatura.', likesCount: 3 }, 20),
+        doc('comments', 'c2', { postId: 'p1', authorId: 'u_sara', content: 'Io la faccio con le pinne corte: ottima per la gambata.', likesCount: 1 }, 12),
+        doc('comments', 'c3', { postId: 'p1', authorId: 'u_marco', content: 'Ottima idea, la proviamo giovedì.', parentCommentId: 'c2' }, 8),
+    ],
     applications: [],
     facilities: [],
     live_rooms: [
@@ -187,6 +196,13 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    listProfileViews: () => ({
+        total: 2,
+        viewers: [
+            { id: 'u_lido', name: 'Piscina Lido di Milano', headline: 'Piscina comunale', avatar: '', viewedAt: new Date(now - 2 * 3600000).toISOString() },
+            { id: null, name: 'Utente di SwimIn', headline: 'Ha scelto di navigare in modo anonimo', avatar: '', viewedAt: new Date(now - 26 * 3600000).toISOString() },
+        ],
+    }),
     listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: false }),
     getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
     getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [] }),

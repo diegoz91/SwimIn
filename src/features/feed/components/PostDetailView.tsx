@@ -53,7 +53,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
     const loadComments = async () => {
         setIsLoading(true);
         try {
-            const fetchedComments = await databaseService.getPostComments(post.$id);
+            const fetchedComments = await databaseService.getPostComments(post.$id, user?.$id);
             setComments(fetchedComments as unknown as EnrichedComment[]);
         } catch (error) {
             showToast("Impossibile caricare i commenti.", "error");
@@ -124,6 +124,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
             <PostCard
                 post={postForCard}
+                onCommentClick={() => { const el = document.getElementById('detail-comment'); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); el?.focus(); }}
                 onDeleted={onDeleted}
                 onUpdated={(updated) => { setPost(updated); onUpdated?.(updated); }}
             />
@@ -183,7 +184,9 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                         <div className="flex items-start gap-3 sm:gap-4">
                             <img src={currentUserAvatar} alt="Il tuo avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0" />
                             <div className="flex-1">
+                                <label htmlFor="detail-comment" className="sr-only">Scrivi un commento</label>
                                 <textarea 
+                                    id="detail-comment"
                                     placeholder={isVideoAnalysis ? "Aggiungi un'osservazione tecnica..." : "Scrivi un commento costruttivo..."}
                                     value={newCommentText}
                                     onChange={(e) => setNewCommentText(e.target.value)}
