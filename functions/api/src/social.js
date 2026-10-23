@@ -4,6 +4,10 @@
  * ripubblicazione (repost) e visualizzazioni del profilo.
  */
 import crypto from 'node:crypto';
+import { isPremium } from './billing.js';
+
+/** Visitatori mostrati con il piano Base (gli altri si vedono con Premium). */
+export const BASE_VISIBLE_VIEWERS = 3;
 
 export const REACTIONS = ['consiglio', 'applauso', 'adoro', 'felice', 'interessante', 'sostegno'];
 
@@ -162,7 +166,8 @@ export function socialActions({ find, get, list, listAll, create, update, remove
       // Chi ha bloccato o è stato bloccato non lascia tracce.
       try { await assertNotBlocked(me, profileId); } catch { return { recorded: false }; }
       const id = viewId(me, profileId);
-      const anonymous = !!viewer.hideProfileViews;
+      // Visita anonima: solo per chi è Premium e solo verso profili Base (chi è Premium vede sempre chi lo visita).
+      const anonymous = !!viewer.hideProfileViews && isPremium(viewer) && !isPremium(profile);
       const now = new Date();
       const existing = await find(C.profileViews, id);
       const recent = existing && now.getTime() - new Date(existing.viewedAt).getTime() < DAY;
@@ -175,12 +180,14 @@ export function socialActions({ find, get, list, listAll, create, update, remove
       return { recorded: true, notified: !recent };
     },
 
-    /** Chi ha visto il mio profilo negli ultimi 30 giorni. */
+    /** Chi ha visto il mio profilo negli ultimi 30 giorni (Base: solo gli ultimi BASE_VISIBLE_VIEWERS). */
     async listProfileViews(me) {
+      const owner = await get(C.profiles, me);
+      const premium = isPremium(owner);
       const since = new Date(Date.now() - 30 * DAY).toISOString();
       const { documents, total } = await list(C.profileViews, [Query.equal('profileId', me), Query.greaterThanEqual('viewedAt', since), Query.orderDesc('viewedAt'), Query.limit(50)]);
       const rows = [];
-      for (const v of documents) {
+      for (const v of premium ? documents : documents.slice(0, BASE_VISIBLE_VIEWERS)) {
         if (v.anonymous) {
           rows.push({ id: null, name: 'Utente di SwimIn', headline: 'Ha scelto di navigare in modo anonimo', avatar: '', viewedAt: v.viewedAt });
           continue;
@@ -195,7 +202,46 @@ export function socialActions({ find, get, list, listAll, create, update, remove
           viewedAt: v.viewedAt,
         });
       }
-      return { total, viewers: rows };
+      return { total, viewers: rows, premium, locked: premium ? 0 : Math.max(0, documents.length - rows.length) };
+    },
+
+    /** Statistiche del profilo e dei post (Premium). */
+    async getMyStats(me) {
+      const owner = await get(C.profiles, me);
+      if (!isPremium(owner)) fail(402, 'Le statistiche sono incluse in SwimIn Premium.', 'premium_required');
+      const now = Date.now();
+      const since = new Date(now - 30 * DAY).toISOString();
+      const views = await listAll(C.profileViews, [Query.equal('profileId', me), Query.greaterThanEqual('viewedAt', since)]);
+      const days = Array.from({ length: 30 }, (_, i) => new Date(now - (29 - i) * DAY).toISOString().slice(0, 10));
+      const perDay = Object.fromEntries(days.map((d) => [d, 0]));
+      for (const v of views) {
+        const d = String(v.viewedAt).slice(0, 10);
+        if (d in perDay) perDay[d] += 1;
+      }
+      const viewerProfiles = [];
+      for (const v of views.filter((x) => !x.anonymous).slice(0, 100)) {
+        const p = await find(C.profiles, v.viewerId);
+        if (p) viewerProfiles.push(p);
+      }
+      const byKind = { strutture: 0, professionisti: 0, appassionati: 0 };
+      for (const p of viewerProfiles) {
+        if (p.userType === 'structure') byKind.strutture += 1;
+        else if (p.personType === 'enthusiast') byKind.appassionati += 1;
+        else byKind.professionisti += 1;
+      }
+      const posts = (await list(C.posts, [Query.equal('authorId', me), Query.orderDesc('$createdAt'), Query.limit(20)])).documents;
+      return {
+        viewsLast30: views.length,
+        viewsPerDay: days.map((d) => ({ day: d, views: perDay[d] })),
+        viewersByKind: byKind,
+        anonymousViews: views.filter((v) => v.anonymous).length,
+        posts: posts.map((p) => ({ id: p.$id, createdAt: p.$createdAt, text: String(p.content || '').slice(0, 80), reactions: p.likesCount || 0, comments: p.commentsCount || 0, reposts: p.repostsCount || 0 })),
+        totals: {
+          reactions: posts.reduce((n, p) => n + (p.likesCount || 0), 0),
+          comments: posts.reduce((n, p) => n + (p.commentsCount || 0), 0),
+          reposts: posts.reduce((n, p) => n + (p.repostsCount || 0), 0),
+        },
+      };
     },
 
     _recountReposts: recountReposts,

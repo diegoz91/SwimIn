@@ -16,6 +16,7 @@ import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
 import { socialActions } from './social.js';
+import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 
@@ -44,6 +45,7 @@ const C = {
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
+  subscriptions: 'subscriptions',
   pushSubscriptions: 'push_subscriptions',
 };
 
@@ -77,14 +79,16 @@ const MAX_POST_MEDIA = 10;
 
 /** Errore "atteso": il messaggio viene mostrato all'utente. */
 class HttpError extends Error {
-  constructor(status, message) {
+  constructor(status, message, code) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
-const fail = (status, message) => {
-  throw new HttpError(status, message);
+/** `code` (facoltativo) permette al client di reagire, es. 'premium_required' mostra l'offerta Premium. */
+const fail = (status, message, code) => {
+  throw new HttpError(status, message, code);
 };
 
 /** Data di calendario UTC "YYYY-MM-DD". */
@@ -121,7 +125,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {} } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -196,6 +200,32 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     return [...managers];
   };
 
+  /**
+   * Chi può scrivere a chi, come su LinkedIn: liberi i collegamenti, le conversazioni già
+   * avviate, candidati e selezionatori, i messaggi alle strutture. Per tutti gli altri serve
+   * Premium, che consuma un messaggio diretto (InMail) al primo messaggio della conversazione.
+   */
+  const checkMessagingAllowed = async (me, receiver) => {
+    const receiverId = receiver.$id;
+    const sender = await get(C.profiles, me);
+    const connected = (sender.connections || []).includes(receiverId) && (receiver.connections || []).includes(me);
+    if (connected || receiver.userType === 'structure') return;
+    const before = await count(C.messages, [Query.equal('conversationId', conversationIdFor(me, receiverId))]);
+    if (before > 0) return;
+    if ((await isRecruiterOf(me, receiverId)) || (await isRecruiterOf(receiverId, me))) return;
+    if (!isPremium(sender)) {
+      fail(402, 'Per scrivere a chi non è tra i tuoi collegamenti serve SwimIn Premium. In alternativa invia una richiesta di collegamento.', 'premium_required');
+    }
+    const audience = audienceOf(sender);
+    const expired = !sender.inmailResetAt || new Date(sender.inmailResetAt).getTime() < Date.now();
+    const credits = expired ? INMAIL_CREDITS[audience] : sender.inmailCredits ?? INMAIL_CREDITS[audience];
+    if (credits <= 0) fail(402, 'Hai usato tutti i messaggi diretti di questo mese: si ricaricano a inizio periodo.', 'inmail_exhausted');
+    await update(C.profiles, me, {
+      inmailCredits: credits - 1,
+      ...(expired ? { inmailResetAt: new Date(Date.now() + 30 * 86_400_000).toISOString() } : {}),
+    });
+  };
+
   /** Chi chiama gestisce un annuncio a cui la persona si è candidata? */
   const isRecruiterOf = async (me, applicantId) => {
     const { documents } = await list(C.applications, [Query.equal('applicantId', applicantId), Query.limit(50)]);
@@ -227,6 +257,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
+  const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
@@ -239,6 +270,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...moderation,
     ...team,
     ...social,
+    ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
@@ -251,8 +283,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       receiverId = requireString(receiverId, 'receiverId', 36);
       content = requireString(content, 'content', 4000);
       if (receiverId === me) fail(400, 'Non puoi scrivere a te stesso.');
-      await get(C.profiles, receiverId);
+      const receiver = await get(C.profiles, receiverId);
       await assertNotBlocked(me, receiverId);
+      await checkMessagingAllowed(me, receiver);
       const message = await create(
         C.messages,
         { conversationId: conversationIdFor(me, receiverId), senderId: me, receiverId, content, isRead: false },
@@ -522,6 +555,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.commentLikes, [Query.equal('userId', me)]);
       await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
       await removeAll(C.profileViews, [Query.equal('profileId', me)]);
+      await billingApi._cancelAllFor(me);
+      await removeAll(C.subscriptions, [Query.equal('userId', me)]);
       // Like e commenti lasciati su post altrui: i contatori vanno ricalcolati.
       for (const like of await listAll(C.likes, [Query.equal('userId', me)])) {
         touchedPosts.add(like.postId);
@@ -674,6 +709,17 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         if (job.sosShift && !/^([01]\d|2[0-3]):[0-5]\d–([01]\d|2[0-3]):[0-5]\d$/.test(job.sosShift)) fail(400, 'Orario del turno non valido.');
         // L'annuncio SOS sparisce il giorno dopo il turno.
         job.expiresAt = job.sosDate > today ? job.sosDate : today;
+      }
+      // Premium: annunci in evidenza e senza limite; Base: al massimo BASE_ACTIVE_JOBS annunci attivi (gli SOS non contano).
+      const publisher = await get(C.profiles, me);
+      const premium = isPremium(publisher);
+      job.featured = premium;
+      if (!premium && !job.isSOS) {
+        const today = isoDay(Date.now());
+        const open = (await listAll(C.jobs, [Query.equal('structureId', structureId), Query.equal('isActive', true)])).filter((j) => !j.isSOS && (!j.expiresAt || j.expiresAt >= today));
+        if (open.length >= BASE_ACTIVE_JOBS) {
+          fail(402, `Con il piano Base puoi avere ${BASE_ACTIVE_JOBS} annunci attivi alla volta. Chiudine uno o passa a Premium per pubblicarne senza limiti, in evidenza.`, 'premium_required');
+        }
       }
       for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
       const created = await create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
@@ -913,6 +959,43 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
 export default async ({ req, res, log, error }) => {
   const userId = req.headers['x-appwrite-user-id'] || null;
 
+  const env = process.env;
+  const billing = {
+    stripe: {
+      secretKey: env.STRIPE_SECRET_KEY,
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+      prices: { person_month: env.STRIPE_PRICE_PERSON_MONTH, person_year: env.STRIPE_PRICE_PERSON_YEAR, structure_month: env.STRIPE_PRICE_STRUCTURE_MONTH, structure_year: env.STRIPE_PRICE_STRUCTURE_YEAR },
+    },
+    paypal: {
+      clientId: env.PAYPAL_CLIENT_ID,
+      secret: env.PAYPAL_SECRET,
+      webhookId: env.PAYPAL_WEBHOOK_ID,
+      mode: env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox',
+      plans: { person_month: env.PAYPAL_PLAN_PERSON_MONTH, person_year: env.PAYPAL_PLAN_PERSON_YEAR, structure_month: env.PAYPAL_PLAN_STRUCTURE_MONTH, structure_year: env.PAYPAL_PLAN_STRUCTURE_YEAR },
+    },
+  };
+  const makeClient = () =>
+    new Client()
+      .setEndpoint(env.APPWRITE_FUNCTION_API_ENDPOINT)
+      .setProject(env.APPWRITE_FUNCTION_PROJECT_ID)
+      .setKey(req.headers['x-appwrite-key'] || env.APPWRITE_API_KEY);
+
+  // Webhook dei pagamenti: corpo grezzo (serve per la firma), nessun utente.
+  const path = String(req.path || '/');
+  if (path.startsWith('/webhooks/')) {
+    const client = makeClient();
+    const api = createApi(new TablesDB(client), { users: new Users(client), appUrl: env.APP_URL || '', log: (m) => log(m), billing });
+    const raw = typeof req.bodyText === 'string' ? req.bodyText : typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+    try {
+      if (path.startsWith('/webhooks/stripe')) return res.json(await api._stripeWebhook(raw, req.headers['stripe-signature']));
+      if (path.startsWith('/webhooks/paypal')) return res.json(await api._paypalWebhook(raw, req.headers));
+      return res.json({ ok: false }, 404);
+    } catch (e) {
+      error(`[webhook ${path}] ${e?.message || e}`);
+      return res.json({ ok: false, error: e?.message || 'Errore' }, e instanceof HttpError ? e.status : 500);
+    }
+  }
+
   let body = req.bodyJson;
   if (!body || typeof body !== 'object') {
     try {
@@ -922,12 +1005,7 @@ export default async ({ req, res, log, error }) => {
     }
   }
 
-  const client = new Client()
-    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(req.headers['x-appwrite-key'] || process.env.APPWRITE_API_KEY);
-
-  const env = process.env;
+  const client = makeClient();
   const api = createApi(new TablesDB(client), {
     users: new Users(client),
     storage: new Storage(client),
@@ -937,6 +1015,7 @@ export default async ({ req, res, log, error }) => {
     vapid: env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT || 'mailto:info@swimin.it' } : null,
     appUrl: env.APP_URL || '',
     log: (m) => log(m),
+    billing,
   });
   const { action, ...params } = body;
   // Senza login si possono chiamare solo le azioni pubbliche (profili pubblici, sitemap).
@@ -949,7 +1028,7 @@ export default async ({ req, res, log, error }) => {
     const data = await handler(userId, params);
     return res.json({ ok: true, data });
   } catch (e) {
-    if (e instanceof HttpError) return res.json({ ok: false, error: e.message }, e.status);
+    if (e instanceof HttpError) return res.json({ ok: false, error: e.message, ...(e.code ? { code: e.code } : {}) }, e.status);
     error(`[${action}] ${e?.message || e}`);
     return res.json({ ok: false, error: 'Errore del server. Riprova tra poco.' }, 500);
   }

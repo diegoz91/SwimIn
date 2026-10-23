@@ -60,6 +60,7 @@ const Privacy: React.FC = () => (
                         <ul>
                             <li><strong>Appwrite</strong> (autenticazione, database, archiviazione file, funzioni server).</li>
                             <li><strong>Vercel</strong> (pubblicazione dell'applicazione web).</li>
+                            <li><strong>Stripe</strong> e <strong>PayPal</strong> (pagamenti degli abbonamenti Premium, solo per chi si abbona: trattano i dati di pagamento come titolari autonomi; SwimIn conserva solo lo stato dell'abbonamento).</li>
                         </ul>
                         <p>Non vendiamo i tuoi dati e non li usiamo per pubblicità profilata.</p>
                     </>

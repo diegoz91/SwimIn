@@ -88,7 +88,7 @@ test('recapito dalle azioni della Function', async () => {
   const messaging = { createEmail: async (m) => emails.push(m) };
   const api = createApi(db, { vapid: { ...generateVapidKeys(), subject: 'mailto:a@b.it' }, messaging, fetchImpl, appUrl: 'https://swimin.it' });
   const P = (id, extra) => (col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [], ...extra });
-  P('anna', { province: 'MI', availability: ['sab-mattina'] }); P('bob', { province: 'MI', availability: ['sab-sera'] });
+  P('anna', { province: 'MI', availability: ['sab-mattina'] }); P('bob', { province: 'MI', availability: ['sab-sera'], premiumUntil: new Date(Date.now() + 86400000).toISOString() });
   P('carla', { province: 'MI', availability: ['sab-mattina'], personType: 'enthusiast' }); P('dino', { province: 'TO', availability: ['sab-mattina'] });
   P('piscina', { userType: 'structure', structureName: 'Piscina Blu' });
   const rejects = async (p, status) => { try { await p; assert.fail('doveva fallire'); } catch (e) { assert.equal(e.status, status, e.message); } };

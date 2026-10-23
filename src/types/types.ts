@@ -74,6 +74,13 @@ export interface BaseProfile extends AppwriteDocument {
   hideProfileViews?: boolean;
   /** Preferenze di notifica push/email per categoria (JSON, scritto dalla Function). */
   notificationPrefs?: string;
+  /** SwimIn Premium (scritti solo dalla Function): attivo finché premiumUntil è nel futuro. */
+  premiumUntil?: string | null;
+  premiumSince?: string | null;
+  premiumSource?: string | null;
+  premiumTrialUsed?: boolean;
+  inmailCredits?: number | null;
+  inmailResetAt?: string | null;
   isOnline?: boolean;
   lastActive?: string;
   phone?: string;
@@ -204,6 +211,8 @@ export interface Job extends AppwriteDocument {
   qualificationsRequired?: string[];
   
   isSOS?: boolean;
+  /** Annuncio di una struttura Premium: in evidenza nella bacheca. */
+  featured?: boolean;
   sosDate?: string;
   sosShift?: string;
   /** YYYY-MM-DD: dopo questa data l'annuncio non viene più mostrato. */

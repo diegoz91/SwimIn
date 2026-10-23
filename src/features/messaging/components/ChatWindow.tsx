@@ -146,7 +146,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     } catch (error) {
       console.error("🔥 ERRORE APPWRITE INVIO:", error);
       setMessages(prev => prev.filter(m => m.$id !== tempId));
-      showToast("Errore nell'invio. Riprova.", "error");
+      // Il testo torna nel campo, così non si perde (es. dopo l'invito a Premium).
+      setNewMessage(trimmedText);
+      showToast(error instanceof Error ? error.message : "Errore nell'invio. Riprova.", "error");
     } finally {
       setIsSending(false);
     }

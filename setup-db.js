@@ -23,6 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client, Functions, ID, Permission, Query, Role, Storage, TablesDB, TablesDBIndexType } from 'node-appwrite';
 import { generateVapidKeys } from './functions/api/src/webpush.js';
+import { provisionPaypal, provisionStripe } from './scripts/billing/provision.mjs';
 import { InputFile } from 'node-appwrite/file';
 
 dotenv.config({ path: '.env.setup' });
@@ -110,6 +111,9 @@ const schema = [
             str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
             bool('publicProfile', { default: false }), bool('hideProfileViews', { default: false }), // scheda visibile anche senza account (scelta della persona)
             str('notificationPrefs', 1000), // scelte push/email per categoria (JSON), scritte dalla Function
+            // SwimIn Premium (scritti solo dalla Function): attivo finché premiumUntil è nel futuro
+            str('premiumUntil', 40), str('premiumSince', 40), str('premiumSource', 20), bool('premiumTrialUsed', { default: false }),
+            int('inmailCredits'), str('inmailResetAt', 40),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
     },
@@ -167,6 +171,7 @@ const schema = [
             str('contractType', 100), str('city', 255, { required: true }), str('province', 10),
             int('salaryMin'), int('salaryMax'), str('workingHours', 255),
             bool('isActive', { default: true }), str('structureName', 255), str('facilityLogo', 2048),
+            bool('featured', { default: false }), // annuncio di una struttura Premium (in evidenza)
             str('candidates', 36, { array: true }), str('requirements', 500, { array: true }),
             str('qualificationsRequired', 500, { array: true }),
             bool('isSOS', { default: false }), str('sosDate', 100), str('sosShift', 100),
@@ -238,6 +243,16 @@ const schema = [
     },
     {
         // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
+        // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
+        id: 'subscriptions', name: 'Subscriptions', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('provider', 20, { required: true }), str('externalId', 100, { required: true }),
+            str('customerId', 100), str('status', 30, { required: true }), str('period', 10), str('audience', 20),
+            str('currentPeriodEnd', 40), bool('cancelAtPeriodEnd', { default: false }),
+        ],
+        indexes: [idx('by_user', ['userId'])],
+    },
+    {
         // Dati di contatto privati delle persone (telefono): letti solo dalla Function.
         id: 'private_info', name: 'Private info', permissions: SERVER_ONLY,
         attributes: [str('phone', 30)],
@@ -592,7 +607,8 @@ async function setupFunctionVariables() {
         if (value === undefined || value === null) return;
         const v = current[key];
         if (!v) await functions.createVariable({ functionId: FUNCTION_ID, variableId: ID.unique(), key, value: String(value), secret });
-        else if (!v.secret && v.value !== String(value)) await functions.updateVariable({ functionId: FUNCTION_ID, variableId: v.$id, key, value: String(value), secret });
+        // Le variabili segrete non si possono rileggere: se il valore è fornito, si riscrive.
+        else if (v.secret || v.value !== String(value)) await functions.updateVariable({ functionId: FUNCTION_ID, variableId: v.$id, key, value: String(value), secret });
     };
     const env = process.env;
     if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
@@ -609,6 +625,7 @@ async function setupFunctionVariables() {
         await set('VAPID_PRIVATE_KEY', keys.privateKey, true);
         console.log('   🔑 Chiavi per le notifiche push generate');
     }
+    await setupBillingVariables(set, current);
     const appUrl = (env.APP_URL || '').replace(/\/$/, '');
     await set('APP_URL', appUrl || undefined);
     if (env.VAPID_SUBJECT || appUrl || !current.VAPID_SUBJECT) {
@@ -618,6 +635,34 @@ async function setupFunctionVariables() {
     const email = env.EMAIL_NOTIFICATIONS ? (env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off') : current.EMAIL_NOTIFICATIONS?.value || 'off';
     await set('EMAIL_NOTIFICATIONS', email);
     console.log(`   ✉️  Email di notifica: ${email === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);
+}
+
+/**
+ * Pagamenti di SwimIn Premium. Con le chiavi in .env.setup (o nei secret di GitHub) crea
+ * prezzi Stripe e piani PayPal, i webhook verso la Function (se c'è FUNCTION_URL) e
+ * salva gli identificativi come variabili della Function. Senza chiavi non fa nulla.
+ */
+async function setupBillingVariables(set, current) {
+    const env = process.env;
+    const fnUrl = (env.FUNCTION_URL || '').replace(/\/$/, '');
+    if (env.STRIPE_SECRET_KEY) {
+        const { prices, webhookSecret } = await provisionStripe(env.STRIPE_SECRET_KEY, { webhookUrl: fnUrl ? `${fnUrl}/webhooks/stripe` : undefined });
+        await set('STRIPE_SECRET_KEY', env.STRIPE_SECRET_KEY, true);
+        for (const [k, id] of Object.entries(prices)) await set(`STRIPE_PRICE_${k.toUpperCase()}`, id);
+        const secret = env.STRIPE_WEBHOOK_SECRET || webhookSecret;
+        if (secret) await set('STRIPE_WEBHOOK_SECRET', secret, true);
+        console.log(`   💳 Stripe: prezzi pronti${secret || current.STRIPE_WEBHOOK_SECRET ? ', webhook configurato' : ' (manca il webhook: imposta FUNCTION_URL e rilancia)'}`);
+    }
+    if (env.PAYPAL_CLIENT_ID && env.PAYPAL_SECRET) {
+        const mode = env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
+        const { plans, webhookId } = await provisionPaypal({ clientId: env.PAYPAL_CLIENT_ID, secret: env.PAYPAL_SECRET, mode, webhookUrl: fnUrl ? `${fnUrl}/webhooks/paypal` : undefined });
+        await set('PAYPAL_CLIENT_ID', env.PAYPAL_CLIENT_ID);
+        await set('PAYPAL_SECRET', env.PAYPAL_SECRET, true);
+        await set('PAYPAL_MODE', mode);
+        for (const [k, id] of Object.entries(plans)) await set(`PAYPAL_PLAN_${k.toUpperCase()}`, id);
+        if (webhookId) await set('PAYPAL_WEBHOOK_ID', webhookId);
+        console.log(`   🅿️  PayPal (${mode}): piani pronti${webhookId || current.PAYPAL_WEBHOOK_ID ? ', webhook configurato' : ' (manca il webhook: imposta FUNCTION_URL e rilancia)'}`);
+    }
 }
 
 async function main() {

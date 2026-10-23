@@ -102,6 +102,16 @@ const Admin: React.FC = () => {
         }
     };
 
+    const grantPremium = async (u: AdminUserRow, days: number) => {
+        if (!window.confirm(`Regalare ${days} giorni di Premium a ${u.name}?`)) return;
+        try {
+            const r = await databaseService.adminGrantPremium(u.$id, days);
+            showToast(`Premium attivo fino al ${r.premiumUntil.slice(8, 10)}/${r.premiumUntil.slice(5, 7)}/${r.premiumUntil.slice(0, 4)}.`, 'success');
+        } catch (e) {
+            fail(e);
+        }
+    };
+
     const TABS: { id: Tab; label: string; badge?: number }[] = [
         { id: 'panoramica', label: 'Panoramica' },
         { id: 'segnalazioni', label: 'Segnalazioni', badge: overview?.openReports },
@@ -222,6 +232,7 @@ const Admin: React.FC = () => {
                                     <p className="text-xs text-slate-500 truncate">{[u.email, u.userType === 'structure' ? 'Struttura' : u.personType === 'enthusiast' ? 'Appassionato' : 'Professionista', u.city].filter(Boolean).join(' · ')}</p>
                                 </div>
                                 {u.suspended && <span className="text-xs font-semibold text-galleggiante">Sospeso</span>}
+                                <button onClick={() => grantPremium(u, 30)} className="px-4 py-2 rounded-full text-sm font-semibold bg-oro-50 text-oro-700 hover:bg-oro-100">Premium 30 giorni</button>
                                 <button onClick={() => toggleSuspend(u)} className={`px-4 py-2 rounded-full text-sm font-semibold ${u.suspended ? 'bg-slate-100 text-slate-700' : 'bg-red-50 text-galleggiante hover:bg-red-100'}`}>
                                     {u.suspended ? 'Riattiva' : 'Sospendi'}
                                 </button>

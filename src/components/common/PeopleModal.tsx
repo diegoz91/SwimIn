@@ -24,8 +24,10 @@ export const PeopleModal: React.FC<{
     subtitle?: string;
     load: () => Promise<PersonRow[]>;
     empty: string;
+    /** Contenuto sotto l'elenco (es. invito a Premium per vedere tutti). */
+    footer?: React.ReactNode;
     onClose: () => void;
-}> = ({ open, title, subtitle, load, empty, onClose }) => {
+}> = ({ open, title, subtitle, load, empty, footer, onClose }) => {
     const navigate = useNavigate();
     const [rows, setRows] = useState<PersonRow[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -126,6 +128,7 @@ export const PeopleModal: React.FC<{
                             })}
                         </ul>
                     )}
+                    {rows !== null && footer}
                 </div>
             </div>
         </div>,

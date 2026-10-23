@@ -39,7 +39,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - `.github/workflows/ci.yml` — CI su ogni PR: sincronizza `package-lock.json`, type-check, build, test della Function
 
 ## Design system (SwimIn, "acqua premium")
-- Colori (token Tailwind in `tailwind.config.js`): `abisso` #0A2738 testi forti, `corsia-*` azioni (la scala `blue-*` è ricalibrata sullo stesso blu), `cloro-*` accenti, `piastrella` #F2F8FA sfondo, `galleggiante` #E23D3D **solo** SOS ed errori.
+- Colori (token Tailwind in `tailwind.config.js`): `abisso` #0A2738 testi forti, `corsia-*` azioni (la scala `blue-*` è ricalibrata sullo stesso blu), `cloro-*` accenti, `piastrella` #F2F8FA sfondo, `galleggiante` #E23D3D **solo** SOS ed errori, `oro-*` **solo** SwimIn Premium (badge `<PremiumBadge />`, pagina `/premium`).
 - Font: Figtree (testo) e Barlow Condensed (`font-display`, applicato a h1/h2), ospitati con l'app via @fontsource. Niente Google Fonts o CDN esterni.
 - Elemento distintivo: la corsia. Logo = `<Brand />`/`<BrandMark />` (T di fine corsia), classe `.lane-rope` per il galleggiante. Usarlo con parsimonia (header, landing, live).
 - Avatar: `avatarOf()` / `displayNameOf()` / `headlineOf()` in `utils/profile.ts`; mai servizi esterni per le iniziali.
@@ -67,6 +67,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Post, swim-meet e dirette si modificano/annullano solo via Function (`updatePost`, `createSwimMeet`, `cancelSwimMeet`, `endLiveRoom`).
 - Profili pubblici (`/u/:id`): strutture sempre, persone solo con `publicProfile` attivo. La Function è eseguibile anche dagli ospiti, ma senza login accetta solo `PUBLIC_ACTIONS`, che restituiscono dati non sensibili.
 - Interazioni social (`functions/api/src/social.js`): reazioni ai post (`react`, tipi in `data/reactions.ts` e `REACTIONS` lato server), mi piace ai commenti, ripubblicazioni (`repost`/`undoRepost`, sempre dell'originale) e visite al profilo (`recordProfileView`, notifica al massimo una volta ogni 24 ore per visitatore, anonima con `hideProfileViews`; la tabella `profile_views` la legge solo la Function).
+- SwimIn Premium (`functions/api/src/billing.js`): il diritto è `premiumUntil` sul profilo, scritto solo dalla Function (prova, webhook Stripe/PayPal firmati su `/webhooks/*`, omaggi admin). I vantaggi si verificano lato server (`isPremium`): messaggi diretti a non collegati (`checkMessagingAllowed`, crediti mensili), annunci attivi e in evidenza, visite e statistiche, visite anonime solo verso profili Base. Nel client `isPremium()` in `utils/premium.ts` serve solo alla UI; un errore con `code: 'premium_required'` apre da solo l'invito (`requestPremium`).
 - Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow

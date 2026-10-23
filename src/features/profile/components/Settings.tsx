@@ -14,6 +14,8 @@ import { displayNameOf } from '@/utils/profile';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
 import { email as emailRule, passwordStrength } from '@/utils/validation';
 import { NotificationsTab } from './NotificationSettings';
+import { isPremium } from '@/utils/premium';
+import { requestPremium } from '@/services/premiumPrompt';
 
 interface SettingsProps {
   currentUser: AuthenticatedUser;
@@ -365,16 +367,16 @@ const PrivacyTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
 
       <Card
         title="Visite anonime ai profili"
-        description="Quando visiti un profilo, la persona riceve una notifica con il tuo nome. Se attivi questa opzione vedrà solo “Qualcuno ha visualizzato il tuo profilo”."
+        description="Quando visiti un profilo, la persona riceve una notifica con il tuo nome. Con Premium puoi visitare in modo anonimo i profili Base: vedranno solo “Qualcuno ha visualizzato il tuo profilo”. Chi è Premium vede sempre chi lo visita."
       >
         <button
           role="switch"
-          aria-checked={hideViews}
-          onClick={toggleHideViews}
-          className={`relative inline-flex h-7 w-12 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${hideViews ? 'bg-blue-600' : 'bg-slate-300'}`}
+          aria-checked={hideViews && isPremium(user)}
+          onClick={() => (isPremium(user) ? toggleHideViews() : requestPremium('Le visite anonime ai profili sono incluse in SwimIn Premium.'))}
+          className={`relative inline-flex h-7 w-12 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${hideViews && isPremium(user) ? 'bg-blue-600' : 'bg-slate-300'}`}
         >
           <span className="sr-only">Visite anonime ai profili</span>
-          <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${hideViews ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${hideViews && isPremium(user) ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
       </Card>
 
