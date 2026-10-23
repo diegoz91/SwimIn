@@ -35,6 +35,8 @@ export interface AppwriteConfig {
         comment_likes: string;
         follows: string;
         poll_votes: string;
+        groups: string;
+        group_members: string;
     };
     buckets: {
         avatars: string;
@@ -71,6 +73,8 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         comment_likes: 'comment_likes',
         follows: 'follows',
         poll_votes: 'poll_votes',
+        groups: 'groups',
+        group_members: 'group_members',
     },
     buckets: {
         avatars: 'avatars',

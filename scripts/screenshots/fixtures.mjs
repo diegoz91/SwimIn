@@ -127,6 +127,36 @@ const posts = [
     }, 60 * 26),
 ];
 
+posts.push(
+    doc('posts', 'p6', {
+        authorId: 'u_marco', authorType: 'professional', postType: 'text', visibility: 'public', category: 'generale', groupId: 'g1',
+        content: 'Domenica gara regionale master a Monza: chi viene? Organizziamo le macchine dal Lido alle 7. #master',
+        hashtags: ['master'], likesCount: 6, commentsCount: 2, media: [], reactionCounts: JSON.stringify({ consiglio: 4, felice: 2 }),
+    }, 90),
+);
+
+const groups = [
+    doc('groups', 'g1', {
+        name: 'Master Lombardia', category: 'master', privacy: 'approval', province: 'MI', creatorId: 'u_marco', admins: ['u_marco', ME], membersCount: 3, postsCount: 1,
+        description: 'Allenamenti, gare e trasferte per chi nuota master in Lombardia. Ci si scambia serie, risultati e passaggi per le gare.',
+        rules: 'Rispetto per tutti, niente pubblicità. Annunci di lavoro solo nella bacheca Lavoro.',
+    }, 60 * 24 * 40),
+    doc('groups', 'g2', {
+        name: 'Bagnini d’estate', category: 'salvamento', privacy: 'open', creatorId: 'u_sara', admins: ['u_sara'], membersCount: 128, postsCount: 42,
+        description: 'Turni, brevetti, rinnovi e consigli per chi lavora negli stabilimenti e nelle piscine all’aperto.',
+    }, 60 * 24 * 80),
+    doc('groups', 'g3', {
+        name: 'Istruttori FIN Milano', category: 'istruttori', privacy: 'open', province: 'MI', creatorId: 'u_elena', admins: ['u_elena'], membersCount: 64, postsCount: 17,
+        description: 'Didattica, progressioni per i corsi bambini e aggiornamenti dai corsi federali.',
+    }, 60 * 24 * 20),
+];
+const group_members = [
+    doc('group_members', 'gm1', { groupId: 'g1', userId: 'u_marco', role: 'admin', status: 'active' }, 60 * 24 * 40),
+    doc('group_members', 'gm2', { groupId: 'g1', userId: ME, role: 'admin', status: 'active' }, 60 * 24 * 30),
+    doc('group_members', 'gm3', { groupId: 'g1', userId: 'u_sara', role: 'member', status: 'active' }, 60 * 24 * 10),
+    doc('group_members', 'gm4', { groupId: 'g1', userId: 'u_luca', role: 'member', status: 'pending' }, 60 * 3),
+];
+
 const jobs = [
     doc('jobs', 'j1', {
         structureId: 'u_lido', structureName: 'Piscina Lido di Milano', title: 'Assistente bagnanti turni serali', role: 'Bagnino',
@@ -195,6 +225,8 @@ export const collections = {
     ],
     saves: [doc('saves', 's1', { userId: ME, targetType: 'post', targetId: 'p1' }), doc('saves', 's2', { userId: ME, targetType: 'job', targetId: 'j2' })],
     swim_meets: [],
+    groups,
+    group_members,
     announcements: [],
     shifts: [],
 };

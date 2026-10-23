@@ -28,6 +28,8 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'chat-bubble', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/post/${n.relatedId}` : '/' };
         case 'follow':
             return { icon: 'user-plus', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/profile/${n.relatedId}` : '/network' };
+        case 'group':
+            return { icon: 'users', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/gruppi/${n.relatedId}` : '/gruppi' };
         case 'repost':
             return { icon: 'share', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/post/${n.relatedId}` : '/' };
         case 'profile_view':

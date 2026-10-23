@@ -17,6 +17,7 @@ import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
 import { socialActions } from './social.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
+import { groupActions } from './groups.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -49,6 +50,8 @@ const C = {
   subscriptions: 'subscriptions',
   follows: 'follows',
   pollVotes: 'poll_votes',
+  groups: 'groups',
+  groupMembers: 'group_members',
   pushSubscriptions: 'push_subscriptions',
 };
 
@@ -261,6 +264,16 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
   const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log });
+  /** Immagine caricata nello storage di SwimIn (niente link esterni). */
+  const storageImage = (v, label) => {
+    if (v == null || v === '') return '';
+    const url = String(v);
+    const host = (() => { try { return new URL(url).host; } catch { return ''; } })();
+    const ok = /^https:\/\//.test(url) && (host.endsWith('appwrite.io') || (endpoint && endpoint.includes(`//${host}`))) && /\/storage\/buckets\/(avatars|post_media)\/files\//.test(url);
+    if (!ok || url.length > 2048) fail(400, `${label}: immagine non valida.`);
+    return url;
+  };
+  const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
@@ -275,6 +288,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...team,
     ...social,
     ...content_,
+    ...groups,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
@@ -374,7 +388,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
      * Crea un post a nome dell'utente che chiama: autore e tipo di account sono
      * decisi qui, così nessuno può pubblicare a nome di altri.
      */
-    async createPost(me, { content = '', media = [], postType = 'text', category = 'generale', poll = null }) {
+    async createPost(me, { content = '', media = [], postType = 'text', category = 'generale', poll = null, groupId = null }) {
       content = typeof content === 'string' ? content.trim() : '';
       if (content.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
       if (!Array.isArray(media) || media.length > MAX_POST_MEDIA) fail(400, `Puoi allegare al massimo ${MAX_POST_MEDIA} file.`);
@@ -394,14 +408,17 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (pollData && !content) fail(400, 'Scrivi la domanda del sondaggio.');
 
       const author = await get(C.profiles, me);
+      const group = groupId ? await groups._assertCanPost(me, requireString(groupId, 'groupId', 36)) : null;
       const mentions = extractMentions(content);
       const row = await create(C.posts, {
+        ...(group ? { groupId: group.$id } : {}),
         authorId: me, authorType: author.userType, content, media: cleanMedia, postType, category,
         visibility: 'public', likesCount: 0, commentsCount: 0,
         hashtags: extractHashtags(content), mentions,
         ...(pollData ? { pollOptions: pollData.options, pollEndsAt: pollData.endsAt, pollCounts: JSON.stringify(pollData.options.map(() => 0)) } : {}),
       }, [Permission.read(Role.users())]); // modifiche ed eliminazione solo tramite la Function
       await content_._notifyMentions(me, mentions, row.$id);
+      if (group) await groups._recountPosts(group.$id);
       return row;
     },
 
@@ -460,12 +477,15 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     async deletePost(me, { postId }) {
       postId = requireString(postId, 'postId', 36);
       const post = await get(C.posts, postId);
-      if (post.authorId !== me && !ownersOf(post).includes(me)) fail(403, 'Puoi eliminare solo i tuoi post.');
+      // L'autore, oppure un amministratore del gruppo in cui è pubblicato (moderazione).
+      const groupAdmin = post.groupId ? await groups._isGroupAdmin(post.groupId, me) : false;
+      if (post.authorId !== me && !ownersOf(post).includes(me) && !groupAdmin) fail(403, 'Puoi eliminare solo i tuoi post.');
       for (const tableId of [C.likes, C.comments, C.commentLikes, C.pollVotes]) {
         await removeAll(tableId, [Query.equal('postId', postId)]);
       }
       await remove(C.posts, postId);
       if (post.repostOf) await social._recountReposts(post.repostOf);
+      if (post.groupId) await groups._recountPosts(post.groupId);
       return { deleted: true };
     },
 
@@ -574,6 +594,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
       await removeAll(C.profileViews, [Query.equal('profileId', me)]);
       await billingApi._cancelAllFor(me);
+      await groups._leaveAll(me);
       await removeAll(C.pollVotes, [Query.equal('userId', me)]);
       for (const f of await listAll(C.follows, [Query.equal('followerId', me)])) {
         await remove(C.follows, f.$id);

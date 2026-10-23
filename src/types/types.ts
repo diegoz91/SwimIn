@@ -162,6 +162,8 @@ export interface Post extends AppwriteDocument {
   pollOptions?: string[];
   pollEndsAt?: string | null;
   pollCounts?: string | null;
+  /** Post pubblicato in un gruppo: non compare nel feed principale. */
+  groupId?: string | null;
 }
 
 export interface EnrichedPost extends Post {
@@ -196,6 +198,30 @@ export interface Like extends AppwriteDocument {
 export interface Follow extends AppwriteDocument {
   followerId: string;
   followeeId: string;
+}
+
+export type GroupCategory = 'master' | 'istruttori' | 'salvamento' | 'allenatori' | 'appassionati' | 'strutture' | 'territorio' | 'altro';
+export type GroupPrivacy = 'open' | 'approval';
+
+export interface Group extends AppwriteDocument {
+  name: string;
+  description: string;
+  rules?: string;
+  category: GroupCategory;
+  privacy: GroupPrivacy;
+  province?: string;
+  cover?: string;
+  creatorId: string;
+  admins: string[];
+  membersCount: number;
+  postsCount: number;
+}
+
+export interface GroupMember extends AppwriteDocument {
+  groupId: string;
+  userId: string;
+  role: 'admin' | 'member';
+  status: 'active' | 'pending' | 'banned';
 }
 
 export interface PollVote extends AppwriteDocument {
@@ -308,7 +334,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group';
   content: string;
   relatedId?: string;
   isRead: boolean;

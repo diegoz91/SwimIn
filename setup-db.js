@@ -133,8 +133,9 @@ const schema = [
             int('repostsCount', { default: 0 }),
             str('hashtags', 40, { array: true }), str('mentions', 36, { array: true }), // estratti dal testo dalla Function
             str('pollOptions', 80, { array: true }), str('pollEndsAt', 40), str('pollCounts', 200), // sondaggio (facoltativo)
+            str('groupId', 36), // post pubblicato in un gruppo (escluso dal feed principale)
         ],
-        indexes: [idx('by_author', ['authorId']), idx('by_repost', ['repostOf'])],
+        indexes: [idx('by_author', ['authorId']), idx('by_repost', ['repostOf']), idx('by_group', ['groupId'])],
     },
     {
         id: 'comments', name: 'Comments', permissions: READ_ONLY,
@@ -245,7 +246,6 @@ const schema = [
         indexes: [idx('by_blocker', ['blockerId']), idx('by_blocked', ['blockedId'])],
     },
     {
-        // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
         // Chi segue chi (senza collegarsi): pubblico come su LinkedIn, scritto dalla Function.
         id: 'follows', name: 'Follows', permissions: READ_ONLY,
         attributes: [str('followerId', 36, { required: true }), str('followeeId', 36, { required: true })],
@@ -256,6 +256,26 @@ const schema = [
         id: 'poll_votes', name: 'Poll votes', permissions: SERVER_ONLY,
         attributes: [str('postId', 36, { required: true }), str('userId', 36, { required: true }), int('option', { required: true })],
         indexes: [idx('by_post', ['postId']), idx('by_user', ['userId'])],
+    },
+    {
+        // Gruppi e community: leggibili da tutti gli iscritti, scritti solo dalla Function.
+        id: 'groups', name: 'Groups', permissions: READ_ONLY,
+        attributes: [
+            str('name', 80, { required: true }), str('description', 2000, { required: true }), str('rules', 2000),
+            str('category', 30, { required: true }), str('privacy', 20, { required: true }), str('province', 2),
+            str('cover', 1000), str('creatorId', 36, { required: true }), str('admins', 36, { array: true }),
+            int('membersCount', { default: 0 }), int('postsCount', { default: 0 }),
+        ],
+        indexes: [idx('by_creator', ['creatorId']), idx('by_category', ['category'])],
+    },
+    {
+        // Iscritti ai gruppi (status: active | pending | banned), scritti dalla Function.
+        id: 'group_members', name: 'Group members', permissions: READ_ONLY,
+        attributes: [
+            str('groupId', 36, { required: true }), str('userId', 36, { required: true }),
+            str('role', 20, { required: true }), str('status', 20, { required: true }),
+        ],
+        indexes: [idx('by_group', ['groupId']), idx('by_user', ['userId'])],
     },
     {
         // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
@@ -283,6 +303,7 @@ const schema = [
         indexes: [idx('by_user', ['userId'])],
     },
     {
+        // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
         id: 'client_errors', name: 'Client errors', permissions: SERVER_ONLY,
         attributes: [
             str('userId', 36, { required: true }), str('message', 500, { required: true }),

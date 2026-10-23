@@ -17,6 +17,10 @@ import type {
     Like,
     CommentLike,
     Follow,
+    Group,
+    GroupMember,
+    GroupCategory,
+    GroupPrivacy,
     PollVote,
     Comment,
     Message,
@@ -32,6 +36,16 @@ import type {
     LiveMessage,
     SavedItem,
 } from '@/types/types';
+
+export interface GroupInput {
+    name: string;
+    description: string;
+    rules?: string;
+    category: GroupCategory;
+    privacy: GroupPrivacy;
+    province?: string;
+    cover?: string;
+}
 
 const { databaseId, collections } = APPWRITE_CONFIG;
 
@@ -489,14 +503,61 @@ export const databaseService = {
     // 🌊 FEED E POSTS
     // ==========================================
     /** Crea un post (lato server: l'autore è sempre l'utente che chiama). */
-    async createPost(postData: Pick<Post, 'content' | 'postType'> & Partial<Pick<Post, 'media' | 'category'>> & { poll?: { options: string[]; days: number } | null }) {
+    async createPost(postData: Pick<Post, 'content' | 'postType'> & Partial<Pick<Post, 'media' | 'category'>> & { poll?: { options: string[]; days: number } | null; groupId?: string | null }) {
         return await callApi<Post>('createPost', {
             content: postData.content,
             media: postData.media || [],
             postType: postData.postType,
             category: postData.category,
             poll: postData.poll || null,
+            ...(postData.groupId ? { groupId: postData.groupId } : {}),
         });
+    },
+
+    // ---------------- GRUPPI ----------------
+    /** Gruppi più numerosi (scoperta); il filtro per testo e categoria è nel client. */
+    async listGroups(limit = 100) {
+        const res = await databases.listDocuments<Group>(databaseId, collections.groups, [Query.orderDesc('membersCount'), Query.limit(limit)]);
+        return res.documents;
+    },
+    async getGroup(groupId: string) {
+        return await databases.getDocument<Group>(databaseId, collections.groups, groupId);
+    },
+    /** Le mie iscrizioni (anche in attesa): stato per gruppo. */
+    async getMyGroupMemberships(userId: string) {
+        const res = await databases.listDocuments<GroupMember>(databaseId, collections.group_members, [Query.equal('userId', userId), Query.limit(200)]);
+        return res.documents;
+    },
+    async getGroupsByIds(ids: string[]) {
+        if (!ids.length) return [];
+        const res = await databases.listDocuments<Group>(databaseId, collections.groups, [Query.equal('$id', ids.slice(0, 100)), Query.limit(100)]);
+        return res.documents;
+    },
+    async getGroupMembers(groupId: string) {
+        const res = await databases.listDocuments<GroupMember>(databaseId, collections.group_members, [Query.equal('groupId', groupId), Query.orderAsc('$createdAt'), Query.limit(500)]);
+        return res.documents;
+    },
+    async getGroupPosts(groupId: string, currentUserId: string, limit = 30) {
+        const res = await databases.listDocuments<Post>(databaseId, collections.posts, [Query.equal('groupId', groupId), Query.orderDesc('$createdAt'), Query.limit(limit)]);
+        return this.withLikedByMe(res.documents, currentUserId);
+    },
+    async createGroup(data: GroupInput) {
+        return await callApi<Group>('createGroup', { ...data });
+    },
+    async updateGroup(groupId: string, data: Partial<GroupInput>) {
+        return await callApi<Group>('updateGroup', { groupId, ...data });
+    },
+    async joinGroup(groupId: string) {
+        return await callApi<{ status: 'active' | 'pending' }>('joinGroup', { groupId });
+    },
+    async leaveGroup(groupId: string) {
+        return await callApi<{ left: boolean }>('leaveGroup', { groupId });
+    },
+    async moderateGroupMember(groupId: string, userId: string, action: 'approve' | 'reject' | 'remove' | 'ban' | 'promote' | 'demote') {
+        return await callApi<{ membersCount: number }>('moderateMember', { groupId, userId, action });
+    },
+    async deleteGroup(groupId: string) {
+        return await callApi<{ deleted: boolean }>('deleteGroup', { groupId });
     },
 
     // ---------------- HASHTAG, SONDAGGI, SEGUI ----------------
@@ -551,6 +612,7 @@ export const databaseService = {
 
         const response = await databases.listDocuments<Post>(databaseId, collections.posts, [
             ...(hasNetwork ? [Query.equal('authorId', authors)] : []),
+            Query.isNull('groupId'), // i post dei gruppi restano nei gruppi
             Query.orderDesc('$createdAt'),
             Query.limit(limit),
             Query.offset(offset),
@@ -581,7 +643,7 @@ export const databaseService = {
 
             const recommendedWithLikes = await this.withLikedByMe(recommendedRes.documents, currentUserId);
             const recommended: EnrichedPost[] = recommendedWithLikes
-                .filter(p => !authors.includes(p.authorId))
+                .filter(p => !authors.includes(p.authorId) && !p.groupId)
                 .map(p => {
                     const by = likeByPost.get(p.$id)!.userId;
                     return { ...p, recommendedBy: { id: by, name: nameById.get(by) || 'Un collegamento' } };
