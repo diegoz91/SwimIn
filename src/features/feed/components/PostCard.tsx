@@ -599,7 +599,7 @@ const EmbeddedOriginal: React.FC<{ postId: string }> = ({ postId }) => {
             <div className="flex items-center gap-2 px-4 pt-3">
                 <img src={avatarOf(author)} alt="" className="w-8 h-8 rounded-full object-cover" />
                 <span className="min-w-0">
-                    <Link to={`/profile/${original.authorId}`} onClick={(e) => e.stopPropagation()} className="block text-sm font-semibold text-abisso truncate hover:underline">{displayNameOf(author)}</Link>
+                    <Link to={`/profile/${original.authorId}`} onClick={(e) => e.stopPropagation()} className="block py-1 -my-1 text-sm font-semibold text-abisso truncate hover:underline">{displayNameOf(author)}</Link>
                     <span className="block text-[11px] text-slate-500">{formatRelativeTime(original.$createdAt)}</span>
                 </span>
             </div>
