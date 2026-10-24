@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconType } from '@/components/ui/Icon';
 import { useBlocks } from '@/context/BlocksContext';
 import { ReportModal } from './ReportModal';
 
 /** Menu "…" sul profilo di un'altra persona o struttura: silenzia, blocca, segnala. */
-export const ProfileActionsMenu: React.FC<{ userId: string; name: string; targetType?: 'profile' | 'facility' }> = ({ userId, name, targetType = 'profile' }) => {
+export const ProfileActionsMenu: React.FC<{ userId: string; name: string; targetType?: 'profile' | 'facility'; extraItems?: { label: string; icon: IconType; onClick: () => void }[] }> = ({ userId, name, targetType = 'profile', extraItems = [] }) => {
     const { blocked, muted, block, unblock } = useBlocks();
     const [open, setOpen] = useState(false);
     const [reporting, setReporting] = useState(false);
@@ -39,6 +39,11 @@ export const ProfileActionsMenu: React.FC<{ userId: string; name: string; target
             </button>
             {open && (
                 <div role="menu" className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl border border-slate-200 shadow-lift py-1.5 z-30 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {extraItems.map((x) => (
+                        <button key={x.label} role="menuitem" className={`${item} text-abisso`} onClick={() => { setOpen(false); x.onClick(); }}>
+                            <Icon type={x.icon} className="w-5 h-5 text-slate-400" /> {x.label}
+                        </button>
+                    ))}
                     {targetType === 'profile' && (
                         <button role="menuitem" className={`${item} text-abisso`} onClick={async () => { setOpen(false); await (isMuted ? unblock(userId, 'mute') : block(userId, 'mute')); }}>
                             <Icon type="bell" className="w-5 h-5 text-slate-400" />

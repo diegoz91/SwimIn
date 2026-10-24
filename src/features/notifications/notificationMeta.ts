@@ -30,6 +30,10 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'user-plus', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/profile/${n.relatedId}` : '/network' };
         case 'group':
             return { icon: 'users', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/gruppi/${n.relatedId}` : '/gruppi' };
+        case 'recommendation':
+            return { icon: 'star', tone: 'bg-cloro-100 text-cloro-700', href: '/profile?sezione=referenze' };
+        case 'recommendation_request':
+            return { icon: 'pencil', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/profile/${n.relatedId}?referenza=scrivi` : '/profile' };
         case 'job_alert':
             return { icon: 'briefcase', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
         case 'event':

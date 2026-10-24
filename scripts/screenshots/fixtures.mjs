@@ -264,6 +264,15 @@ export const apiResponses = {
         qualifications: ['Brevetto Assistente Bagnanti FIN', 'BLSD'], isSOS: false, sosDate: '', sosShift: '', structureId: 'u_lido', structureName: 'Piscina Lido di Milano',
         structureLogo: '', postedAt: new Date(now - 86400000).toISOString(), expiresAt: new Date(now + 29 * 86400000).toISOString().slice(0, 10),
     }),
+    listRecommendations: ({ profileId } = {}) => {
+        const sara = { $id: 'u_sara', name: 'Sara Colombo', avatar: '', headline: 'Assistente bagnanti e istruttrice aquagym' };
+        const lido = { $id: 'u_lido', name: 'Piscina Lido di Milano', avatar: '', headline: 'Piscina comunale' };
+        const published = { $id: 'rc1', $createdAt: new Date(now - 20 * 86400000).toISOString(), profileId, authorId: 'u_sara', relationship: 'collega', status: 'published', author: sara,
+            content: 'Abbiamo lavorato insieme due stagioni al Lido: sempre puntuale, attentissima alla sicurezza in vasca e capace di tenere un gruppo di bambini di cinque anni come pochi. Quando c’è da coprire un turno all’ultimo momento è la prima a rispondere.' };
+        const pending = { $id: 'rc2', $createdAt: new Date(now - 86400000).toISOString(), profileId, authorId: 'u_lido', relationship: 'struttura', status: 'pending', author: lido,
+            content: 'Giulia ha seguito i corsi di acquaticità del sabato per tutto l’anno: genitori soddisfatti, iscrizioni in crescita e zero problemi di organizzazione.' };
+        return profileId === ME ? [pending, published] : [published];
+    },
     listJobAlerts: () => [
         { $id: 'al1', $createdAt: new Date(now - 3 * 86400000).toISOString(), userId: ME, query: 'istruttore', province: 'MI', contractType: '', sosOnly: false },
         { $id: 'al2', $createdAt: new Date(now - 9 * 86400000).toISOString(), userId: ME, query: '', province: 'MB', contractType: '', sosOnly: true },

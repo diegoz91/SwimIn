@@ -188,6 +188,11 @@ export interface PublicJob {
     isSOS: boolean; sosDate: string; sosShift: string; structureId: string; structureName: string; structureLogo: string;
     postedAt: string; expiresAt: string;
 }
+export type RecommendationRelationship = 'collega' | 'responsabile' | 'collaboratore' | 'allievo' | 'struttura' | 'altro';
+export interface Recommendation {
+    $id: string; $createdAt: string; profileId: string; authorId: string; relationship: RecommendationRelationship; content: string;
+    status: 'pending' | 'published' | 'hidden'; author: { $id: string; name: string; avatar: string; headline: string };
+}
 export interface JobAlert { $id: string; $createdAt: string; userId: string; query?: string; province?: string; contractType?: string; sosOnly?: boolean }
 export interface PublicProfile {
     kind: 'person' | 'structure';
@@ -406,6 +411,22 @@ export const databaseService = {
     /** Annuncio visibile anche senza account (pagina /offerte/:id). */
     async getPublicJob(id: string) {
         return await callApi<PublicJob>('publicJob', { id });
+    },
+    // ---------------- REFERENZE ----------------
+    async listRecommendations(profileId: string) {
+        return await callApi<Recommendation[]>('listRecommendations', { profileId });
+    },
+    async writeRecommendation(profileId: string, relationship: RecommendationRelationship, content: string) {
+        return await callApi<Recommendation>('writeRecommendation', { profileId, relationship, content });
+    },
+    async requestRecommendation(profileId: string, message = '') {
+        return await callApi<{ requested: boolean; already?: boolean }>('requestRecommendation', { profileId, message });
+    },
+    async respondRecommendation(recommendationId: string, action: 'publish' | 'hide' | 'delete') {
+        return await callApi<Recommendation | { deleted: boolean }>('respondRecommendation', { recommendationId, action });
+    },
+    async deleteRecommendation(recommendationId: string) {
+        return await callApi<{ deleted: boolean }>('deleteRecommendation', { recommendationId });
     },
     // ---------------- AVVISI DI LAVORO ----------------
     async listJobAlerts() {
@@ -1140,6 +1161,44 @@ export const databaseService = {
             Query.limit(limit),
         ]);
         return this.withLikedByMe(res.documents, currentUserId);
+    },
+
+    /** Gruppi per nome o descrizione. */
+    async searchGroups(searchQuery: string, limit = 20) {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [];
+        const res = await databases.listDocuments<Group>(databaseId, collections.groups, [
+            Query.or([Query.contains('name', term), Query.contains('description', term)]),
+            Query.orderDesc('membersCount'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
+    /** Eventi in programma per titolo, descrizione o comune. */
+    async searchEvents(searchQuery: string, limit = 20) {
+        const term = searchQuery.trim();
+        if (term.length < 2) return [];
+        const res = await databases.listDocuments<SwimMeet>(databaseId, SWIM_MEETS_COLLECTION, [
+            Query.equal('status', 'upcoming'),
+            Query.greaterThanEqual('date', new Date().toISOString().slice(0, 10)),
+            Query.or([Query.contains('title', term), Query.contains('description', term), Query.contains('city', term)]),
+            Query.orderAsc('date'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
+    /** Hashtag che corrispondono al termine: quello esatto (se usato) e quelli di tendenza che iniziano così. */
+    async searchHashtags(searchQuery: string) {
+        const tag = searchQuery.trim().replace(/^#/, '').toLocaleLowerCase('it-IT');
+        if (tag.length < 2 || !/^[\p{L}\p{N}_]+$/u.test(tag)) return [];
+        const [exact, trends] = await Promise.all([
+            databases.listDocuments<Post>(databaseId, collections.posts, [Query.contains('hashtags', [tag]), Query.limit(1)]).then((r) => r.total).catch(() => 0),
+            this.getTrends().catch(() => [] as { tag: string; posts: number }[]),
+        ]);
+        const out = new Map<string, number>();
+        if (exact > 0) out.set(tag, exact);
+        for (const t of Array.isArray(trends) ? trends : []) if (t.tag.startsWith(tag) && !out.has(t.tag)) out.set(t.tag, t.posts);
+        return [...out.entries()].map(([t, posts]) => ({ tag: t, posts }));
     },
 
     /** Offerte attive che corrispondono al termine (titolo, ruolo, città, struttura). */

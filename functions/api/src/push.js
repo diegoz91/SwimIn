@@ -23,6 +23,8 @@ const CATEGORY_OF = {
   like: 'social',
   comment: 'social',
   endorsement: 'social',
+  recommendation: 'social',
+  recommendation_request: 'social',
   review: 'social',
   repost: 'social',
   mention: 'social',
@@ -54,6 +56,8 @@ export function targetUrl(type, relatedId) {
     case 'shift': return '/turni';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
     case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
+    case 'recommendation': return '/profile?sezione=referenze';
+    case 'recommendation_request': return relatedId ? `/profile/${relatedId}?referenza=scrivi` : '/profile';
     case 'event': return relatedId ? `/eventi/${relatedId}` : '/eventi';
     case 'mention': return relatedId ? `/post/${relatedId}` : '/';
     case 'follow': return relatedId ? `/profile/${relatedId}` : '/network';
