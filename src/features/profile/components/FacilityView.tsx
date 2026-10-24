@@ -76,6 +76,10 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>(openChat ? 'staff' : 'info');
     const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'radar'>(openChat ? 'chat' : 'bacheca');
     const [chatUnread, setChatUnread] = useState(0);
+    const staffAreaRef = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (openChat) window.setTimeout(() => staffAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }, [openChat]);
 
     const [localJobs, setLocalJobs] = useState<Job[]>(openJobs);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -336,8 +340,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     )}
                 </div>
                 <div className="px-6 pb-6 relative">
-                    <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-4">
-                        <div className="relative">
+                    <div className="flex flex-wrap justify-between items-end gap-3 -mt-12 sm:-mt-16 mb-4">
+                        <div className="relative flex-shrink-0">
                             <img src={displayLogo} alt={structureName} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
                             {isAdmin && (
                                 <ImageUploadButton
@@ -362,7 +366,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                         {/* Fallback per Profili Struttura Legacy Phase 1 */}
                         {!isAdmin && isLegacyStructure && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="py-2.5 px-5 rounded-full font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
                                     <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                                 </button>
@@ -546,7 +550,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                 {/* 3. GESTIONE TEAM (Admin & Staff) */}
                 {activeTab === 'staff' && (isAdmin || isStaff) && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div ref={staffAreaRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden scroll-mt-20">
                         
                         <div className="border-b border-slate-100 bg-slate-50/50 p-4">
                             <div className="flex space-x-3 overflow-x-auto hide-scrollbar-mobile pb-1">
