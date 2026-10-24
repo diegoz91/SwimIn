@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
+import { btn } from './settings/ui';
 import { confirmTotpSetup, disableTotp, mfaStatus, regenerateRecoveryCodes, startTotpSetup, totpQrUrl } from '@/services/mfa';
 
-const codeInput = 'w-40 px-4 py-2.5 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-lg tracking-[0.3em] tabular-nums';
+const codeInput = 'w-40 px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-lg tracking-[0.3em] tabular-nums';
 
 const downloadCodes = (codes: string[]) => {
     const text = `Codici di recupero SwimIn\n\nOgni codice si usa una volta sola, se non hai il telefono con l'app di autenticazione.\nConservali in un posto sicuro.\n\n${codes.join('\n')}\n`;
@@ -25,11 +26,11 @@ const RecoveryCodes: React.FC<{ codes: string[]; onDone: () => void }> = ({ code
             {codes.map((c) => <li key={c} className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 text-center">{c}</li>)}
         </ul>
         <div className="flex flex-wrap gap-2 mt-4">
-            <button type="button" onClick={() => downloadCodes(codes)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-2">
+            <button type="button" onClick={() => downloadCodes(codes)} className={btn.secondary}>
                 <Icon type="download" className="w-4 h-4" /> Scarica
             </button>
-            <button type="button" onClick={() => navigator.clipboard?.writeText(codes.join('\n')).catch((err) => console.warn('Copia:', err))} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-50">Copia</button>
-            <button type="button" onClick={onDone} className="px-4 py-2 rounded-xl text-sm font-semibold bg-corsia-600 text-white hover:bg-corsia-700">Li ho salvati</button>
+            <button type="button" onClick={() => navigator.clipboard?.writeText(codes.join('\n')).catch((err) => console.warn('Copia:', err))} className={btn.secondary}>Copia</button>
+            <button type="button" onClick={onDone} className={btn.primary}>Li ho salvati</button>
         </div>
     </div>
 );
@@ -42,6 +43,7 @@ export const TwoFactorSetup: React.FC = () => {
     const [code, setCode] = useState('');
     const [codes, setCodes] = useState<string[] | null>(null);
     const [busy, setBusy] = useState(false);
+    const [confirming, setConfirming] = useState<'disable' | 'codes' | null>(null);
 
     useEffect(() => {
         mfaStatus().then((s) => setStatus({ enabled: s.enabled })).catch((err) => { console.warn('Stato 2FA:', err); setStatus({ enabled: false }); });
@@ -79,12 +81,12 @@ export const TwoFactorSetup: React.FC = () => {
     };
 
     const disable = async () => {
-        if (!window.confirm('Disattivare la verifica in due passaggi? Per entrare basterà di nuovo la password.')) return;
         setBusy(true);
         try {
             await disableTotp();
             setStatus({ enabled: false });
             setCodes(null);
+            setConfirming(null);
             showToast('Verifica in due passaggi disattivata.', 'info');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Disattivazione non riuscita.', 'error');
@@ -94,11 +96,14 @@ export const TwoFactorSetup: React.FC = () => {
     };
 
     const newCodes = async () => {
-        if (!window.confirm('Generare nuovi codici di recupero? Quelli vecchi non funzioneranno più.')) return;
+        setBusy(true);
         try {
             setCodes(await regenerateRecoveryCodes());
+            setConfirming(null);
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Codici non generati.', 'error');
+        } finally {
+            setBusy(false);
         }
     };
 
@@ -129,8 +134,8 @@ export const TwoFactorSetup: React.FC = () => {
                     </li>
                 </ol>
                 <div className="flex gap-2">
-                    <button type="submit" disabled={busy} className="px-4 py-2 text-sm font-bold text-white bg-corsia-600 hover:bg-corsia-700 rounded-xl disabled:opacity-60">{busy ? 'Verifica…' : 'Attiva'}</button>
-                    <button type="button" onClick={() => { setSetup(null); setCode(''); }} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Annulla</button>
+                    <button type="submit" disabled={busy} className={btn.primary}>{busy ? 'Verifica…' : 'Attiva'}</button>
+                    <button type="button" onClick={() => { setSetup(null); setCode(''); }} className={btn.quiet}>Annulla</button>
                 </div>
             </form>
         );
@@ -138,14 +143,30 @@ export const TwoFactorSetup: React.FC = () => {
 
     return status.enabled ? (
         <div className="space-y-3">
-            <p className="text-sm font-semibold text-cloro-700 flex items-center gap-2"><Icon type="shield" className="w-5 h-5" /> Attiva: all’accesso ti chiediamo anche il codice dell’app.</p>
-            <div className="flex flex-wrap gap-2">
-                <button onClick={newCodes} disabled={busy} className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl">Nuovi codici di recupero</button>
-                <button onClick={disable} disabled={busy} className="px-4 py-2 text-sm font-semibold text-galleggiante-700 hover:bg-red-50 rounded-xl">Disattiva</button>
-            </div>
+            <p className="text-sm font-semibold text-cloro-800 flex items-center gap-2"><Icon type="check-circle" className="w-5 h-5" /> Attiva: all’accesso ti chiediamo anche il codice dell’app.</p>
+            {confirming ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3" role="alert">
+                    <p className="text-sm text-slate-700">
+                        {confirming === 'disable'
+                            ? 'Disattivare la verifica in due passaggi? Per entrare basterà di nuovo la sola password.'
+                            : 'Generare nuovi codici di recupero? Quelli che hai salvato finora smetteranno di funzionare.'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={confirming === 'disable' ? disable : newCodes} disabled={busy} className={confirming === 'disable' ? btn.dangerSolid : btn.primary}>
+                            {busy ? 'Attendi…' : confirming === 'disable' ? 'Disattiva' : 'Genera nuovi codici'}
+                        </button>
+                        <button type="button" onClick={() => setConfirming(null)} disabled={busy} className={btn.quiet}>Annulla</button>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setConfirming('codes')} disabled={busy} className={btn.secondary}>Nuovi codici di recupero</button>
+                    <button type="button" onClick={() => setConfirming('disable')} disabled={busy} className={btn.danger}>Disattiva</button>
+                </div>
+            )}
         </div>
     ) : (
-        <button onClick={begin} disabled={busy} className="px-4 py-2 text-sm font-bold text-white bg-corsia-600 hover:bg-corsia-700 rounded-xl disabled:opacity-60 flex items-center gap-2">
+        <button onClick={begin} disabled={busy} className={btn.primary}>
             <Icon type="shield" className="w-4 h-4" /> {busy ? 'Preparazione…' : 'Attiva la verifica in due passaggi'}
         </button>
     );

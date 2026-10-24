@@ -10,7 +10,8 @@ export type IconType =
   | 'thumb-up' | 'document' | 'bookmark' | 'check' | 'paper-plane' 
   | 'arrow-left' | 'check-circle' | 'trash' | 'pencil'
   | 'lock-closed' | 'alert-triangle' | 'shield' | 'user-minus' | 'chevron-right' | 'edit'
-  | 'play' | 'chart' | 'hashtag' | 'user-plus' | 'paperclip' | 'reply' | 'face-smile' | 'download';
+  | 'play' | 'chart' | 'hashtag' | 'user-plus' | 'paperclip' | 'reply' | 'face-smile' | 'download'
+  | 'computer' | 'device-phone' | 'credit-card' | 'key';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   type: IconType;
@@ -20,6 +21,18 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 }
 
 const ICON_MAP: Record<IconType, React.ReactNode> = {
+  computer: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" />
+  ),
+  'device-phone': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+  ),
+  'credit-card': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+  ),
+  key: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+  ),
   paperclip: (
     <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
   ),

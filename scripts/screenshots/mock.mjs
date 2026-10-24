@@ -2,7 +2,7 @@
  * Appwrite finto per le schermate e i test end-to-end: intercetta le richieste del browser
  * e risponde con i dati di esempio di fixtures.mjs. `state` tiene sessione e chiamate fatte.
  */
-import { account, apiResponses, collections } from './fixtures.mjs';
+import { account, accountLogs, apiResponses, collections, sessions } from './fixtures.mjs';
 
 const json = (route, body, status = 200) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -68,6 +68,8 @@ export async function mockAppwrite(page, state) {
             return json(route, {});
         }
         if (path.startsWith('/account/sessions') && method === 'DELETE') { state.loggedIn = false; return json(route, {}); }
+        if (path === '/account/sessions' && method === 'GET') return json(route, { total: sessions.length, sessions });
+        if (path === '/account/logs' && method === 'GET') return json(route, { total: accountLogs.length, logs: accountLogs });
         if (path.startsWith('/account')) return json(route, {});
 
         if (path.startsWith('/functions/api/executions')) {

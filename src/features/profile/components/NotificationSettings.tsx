@@ -1,36 +1,38 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { Checkbox } from '@/components/form/Field';
+import { Icon, type IconType } from '@/components/ui/Icon';
+import { Switch } from '@/components/form/Switch';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type NotificationPrefs, type NotifyCategory, type PushConfig } from '@/services/database';
 import { disablePush, enablePush, pushState, type PushState } from '@/services/push';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import { Badge, Group, Row, RowSkeleton, SectionHeader, btn } from './settings/ui';
 
-const CATEGORY_LABELS: Record<NotifyCategory, { label: string; hint: string }> = {
-    messages: { label: 'Messaggi', hint: 'Quando qualcuno ti scrive.' },
-    connections: { label: 'Collegamenti', hint: 'Richieste ricevute e accettate.' },
-    social: { label: 'Attività e visite', hint: 'Reazioni, commenti, ripubblicazioni, conferme di competenze, visite al profilo.' },
-    jobs: { label: 'Candidature e lavoro', hint: 'Nuove candidature, esiti, assunzioni.' },
-    sos: { label: 'Sostituzioni urgenti', hint: 'SOS nella tua provincia quando sei disponibile.' },
-    general: { label: 'Turni, verifiche e avvisi', hint: 'Turni assegnati, brevetti verificati, risposte alle recensioni.' },
-    digest: { label: 'Riepilogo settimanale', hint: 'Il lunedì, un’email con richieste, messaggi, visite e offerte della settimana.' },
+const CATEGORIES: { id: NotifyCategory; label: string; hint: string; icon: IconType }[] = [
+    { id: 'messages', label: 'Messaggi', hint: 'Quando qualcuno ti scrive.', icon: 'chat-bubble' },
+    { id: 'connections', label: 'Collegamenti', hint: 'Richieste ricevute e accettate.', icon: 'user-plus' },
+    { id: 'jobs', label: 'Candidature e lavoro', hint: 'Nuove candidature, esiti, assunzioni e avvisi di lavoro.', icon: 'briefcase' },
+    { id: 'sos', label: 'Sostituzioni urgenti', hint: 'SOS nella tua provincia quando sei disponibile.', icon: 'alert-triangle' },
+    { id: 'social', label: 'Attività e visite', hint: 'Reazioni, commenti, ripubblicazioni, conferme di competenze, visite al profilo.', icon: 'like' },
+    { id: 'general', label: 'Turni, verifiche e avvisi', hint: 'Turni assegnati, brevetti verificati, risposte alle recensioni, referenze.', icon: 'calendar' },
+    { id: 'digest', label: 'Riepilogo settimanale', hint: 'Il lunedì, un’email con richieste, messaggi, visite e offerte della settimana.', icon: 'mail' },
+];
+
+const DEVICE_TEXT: Record<PushState, { title: string; text: string; tone: 'ok' | 'neutral' | 'warn' }> = {
+    on: { title: 'Attive', text: 'Ricevi gli avvisi anche quando SwimIn è chiuso.', tone: 'ok' },
+    off: { title: 'Spente', text: 'Attivale per ricevere messaggi, candidature e SOS anche a SwimIn chiuso.', tone: 'neutral' },
+    denied: { title: 'Bloccate dal browser', text: 'Apri le impostazioni del sito (il lucchetto nella barra degli indirizzi) e consenti le notifiche.', tone: 'warn' },
+    unsupported: { title: 'Non disponibili', text: 'Questo browser non supporta le notifiche push.', tone: 'neutral' },
+    'ios-install': { title: 'Serve l’app', text: 'Su iPhone e iPad le notifiche arrivano solo dall’app installata: aggiungila alla schermata Home (qui sotto) e aprila da lì.', tone: 'warn' },
 };
 
-const Section: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h3 className="font-bold text-slate-900">{title}</h3>
-        {description && <p className="text-sm text-slate-500 mt-1 mb-4">{description}</p>}
-        {children}
-    </section>
-);
-
-/** Push su questo dispositivo, preferenze per categoria e installazione dell'app. */
+/** Push su questo dispositivo, preferenze per tipo di avviso e installazione dell'app. */
 export const NotificationsTab: React.FC = () => {
     const { showToast } = useToast();
     const [config, setConfig] = useState<PushConfig | null>(null);
     const [state, setState] = useState<PushState | null>(null);
     const [busy, setBusy] = useState(false);
     const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+    const [failed, setFailed] = useState(false);
     const { mode: installMode, install } = useInstallPrompt();
 
     const load = useCallback(async () => {
@@ -41,6 +43,7 @@ export const NotificationsTab: React.FC = () => {
             setState(st);
         } catch (err) {
             console.error('Notifiche:', err);
+            setFailed(true);
             showToast('Impossibile caricare le preferenze di notifica.', 'error');
         }
     }, [showToast]);
@@ -85,77 +88,91 @@ export const NotificationsTab: React.FC = () => {
         }
     };
 
-    const deviceText: Record<PushState, string> = {
-        on: 'Attive su questo dispositivo.',
-        off: 'Spente su questo dispositivo.',
-        denied: 'Bloccate dal browser. Per riattivarle apri le impostazioni del sito (icona del lucchetto nella barra degli indirizzi) e consenti le notifiche.',
-        unsupported: 'Questo browser non supporta le notifiche push.',
-        'ios-install': 'Su iPhone e iPad le notifiche arrivano solo dall’app installata: aggiungi SwimIn alla schermata Home (qui sotto), poi aprila da lì.',
-    };
+    const email = !!config?.emailAvailable;
+    const visible = CATEGORIES.filter((c) => c.id !== 'digest' || email);
+    const loading = !failed && (config === null || state === null);
 
     return (
         <>
-            <Section title="Notifiche su questo dispositivo" description="Ricevi un avviso anche quando SwimIn è chiuso: messaggi, candidature, SOS vicino a te.">
-                {config === null || state === null ? (
-                    <p className="text-sm text-slate-500">Caricamento…</p>
-                ) : !config.publicKey ? (
-                    <p className="text-sm text-slate-600">Le notifiche push non sono ancora attive sul server.</p>
-                ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm text-slate-700 flex items-start gap-2 max-w-md">
-                            <Icon type="bell" className={`w-5 h-5 flex-shrink-0 ${state === 'on' ? 'text-corsia-600' : 'text-slate-400'}`} />
-                            {deviceText[state]}
-                        </p>
-                        <div className="flex gap-2">
-                            {state === 'on' && (
-                                <button type="button" onClick={test} className="px-4 py-2 rounded-full text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Invia una prova</button>
-                            )}
-                            {(state === 'on' || state === 'off') && (
-                                <button type="button" disabled={busy} onClick={toggleDevice} className={`px-4 py-2 rounded-full text-sm font-semibold disabled:opacity-60 ${state === 'on' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-corsia-600 text-white hover:bg-corsia-700'}`}>
-                                    {busy ? 'Attendi…' : state === 'on' ? 'Disattiva' : 'Attiva le notifiche'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </Section>
+            <SectionHeader title="Notifiche" description="Scegli cosa ricevere e dove. Le notifiche dentro SwimIn restano sempre nella pagina Notifiche." />
+            <div className="space-y-5">
+                <Group title="Questo dispositivo">
+                    {loading ? (
+                        <RowSkeleton rows={1} />
+                    ) : !config?.publicKey || !state ? (
+                        <Row icon="bell" title="Notifiche push" description="Le notifiche push non sono ancora attive sul server." />
+                    ) : (
+                        <Row
+                            icon="bell"
+                            title={<span className="flex flex-wrap items-center gap-2">Notifiche push <Badge tone={DEVICE_TEXT[state].tone}>{DEVICE_TEXT[state].title}</Badge></span>}
+                            description={DEVICE_TEXT[state].text}
+                            aside={
+                                <>
+                                    {state === 'on' && <button type="button" onClick={test} className={btn.quiet}>Invia una prova</button>}
+                                    {(state === 'on' || state === 'off') && (
+                                        <button type="button" disabled={busy} onClick={toggleDevice} className={state === 'on' ? btn.secondary : btn.primary}>
+                                            {busy ? 'Attendi…' : state === 'on' ? 'Disattiva' : 'Attiva'}
+                                        </button>
+                                    )}
+                                </>
+                            }
+                        />
+                    )}
+                    <InstallRow mode={installMode} onInstall={async () => { if (await install()) showToast('SwimIn è stata installata.', 'success'); }} />
+                </Group>
 
-            {prefs && (
-                <Section title="Cosa ricevere" description={config?.emailAvailable ? 'Scegli per ogni tipo di avviso se riceverlo come notifica push, per email o entrambi. Le notifiche nell’app restano sempre.' : 'Scegli quali avvisi ricevere come notifica push. Le notifiche nell’app restano sempre.'}>
-                    <ul className="divide-y divide-slate-100">
-                        {(Object.keys(CATEGORY_LABELS) as NotifyCategory[]).map((cat) => (
-                            <li key={cat} className="py-3 flex flex-wrap items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-semibold text-abisso">{CATEGORY_LABELS[cat].label}</p>
-                                    <p className="text-xs text-slate-500">{CATEGORY_LABELS[cat].hint}</p>
-                                </div>
-                                <div className="flex gap-5">
-                                    {cat !== 'digest' && <Checkbox id={`push-${cat}`} checked={prefs[cat].push} onChange={(v) => setPref(cat, 'push', v)} label="Push" />}
-                                    {config?.emailAvailable && <Checkbox id={`email-${cat}`} checked={prefs[cat].email} onChange={(v) => setPref(cat, 'email', v)} label="Email" />}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </Section>
-            )}
-
-            <Section title="Installa SwimIn" description="Aprila dalla schermata Home come un’app: si avvia più in fretta e su iPhone abilita le notifiche.">
-                {installMode === 'installed' ? (
-                    <p className="text-sm text-slate-700 flex items-center gap-2"><Icon type="check" className="w-5 h-5 text-corsia-600" /> Stai già usando l’app installata.</p>
-                ) : installMode === 'prompt' ? (
-                    <button
-                        type="button"
-                        onClick={async () => { if (await install()) showToast('SwimIn è stata installata.', 'success'); }}
-                        className="px-5 py-2.5 rounded-full text-sm font-semibold bg-corsia-600 text-white hover:bg-corsia-700"
-                    >
-                        Installa l’app
-                    </button>
-                ) : installMode === 'ios' ? (
-                    <p className="text-sm text-slate-700">In Safari tocca <strong>Condividi</strong>, poi <strong>Aggiungi alla schermata Home</strong>.</p>
-                ) : (
-                    <p className="text-sm text-slate-600">Dal menu del browser scegli <strong>Installa app</strong> o <strong>Aggiungi alla schermata Home</strong>.</p>
-                )}
-            </Section>
+                <Group
+                    title="Cosa ricevere"
+                    description={email ? 'Per ogni tipo di avviso scegli la notifica push, l’email o entrambe.' : 'Per ogni tipo di avviso scegli se ricevere la notifica push.'}
+                >
+                    {loading ? (
+                        <RowSkeleton rows={4} />
+                    ) : !prefs ? (
+                        <Row title="Preferenze non disponibili" description="Riprova tra qualche minuto." />
+                    ) : (
+                        visible.map((c) => (
+                            <Row
+                                key={c.id}
+                                icon={c.icon}
+                                title={c.label}
+                                description={c.hint}
+                                aside={
+                                    <div className="flex items-end gap-4">
+                                        {c.id !== 'digest' && <Channel id={`push-${c.id}`} label="Push" name={`${c.label}: notifica push`} checked={prefs[c.id].push} onChange={(v) => setPref(c.id, 'push', v)} />}
+                                        {email && <Channel id={`email-${c.id}`} label="Email" name={`${c.label}: email`} checked={prefs[c.id].email} onChange={(v) => setPref(c.id, 'email', v)} />}
+                                    </div>
+                                }
+                            />
+                        ))
+                    )}
+                </Group>
+            </div>
         </>
     );
 };
+
+const Channel: React.FC<{ id: string; label: string; name: string; checked: boolean; onChange: (v: boolean) => void }> = ({ id, label, name, checked, onChange }) => (
+    <div className="flex flex-col items-center gap-1 w-14">
+        <span className="text-xs font-semibold text-slate-500" aria-hidden="true">{label}</span>
+        <Switch id={id} label={name} checked={checked} onChange={onChange} />
+    </div>
+);
+
+const InstallRow: React.FC<{ mode: ReturnType<typeof useInstallPrompt>['mode']; onInstall: () => void }> = ({ mode, onInstall }) => (
+    <Row
+        icon="device-phone"
+        title="App SwimIn"
+        description={
+            mode === 'installed' ? (
+                <span className="inline-flex items-center gap-1.5"><Icon type="check" className="w-4 h-4 text-cloro-700" /> Stai usando l’app installata.</span>
+            ) : mode === 'ios' ? (
+                <>In Safari tocca <strong>Condividi</strong>, poi <strong>Aggiungi alla schermata Home</strong>.</>
+            ) : mode === 'prompt' ? (
+                'Aprila dalla schermata Home come un’app: si avvia più in fretta e riceve le notifiche.'
+            ) : (
+                <>Dal menu del browser scegli <strong>Installa app</strong> o <strong>Aggiungi alla schermata Home</strong>.</>
+            )
+        }
+        aside={mode === 'prompt' && <button type="button" onClick={onInstall} className={btn.secondary}>Installa</button>}
+    />
+);
