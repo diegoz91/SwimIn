@@ -141,7 +141,7 @@ export const TwoFactorSetup: React.FC = () => {
             <p className="text-sm font-semibold text-cloro-700 flex items-center gap-2"><Icon type="shield" className="w-5 h-5" /> Attiva: all’accesso ti chiediamo anche il codice dell’app.</p>
             <div className="flex flex-wrap gap-2">
                 <button onClick={newCodes} disabled={busy} className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl">Nuovi codici di recupero</button>
-                <button onClick={disable} disabled={busy} className="px-4 py-2 text-sm font-semibold text-galleggiante hover:bg-red-50 rounded-xl">Disattiva</button>
+                <button onClick={disable} disabled={busy} className="px-4 py-2 text-sm font-semibold text-galleggiante-700 hover:bg-red-50 rounded-xl">Disattiva</button>
             </div>
         </div>
     ) : (

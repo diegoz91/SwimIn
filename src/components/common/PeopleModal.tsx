@@ -94,7 +94,7 @@ export const PeopleModal: React.FC<{
                 )}
                 <div className="overflow-y-auto p-2 flex-1">
                     {error ? (
-                        <p className="p-6 text-center text-sm text-galleggiante">{error}</p>
+                        <p className="p-6 text-center text-sm text-galleggiante-700">{error}</p>
                     ) : rows === null ? (
                         <div className="space-y-2 p-2" aria-hidden="true">
                             {[0, 1, 2].map((i) => <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />)}

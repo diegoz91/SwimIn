@@ -375,7 +375,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <Icon type="alert-triangle" className="w-6 h-6" />
                     Disponibilità per sostituzioni urgenti
                 </h2>
-                <p className="text-red-600 text-sm mt-2 font-medium max-w-xl">
+                <p className="text-red-700 text-sm mt-2 font-medium max-w-xl">
                     Attiva questa modalità per segnalare la tua disponibilità immediata. Riceverai priorità per le chiamate SOS dalle piscine nella tua zona.
                 </p>
             </div>

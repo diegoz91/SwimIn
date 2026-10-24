@@ -114,7 +114,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
                 <button 
                     onClick={() => handleAction('reject')}
                     disabled={isProcessing}
-                    className="p-2.5 sm:p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 active:scale-95 disabled:opacity-50"
+                    className="p-2.5 sm:p-3 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 active:scale-95 disabled:opacity-50"
                     title="Rifiuta richiesta"
                     aria-label="Rifiuta connessione"
                 >

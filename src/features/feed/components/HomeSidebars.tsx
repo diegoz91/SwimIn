@@ -58,7 +58,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     <>
                         <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
                             <span className="text-slate-500">Brevetti</span>
-                            <span className={`font-semibold ${attention.length ? 'text-galleggiante' : 'text-corsia-700'}`}>
+                            <span className={`font-semibold ${attention.length ? 'text-galleggiante-700' : 'text-corsia-700'}`}>
                                 {certs.length}{attention.length ? ` · ${attention.length} da rinnovare` : ''}
                             </span>
                         </Link>
@@ -70,7 +70,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                 )}
             </div>
             {isProfessional && (user as UserProfile).availableForEmergencies && (
-                <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-galleggiante flex items-center gap-1.5">
+                <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-galleggiante-700 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-galleggiante" aria-hidden="true" /> Disponibile per sostituzioni urgenti
                 </p>
             )}
@@ -89,7 +89,7 @@ export const CertificationAlert: React.FC<{ user: AuthenticatedUser }> = ({ user
             to="/profile"
             className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${expired ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
         >
-            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${expired ? 'bg-red-100 text-galleggiante' : 'bg-amber-100 text-amber-700'}`}>
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${expired ? 'bg-red-100 text-galleggiante-700' : 'bg-amber-100 text-amber-700'}`}>
                 <Icon type="certificate" className="w-5 h-5" />
             </span>
             <span className="flex-1 min-w-0">
@@ -235,7 +235,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                                     <img src={job.facilityLogo || initialsAvatar(job.structureName)} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
                                     <span className="min-w-0">
                                         <span className="block text-sm font-semibold text-abisso truncate">
-                                            {job.isSOS && <span className="text-galleggiante">SOS </span>}
+                                            {job.isSOS && <span className="text-galleggiante-700">SOS </span>}
                                             {jobDisplayTitle(job)}
                                         </span>
                                         <span className="block text-xs text-slate-500 truncate">{[job.structureName, job.city].filter(Boolean).join(', ')}</span>

@@ -80,7 +80,7 @@ export const ProfileStatsCard: React.FC<{ premium: boolean; onOpenViews?: () => 
                             </div>
                         </div>
                     )}
-                    {error && <p className="mt-3 text-sm text-galleggiante">Statistiche non disponibili al momento.</p>}
+                    {error && <p className="mt-3 text-sm text-galleggiante-700">Statistiche non disponibili al momento.</p>}
                 </div>
                 {!premium && (
                     <div className="absolute inset-0 grid place-items-center">

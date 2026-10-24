@@ -119,7 +119,7 @@ const EventPage: React.FC = () => {
     return (
         <div className="pt-4 max-w-3xl mx-auto w-full space-y-4">
             <section className="bg-white rounded-2xl border border-slate-200 shadow-card p-5 sm:p-6">
-                {cancelled && <p className="mb-4 rounded-xl bg-red-50 text-galleggiante font-semibold px-4 py-2.5 text-sm">Questo evento è stato annullato dall’organizzatore.</p>}
+                {cancelled && <p className="mb-4 rounded-xl bg-red-50 text-galleggiante-700 font-semibold px-4 py-2.5 text-sm">Questo evento è stato annullato dall’organizzatore.</p>}
                 {!cancelled && past && <p className="mb-4 rounded-xl bg-slate-100 text-slate-600 font-semibold px-4 py-2.5 text-sm">Evento concluso.</p>}
                 <div className="flex gap-4 sm:gap-5">
                     <DateTile date={event.date} size="lg" />
@@ -187,7 +187,7 @@ const EventPage: React.FC = () => {
                     {isOrganizer && open && (
                         <>
                             <button onClick={() => setEditing(true)} className="px-5 py-2.5 rounded-full font-semibold text-corsia-700 hover:bg-corsia-50 flex items-center gap-2"><Icon type="pencil" className="w-4 h-4" /> Modifica</button>
-                            <button onClick={cancel} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-galleggiante hover:bg-red-50">Annulla evento</button>
+                            <button onClick={cancel} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-galleggiante-700 hover:bg-red-50">Annulla evento</button>
                         </>
                     )}
                 </div>

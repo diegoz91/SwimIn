@@ -158,7 +158,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         <div className="mt-3 rounded-2xl border border-slate-200 p-4 space-y-2 animate-in fade-in duration-200">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-semibold text-abisso">Opzioni del sondaggio</p>
-                                <button type="button" onClick={() => setPoll(null)} className="text-sm font-semibold text-slate-500 hover:text-galleggiante">Rimuovi</button>
+                                <button type="button" onClick={() => setPoll(null)} className="text-sm font-semibold text-slate-500 hover:text-galleggiante-700">Rimuovi</button>
                             </div>
                             {poll.options.map((o, i) => (
                                 <div key={i} className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                                         className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-sm"
                                     />
                                     {poll.options.length > 2 && (
-                                        <button type="button" onClick={() => setPoll({ ...poll, options: poll.options.filter((_, j) => j !== i) })} aria-label={`Togli l'opzione ${i + 1}`} className="p-2 text-slate-400 hover:text-galleggiante">
+                                        <button type="button" onClick={() => setPoll({ ...poll, options: poll.options.filter((_, j) => j !== i) })} aria-label={`Togli l'opzione ${i + 1}`} className="p-2 text-slate-400 hover:text-galleggiante-700">
                                             <Icon type="x" className="w-4 h-4" />
                                         </button>
                                     )}
@@ -206,7 +206,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                             {videoFile ? (
                                 <div className="relative rounded-xl overflow-hidden bg-black">
                                     <video src={videoFile.preview} controls playsInline className="w-full max-h-80 object-contain" />
-                                    <button onClick={() => setVideoFile(null)} disabled={uploading} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-slate-700 hover:text-red-600" aria-label="Rimuovi video">
+                                    <button onClick={() => setVideoFile(null)} disabled={uploading} className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-slate-700 hover:text-red-700" aria-label="Rimuovi video">
                                         <Icon type="x" className="w-5 h-5" />
                                     </button>
                                 </div>

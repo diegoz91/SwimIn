@@ -85,7 +85,7 @@ const PublicJob: React.FC = () => {
                     <article className="space-y-4">
                         <section className="bg-white rounded-2xl border border-slate-200 shadow-card p-5 sm:p-8">
                             {job.isSOS && (
-                                <p className="inline-flex items-center gap-1.5 mb-4 text-sm font-semibold text-galleggiante bg-red-50 rounded-full px-3 py-1">
+                                <p className="inline-flex items-center gap-1.5 mb-4 text-sm font-semibold text-galleggiante-700 bg-red-50 rounded-full px-3 py-1">
                                     <Icon type="alert-triangle" className="w-4 h-4" /> Sostituzione urgente
                                 </p>
                             )}

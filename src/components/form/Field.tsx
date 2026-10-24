@@ -44,7 +44,7 @@ export const Field: React.FC<FieldProps> = ({ id, label, optional, hint, error, 
                     {optional && <span className="ml-1.5 font-normal text-slate-400">facoltativo</span>}
                 </label>
                 {showCount && (
-                    <span className={`text-xs tabular-nums ${length > count.max ? 'text-galleggiante font-semibold' : 'text-slate-400'}`} aria-live="polite">
+                    <span className={`text-xs tabular-nums ${length > count.max ? 'text-galleggiante-700 font-semibold' : 'text-slate-400'}`} aria-live="polite">
                         {length}/{count.max}
                     </span>
                 )}
@@ -58,7 +58,7 @@ export const Field: React.FC<FieldProps> = ({ id, label, optional, hint, error, 
                 child
             )}
             {error ? (
-                <p id={errorId} className="mt-1.5 text-sm text-galleggiante flex items-start gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                <p id={errorId} className="mt-1.5 text-sm text-galleggiante-700 flex items-start gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                     <Icon type="alert-triangle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     {error}
                 </p>

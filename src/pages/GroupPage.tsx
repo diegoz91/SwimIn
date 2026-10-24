@@ -188,7 +188,7 @@ const GroupPage: React.FC = () => {
         <button
             onClick={onClick}
             className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
-                tone === 'primary' ? 'bg-corsia-600 text-white hover:bg-corsia-700' : tone === 'danger' ? 'text-galleggiante hover:bg-red-50' : 'text-slate-600 hover:bg-slate-100'
+                tone === 'primary' ? 'bg-corsia-600 text-white hover:bg-corsia-700' : tone === 'danger' ? 'text-galleggiante-700 hover:bg-red-50' : 'text-slate-600 hover:bg-slate-100'
             }`}
         >
             {label}
@@ -366,7 +366,7 @@ const GroupPage: React.FC = () => {
                         <p className="text-sm text-slate-500">Creato il {formatDate(group.$createdAt.slice(0, 10))}. I post del gruppo sono visibili a tutti gli iscritti a SwimIn.</p>
                         {isAdmin && (
                             <div className="pt-4 border-t border-slate-100">
-                                <button onClick={remove} className="text-sm font-semibold text-galleggiante hover:underline flex items-center gap-1.5">
+                                <button onClick={remove} className="text-sm font-semibold text-galleggiante-700 hover:underline flex items-center gap-1.5">
                                     <Icon type="trash" className="w-4 h-4" /> Elimina il gruppo
                                 </button>
                             </div>

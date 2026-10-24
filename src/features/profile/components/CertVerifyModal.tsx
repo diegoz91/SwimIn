@@ -96,7 +96,7 @@ export const CertVerifyModal: React.FC<{ open: boolean; cert?: Certification; us
                 )}
             </button>
             {file && <button type="button" onClick={() => inputRef.current?.click()} className="text-sm font-semibold text-corsia-700 hover:underline">Cambia file</button>}
-            {error && <p className="text-sm text-galleggiante flex items-center gap-1.5"><Icon type="alert-triangle" className="w-4 h-4" /> {error}</p>}
+            {error && <p className="text-sm text-galleggiante-700 flex items-center gap-1.5"><Icon type="alert-triangle" className="w-4 h-4" /> {error}</p>}
         </FormModal>
     );
 };

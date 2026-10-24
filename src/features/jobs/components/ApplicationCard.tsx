@@ -94,7 +94,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
                     {status === 'pending' && onWithdraw && (
                         <button 
                             onClick={() => onWithdraw($id)}
-                            className="font-semibold text-slate-500 hover:text-red-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-200 rounded px-2"
+                            className="font-semibold text-slate-500 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-200 rounded px-2"
                         >
                             Ritira
                         </button>

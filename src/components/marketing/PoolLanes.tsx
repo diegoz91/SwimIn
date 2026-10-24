@@ -12,7 +12,7 @@ interface LaneCard {
 
 const LANES: LaneCard[] = [
     { icon: 'certificate', tone: 'bg-cloro-100 text-cloro-700', title: 'Brevetto Assistente Bagnanti', detail: 'Valido fino a giugno 2027', offset: '6%' },
-    { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante', title: 'SOS: bagnino domani 14–20', detail: 'Aquae Sport Center, Sesto S. G.', offset: '22%' },
+    { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', title: 'SOS: bagnino domani 14–20', detail: 'Aquae Sport Center, Sesto S. G.', offset: '22%' },
     { icon: 'star', tone: 'bg-amber-100 text-amber-700', title: 'Marco ha confermato', detail: '“Scuola nuoto bambini”', offset: '12%' },
     { icon: 'briefcase', tone: 'bg-corsia-100 text-corsia-700', title: 'Istruttore FIN, corsi serali', detail: 'Piscina Lido di Milano', offset: '30%' },
 ];

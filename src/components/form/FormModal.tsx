@@ -99,7 +99,7 @@ export const FormModal: React.FC<FormModalProps> = ({
                 <div className="sm:hidden mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-200" aria-hidden="true" />
                 <header className="flex items-start gap-3 px-5 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-slate-100">
                     {icon && (
-                        <span className={`flex-shrink-0 w-10 h-10 rounded-xl grid place-items-center ${tone === 'danger' ? 'bg-red-50 text-galleggiante' : 'bg-corsia-50 text-corsia-700'}`}>
+                        <span className={`flex-shrink-0 w-10 h-10 rounded-xl grid place-items-center ${tone === 'danger' ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`}>
                             <Icon type={icon} className="w-5 h-5" />
                         </span>
                     )}

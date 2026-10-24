@@ -61,9 +61,10 @@ export default {
         cloro,
         abisso: '#0A2738',
         piastrella: '#F2F8FA',
-        galleggiante: '#E23D3D',
+        // Rosso SOS: DEFAULT per sfondi, bordi e icone; 700 per i testi (contrasto AA su bianco).
+        galleggiante: { DEFAULT: '#E23D3D', 700: '#C42828' },
         // Solo per SwimIn Premium (badge, pagina dei piani): l'oro della medaglia.
-        oro: { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A' },
+        oro: { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A', 800: '#634814' },
         // compatibilità con il vecchio token
         brand: { 50: corsia[50], 100: corsia[100], 500: corsia[500], 600: corsia[600], 900: corsia[900] },
       },

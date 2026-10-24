@@ -179,6 +179,9 @@ async function auditA11y(page, pageName) {
         // eslint-disable-next-line no-undef
         const r = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] });
         // Gli elenchi dei menu a tendina si scorrono con le frecce dal campo che li apre: non sono regioni da raggiungere col tab.
+        // Testo decorativo o anteprima sfocata, nascosto alle tecnologie assistive: il contrasto non conta.
+        const hidden = (n) => { try { return !!document.querySelector(n.target.join(' '))?.closest('[aria-hidden="true"]'); } catch { return false; } };
+        for (const v of r.violations) if (v.id === 'color-contrast') v.nodes = v.nodes.filter((n) => !hidden(n));
         for (const v of r.violations) if (v.id === 'scrollable-region-focusable') v.nodes = v.nodes.filter((n) => !n.html.includes('data-keyboard-scroll'));
         return r.violations.filter((v) => v.nodes.length).map((v) => ({ id: v.id, impact: v.impact, help: v.help, pairs: v.id === 'color-contrast' ? v.nodes.map((n) => { const d = n.any?.[0]?.data || {}; return `${d.fgColor} su ${d.bgColor} (${d.contrastRatio}, ${d.fontSize} ${d.fontWeight}) «${(n.html.match(/class="([^"]*)"/)?.[1] || '').split(' ').filter((c) => /text-|bg-/.test(c)).join(' ')}»`; }) : [], nodes: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(' '), html: n.html.slice(0, 160), summary: (n.failureSummary || '').split('\n').slice(1, 3).join(' ').slice(0, 200) })), count: v.nodes.length }));
     });

@@ -58,7 +58,7 @@ const ReviewModal: React.FC<{ open: boolean; structureName: string; existing?: R
             formRef={form.formRef}
             secondaryAction={
                 existing && onDelete ? (
-                    <button type="button" className="text-sm font-semibold text-galleggiante hover:underline" onClick={async () => { if (window.confirm('Eliminare la tua recensione?')) { await onDelete(); onClose(); } }}>
+                    <button type="button" className="text-sm font-semibold text-galleggiante-700 hover:underline" onClick={async () => { if (window.confirm('Eliminare la tua recensione?')) { await onDelete(); onClose(); } }}>
                         Elimina
                     </button>
                 ) : null

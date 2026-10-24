@@ -77,7 +77,7 @@ const FLOWS = [
         await page.getByText('Di cosa vorresti parlare alla rete di SwimIn?').first().click();
         const box = page.getByPlaceholder(/^Condividi un pensiero/);
         await box.fill('Allenamento di prova: 10x100 stile a 1’40”. #master');
-        await page.locator('[role="dialog"]', { has: box }).getByRole('button', { name: 'Pubblica', exact: true }).click();
+        await page.getByRole('button', { name: 'Pubblica', exact: true }).last().click();
         const c = await called(state, 'createPost');
         assert.match(c.params.content, /10x100/);
     }],

@@ -234,7 +234,7 @@ const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
           </div>
           <div>
             <input type="password" autoComplete="new-password" placeholder="Ripeti la nuova password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} required aria-label="Ripeti la nuova password" aria-invalid={confirm && confirm !== newPassword ? 'true' : undefined} />
-            {confirm && confirm !== newPassword && <p className="text-xs text-galleggiante mt-1.5">Le due password non coincidono.</p>}
+            {confirm && confirm !== newPassword && <p className="text-xs text-galleggiante-700 mt-1.5">Le due password non coincidono.</p>}
           </div>
           <button type="submit" disabled={busy !== null} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-60">
             {busy === 'password' ? 'Salvataggio…' : 'Aggiorna password'}
@@ -459,7 +459,7 @@ const AboutTab: React.FC<{ onLogout?: () => void }> = ({ onLogout }) => (
       </div>
     </Card>
     {onLogout && (
-      <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+      <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 text-red-700 font-bold rounded-2xl hover:bg-red-50 transition outline-none focus-visible:ring-2 focus-visible:ring-red-500">
         <Icon type="logout" className="w-5 h-5" /> Esci dall'account
       </button>
     )}
@@ -492,7 +492,7 @@ const DeleteAccountCard: React.FC = () => {
   return (
     <Card tone="danger" title="Elimina account" description="Elimina definitivamente il profilo, i post, i commenti, le candidature e i collegamenti. L'operazione non è reversibile.">
       {!isOpen ? (
-        <button onClick={() => setIsOpen(true)} className="px-4 py-2 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-600 hover:text-white rounded-xl transition">
+        <button onClick={() => setIsOpen(true)} className="px-4 py-2 text-sm font-bold text-red-700 bg-white border border-red-200 hover:bg-red-600 hover:text-white rounded-xl transition">
           Elimina il mio account
         </button>
       ) : (

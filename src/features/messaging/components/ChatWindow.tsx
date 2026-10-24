@@ -471,7 +471,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               <button role="menuitem" onClick={() => { setActiveId(null); navigator.clipboard?.writeText(msg.content).then(() => showToast('Testo copiato.', 'info')).catch((err) => console.warn('Copia:', err)); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"><Icon type="document" className="w-4 h-4 text-slate-400" /> Copia testo</button>
                             )}
                             {isMe && (
-                              <button role="menuitem" onClick={() => remove(msg)} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-galleggiante hover:bg-red-50"><Icon type="trash" className="w-4 h-4" /> Elimina per tutti</button>
+                              <button role="menuitem" onClick={() => remove(msg)} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-galleggiante-700 hover:bg-red-50"><Icon type="trash" className="w-4 h-4" /> Elimina per tutti</button>
                             )}
                           </div>
                         )}
@@ -521,7 +521,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             )}
                           </>
                         )}
-                        <div className={`flex justify-end items-center gap-1 mt-1 text-[10px] sm:text-[11px] ${msg.deleted ? 'text-slate-400' : isMe ? 'text-blue-200' : 'text-slate-400'} ${images.length && !msg.content && !docs.length && !reply && !msg.deleted ? 'px-2 pb-1' : ''}`}>
+                        <div className={`flex justify-end items-center gap-1 mt-1 text-[10px] sm:text-[11px] ${msg.deleted ? 'text-slate-400' : isMe ? 'text-blue-100' : 'text-slate-400'} ${images.length && !msg.content && !docs.length && !reply && !msg.deleted ? 'px-2 pb-1' : ''}`}>
                           <span>{formatTimestamp(msg.$createdAt)}</span>
                           {isMe && !msg.deleted && (
                             <Icon

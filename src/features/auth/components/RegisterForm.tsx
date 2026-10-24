@@ -169,7 +169,7 @@ export const RegisterForm: React.FC = () => {
                             </span>
                         }
                     />
-                    {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante">{errors.acceptedTerms}</p>}
+                    {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante-700">{errors.acceptedTerms}</p>}
                 </div>
 
                 {error && (

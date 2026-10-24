@@ -157,7 +157,7 @@ export const Comment: React.FC<CommentProps> = ({
                     {deleteAction && (
                         <button
                             onClick={deleteAction}
-                            className="font-semibold text-slate-400 hover:text-red-600 transition-colors outline-none focus-visible:text-red-600"
+                            className="font-semibold text-slate-400 hover:text-red-700 transition-colors outline-none focus-visible:text-red-700"
                         >
                             Elimina
                         </button>

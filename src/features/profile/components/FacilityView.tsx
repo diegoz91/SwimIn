@@ -498,12 +498,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                         {sosJobs.length > 0 && (
                             <div className="mb-6 space-y-4">
-                                <h3 className="font-extrabold text-red-600 flex items-center gap-2 mb-2 px-2">
+                                <h3 className="font-extrabold text-red-700 flex items-center gap-2 mb-2 px-2">
                                     <Icon type="alert-triangle" className="w-5 h-5 animate-pulse" /> Sostituzioni urgenti
                                 </h3>
                                 {sosJobs.map(job => (
                                     <div key={job.$id} className="bg-red-50 border-2 border-red-500 p-5 rounded-2xl shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS attivo</div>
+                                        <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS attivo</div>
                                         <div className="pt-2 sm:pt-0 pr-20 sm:pr-0">
                                             <h3 className="font-bold text-lg text-red-800">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-red-700 font-medium">
@@ -693,7 +693,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                 <button onClick={() => handleRespondShift(shift.$id, 'declined')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>
                                             )}
                                             {isAdmin && (
-                                                <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50" aria-label={`Annulla il turno di ${shift.userName} del ${shift.date}`}>
+                                                <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-700 hover:bg-red-50" aria-label={`Annulla il turno di ${shift.userName} del ${shift.date}`}>
                                                     Annulla
                                                 </button>
                                             )}
@@ -715,7 +715,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         {isStaff && user && (
                             <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
                                 <span>Fai parte dello staff di {structureName}.</span>
-                                <button onClick={() => handleRemoveStaff(user.$id)} className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
+                                <button onClick={() => handleRemoveStaff(user.$id)} className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante-700">Lascia lo staff</button>
                             </div>
                         )}
 
@@ -742,7 +742,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                     {isAdmin && (
                                                         <button 
                                                             onClick={() => handleRemoveStaff(member.userId)}
-                                                            className="absolute top-4 right-4 text-slate-300 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
+                                                            className="absolute top-4 right-4 text-slate-300 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
                                                             title="Rimuovi dallo staff" aria-label={`Rimuovi ${name} dallo staff`}
                                                         >
                                                             <Icon type="user-minus" className="w-5 h-5" />
@@ -765,7 +765,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                             <p className="text-sm text-slate-500 flex items-center gap-2"><Icon type="info" className="w-4 h-4"/> Nessun brevetto registrato</p>
                                                         ) : problems.length > 0 ? (
                                                             <div className="space-y-2">
-                                                                <p className="text-sm font-bold text-red-600 flex items-center gap-2 mb-3">
+                                                                <p className="text-sm font-bold text-red-700 flex items-center gap-2 mb-3">
                                                                     <Icon type="alert-triangle" className="w-4 h-4" /> Brevetti in scadenza
                                                                 </p>
                                                                 {problems.map((p, idx) => (
@@ -855,7 +855,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
                         <div className="p-6 text-center">
-                            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon type="trash" className="w-8 h-8" />
                             </div>
                             <h3 className="text-xl font-extrabold text-slate-900 mb-2">Elimina l’annuncio</h3>
