@@ -1100,6 +1100,8 @@ export default async ({ req, res, log, error }) => {
     billing,
   });
   const { action, ...params } = body;
+  // Controllo di salute (anche da ospiti): quale versione del codice risponde. Lo usa setup-db dopo il deploy.
+  if (action === 'health') return res.json({ ok: true, data: { version: env.APP_VERSION || '', actions: Object.keys(api).filter((k) => !k.startsWith('_')).length } });
   // Senza login si possono chiamare solo le azioni pubbliche (profili pubblici, sitemap).
   if (!userId && !PUBLIC_ACTIONS.includes(action)) return res.json({ ok: false, error: 'Devi effettuare il login.' }, 401);
   // Le azioni che iniziano con "_" sono helper interni, non chiamabili dal client.
