@@ -23,6 +23,26 @@ const cert = (name, issuer, category, expiry, extra = {}) => JSON.stringify({ na
 const DAYS = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const allToday = ['mattina', 'pomeriggio', 'sera'].map((p) => `${['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][new Date(now).getDay()]}-${p}`);
 
+const session = (id, minutesAgo, extra) => ({
+    $id: id, $createdAt: iso(minutesAgo), $updatedAt: iso(minutesAgo), userId: ME, expire: iso(-60 * 24 * 300), provider: 'email',
+    providerUid: 'giulia.ferri@example.com', ip: '0.0.0.0', osCode: '', osVersion: '', clientType: 'browser', clientCode: '', clientVersion: '',
+    clientEngine: '', clientEngineVersion: '', deviceBrand: '', deviceModel: '', countryCode: 'it', countryName: 'Italia', current: false,
+    factors: ['password'], secret: '', mfaUpdatedAt: '', ...extra,
+});
+/** Dispositivi collegati e attività dell'account (Accesso e sicurezza). */
+export const sessions = [
+    session('s1', 30, { clientName: 'Chrome', osName: 'Windows', deviceName: 'desktop', current: true }),
+    session('s2', 60 * 26, { clientName: 'Safari', osName: 'iOS', deviceName: 'smartphone', deviceBrand: 'Apple', deviceModel: 'iPhone' }),
+    session('s3', 60 * 24 * 9, { clientName: 'Firefox', osName: 'Mac', deviceName: 'desktop' }),
+];
+const log = (event, minutesAgo, clientName, osName) => ({ event, userId: ME, userEmail: '', userName: '', mode: 'default', ip: '0.0.0.0', time: iso(minutesAgo), osCode: '', osName, osVersion: '', clientType: 'browser', clientCode: '', clientName, clientVersion: '', clientEngine: '', clientEngineVersion: '', deviceName: '', deviceBrand: '', deviceModel: '', countryCode: 'it', countryName: 'Italia' });
+export const accountLogs = [
+    log('session.create', 30, 'Chrome', 'Windows'),
+    log('session.create', 60 * 26, 'Safari', 'iOS'),
+    log('user.update.password', 60 * 24 * 3, 'Chrome', 'Windows'),
+    log('session.create', 60 * 24 * 9, 'Firefox', 'Mac'),
+];
+
 export const account = {
     $id: ME,
     $createdAt: iso(60 * 24 * 90),
@@ -318,5 +338,14 @@ export const apiResponses = {
         experiences: [{ title: 'Istruttrice di nuoto', company: 'Piscina Lido di Milano', startDate: '2021-09', endDate: '', current: true }],
         certifications: [{ name: 'Istruttore di nuoto 2° livello', issuer: 'FIN – Federazione Italiana Nuoto', category: 'istruzione', verified: true }, { name: 'Brevetto Assistente Bagnanti', issuer: 'Società Nazionale di Salvamento', category: 'salvamento', verified: false }],
     }),
-    getPushConfig: () => ({ publicKey: null, emailAvailable: false, devices: 0, prefs: null, categories: [] }),
+    getPushConfig: () => ({
+        publicKey: 'BExampleVapidKeyForScreenshotsOnly',
+        emailAvailable: true,
+        devices: 1,
+        prefs: {
+            messages: { push: true, email: true }, connections: { push: true, email: false }, social: { push: true, email: false },
+            jobs: { push: true, email: true }, sos: { push: true, email: false }, general: { push: true, email: false }, digest: { push: false, email: true },
+        },
+        categories: ['messages', 'connections', 'social', 'jobs', 'sos', 'general', 'digest'],
+    }),
 };
