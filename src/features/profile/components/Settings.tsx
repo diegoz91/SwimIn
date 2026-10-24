@@ -16,6 +16,7 @@ import { email as emailRule, passwordStrength } from '@/utils/validation';
 import { NotificationsTab } from './NotificationSettings';
 import { isPremium } from '@/utils/premium';
 import { requestPremium } from '@/services/premiumPrompt';
+import { TwoFactorSetup } from './TwoFactorSetup';
 
 interface SettingsProps {
   currentUser: AuthenticatedUser;
@@ -249,6 +250,10 @@ const SecurityTab: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
             {busy === 'email' ? 'Salvataggio…' : 'Aggiorna email'}
           </button>
         </form>
+      </Card>
+
+      <Card title="Verifica in due passaggi" description="Oltre alla password, all’accesso ti chiediamo un codice generato da un’app sul telefono: anche chi scopre la password non può entrare.">
+        <TwoFactorSetup />
       </Card>
 
       <Card title="Dispositivi" description="Se hai effettuato l'accesso su un dispositivo che non usi più, puoi disconnetterlo.">

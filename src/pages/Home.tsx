@@ -14,6 +14,7 @@ import { CertificationAlert, HomeProfileCard, HomeRightRail } from '@/features/f
 import type { EnrichedPost, Job, Application } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
 import { useBlocks } from '@/context/BlocksContext';
+import { rankForYou, saveFeedMode, savedFeedMode, type FeedMode } from '@/utils/feedRank';
 
 interface EnrichedHiredApp extends Application {
     job?: Job;
@@ -37,7 +38,9 @@ const Home: React.FC = () => {
     // 💡 STATO DEL GOLDEN TICKET (ONBOARDING)
     const [hiredApps, setHiredApps] = useState<EnrichedHiredApp[]>([]);
 
-    const POSTS_PER_PAGE = 10;
+    // "Per te" ordina per rilevanza una finestra più ampia di post; "Più recenti" è cronologico.
+    const [feedMode, setFeedMode] = useState<FeedMode>(savedFeedMode);
+    const POSTS_PER_PAGE = feedMode === 'perte' ? 30 : 10;
 
     // Controllo Assunzioni
     useEffect(() => {
@@ -84,9 +87,10 @@ const Home: React.FC = () => {
         try {
             const connections = user.connections || [];
             const following = await databaseService.getFollowingIds(user.$id).catch(() => [] as string[]);
-            const fetchedPosts = await databaseService.getFeed(user.$id || user.userId, connections, POSTS_PER_PAGE, offset, following);
-            
-            if (fetchedPosts.length < POSTS_PER_PAGE) setHasMore(false);
+            const raw = await databaseService.getFeed(user.$id || user.userId, connections, POSTS_PER_PAGE, offset, following);
+            const fetchedPosts = feedMode === 'perte' ? rankForYou(raw, { me: user.$id, connections: new Set(connections), following: new Set(following) }) : raw;
+
+            setHasMore(raw.length >= POSTS_PER_PAGE);
             
             if (append) setPosts(prev => [...prev, ...fetchedPosts]);
             else setPosts(fetchedPosts);
@@ -98,7 +102,7 @@ const Home: React.FC = () => {
             setIsLoading(false);
             setIsFetchingMore(false);
         }
-    }, [user, showToast]);
+    }, [user, showToast, feedMode, POSTS_PER_PAGE]);
 
     useEffect(() => {
         if (authenticated && user) loadFeed();
@@ -150,7 +154,7 @@ const Home: React.FC = () => {
                                         Congratulazioni! <strong>{app.job?.structureName}</strong> ti ha scelto per il ruolo di <em>{app.job?.title}</em>.
                                     </p>
                                     <button onClick={() => navigate(`/profile/${app.job?.structureId}`)} className="bg-white text-green-700 font-extrabold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2 outline-none focus-visible:ring-4 focus-visible:ring-green-300">
-                                        <Icon type="building" className="w-5 h-5" /> Entra nell'Area Team
+                                        <Icon type="building" className="w-5 h-5" /> Entra nell’area staff
                                     </button>
                                 </div>
                             </div>
@@ -159,6 +163,20 @@ const Home: React.FC = () => {
                 )}
 
                 <PostCreator onPostCreated={() => loadFeed(0, false)} />
+
+                <div className="flex items-center gap-3" role="group" aria-label="Ordine del feed">
+                    <span className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+                    {(['perte', 'recenti'] as FeedMode[]).map((m) => (
+                        <button
+                            key={m}
+                            onClick={() => { setFeedMode(m); saveFeedMode(m); }}
+                            aria-pressed={feedMode === m}
+                            className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${feedMode === m ? 'bg-abisso text-white' : 'text-slate-500 hover:text-abisso hover:bg-white'}`}
+                        >
+                            {m === 'perte' ? 'Per te' : 'Più recenti'}
+                        </button>
+                    ))}
+                </div>
 
                 <div className="flex flex-col gap-4 relative">
                     {isLoading ? (

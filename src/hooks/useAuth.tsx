@@ -5,6 +5,7 @@ import { APPWRITE_CONFIG } from '@/config/constants';
 import { emitNetworkChange } from '@/utils/networkEvents';
 import { databaseService } from '@/services/database';
 import type { AuthenticatedUser, UserProfile, StructureProfile } from '@/types/types';
+import { completeLoginChallenge, createLoginChallenge, isMfaRequired } from '@/services/mfa';
 
 export interface RegistrationData {
   userType: 'professional' | 'structure';
@@ -22,7 +23,10 @@ interface AuthContextType {
   isLoading: boolean;
   /** Primo controllo della sessione all'apertura dell'app non ancora concluso. */
   isInitializing: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** 'mfa' se serve anche il codice della verifica in due passaggi (poi `completeMfa`). */
+  login: (email: string, password: string) => Promise<'ok' | 'mfa'>;
+  /** Conclude l'accesso con il codice dell'app o un codice di recupero. */
+  completeMfa: (code: string, useRecovery?: boolean) => Promise<void>;
   register: (email: string, password: string, data: RegistrationData) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile | StructureProfile>) => Promise<void>;
@@ -96,19 +100,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => unsubscribe();
   }, [userId]);
 
-  const login = async (email: string, password: string) => {
-    if (isActionPending.current) return;
+  const mfaChallenge = useRef<{ id: string; recovery: boolean } | null>(null);
+
+  const login = async (email: string, password: string): Promise<'ok' | 'mfa'> => {
+    if (isActionPending.current) return 'ok';
     isActionPending.current = true;
     setIsLoading(true);
     try {
-      await account.createEmailPasswordSession(email, password);
+      try {
+        await account.createEmailPasswordSession(email, password);
+      } catch (error) {
+        // Sessione rimasta aperta (es. accesso a metà con la verifica in due passaggi): la chiudiamo e riproviamo.
+        if ((error as { type?: string })?.type !== 'user_session_already_exists') throw error;
+        await account.deleteSession('current');
+        await account.createEmailPasswordSession(email, password);
+      }
+      try {
+        await account.get();
+      } catch (error) {
+        if (!isMfaRequired(error)) throw error;
+        mfaChallenge.current = { id: await createLoginChallenge(false), recovery: false };
+        return 'mfa';
+      }
       await checkAuth();
+      return 'ok';
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
       isActionPending.current = false;
+    }
+  };
+
+  const completeMfa = async (code: string, useRecovery = false) => {
+    setIsLoading(true);
+    try {
+      if (!mfaChallenge.current || mfaChallenge.current.recovery !== useRecovery) {
+        mfaChallenge.current = { id: await createLoginChallenge(useRecovery), recovery: useRecovery };
+      }
+      await completeLoginChallenge(mfaChallenge.current.id, code);
+      mfaChallenge.current = null;
+      await checkAuth();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -184,6 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     isInitializing,
     login,
+    completeMfa,
     register,
     logout,
     updateProfile,

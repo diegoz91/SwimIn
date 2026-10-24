@@ -233,7 +233,7 @@ export interface TeamBoard {
 }
 export interface StaffMessage { $id: string; $createdAt: string; structureId: string; authorId: string; content: string }
 export interface StaffChatMember { $id: string; name: string; avatar: string; role: 'admin' | 'staff' }
-export type NotifyCategory = 'messages' | 'connections' | 'social' | 'jobs' | 'sos' | 'general';
+export type NotifyCategory = 'messages' | 'connections' | 'social' | 'jobs' | 'sos' | 'general' | 'digest';
 export type NotificationPrefs = Record<NotifyCategory, { push: boolean; email: boolean }>;
 export interface PushConfig {
     /** Chiave VAPID pubblica, null se le push non sono configurate sul server. */

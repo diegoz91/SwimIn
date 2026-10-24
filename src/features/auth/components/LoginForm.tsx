@@ -14,7 +14,11 @@ export const LoginForm: React.FC = () => {
     const [recoveryEmail, setRecoveryEmail] = useState('');
     const [isRecovering, setIsRecovering] = useState(false);
 
-    const { login, isLoading } = useAuth();
+    const { login, completeMfa, isLoading } = useAuth();
+    // Verifica in due passaggi: dopo la password chiediamo il codice dell'app (o un codice di recupero).
+    const [mfaStep, setMfaStep] = useState(false);
+    const [mfaCode, setMfaCode] = useState('');
+    const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const { showToast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,11 +34,30 @@ export const LoginForm: React.FC = () => {
         }
 
         try {
-            await login(email, password);
-            showToast('Accesso effettuato con successo!', 'success');
+            const result = await login(email, password);
+            if (result === 'mfa') {
+                setMfaStep(true);
+                return;
+            }
+            showToast('Accesso effettuato.', 'success');
             navigate(from, { replace: true });
         } catch (err: any) {
             showToast(authErrorMessage(err, 'Accesso non riuscito. Riprova.'), 'error');
+        }
+    };
+
+    const handleMfa = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const code = mfaCode.trim();
+        if (!code) return showToast(useRecoveryCode ? 'Inserisci un codice di recupero.' : 'Inserisci il codice di 6 cifre dell’app.', 'error');
+        try {
+            await completeMfa(code, useRecoveryCode);
+            showToast('Accesso effettuato.', 'success');
+            navigate(from, { replace: true });
+        } catch (err) {
+            console.warn('Verifica in due passaggi:', err);
+            showToast(useRecoveryCode ? 'Codice di recupero non valido o già usato.' : 'Codice non valido: controlla l’app e riprova.', 'error');
+            setMfaCode('');
         }
     };
 
@@ -72,7 +95,39 @@ export const LoginForm: React.FC = () => {
                 <p className="text-slate-500 mt-2">Accedi al tuo network professionale.</p>
             </div>
 
-            {!showRecovery ? (
+            {mfaStep ? (
+                <form onSubmit={handleMfa} className="space-y-5">
+                    <div className="rounded-2xl bg-piastrella p-4 flex gap-3">
+                        <Icon type="shield" className="w-6 h-6 text-corsia-600 flex-shrink-0" />
+                        <p className="text-sm text-slate-700">
+                            {useRecoveryCode ? 'Inserisci uno dei codici di recupero che hai salvato quando hai attivato la verifica.' : 'Apri l’app di autenticazione sul telefono e scrivi il codice di 6 cifre per SwimIn.'}
+                        </p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="mfa-code">{useRecoveryCode ? 'Codice di recupero' : 'Codice dell’app'}</label>
+                        <input
+                            id="mfa-code"
+                            value={mfaCode}
+                            onChange={(e) => setMfaCode(useRecoveryCode ? e.target.value.slice(0, 20) : e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                            inputMode={useRecoveryCode ? 'text' : 'numeric'}
+                            autoComplete="one-time-code"
+                            autoFocus
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50 focus:bg-white text-lg tracking-[0.3em] tabular-nums"
+                            placeholder={useRecoveryCode ? 'abcd1234ef' : '123456'}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 disabled:opacity-60">
+                        {isLoading ? 'Verifica…' : 'Accedi'}
+                    </button>
+                    <div className="flex flex-wrap justify-between gap-2 text-sm">
+                        <button type="button" onClick={() => { setUseRecoveryCode((v) => !v); setMfaCode(''); }} className="py-1 font-semibold text-corsia-700 hover:underline">
+                            {useRecoveryCode ? 'Usa il codice dell’app' : 'Non hai il telefono? Usa un codice di recupero'}
+                        </button>
+                        <button type="button" onClick={() => { setMfaStep(false); setMfaCode(''); setPassword(''); }} className="py-1 font-semibold text-slate-500 hover:text-abisso">Torna indietro</button>
+                    </div>
+                </form>
+            ) : !showRecovery ? (
                 <>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>

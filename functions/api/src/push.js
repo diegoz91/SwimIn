@@ -14,6 +14,8 @@ export const NOTIFY_CATEGORIES = {
   jobs: { push: true, email: true },
   sos: { push: true, email: true },
   general: { push: true, email: true },
+  // Riepilogo settimanale: solo email.
+  digest: { push: false, email: true },
 };
 
 const CATEGORY_OF = {
@@ -212,7 +214,7 @@ export function pushActions({ find, get, list, create, update, remove, fail, C, 
       const clean = {};
       for (const cat of Object.keys(NOTIFY_CATEGORIES)) {
         const p = prefs[cat] || {};
-        clean[cat] = { push: p.push !== false, email: p.email === true };
+        clean[cat] = { push: cat === 'digest' ? false : p.push !== false, email: p.email === true };
       }
       // Le notifiche dentro l'app restano sempre; qui si scelgono solo push ed email.
       await update(C.profiles, me, { notificationPrefs: JSON.stringify(clean) });

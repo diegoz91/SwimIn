@@ -8,12 +8,13 @@
 export const GROUP_CATEGORIES = ['master', 'istruttori', 'salvamento', 'allenatori', 'appassionati', 'strutture', 'territorio', 'altro'];
 export const GROUP_PRIVACY = ['open', 'approval'];
 
-export function groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl = (v) => v || '', onGroupDeleted = async () => {} }) {
+export function groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl = (v) => v || '', onGroupDeleted = async () => {}, assertClean = () => {} }) {
   const text = (v, label, min, max, required = true) => {
     const t = typeof v === 'string' ? v.trim() : '';
     if (!t && !required) return '';
     if (t.length < min) fail(400, `${label}: almeno ${min} caratteri.`);
     if (t.length > max) fail(400, `${label}: massimo ${max} caratteri.`);
+    assertClean(t, 'text');
     return t;
   };
 
