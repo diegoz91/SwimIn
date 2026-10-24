@@ -41,6 +41,10 @@ test('referenze scritte', async () => {
   await api.respondRecommendation('anna', { recommendationId: r.$id, action: 'publish' });
   assert.deepEqual(col('recommendations')[r.$id].$permissions, ['read("users")']);
   assert.equal((await api.listRecommendations('carla', { profileId: 'anna' })).length, 1);
+  // Le notifiche: alla destinataria "da approvare", all'autore "pubblicata" (con il profilo della destinataria).
+  const notes = Object.values(col('notifications'));
+  assert.ok(notes.some((n) => n.userId === 'anna' && n.type === 'recommendation' && n.relatedId === r.$id));
+  assert.ok(notes.some((n) => n.userId === 'bob' && n.type === 'recommendation_published' && n.relatedId === 'anna'));
 
   // Riscritta: torna in attesa e privata.
   await api.writeRecommendation('bob', { profileId: 'anna', content: `${text} Consigliatissima.` });

@@ -19,6 +19,8 @@ interface FormModalProps {
     formRef?: React.RefObject<HTMLFormElement>;
     /** Azione secondaria a sinistra nel piè di pagina (es. Elimina). */
     secondaryAction?: React.ReactNode;
+    /** Testo del pulsante che chiude senza salvare; null lo nasconde (resta la X in alto). */
+    cancelLabel?: string | null;
     children: React.ReactNode;
 }
 
@@ -30,7 +32,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  */
 export const FormModal: React.FC<FormModalProps> = ({
     open, title, description, icon, dirty = false, busy = false, submitLabel, busyLabel = 'Salvataggio…', size = 'md', tone = 'default',
-    onClose, onSubmit, formRef, secondaryAction, children,
+    onClose, onSubmit, formRef, secondaryAction, cancelLabel = 'Annulla', children,
 }) => {
     const panelRef = useRef<HTMLDivElement>(null);
     const [confirmingClose, setConfirmingClose] = useState(false);
@@ -132,9 +134,11 @@ export const FormModal: React.FC<FormModalProps> = ({
                     ) : (
                         <footer className="flex items-center gap-3 px-5 sm:px-6 py-4 border-t border-slate-100 pb-[max(1rem,env(safe-area-inset-bottom))]">
                             <div className="flex-1">{secondaryAction}</div>
-                            <button type="button" onClick={requestClose} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50">
-                                Annulla
-                            </button>
+                            {cancelLabel !== null && (
+                                <button type="button" onClick={requestClose} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50">
+                                    {cancelLabel}
+                                </button>
+                            )}
                             <button type="submit" disabled={busy} className={`px-6 py-2.5 rounded-full font-semibold text-white shadow-card outline-none focus-visible:ring-4 disabled:opacity-70 inline-flex items-center gap-2 transition-colors ${primary}`}>
                                 {busy && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />}
                                 {busy ? busyLabel : submitLabel}

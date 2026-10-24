@@ -33,6 +33,10 @@ import { PoolSection } from './PoolSection';
 import { certCategoryLabel, employmentLabel } from '@/data/swimming';
 import { experiencePeriod, formatDate, formatDuration, sortExperiences, totalExperienceMonths } from '@/utils/dates';
 import { certificationStatus } from '@/utils/certifications';
+import { useRecommendations } from './recommendations/useRecommendations';
+import type { Recommendation } from '@/services/database';
+import { RecommendationReviewModal } from './recommendations/RecommendationReviewModal';
+import { AskRecommendationModal } from './recommendations/AskRecommendationModal';
 
 interface ProfileViewProps {
   user: UserProfile | StructureProfile;
@@ -134,6 +138,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const [followers, setFollowers] = useState(user.followersCount || 0);
     useEffect(() => setFollowers(user.followersCount || 0), [user.followersCount]);
     const [viewsOpen, setViewsOpen] = useState(() => isOwnProfile && new URLSearchParams(window.location.search).get('visite') === '1');
+    // Referenze: condivise tra l'avviso "da approvare" qui in alto e la sezione più in basso.
+    const recs = useRecommendations(profileKeyId, isProfessional);
+    const [review, setReview] = useState<{ open: boolean; startId?: string }>({ open: false });
+    const [askOpen, setAskOpen] = useState(false);
+    // Dalla notifica "ha scritto una referenza per te" (?referenze=approva) si apre subito la revisione.
+    const autoReview = useRef(isOwnProfile && new URLSearchParams(window.location.search).get('referenze') === 'approva');
+    useEffect(() => {
+        if (autoReview.current && recs.pending.length) {
+            autoReview.current = false;
+            setReview({ open: true });
+        }
+    }, [recs.pending.length]);
     const [viewsCount, setViewsCount] = useState<number | null>(null);
     const profileKey = user.userId || user.$id;
     useEffect(() => {
@@ -509,6 +525,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {/* Riquadri visibili solo a te (fuori dal PDF del profilo): analisi, completamento, disponibilità, strutture. */}
           <div data-html2canvas-ignore="true">
+      {isOwnProfile && recs.pending.length > 0 && (
+        <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
+      )}
       {isWorker && isOwnProfile && profUser && (
         <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -656,8 +675,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             />
           )}
 
-          {isProfessional && profUser && (isWorker || canWriteRecommendation) && (
-            <RecommendationsSection profile={profUser} isOwnProfile={isOwnProfile} canWrite={canWriteRecommendation} />
+          {isProfessional && profUser && (isOwnProfile || isWorker || canWriteRecommendation || recs.published.length > 0) && (
+            <RecommendationsSection
+                profile={profUser}
+                isOwnProfile={isOwnProfile}
+                canWrite={canWriteRecommendation}
+                recs={recs}
+                onReview={(startId) => setReview({ open: true, startId })}
+                onAsk={() => setAskOpen(true)}
+            />
           )}
 
           {isProfessional && (isWorker || experiences.length > 0 || certifications.length > 0) && (
@@ -872,6 +898,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
 
       {isReportOpen && <ReportModal targetType="profile" targetId={user.userId || user.$id} onClose={() => setIsReportOpen(false)} />}
+      {isOwnProfile && isProfessional && (
+        <>
+          <RecommendationReviewModal open={review.open} queue={recs.pending} startId={review.startId} onDone={(changed) => { setReview({ open: false }); if (changed) recs.reload(); }} />
+          {profUser && <AskRecommendationModal open={askOpen} me={profUser} onClose={() => setAskOpen(false)} />}
+        </>
+      )}
     </div>
   );
+};
+
+/** Avviso in cima al proprio profilo: referenze ricevute che aspettano una decisione. */
+const PendingRecommendationsBanner: React.FC<{ pending: Recommendation[]; onReview: () => void }> = ({ pending, onReview }) => {
+    const names = [...new Set(pending.map((r) => r.author.name))];
+    const who = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} e ${names[1]}` : `${names[0]}, ${names[1]} e altri ${names.length - 2}`;
+    return (
+        <section aria-labelledby="pending-recs-title" className="bg-white rounded-3xl shadow-sm border-2 border-corsia-200 p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex -space-x-3 flex-shrink-0" aria-hidden="true">
+                {pending.slice(0, 3).map((r) => (
+                    <img key={r.$id} src={r.author.avatar || initialsAvatar(r.author.name)} alt="" className="w-12 h-12 rounded-full object-cover ring-4 ring-white bg-slate-100" />
+                ))}
+            </div>
+            <div className="min-w-0 flex-1">
+                <h2 id="pending-recs-title" className="text-lg font-bold text-abisso">
+                    {pending.length === 1 ? 'Hai ricevuto una referenza' : `Hai ricevuto ${pending.length} referenze`}
+                </h2>
+                <p className="text-sm text-slate-600 mt-0.5">{who} {names.length === 1 ? 'ha scritto' : 'hanno scritto'} di te. Leggi e decidi se pubblicarle sul profilo: finché non lo fai, le vedi solo tu.</p>
+            </div>
+            <button type="button" onClick={onReview} className="px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700 flex-shrink-0">
+                {pending.length === 1 ? 'Leggi e decidi' : 'Rivedile'}
+            </button>
+        </section>
+    );
 };

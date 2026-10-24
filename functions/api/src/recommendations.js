@@ -78,7 +78,7 @@ export function recommendationActions({ assertClean = () => {}, find, get, list,
       const saved = await update(C.recommendations, recommendationId, { status }, perms(status, rec.authorId, rec.profileId));
       if (status === 'published' && rec.status !== 'published') {
         const who = await find(C.profiles, me);
-        await notify(rec.authorId, 'recommendation', `${who ? displayName(who) : 'La persona'} ha pubblicato la tua referenza sul suo profilo.`, me);
+        await notify(rec.authorId, 'recommendation_published', `${who ? displayName(who) : 'La persona'} ha pubblicato la tua referenza sul suo profilo.`, me);
       }
       return saved;
     },
