@@ -117,6 +117,16 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
         setCandidateToHire(null);
     };
 
+    /** Link pubblico dell'offerta (/offerte/:id): si apre anche senza account ed è indicizzato da Google Jobs. */
+    const shareJob = async () => {
+        const url = `${window.location.origin}/offerte/${localJob.$id}`;
+        try {
+            if (navigator.share) await navigator.share({ title: jobDisplayTitle(localJob), url });
+            else { await navigator.clipboard.writeText(url); showToast('Link dell’offerta copiato.', 'info'); }
+        } catch (err) {
+            if ((err as Error)?.name !== 'AbortError') console.warn('Condivisione:', err);
+        }
+    };
     const [isToggling, setIsToggling] = useState(false);
     const toggleOpen = async () => {
         if (localJob.isActive && !window.confirm('Chiudere l’annuncio? Non riceverà più candidature; potrai riaprirlo finché non scade.')) return;
@@ -158,11 +168,18 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                     <button onClick={onBack} className="flex items-center text-slate-500 hover:text-blue-600 font-semibold group transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
                         <Icon type="arrow-left" className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform" /> Indietro
                     </button>
-                    {isAdmin && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200 shadow-sm flex items-center gap-1">
-                            <Icon type="star" className="w-3.5 h-3.5" /> Il tuo annuncio
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {isAdmin && (
+                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200 shadow-sm flex items-center gap-1">
+                                <Icon type="star" className="w-3.5 h-3.5" /> Il tuo annuncio
+                            </span>
+                        )}
+                        {localJob.isActive && (
+                            <button onClick={shareJob} className="px-3 py-2 rounded-full text-sm font-semibold text-slate-600 hover:bg-white border border-slate-200 flex items-center gap-1.5" aria-label="Condividi l’offerta">
+                                <Icon type="share" className="w-4 h-4" /> <span className="sr-only sm:not-sr-only">Condividi</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
                 
                 <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-800 leading-tight">{jobDisplayTitle(localJob)}</h1>

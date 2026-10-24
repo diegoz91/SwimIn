@@ -7,7 +7,7 @@ const parse = (list) => (list || []).flatMap((raw) => { try { return [JSON.parse
 const clip = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const PUBLIC_ACTIONS = ['publicProfile', 'publicSitemap'];
+export const PUBLIC_ACTIONS = ['publicProfile', 'publicSitemap', 'publicJob', 'publicJobs'];
 
 export function publicActions({ find, listAll, list, fail, C, Query }) {
   const rating = (row) => (row.ratingCount ? { average: Math.round((row.ratingSum / row.ratingCount) * 10) / 10, count: row.ratingCount } : null);
@@ -67,7 +67,46 @@ export function publicActions({ find, listAll, list, fail, C, Query }) {
     rating: rating(f),
   });
 
+  /** Annuncio visibile senza account (pagina /offerte/:id e Google Jobs): niente candidati né dati interni. */
+  const jobOpen = (j) => j && j.isActive !== false && (!j.expiresAt || j.expiresAt >= today());
+  const jobCard = (j) => ({
+    id: j.$id,
+    title: clip(j.title, 255),
+    description: clip(j.description, 4000),
+    role: clip(j.role, 100),
+    contractType: j.contractType || '',
+    city: j.city || '',
+    province: j.province || '',
+    salaryMin: Number.isFinite(j.salaryMin) ? j.salaryMin : null,
+    salaryMax: Number.isFinite(j.salaryMax) ? j.salaryMax : null,
+    workingHours: clip(j.workingHours, 255),
+    requirements: (j.requirements || []).slice(0, 20).map((r) => clip(r, 500)),
+    qualifications: (j.qualificationsRequired || []).slice(0, 20).map((r) => clip(r, 500)),
+    isSOS: !!j.isSOS,
+    sosDate: j.sosDate || '',
+    sosShift: j.sosShift || '',
+    structureId: j.structureId,
+    structureName: j.structureName || 'Struttura',
+    structureLogo: /^https:\/\//.test(j.facilityLogo || '') ? j.facilityLogo : '',
+    postedAt: j.$createdAt || '',
+    expiresAt: j.expiresAt || '',
+  });
+
   return {
+    async publicJob(_me, { id } = {}) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,36}$/.test(id)) fail(400, 'Annuncio non valido.');
+      const job = await find(C.jobs, id);
+      if (!job) fail(404, 'Annuncio non trovato.');
+      if (!jobOpen(job)) fail(410, 'Questa offerta non è più disponibile.');
+      return jobCard(job);
+    },
+
+    /** Annunci aperti per la sitemap (i più recenti). */
+    async publicJobs() {
+      const { documents } = await list(C.jobs, [Query.equal('isActive', true), Query.orderDesc('$createdAt'), Query.limit(1000)]);
+      return documents.filter(jobOpen).map((j) => ({ id: j.$id, updatedAt: j.$updatedAt || j.$createdAt || '' }));
+    },
+
     async publicProfile(_me, { id } = {}) {
       if (typeof id !== 'string' || !/^[A-Za-z0-9_.-]{1,36}$/.test(id)) fail(400, 'Profilo non valido.');
       const profile = await find(C.profiles, id);

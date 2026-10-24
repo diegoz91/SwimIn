@@ -6,11 +6,12 @@ export default function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=86400');
     return res.status(200).send(
         [
-            '# Indicizziamo la pagina iniziale, le pagine legali e i profili pubblici (/u/…).',
+            '# Indicizziamo la pagina iniziale, le pagine legali i profili pubblici (/u/…) e le offerte (/offerte/…).',
             "# Il resto dell'app è riservato agli utenti registrati.",
             'User-agent: *',
             'Allow: /$',
             'Allow: /u/',
+            'Allow: /offerte/',
             'Allow: /register',
             'Allow: /privacy',
             'Allow: /termini',

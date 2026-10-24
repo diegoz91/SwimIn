@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { rememberPendingJob } from '@/utils/pendingJob';
 import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
@@ -39,6 +40,7 @@ const initialChoice = (tipo: string | null): Choice => (tipo === 'struttura' ? '
 
 export const RegisterForm: React.FC = () => {
     const [params] = useSearchParams();
+    useEffect(() => rememberPendingJob(params.get('offerta')), [params]);
     const [choice, setChoice] = useState<Choice>(initialChoice(params.get('tipo')));
     const userType: AccountType = choice === 'struttura' ? 'structure' : 'professional';
     const [showPassword, setShowPassword] = useState(false);

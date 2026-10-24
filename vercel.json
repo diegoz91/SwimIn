@@ -5,6 +5,10 @@
       "destination": "/api/og?id=:id"
     },
     {
+      "source": "/offerte/:id",
+      "destination": "/api/job?id=:id"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     },

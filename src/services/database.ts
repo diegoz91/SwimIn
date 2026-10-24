@@ -182,6 +182,13 @@ export interface ProfileStats {
     posts: { id: string; createdAt: string; text: string; reactions: number; comments: number; reposts: number }[];
     totals: { reactions: number; comments: number; reposts: number };
 }
+export interface PublicJob {
+    id: string; title: string; description: string; role: string; contractType: string; city: string; province: string;
+    salaryMin: number | null; salaryMax: number | null; workingHours: string; requirements: string[]; qualifications: string[];
+    isSOS: boolean; sosDate: string; sosShift: string; structureId: string; structureName: string; structureLogo: string;
+    postedAt: string; expiresAt: string;
+}
+export interface JobAlert { $id: string; $createdAt: string; userId: string; query?: string; province?: string; contractType?: string; sosOnly?: boolean }
 export interface PublicProfile {
     kind: 'person' | 'structure';
     id: string;
@@ -395,6 +402,20 @@ export const databaseService = {
     /** Scheda pubblica di un profilo: funziona anche senza login (azione pubblica della Function). */
     async getPublicProfile(id: string) {
         return await callApi<PublicProfile>('publicProfile', { id });
+    },
+    /** Annuncio visibile anche senza account (pagina /offerte/:id). */
+    async getPublicJob(id: string) {
+        return await callApi<PublicJob>('publicJob', { id });
+    },
+    // ---------------- AVVISI DI LAVORO ----------------
+    async listJobAlerts() {
+        return await callApi<JobAlert[]>('listJobAlerts');
+    },
+    async createJobAlert(alert: { query?: string; province?: string; contractType?: string; sosOnly?: boolean }) {
+        return await callApi<JobAlert>('createJobAlert', alert);
+    },
+    async deleteJobAlert(alertId: string) {
+        return await callApi<{ deleted: boolean }>('deleteJobAlert', { alertId });
     },
 
     /** Email e telefono di un profilo, se chi chiama può vederli (decide il server). */

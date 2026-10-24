@@ -282,6 +282,15 @@ const schema = [
         indexes: [idx('by_group', ['groupId']), idx('by_user', ['userId'])],
     },
     {
+        // Avvisi di lavoro (ricerche salvate): ognuno legge i propri, scritti dalla Function.
+        id: 'job_alerts', name: 'Job alerts', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('query', 60), str('province', 2), str('contractType', 100),
+            bool('sosOnly', { default: false }),
+        ],
+        indexes: [idx('by_user', ['userId']), idx('by_province', ['province'])],
+    },
+    {
         // "Sta scrivendo…": una riga per persona, leggibile solo dal destinatario (scritta dalla Function).
         id: 'typing', name: 'Typing', permissions: SERVER_ONLY,
         attributes: [str('userId', 36, { required: true }), str('targetId', 36, { required: true }), str('until', 40, { required: true })],

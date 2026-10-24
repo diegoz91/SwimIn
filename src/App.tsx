@@ -50,6 +50,7 @@ const GroupPage = lazy(() => import('@/pages/GroupPage'));
 const Events = lazy(() => import('@/pages/Events'));
 const EventPage = lazy(() => import('@/pages/EventPage'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
+const PublicJob = lazy(() => import('@/pages/PublicJob'));
 const MyShifts = lazy(() => import('@/pages/MyShifts'));
 const Admin = lazy(() => import('@/pages/Admin'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
@@ -113,6 +114,7 @@ const AppContent: React.FC = () => {
               <Route path="/termini" element={<Terms />} />
               <Route path="/cookie" element={<Cookies />} />
               <Route path="/u/:id" element={<PublicProfile />} />
+              <Route path="/offerte/:id" element={<PublicJob />} />
 
               {/* Rotte protette */}
               <Route path="/" element={<HomeGate />} />
