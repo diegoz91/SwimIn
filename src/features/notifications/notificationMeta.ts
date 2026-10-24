@@ -45,7 +45,7 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'shift':
             return { icon: 'calendar', tone: 'bg-corsia-100 text-corsia-700', href: '/turni' };
         case 'sos':
-            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
+            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
         case 'rejected':
             return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: '/jobs' };
         default:

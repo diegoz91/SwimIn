@@ -186,7 +186,7 @@ const Live: React.FC = () => {
                             <article key={room.$id} className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden flex flex-col">
                                 <div className="lane-rope" aria-hidden="true" />
                                 <div className="p-5 flex-1">
-                                    <p className="flex items-center gap-2 text-xs font-semibold text-galleggiante">
+                                    <p className="flex items-center gap-2 text-xs font-semibold text-galleggiante-700">
                                         <span className="w-2 h-2 rounded-full bg-galleggiante motion-safe:animate-pulse" aria-hidden="true" />
                                         In diretta · {people} {people === 1 ? 'partecipante' : 'partecipanti'} · da {formatRelativeTime(room.startedAt || room.$createdAt).replace(' fa', '')}
                                     </p>

@@ -174,7 +174,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
                                             <button
                                                 onClick={() => remove(m)}
                                                 aria-label="Elimina il messaggio"
-                                                className={`self-center p-1.5 rounded-full text-slate-400 hover:text-galleggiante hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 ${mine ? 'order-first' : 'order-last'}`}
+                                                className={`self-center p-1.5 rounded-full text-slate-400 hover:text-galleggiante-700 hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 ${mine ? 'order-first' : 'order-last'}`}
                                             >
                                                 <Icon type="trash" className="w-4 h-4" />
                                             </button>

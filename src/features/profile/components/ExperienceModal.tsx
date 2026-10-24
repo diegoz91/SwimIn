@@ -132,7 +132,7 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({ isOpen, onClos
             formRef={form.formRef}
             secondaryAction={
                 mode === 'edit' && onDelete ? (
-                    <button type="button" onClick={remove} className="text-sm font-semibold text-galleggiante hover:underline">
+                    <button type="button" onClick={remove} className="text-sm font-semibold text-galleggiante-700 hover:underline">
                         Elimina
                     </button>
                 ) : null

@@ -53,7 +53,7 @@ export const ProfileActionsMenu: React.FC<{ userId: string; name: string; target
                     {targetType === 'profile' && (
                         <button
                             role="menuitem"
-                            className={`${item} text-galleggiante`}
+                            className={`${item} text-galleggiante-700`}
                             onClick={async () => {
                                 setOpen(false);
                                 if (isBlocked) await unblock(userId);

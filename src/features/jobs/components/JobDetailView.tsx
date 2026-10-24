@@ -270,7 +270,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                                 <>
                                                     <button 
                                                         onClick={() => handleUpdateStatus(app.$id, 'rejected')} 
-                                                        className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                                        className="p-2.5 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                                                         title="Scarta"
                                                     >
                                                         <Icon type="x" className="w-4 h-4" />

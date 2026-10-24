@@ -98,7 +98,6 @@ export const MentionTextarea: React.FC<
                     onKeyDown?.(e);
                 }}
                 aria-autocomplete="list"
-                aria-expanded={!!query && results.length > 0}
             />
             {query && results.length > 0 && (
                 <ul role="listbox" aria-label="Persone da menzionare" className="absolute left-0 right-0 top-full mt-1 z-40 max-h-64 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lift py-1">

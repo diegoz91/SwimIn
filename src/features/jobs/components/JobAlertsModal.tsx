@@ -91,7 +91,7 @@ export const JobAlertsModal: React.FC<{ open: boolean; onClose: () => void; init
                             <li key={a.$id} className="flex items-center gap-3 px-3 py-2.5">
                                 <Icon type="bell" className="w-4 h-4 text-corsia-600 flex-shrink-0" />
                                 <span className="min-w-0 flex-1 text-sm text-slate-700 first-letter:uppercase">{describeAlert(a)}</span>
-                                <button type="button" onClick={() => remove(a)} aria-label={`Elimina l’avviso ${describeAlert(a)}`} className="p-2 -m-1 rounded-full text-slate-400 hover:text-galleggiante hover:bg-red-50">
+                                <button type="button" onClick={() => remove(a)} aria-label={`Elimina l’avviso ${describeAlert(a)}`} className="p-2 -m-1 rounded-full text-slate-400 hover:text-galleggiante-700 hover:bg-red-50">
                                     <Icon type="trash" className="w-4 h-4" />
                                 </button>
                             </li>

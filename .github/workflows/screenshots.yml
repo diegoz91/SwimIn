@@ -28,7 +28,7 @@ jobs:
       - name: Installa dipendenze
         run: |
           npm install --no-audit --no-fund
-          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npm install --no-save --no-audit --no-fund playwright@1.48.2 axe-core@4.10.2
           npx playwright install --with-deps chromium
 
       - name: Build
@@ -44,6 +44,15 @@ jobs:
           mkdir -p screenshots
           node scripts/screenshots/capture.mjs http://localhost:4173 screenshots | tee screenshots/log.txt
 
+      # Qualità: percorsi principali end-to-end, prestazioni della landing e budget del bundle.
+      # I risultati finiscono accanto alle schermate (e2e.md, perf.md); l'esito si controlla alla fine.
+      - name: Test end-to-end e prestazioni
+        run: |
+          set +eo pipefail
+          node scripts/e2e/flows.mjs http://localhost:4173 screenshots/e2e 2>&1 | tee screenshots/e2e.txt; echo "${PIPESTATUS[0]}" > screenshots/e2e.status
+          cp screenshots/e2e/e2e.md screenshots/e2e.md 2>/dev/null || true
+          node scripts/quality/bundle-budget.mjs dist screenshots/perf.md 2>&1 | tee screenshots/budget.txt; echo "${PIPESTATUS[0]}" > screenshots/budget.status
+
       - name: Pubblica sul branch ci-screenshots
         run: |
           BRANCH="ci-screenshots/${{ github.head_ref || github.ref_name }}"
@@ -57,9 +66,18 @@ jobs:
           git commit -q -m "Schermate di ${{ github.sha }}"
           git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$BRANCH"
 
+      - name: Controllo qualità
+        run: |
+          fail=0
+          if [ "$(cat screenshots/e2e.status)" != "0" ]; then echo "::error::Test end-to-end non riusciti (vedi e2e.md sul branch ci-screenshots)."; grep -E "^✗" screenshots/e2e.txt; fail=1; fi
+          if [ "$(cat screenshots/budget.status)" != "0" ]; then echo "::error::Bundle oltre il budget (vedi perf.md)."; grep -E "^✗" screenshots/budget.txt; fail=1; fi
+          if grep -q "^♿" screenshots/log.txt; then echo "::error::Problemi di accessibilità gravi o critici (vedi a11y.md sul branch ci-screenshots)."; grep -E "^♿" screenshots/log.txt; fail=1; fi
+          exit $fail
+
       # Prova di fumo: ogni pagina e ogni interazione devono riuscire senza errori JavaScript.
       # Le schermate vengono pubblicate comunque (passo precedente), così si vede cosa non va.
       - name: Controllo errori
+        if: always()
         run: |
           if grep -q "^✗" screenshots/log.txt || grep -q "Errori JavaScript rilevati" screenshots/log.txt || grep -q "^↔" screenshots/log.txt; then
             echo "::error::Schermate non riuscite, errori JavaScript o pagine che escono dallo schermo (vedi log.txt e layout.md sul branch ci-screenshots)."

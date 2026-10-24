@@ -5,73 +5,14 @@
  * Le richieste verso Appwrite vengono intercettate e servite dai fixture.
  */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { account, apiResponses, collections, ME } from './fixtures.mjs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { ME } from './fixtures.mjs';
+import { mockAppwrite } from './mock.mjs';
 
 const BASE = process.argv[2] || 'http://localhost:4173';
 const OUT = process.argv[3] || 'screenshots';
 mkdirSync(OUT, { recursive: true });
-
-const json = (route, body, status = 200) =>
-    route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-
-/** Applica i filtri `equal` più comuni delle query Appwrite (formato JSON). */
-function applyQueries(rows, rawQueries) {
-    let out = rows;
-    for (const raw of rawQueries) {
-        let q;
-        try { q = JSON.parse(raw); } catch { continue; }
-        if (q.method === 'equal' && q.attribute && !q.attribute.startsWith('$')) {
-            out = out.filter((r) => q.values.includes(r[q.attribute]));
-        }
-        if (q.method === 'equal' && q.attribute === '$id') out = out.filter((r) => q.values.includes(r.$id));
-        if (q.method === 'isNull' && q.attribute) out = out.filter((r) => r[q.attribute] == null);
-        if (q.method === 'notEqual' && q.attribute) out = out.filter((r) => !q.values.includes(r[q.attribute]));
-        if (q.method === 'contains' && q.attribute) {
-            out = out.filter((r) => {
-                const v = r[q.attribute];
-                return Array.isArray(v) ? v.some((x) => q.values.includes(x)) : typeof v === 'string' && q.values.some((x) => v.toLowerCase().includes(String(x).toLowerCase()));
-            });
-        }
-        if (q.method === 'limit') out = out.slice(0, q.values[0]);
-    }
-    return out;
-}
-
-async function mockAppwrite(page, { loggedIn }) {
-    await page.route(/\/v1\/realtime/, (route) => route.abort());
-    await page.route(/cloud\.appwrite\.io\/v1\//, async (route) => {
-        const url = new URL(route.request().url());
-        const path = url.pathname.replace(/^\/v1/, '');
-        const method = route.request().method();
-
-        if (path === '/account' && method === 'GET') {
-            return loggedIn ? json(route, account) : json(route, { message: 'Unauthorized', code: 401, type: 'general_unauthorized_scope' }, 401);
-        }
-        if (path.startsWith('/account')) return json(route, {});
-
-        if (path.startsWith('/functions/api/executions')) {
-            let action = '';
-            let params = {};
-            try { ({ action = '', ...params } = JSON.parse(JSON.parse(route.request().postData() || '{}').body || '{}')); } catch { action = ''; }
-            const data = apiResponses[action] ? apiResponses[action](params) : {};
-            return json(route, { $id: 'x', status: 'completed', responseStatusCode: 200, responseBody: JSON.stringify({ ok: true, data }) });
-        }
-
-        const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
-        if (one) {
-            const row = (collections[one[1]] || []).find((r) => r.$id === one[2]);
-            return row ? json(route, row) : json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
-        }
-        const list = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents$/);
-        if (list && method === 'GET') {
-            const queries = [...url.searchParams.entries()].filter(([k]) => k.startsWith('queries')).map(([, v]) => v);
-            const rows = applyQueries(collections[list[1]] || [], queries);
-            return json(route, { total: rows.length, documents: rows });
-        }
-        return json(route, {});
-    });
-}
 
 const PUBLIC_PAGES = [
     ['landing', '/'],
@@ -225,8 +166,31 @@ async function auditLayout(page, touch) {
         return { overflow, offenders: offenders.map((o) => o.text), small: small.slice(0, 8), smallCount: small.length };
     }, touch);
 }
+// Accessibilità: axe-core (WCAG 2.1 A/AA) su computer e smartphone, se installato.
+const require = createRequire(import.meta.url);
+let AXE = null;
+try { AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8'); } catch { console.log('axe-core non installato: controllo accessibilità saltato.'); }
+const A11Y_VIEWPORTS = (process.env.A11Y_VIEWPORTS || 'desktop,mobile').split(',');
+const a11y = [];
+async function auditA11y(page, pageName) {
+    if (!AXE) return;
+    await page.evaluate(AXE);
+    const result = await page.evaluate(async () => {
+        // eslint-disable-next-line no-undef
+        const r = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] });
+        // Gli elenchi dei menu a tendina si scorrono con le frecce dal campo che li apre: non sono regioni da raggiungere col tab.
+        // Testo decorativo o anteprima sfocata, nascosto alle tecnologie assistive: il contrasto non conta.
+        const hidden = (n) => { try { return !!document.querySelector(n.target.join(' '))?.closest('[aria-hidden="true"]'); } catch { return false; } };
+        for (const v of r.violations) if (v.id === 'color-contrast') v.nodes = v.nodes.filter((n) => !hidden(n));
+        for (const v of r.violations) if (v.id === 'scrollable-region-focusable') v.nodes = v.nodes.filter((n) => !n.html.includes('data-keyboard-scroll'));
+        return r.violations.filter((v) => v.nodes.length).map((v) => ({ id: v.id, impact: v.impact, help: v.help, pairs: v.id === 'color-contrast' ? v.nodes.map((n) => { const d = n.any?.[0]?.data || {}; return `${d.fgColor} su ${d.bgColor} (${d.contrastRatio}, ${d.fontSize} ${d.fontWeight}) «${(n.html.match(/class="([^"]*)"/)?.[1] || '').split(' ').filter((c) => /text-|bg-/.test(c)).join(' ')}»`; }) : [], nodes: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(' '), html: n.html.slice(0, 160), summary: (n.failureSummary || '').split('\n').slice(1, 3).join(' ').slice(0, 200) })), count: v.nodes.length }));
+    });
+    for (const v of result) a11y.push({ page: pageName, ...v });
+}
+
 const report = [];
 const shot = async (page, vpName, name, touch) => {
+    if (A11Y_VIEWPORTS.includes(vpName)) await auditA11y(page, `${vpName}-${name}`).catch((e) => console.log(`  (accessibilità non controllata su ${vpName}-${name}: ${e.message})`));
     const a = await auditLayout(page, touch).catch((e) => ({ overflow: 0, offenders: [`controllo non riuscito: ${e.message}`], small: [], smallCount: 0 }));
     if (a.overflow > 0 || a.offenders.length) {
         console.log(`↔ ${vpName}-${name}: la pagina scorre in orizzontale di ${a.overflow}px`);
@@ -288,6 +252,33 @@ for (const r of tiny) lines.push(`- **${r.page}** (${r.smallCount})`, ...r.small
 writeFileSync(`${OUT}/layout.md`, lines.join('\n') + '\n');
 writeFileSync(`${OUT}/layout.json`, JSON.stringify(report, null, 2));
 console.log(`\nLayout: ${bad.length} pagine con elementi fuori dallo schermo, ${tiny.length} con pulsanti piccoli (vedi layout.md).`);
+
+// Rapporto di accessibilità: per regola, con le pagine coinvolte.
+if (AXE) {
+    const byRule = new Map();
+    for (const v of a11y) {
+        const r = byRule.get(v.id) || { id: v.id, impact: v.impact, help: v.help, pages: [], nodes: 0, examples: [], pairs: {} };
+        r.pages.push(v.page);
+        r.nodes += v.count;
+        for (const p of v.pairs || []) r.pairs[p] = (r.pairs[p] || 0) + 1;
+        for (const n of v.nodes) if (r.examples.length < 15 && !r.examples.some((e) => e.target === n.target)) r.examples.push(n);
+        byRule.set(v.id, r);
+    }
+    const order = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+    const rules = [...byRule.values()].sort((a, b) => (order[a.impact] ?? 9) - (order[b.impact] ?? 9) || b.nodes - a.nodes);
+    const blocking = rules.filter((r) => r.impact === 'critical' || r.impact === 'serious');
+    const md = ['# Accessibilità (axe-core, WCAG 2.1 A/AA)', '', `Viste controllate: ${A11Y_VIEWPORTS.join(', ')}. Regole violate: ${rules.length} (gravi o critiche: ${blocking.length}).`, ''];
+    for (const r of rules) {
+        md.push(`## ${r.id} (${r.impact}) — ${r.help}`, '', `${r.nodes} elementi in ${r.pages.length} pagine: ${r.pages.slice(0, 12).join(', ')}${r.pages.length > 12 ? '…' : ''}`, '');
+        for (const [p, n] of Object.entries(r.pairs).sort((a, b) => b[1] - a[1]).slice(0, 40)) md.push(`- ${n}× ${p}`);
+        for (const e of r.examples) md.push(`- \`${e.target}\` ${e.summary}`, `  \`${e.html.replace(/`/g, "'")}\``);
+        md.push('');
+    }
+    writeFileSync(`${OUT}/a11y.md`, md.join('\n') + '\n');
+    writeFileSync(`${OUT}/a11y.json`, JSON.stringify(rules, null, 2));
+    console.log(`\nAccessibilità: ${rules.length} regole violate, ${blocking.length} gravi o critiche (vedi a11y.md).`);
+    for (const r of blocking) console.log(`♿ ${r.id} (${r.impact}): ${r.help} — ${r.nodes} elementi, ${r.pages.length} pagine`);
+}
 
 if (errors.length) {
     console.log('\nErrori JavaScript rilevati:');

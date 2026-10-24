@@ -63,7 +63,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
                     >
                         <div className={`mt-0.5 rounded-full p-1 
                             ${toast.type === 'success' ? 'bg-green-100 text-green-600' : ''}
-                            ${toast.type === 'error' ? 'bg-red-100 text-red-600' : ''}
+                            ${toast.type === 'error' ? 'bg-red-100 text-red-700' : ''}
                             ${toast.type === 'info' ? 'bg-blue-100 text-blue-600' : ''}
                         `}>
                             <Icon 

@@ -43,7 +43,7 @@ const CATEGORY_STYLES: Record<string, { icon: IconType; text: string; style: str
     allenamento: { icon: 'clock', text: 'Allenamento', style: 'bg-blue-50 text-blue-600 border-blue-200' },
     gara: { icon: 'star', text: 'Gara & Risultati', style: 'bg-amber-50 text-amber-600 border-amber-200' },
     tecnica: { icon: 'certificate', text: 'Tecnica & Formazione', style: 'bg-purple-50 text-purple-600 border-purple-200' },
-    normative: { icon: 'info', text: 'Normative & Sicurezza', style: 'bg-red-50 text-red-600 border-red-200' },
+    normative: { icon: 'info', text: 'Normative & Sicurezza', style: 'bg-red-50 text-red-700 border-red-200' },
 };
 
 const CONTENT_MAX_LENGTH = 4000;
@@ -294,7 +294,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
             <div className="p-4 sm:p-5">
                 <div className="flex items-start gap-3 mb-4">
-                    <button onClick={() => navigate(`/profile/${post.authorId}`)} className="flex-shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <button onClick={() => navigate(`/profile/${post.authorId}`)} tabIndex={-1} aria-hidden="true" className="flex-shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                         <img src={displayAvatar} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-100 hover:opacity-80 transition-opacity" />
                     </button>
                     <div className="flex-1 min-w-0">
@@ -521,7 +521,7 @@ const MenuItem: React.FC<{ icon: IconType; label: string; onClick: () => void; d
     <button
         role="menuitem"
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-left outline-none focus-visible:bg-slate-100 ${danger ? 'text-red-600 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'}`}
+        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-left outline-none focus-visible:bg-slate-100 ${danger ? 'text-red-700 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'}`}
     >
         <Icon type={icon} className="w-4 h-4" /> {label}
     </button>
@@ -559,7 +559,7 @@ const PureRepost: React.FC<PostCardProps> = ({ post, ...rest }) => {
                 <span>{mine ? 'Hai ripubblicato' : `${displayNameOf(reposter)} ha ripubblicato`} un post che non è più disponibile.</span>
                 {mine && (
                     <button
-                        className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante"
+                        className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante-700"
                         onClick={async () => {
                             try { await databaseService.deletePost(post); rest.onDeleted?.(post.$id); } catch (err) { showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error'); }
                         }}

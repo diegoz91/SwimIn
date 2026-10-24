@@ -39,6 +39,16 @@ const cloro = {
   900: '#0E4846',
 };
 
+/**
+ * Grigi dei testi secondari scuriti per il contrasto WCAG AA (4,5:1) anche sugli sfondi
+ * Piastrella e Corsia-50: slate-400 e slate-500 di Tailwind restano sotto la soglia.
+ */
+const slate = {
+  50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+  400: '#617084', 500: '#536074',
+  600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617',
+};
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -46,13 +56,15 @@ export default {
     extend: {
       colors: {
         blue: corsia,
+        slate,
         corsia,
         cloro,
         abisso: '#0A2738',
         piastrella: '#F2F8FA',
-        galleggiante: '#E23D3D',
+        // Rosso SOS: DEFAULT per sfondi, bordi e icone; 700 per i testi (contrasto AA su bianco).
+        galleggiante: { DEFAULT: '#E23D3D', 700: '#C42828' },
         // Solo per SwimIn Premium (badge, pagina dei piani): l'oro della medaglia.
-        oro: { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A' },
+        oro: { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A', 800: '#634814' },
         // compatibilità con il vecchio token
         brand: { 50: corsia[50], 100: corsia[100], 500: corsia[500], 600: corsia[600], 900: corsia[900] },
       },

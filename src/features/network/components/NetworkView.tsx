@@ -122,7 +122,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                                     <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-none" title="Invia messaggio">
                                                         <Icon type="chat-bubble" className="w-4 h-4"/>
                                                     </button>
-                                                    <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg outline-none" title="Rimuovi">
+                                                    <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg outline-none" title="Rimuovi">
                                                         <Icon type="user-minus" className="w-4 h-4"/>
                                                     </button>
                                                 </div>

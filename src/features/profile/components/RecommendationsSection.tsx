@@ -109,7 +109,7 @@ export const RecommendationsSection: React.FC<{ profile: UserProfile; isOwnProfi
         return (
             <li key={r.$id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex items-start gap-3">
-                    <Link to={`/profile/${r.authorId}`} className="flex-shrink-0">
+                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
                         <img src={r.author.avatar || initialsAvatar(r.author.name)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                     </Link>
                     <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export const RecommendationsSection: React.FC<{ profile: UserProfile; isOwnProfi
         );
     };
     const btn = (label: string, onClick: () => void, tone: 'primary' | 'plain' | 'danger' = 'plain') => (
-        <button onClick={onClick} className={`px-3.5 py-1.5 rounded-full text-sm font-semibold ${tone === 'primary' ? 'bg-corsia-600 text-white hover:bg-corsia-700' : tone === 'danger' ? 'text-galleggiante hover:bg-red-50' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{label}</button>
+        <button onClick={onClick} className={`px-3.5 py-1.5 rounded-full text-sm font-semibold ${tone === 'primary' ? 'bg-corsia-600 text-white hover:bg-corsia-700' : tone === 'danger' ? 'text-galleggiante-700 hover:bg-red-50' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{label}</button>
     );
 
     return (
@@ -167,7 +167,7 @@ export const RecommendationsSection: React.FC<{ profile: UserProfile; isOwnProfi
             )}
 
             {!isOwnProfile && mine && mine.status !== 'published' && (
-                <p className="mt-4 text-sm text-slate-500">La tua referenza è in attesa che {firstName} la pubblichi. <button onClick={() => withdraw(mine)} className="py-1 -my-1 font-semibold text-galleggiante hover:underline">Ritirala</button></p>
+                <p className="mt-4 text-sm text-slate-500">La tua referenza è in attesa che {firstName} la pubblichi. <button onClick={() => withdraw(mine)} className="py-1 -my-1 font-semibold text-galleggiante-700 hover:underline">Ritirala</button></p>
             )}
 
             {hidden.length > 0 && (

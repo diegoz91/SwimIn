@@ -209,7 +209,7 @@ const Premium: React.FC = () => {
                 </section>
 
                 <section className="rounded-2xl border-2 border-oro-500 bg-white p-6 flex flex-col shadow-lift relative">
-                    <span className="absolute -top-3 left-6 bg-oro-500 text-white text-xs font-semibold px-3 py-1 rounded-full">Consigliato</span>
+                    <span className="absolute -top-3 left-6 bg-oro-700 text-white text-xs font-semibold px-3 py-1 rounded-full">Consigliato</span>
                     <h2 className="text-2xl font-bold text-abisso flex items-center gap-2">Premium <PremiumBadge /></h2>
                     <p className="text-3xl font-bold text-abisso mt-2">
                         {euro(price)} <span className="text-base font-semibold text-slate-500">/ {period === 'month' ? 'mese' : 'anno'}</span>
@@ -232,7 +232,7 @@ const Premium: React.FC = () => {
                     {!renewing && (
                         <div className="mt-6 space-y-2">
                             {status.trialAvailable && (
-                                <button onClick={startTrial} disabled={!!busy} className="w-full px-5 py-3 rounded-full font-semibold bg-oro-500 text-white hover:bg-oro-600 disabled:opacity-60">
+                                <button onClick={startTrial} disabled={!!busy} className="w-full px-5 py-3 rounded-full font-semibold bg-oro-700 text-white hover:bg-oro-800 disabled:opacity-60">
                                     {busy === 'trial' ? 'Attivazione…' : `Prova gratis per ${status.trialDays} giorni`}
                                 </button>
                             )}

@@ -186,7 +186,7 @@ const Admin: React.FC = () => {
                                             <p className="mt-3 text-sm text-slate-500">Il contenuto non esiste più.</p>
                                         )}
                                         <p className="text-sm text-slate-500 mt-2">
-                                            Autore: {r.target.authorName || '—'} {r.target.suspended && <span className="text-galleggiante font-semibold">(sospeso)</span>}
+                                            Autore: {r.target.authorName || '—'} {r.target.suspended && <span className="text-galleggiante-700 font-semibold">(sospeso)</span>}
                                             {link && <> · <Link to={link} className="text-corsia-700 font-semibold hover:underline">Apri</Link></>}
                                         </p>
                                         {r.details && <p className="text-sm text-slate-600 mt-2 bg-piastrella rounded-lg px-3 py-2">“{r.details}”</p>}
@@ -231,9 +231,9 @@ const Admin: React.FC = () => {
                                     <Link to={`/profile/${u.$id}`} className="font-semibold text-abisso hover:underline">{u.name}</Link>
                                     <p className="text-xs text-slate-500 truncate">{[u.email, u.userType === 'structure' ? 'Struttura' : u.personType === 'enthusiast' ? 'Appassionato' : 'Professionista', u.city].filter(Boolean).join(' · ')}</p>
                                 </div>
-                                {u.suspended && <span className="text-xs font-semibold text-galleggiante">Sospeso</span>}
+                                {u.suspended && <span className="text-xs font-semibold text-galleggiante-700">Sospeso</span>}
                                 <button onClick={() => grantPremium(u, 30)} className="px-4 py-2 rounded-full text-sm font-semibold bg-oro-50 text-oro-700 hover:bg-oro-100">Premium 30 giorni</button>
-                                <button onClick={() => toggleSuspend(u)} className={`px-4 py-2 rounded-full text-sm font-semibold ${u.suspended ? 'bg-slate-100 text-slate-700' : 'bg-red-50 text-galleggiante hover:bg-red-100'}`}>
+                                <button onClick={() => toggleSuspend(u)} className={`px-4 py-2 rounded-full text-sm font-semibold ${u.suspended ? 'bg-slate-100 text-slate-700' : 'bg-red-50 text-galleggiante-700 hover:bg-red-100'}`}>
                                     {u.suspended ? 'Riattiva' : 'Sospendi'}
                                 </button>
                             </li>
@@ -251,7 +251,7 @@ const Admin: React.FC = () => {
                             <li key={e.$id} className="bg-white rounded-xl border border-slate-200">
                                 <details>
                                     <summary className="cursor-pointer px-4 py-3 flex flex-wrap gap-x-3 gap-y-1 items-baseline">
-                                        <span className="font-mono text-sm text-galleggiante break-all">{e.message}</span>
+                                        <span className="font-mono text-sm text-galleggiante-700 break-all">{e.message}</span>
                                         <span className="text-xs text-slate-500">{e.url} · {formatRelativeTime(e.$createdAt)}</span>
                                     </summary>
                                     <pre className="px-4 pb-4 text-xs text-slate-600 whitespace-pre-wrap break-all">{e.stack}{'\n\n'}{e.userAgent}</pre>
@@ -352,7 +352,7 @@ const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = ({ 
                             <div className="border-t border-slate-100 p-4 grid gap-4 md:grid-cols-[1fr_16rem]">
                                 <div className="rounded-xl bg-piastrella border border-slate-200 min-h-[16rem] flex items-center justify-center overflow-hidden">
                                     {docError ? (
-                                        <p className="text-sm text-galleggiante p-4 text-center">{docError}</p>
+                                        <p className="text-sm text-galleggiante-700 p-4 text-center">{docError}</p>
                                     ) : doc?.key !== key ? (
                                         <PageLoader />
                                     ) : doc.mimeType === 'application/pdf' ? (
@@ -377,7 +377,7 @@ const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = ({ 
                                     </label>
                                     <div className="flex gap-2">
                                         <button type="button" disabled={busy} onClick={() => decide(item, true)} className="flex-1 px-4 py-2 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700 disabled:opacity-60">Approva</button>
-                                        <button type="button" disabled={busy} onClick={() => decide(item, false)} className="flex-1 px-4 py-2 rounded-full bg-red-50 text-galleggiante font-semibold hover:bg-red-100 disabled:opacity-60">Respingi</button>
+                                        <button type="button" disabled={busy} onClick={() => decide(item, false)} className="flex-1 px-4 py-2 rounded-full bg-red-50 text-galleggiante-700 font-semibold hover:bg-red-100 disabled:opacity-60">Respingi</button>
                                     </div>
                                 </div>
                             </div>

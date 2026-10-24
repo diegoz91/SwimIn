@@ -58,7 +58,7 @@ const ReviewModal: React.FC<{ open: boolean; structureName: string; existing?: R
             formRef={form.formRef}
             secondaryAction={
                 existing && onDelete ? (
-                    <button type="button" className="text-sm font-semibold text-galleggiante hover:underline" onClick={async () => { if (window.confirm('Eliminare la tua recensione?')) { await onDelete(); onClose(); } }}>
+                    <button type="button" className="text-sm font-semibold text-galleggiante-700 hover:underline" onClick={async () => { if (window.confirm('Eliminare la tua recensione?')) { await onDelete(); onClose(); } }}>
                         Elimina
                     </button>
                 ) : null
@@ -206,7 +206,7 @@ export const ReviewsSection: React.FC<{
                         return (
                             <li key={r.$id} className="py-5 first:pt-0">
                                 <div className="flex items-start gap-3">
-                                    <Link to={`/profile/${r.authorId}`} className="flex-shrink-0">
+                                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
                                         <img src={avatarOf(a)} alt="" className="w-10 h-10 rounded-full object-cover" />
                                     </Link>
                                     <div className="min-w-0 flex-1">

@@ -77,7 +77,7 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
       onClick={onSelect}
       role="button"
       tabIndex={0}
-      aria-selected={isSelected}
+      aria-current={isSelected ? 'true' : undefined}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
     >
       <div className="relative flex-shrink-0">

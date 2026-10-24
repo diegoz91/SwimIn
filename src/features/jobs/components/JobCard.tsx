@@ -60,7 +60,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
     const matchScore = rawScore && rawScore > 0 ? rawScore : null;
     
     const getMatchStyle = (score: number) => {
-        if (score >= 80) return 'bg-cloro-500 text-white';
+        if (score >= 80) return 'bg-cloro-700 text-white';
         if (score >= 50) return 'bg-amber-400 text-abisso';
         return 'bg-slate-200 text-slate-700';
     };

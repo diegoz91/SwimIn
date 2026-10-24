@@ -10,7 +10,7 @@ import { DAYS, PARTS, normalizeAvailability, slotKey, summarizeAvailability } fr
 const AvailabilityGrid: React.FC<{ value: string[]; onToggle?: (slot: string) => void }> = ({ value, onToggle }) => {
     const editable = !!onToggle;
     return (
-        <div className="overflow-x-auto -mx-1 px-1">
+        <div className="overflow-x-auto -mx-1 px-1" tabIndex={0} role="region" aria-label="Disponibilità settimanale">
             <table className="w-full border-separate border-spacing-1 text-sm min-w-[22rem]">
                 <thead>
                     <tr>

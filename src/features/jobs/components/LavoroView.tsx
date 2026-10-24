@@ -179,7 +179,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                     </div>
                     <button 
                         onClick={() => setIsSOSModalOpen(true)} 
-                        className="w-full md:w-auto bg-white text-red-600 font-bold px-8 py-3.5 rounded-full hover:bg-red-50 transition-colors shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full md:w-auto bg-white text-red-700 font-bold px-8 py-3.5 rounded-full hover:bg-red-50 transition-colors shadow-lg active:scale-95 flex items-center justify-center gap-2"
                     >
                         <Icon type="plus" className="w-5 h-5" /> Richiedi Sostituzione
                     </button>
@@ -259,33 +259,33 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                     <>
                         {sosJobs.length > 0 && (
                             <div className="mb-10">
-                                <h3 className="text-xl font-extrabold text-red-600 flex items-center gap-2 mb-4">
+                                <h3 className="text-xl font-extrabold text-red-700 flex items-center gap-2 mb-4">
                                     <Icon type="alert-triangle" className="w-6 h-6 animate-pulse" /> Sostituzioni urgenti
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {sosJobs.map(job => (
                                         <div key={job.$id} className="bg-red-50 border-2 border-red-500 rounded-2xl p-5 shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
+                                            <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse" aria-hidden="true" />
                                                 SOS attivo
                                             </div>
                                             <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{jobDisplayTitle(job)}</h3>
-                                            <p className="text-sm font-bold text-red-600 mt-1 truncate">{job.structureName || 'Struttura privata'}</p>
+                                            <p className="text-sm font-bold text-red-700 mt-1 truncate">{job.structureName || 'Struttura privata'}</p>
                                             
                                             <div className="grid grid-cols-2 gap-2 mt-4 mb-4">
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-xs text-red-600 font-semibold">Data</p>
+                                                    <p className="text-xs text-red-700 font-semibold">Data</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{formatDate(job.sosDate, 'weekday')}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-xs text-red-600 font-semibold">Turno</p>
+                                                    <p className="text-xs text-red-700 font-semibold">Turno</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{job.sosShift}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-xs text-red-600 font-semibold">Compenso</p>
+                                                    <p className="text-xs text-red-700 font-semibold">Compenso</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">€{job.salaryMin}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-xs text-red-600 font-semibold">Città</p>
+                                                    <p className="text-xs text-red-700 font-semibold">Città</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{job.city}</p>
                                                 </div>
                                             </div>
