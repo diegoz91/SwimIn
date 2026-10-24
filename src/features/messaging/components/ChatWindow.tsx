@@ -83,12 +83,12 @@ const FileChip: React.FC<{ a: ChatAttachment; mine: boolean }> = ({ a, mine }) =
         setBusy(true);
         try { await downloadChatFile(a); } catch (err) { showToast(err instanceof Error ? err.message : 'Download non riuscito.', 'error'); } finally { setBusy(false); }
       }}
-      className={`flex items-center gap-3 w-full max-w-xs text-left rounded-xl px-3 py-2.5 ${mine ? 'bg-white/15 hover:bg-white/25' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'}`}
+      className={`flex items-center gap-3 w-full max-w-xs text-left rounded-xl px-3 py-2.5 ${mine ? 'bg-black/15 hover:bg-black/25' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'}`}
     >
       <span className={`w-10 h-10 rounded-lg grid place-items-center text-[11px] font-bold flex-shrink-0 ${mine ? 'bg-white text-corsia-700' : 'bg-corsia-50 text-corsia-700'}`}>{ext || 'FILE'}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold truncate">{a.name}</span>
-        <span className={`block text-xs ${mine ? 'text-blue-100' : 'text-slate-500'}`}>{busy ? 'Download…' : formatFileSize(a.size)}</span>
+        <span className={`block text-xs ${mine ? 'text-white' : 'text-slate-500'}`}>{busy ? 'Download…' : formatFileSize(a.size)}</span>
       </span>
       <Icon type="download" className="w-5 h-5 flex-shrink-0 opacity-80" />
     </button>

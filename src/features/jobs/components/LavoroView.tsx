@@ -265,7 +265,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {sosJobs.map(job => (
                                         <div key={job.$id} className="bg-red-50 border-2 border-red-500 rounded-2xl p-5 shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
+                                            <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse" aria-hidden="true" />
                                                 SOS attivo
                                             </div>
                                             <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{jobDisplayTitle(job)}</h3>
