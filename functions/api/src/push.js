@@ -27,6 +27,7 @@ const CATEGORY_OF = {
   endorsement: 'social',
   recommendation: 'social',
   recommendation_request: 'social',
+  recommendation_published: 'social',
   review: 'social',
   repost: 'social',
   mention: 'social',
@@ -58,7 +59,8 @@ export function targetUrl(type, relatedId) {
     case 'shift': return '/turni';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
     case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
-    case 'recommendation': return '/profile?sezione=referenze';
+    case 'recommendation': return '/profile?referenze=approva';
+    case 'recommendation_published': return relatedId ? `/profile/${relatedId}?sezione=referenze` : '/profile';
     case 'recommendation_request': return relatedId ? `/profile/${relatedId}?referenza=scrivi` : '/profile';
     case 'event': return relatedId ? `/eventi/${relatedId}` : '/eventi';
     case 'mention': return relatedId ? `/post/${relatedId}` : '/';

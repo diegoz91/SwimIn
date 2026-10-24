@@ -31,7 +31,11 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'group':
             return { icon: 'users', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/gruppi/${n.relatedId}` : '/gruppi' };
         case 'recommendation':
-            return { icon: 'star', tone: 'bg-cloro-100 text-cloro-700', href: '/profile?sezione=referenze' };
+            // Le notifiche vecchie "ha pubblicato la tua referenza" avevano lo stesso tipo: portano al profilo di chi l'ha pubblicata.
+            if (n.relatedId && /ha pubblicato la tua referenza/.test(n.content || '')) return { icon: 'star', tone: 'bg-cloro-100 text-cloro-700', href: `/profile/${n.relatedId}?sezione=referenze` };
+            return { icon: 'star', tone: 'bg-cloro-100 text-cloro-700', href: '/profile?referenze=approva' };
+        case 'recommendation_published':
+            return { icon: 'star', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/profile/${n.relatedId}?sezione=referenze` : '/profile' };
         case 'recommendation_request':
             return { icon: 'pencil', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/profile/${n.relatedId}?referenza=scrivi` : '/profile' };
         case 'job_alert':
