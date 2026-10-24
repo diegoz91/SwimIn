@@ -6,7 +6,7 @@
 export const EVENT_TYPES = ['allenamento', 'gara', 'corso', 'open_day', 'webinar', 'incontro', 'altro'];
 const TYPE_LABEL = { allenamento: "L'allenamento", gara: 'La gara', corso: 'Il corso', open_day: "L'open day", webinar: 'Il webinar', incontro: "L'incontro", altro: "L'evento" };
 
-export function eventActions({ get, list, listAll, create, update, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl = (v) => v || '' }) {
+export function eventActions({ get, list, listAll, create, update, remove = async () => null, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl = (v) => v || '' }) {
   const text = (v, label, min, max, required = true) => {
     const t = typeof v === 'string' ? v.trim() : '';
     if (!t && !required) return undefined;
@@ -89,15 +89,35 @@ export function eventActions({ get, list, listAll, create, update, fail, notify,
     return saved;
   };
 
+  /** Il link per collegarsi non sta sulla riga pubblica: lo legge solo la Function. */
+  const savePrivateLink = async (meetId, url) => {
+    const existing = await find(C.eventPrivate, meetId);
+    if (!url) { if (existing) await remove(C.eventPrivate, meetId); return; }
+    if (existing) await update(C.eventPrivate, meetId, { onlineUrl: url });
+    else await create(C.eventPrivate, { onlineUrl: url }, [], meetId);
+  };
+
   return {
+    /** Link dell'evento online: solo per l'organizzatore e gli iscritti (non per chi è in attesa). */
+    async getEventLink(me, { meetId } = {}) {
+      if (typeof meetId !== 'string' || !meetId) fail(400, 'Evento non valido.');
+      const meet = await get(C.swimMeets, meetId);
+      if (meet.creatorId !== me && !(meet.participants || []).includes(me)) fail(403, 'Il link è riservato agli iscritti.');
+      const priv = await find(C.eventPrivate, meetId);
+      return { onlineUrl: priv?.onlineUrl || meet.onlineUrl || null };
+    },
+
     /** Nuovo evento: l'organizzatore è chi chiama (non un campo del client). */
     async createSwimMeet(me, data = {}) {
       const fields = clean(data);
       let groupId;
       if (data.groupId) groupId = (await groups._assertCanPost(me, String(data.groupId).slice(0, 36))).$id;
-      const meet = { ...fields, creatorId: me, participants: [me], waitlist: [], status: 'upcoming', ...(groupId ? { groupId } : {}) };
+      const { onlineUrl, ...publicFields } = fields;
+      const meet = { ...publicFields, creatorId: me, participants: [me], waitlist: [], status: 'upcoming', ...(groupId ? { groupId } : {}) };
       for (const k of Object.keys(meet)) if (meet[k] === undefined || meet[k] === null) delete meet[k];
-      return create(C.swimMeets, meet, [Permission.read(Role.users())]);
+      const created = await create(C.swimMeets, meet, [Permission.read(Role.users())]);
+      if (onlineUrl) await savePrivateLink(created.$id, onlineUrl);
+      return created;
     },
 
     /** Modifica (solo l'organizzatore): gli iscritti vengono avvisati se cambiano data, ora o luogo. */
@@ -110,9 +130,18 @@ export function eventActions({ get, list, listAll, create, update, fail, notify,
       if (patch.maxParticipants && patch.maxParticipants < (meet.participants || []).length) {
         fail(400, `Ci sono già ${(meet.participants || []).length} iscritti: non puoi scendere sotto.`);
       }
+      let linkChanged = false;
+      if ('onlineUrl' in patch || patch.isOnline === false) {
+        const before = (await find(C.eventPrivate, meetId))?.onlineUrl || meet.onlineUrl || null;
+        const next = patch.isOnline === false ? null : patch.onlineUrl ?? before;
+        linkChanged = (next || null) !== (before || null);
+        await savePrivateLink(meetId, next);
+        delete patch.onlineUrl;
+        if (meet.onlineUrl) patch.onlineUrl = null; // eventi creati prima: il link esce dalla riga pubblica
+      }
       let saved = await update(C.swimMeets, meetId, patch);
       saved = await fillFromWaitlist(saved);
-      const moved = ['date', 'time', 'city', 'address', 'onlineUrl'].some((k) => k in patch && (patch[k] || null) !== (meet[k] || null));
+      const moved = linkChanged || ['date', 'time', 'city', 'address'].some((k) => k in patch && (patch[k] || null) !== (meet[k] || null));
       if (moved) {
         for (const id of saved.participants || []) {
           if (id !== me) await notify(id, 'event', `${label(saved)} è cambiato: controlla data, ora e luogo.`, meetId);

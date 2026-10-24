@@ -52,8 +52,9 @@ async function mockAppwrite(page, { loggedIn }) {
 
         if (path.startsWith('/functions/api/executions')) {
             let action = '';
-            try { action = JSON.parse(JSON.parse(route.request().postData() || '{}').body || '{}').action || ''; } catch { action = ''; }
-            const data = apiResponses[action] ? apiResponses[action]() : {};
+            let params = {};
+            try { ({ action = '', ...params } = JSON.parse(JSON.parse(route.request().postData() || '{}').body || '{}')); } catch { action = ''; }
+            const data = apiResponses[action] ? apiResponses[action](params) : {};
             return json(route, { $id: 'x', status: 'completed', responseStatusCode: 200, responseBody: JSON.stringify({ ok: true, data }) });
         }
 
@@ -118,6 +119,7 @@ const PRIVATE_INTERACTIONS = [
     ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
+    ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); }],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
     ['form-evento', '/eventi', (p) => p.getByRole('button', { name: 'Crea un evento' }).first().click()],
     ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],

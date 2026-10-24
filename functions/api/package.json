@@ -11,6 +11,6 @@
     "node-appwrite": "^31.0.0"
   },
   "scripts": {
-    "test": "node --test test/api.test.js test/push.test.js test/premium.test.js test/content.test.js test/groups.test.js test/chat.test.js test/events.test.js"
+    "test": "node --test test/api.test.js test/push.test.js test/premium.test.js test/content.test.js test/groups.test.js test/chat.test.js test/events.test.js test/security.test.js"
   }
 }

@@ -54,6 +54,10 @@ const C = {
   pollVotes: 'poll_votes',
   groups: 'groups',
   groupMembers: 'group_members',
+  staffMessages: 'staff_messages',
+  typing: 'typing',
+  eventPrivate: 'event_private',
+  staffChatReads: 'staff_chat_reads',
   pushSubscriptions: 'push_subscriptions',
 };
 
@@ -194,6 +198,16 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     return row;
   };
 
+  /**
+   * Limite anti-spam: al massimo `max` righe create da chi chiama in `windowMs`
+   * (conta le righe della tabella, nessuna tabella in più).
+   */
+  const rateLimit = async (tableId, field, me, max, windowMs, message, extra = []) => {
+    const since = new Date(Date.now() - windowMs).toISOString();
+    const recent = await count(tableId, [Query.equal(field, me), Query.greaterThan('$createdAt', since), ...extra]);
+    if (recent >= max) fail(429, message);
+  };
+
   const displayName = (profile) =>
     profile.userType === 'structure'
       ? profile.structureName || 'Una struttura'
@@ -277,10 +291,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   };
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
-  const events = eventActions({ get, list, listAll, create, update, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
+  const events = eventActions({ get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
-  const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName });
+  const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
   const assertNotBlocked = moderation._assertNotBlocked;
 
@@ -300,7 +314,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
-    ...profileActions({ find, get, create, update, fail, users, endpoint, C, isRecruiterOf }),
+    ...profileActions({ find, get, create, update, remove, fail, users, endpoint, C, isRecruiterOf, Permission, Role }),
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
 
     // ---------------- MESSAGGI ----------------
@@ -314,6 +328,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const receiver = await get(C.profiles, receiverId);
       await assertNotBlocked(me, receiverId);
       const conversationId = conversationIdFor(me, receiverId);
+      await rateLimit(C.messages, 'senderId', me, 30, 60_000, 'Stai inviando troppi messaggi: aspetta qualche secondo.');
       const replyPreview = await chat._replyPreview(me, conversationId, replyToId);
       await checkMessagingAllowed(me, receiver);
       const files = await chat._attach(me, receiverId, attachments);
@@ -352,6 +367,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       receiverId = requireString(receiverId, 'receiverId', 36);
       if (receiverId === me) fail(400, 'Non puoi collegarti con te stesso.');
       await assertNotBlocked(me, receiverId);
+      await rateLimit(C.connections, 'senderId', me, 100, 86_400_000, 'Hai inviato molte richieste di collegamento oggi: riprova domani.');
       const [sender] = await Promise.all([get(C.profiles, me), get(C.profiles, receiverId)]);
       if ((sender.connections || []).includes(receiverId)) fail(409, 'Siete già collegati.');
 
@@ -423,6 +439,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (pollData?.error) fail(400, pollData.error);
       if (pollData && !content) fail(400, 'Scrivi la domanda del sondaggio.');
 
+      await rateLimit(C.posts, 'authorId', me, 15, 3_600_000, 'Hai pubblicato molti post nell’ultima ora: riprova più tardi.');
       const author = await get(C.profiles, me);
       const group = groupId ? await groups._assertCanPost(me, requireString(groupId, 'groupId', 36)) : null;
       const mentions = extractMentions(content);
@@ -449,16 +466,16 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       content = requireString(content, 'content', 2000);
       const post = await get(C.posts, postId);
       await assertNotBlocked(me, post.authorId);
+      // Nei gruppi commentano solo i membri.
+      if (post.groupId) await groups._assertCanPost(me, post.groupId).catch(() => fail(403, 'Entra nel gruppo per commentare.'));
+      await rateLimit(C.comments, 'authorId', me, 20, 60_000, 'Stai commentando troppo velocemente: aspetta qualche secondo.');
       let parent = null;
       if (parentCommentId) {
         parent = await get(C.comments, parentCommentId);
         if (parent.postId !== postId) fail(400, 'Il commento padre appartiene a un altro post.');
       }
-      const comment = await create(C.comments, { postId, authorId: me, content, parentCommentId }, [
-        Permission.read(Role.users()),
-        Permission.update(Role.user(me)),
-        Permission.delete(Role.user(me)),
-      ]);
+      // Solo lettura per i client: autore, post e contatori non devono essere modificabili dal client.
+      const comment = await create(C.comments, { postId, authorId: me, content, parentCommentId }, [Permission.read(Role.users())]);
       const commentsCount = await count(C.comments, [Query.equal('postId', postId)]);
       await update(C.posts, postId, { commentsCount });
 
@@ -510,7 +527,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       commentId = requireString(commentId, 'commentId', 36);
       const comment = await get(C.comments, commentId);
       const post = await find(C.posts, comment.postId);
-      const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && (post.authorId === me || ownersOf(post).includes(me)));
+      const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && (post.authorId === me || ownersOf(post).includes(me)))
+        || (post?.groupId && (await groups._isGroupAdmin(post.groupId, me)));
       if (!allowed) fail(403, 'Non puoi eliminare questo commento.');
 
       for (const reply of await listAll(C.comments, [Query.equal('parentCommentId', commentId)])) {
@@ -570,6 +588,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         Query.equal('reporterId', me), Query.equal('targetId', targetId), Query.equal('status', 'open'),
       ]);
       if (duplicate > 0) return { reported: true, duplicate: true };
+      await rateLimit(C.reports, 'reporterId', me, 30, 3_600_000, 'Hai inviato molte segnalazioni: le stiamo esaminando, riprova più tardi.');
       // Nessun permesso: le segnalazioni sono visibili solo dalla Console di Appwrite.
       await create(C.reports, {
         reporterId: me, targetType, targetId, reason,
@@ -778,9 +797,35 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         }
       }
       for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
-      const created = await create(C.jobs, job, [Permission.read(Role.users()), Permission.update(Role.user(me)), Permission.delete(Role.user(me))]);
+      // Solo lettura per i client: chiusura e riapertura passano da closeJob/reopenJob (limiti Base, evidenza Premium).
+      const created = await create(C.jobs, job, [Permission.read(Role.users())]);
       if (job.isSOS && job.province) created.notified = await alertSOS(created, me);
       return created;
+    },
+
+    /** Chiude un annuncio (non riceve più candidature); solo chi lo gestisce. */
+    async closeJob(me, { jobId }) {
+      jobId = requireString(jobId, 'jobId', 36);
+      const job = await get(C.jobs, jobId);
+      if (!(await jobManagers(job)).includes(me)) fail(403, 'Non gestisci questo annuncio.');
+      return update(C.jobs, jobId, { isActive: false });
+    },
+
+    /** Riapre un annuncio chiuso, se non è scaduto; con il piano Base vale il limite di annunci attivi. */
+    async reopenJob(me, { jobId }) {
+      jobId = requireString(jobId, 'jobId', 36);
+      const job = await get(C.jobs, jobId);
+      if (!(await jobManagers(job)).includes(me)) fail(403, 'Non gestisci questo annuncio.');
+      if (job.isActive) return job;
+      const today = isoDay(Date.now());
+      if (job.expiresAt && job.expiresAt < today) fail(409, 'L’annuncio è scaduto: pubblicane uno nuovo.');
+      if (job.isSOS) fail(409, 'Le sostituzioni urgenti non si riaprono: pubblicane una nuova.');
+      const publisher = await get(C.profiles, me);
+      if (!isPremium(publisher)) {
+        const open = (await listAll(C.jobs, [Query.equal('structureId', job.structureId), Query.equal('isActive', true)])).filter((j) => !j.isSOS && (!j.expiresAt || j.expiresAt >= today));
+        if (open.length >= BASE_ACTIVE_JOBS) fail(402, `Con il piano Base puoi avere ${BASE_ACTIVE_JOBS} annunci attivi alla volta. Chiudine uno o passa a Premium.`, 'premium_required');
+      }
+      return update(C.jobs, jobId, { isActive: true });
     },
 
     async applyForJob(me, { jobId, coverLetter = '' }) {
@@ -799,7 +844,6 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         { jobId, applicantId: me, status: 'pending', coverLetter: String(coverLetter).slice(0, 3000) },
         [
           Permission.read(Role.user(me)),
-          Permission.delete(Role.user(me)), // il candidato può ritirarsi
           ...managers.map((id) => Permission.read(Role.user(id))),
         ]
       );

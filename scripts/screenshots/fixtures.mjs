@@ -88,7 +88,7 @@ const profiles = [
     }),
     doc('profiles', 'u_lido', {
         userId: 'u_lido', userType: 'structure', email: 'info@lido.example', structureName: 'Piscina Lido di Milano',
-        structureType: 'Piscina comunale', city: 'Milano', province: 'MI', connections: [ME],
+        structureType: 'Piscina comunale', city: 'Milano', province: 'MI', connections: [ME], staff: [ME, 'u_sara'],
         bio: 'Vasca olimpionica scoperta, vasca coperta da 25 m e vasca didattica. Corsi per tutte le età.',
         address: 'Piazza Lombardia 1', postalCode: '20131', phone: '02 1234567', website: 'https://piscinalido.example',
         poolLength: 50, lanes: 8, poolSetting: 'entrambe', ratingSum: 13, ratingCount: 3, services: ['Scuola nuoto', 'Nuoto libero', 'Agonismo', 'Acquafitness', 'Corsi di salvamento'],
@@ -269,7 +269,21 @@ export const apiResponses = {
     }),
     listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: false }),
     getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
-    getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [] }),
+    getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [], chatUnread: 2 }),
+    listStaffMessages: ({ after } = {}) => (after ? { messages: [], hasMore: false } : {
+        hasMore: false,
+        members: [
+            { $id: 'u_lido', name: 'Piscina Lido di Milano', avatar: '', role: 'admin' },
+            { $id: ME, name: 'Giulia Ferri', avatar: '', role: 'staff' },
+            { $id: 'u_sara', name: 'Sara Colombo', avatar: '', role: 'staff' },
+        ],
+        messages: [
+            { $id: 'sm1', $createdAt: iso(60 * 20), structureId: 'u_lido', authorId: 'u_lido', content: 'Domani la vasca coperta apre alle 10 per la manutenzione del filtro: spostate i corsi delle 8 in vasca olimpionica.' },
+            { $id: 'sm2', $createdAt: iso(60 * 19), structureId: 'u_lido', authorId: 'u_sara', content: 'Ricevuto, avviso i genitori del corso bambini.' },
+            { $id: 'sm3', $createdAt: iso(30), structureId: 'u_lido', authorId: ME, content: 'Io copro il turno delle 14 al posto di Luca.' },
+            { $id: 'sm4', $createdAt: iso(12), structureId: 'u_lido', authorId: 'u_lido', content: 'Grazie Giulia!' },
+        ],
+    }),
     listMyShifts: () => {
         const day = (n) => new Date(now + n * 86400000).toISOString().slice(0, 10);
         return [

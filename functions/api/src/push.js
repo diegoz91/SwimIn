@@ -18,6 +18,7 @@ export const NOTIFY_CATEGORIES = {
 
 const CATEGORY_OF = {
   message: 'messages',
+  staff_chat: 'messages',
   connection: 'connections',
   like: 'social',
   comment: 'social',
@@ -50,6 +51,7 @@ export function targetUrl(type, relatedId) {
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
+    case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
     case 'event': return relatedId ? `/eventi/${relatedId}` : '/eventi';
     case 'mention': return relatedId ? `/post/${relatedId}` : '/';
     case 'follow': return relatedId ? `/profile/${relatedId}` : '/network';
