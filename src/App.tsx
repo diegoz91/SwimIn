@@ -97,7 +97,7 @@ const AppContent: React.FC = () => {
 
       <main
         id="contenuto"
-        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-24 md:pb-10' : ''}`}
+        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>

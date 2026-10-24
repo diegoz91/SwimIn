@@ -127,7 +127,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
             
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-800">Trova Lavoro</h1>
+                    <h1 className="text-3xl font-extrabold text-slate-800">Trova lavoro</h1>
                     <p className="text-slate-500 mt-1">Scopri le opportunità nelle piscine vicino a te.</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
@@ -249,32 +249,32 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                         {sosJobs.length > 0 && (
                             <div className="mb-10">
                                 <h3 className="text-xl font-extrabold text-red-600 flex items-center gap-2 mb-4">
-                                    <Icon type="alert-triangle" className="w-6 h-6 animate-pulse" /> Emergenze SOS Vasca
+                                    <Icon type="alert-triangle" className="w-6 h-6 animate-pulse" /> Sostituzioni urgenti
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {sosJobs.map(job => (
                                         <div key={job.$id} className="bg-red-50 border-2 border-red-500 rounded-2xl p-5 shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col relative overflow-hidden">
                                             <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 animate-pulse">
-                                                SOS ATTIVO
+                                                SOS attivo
                                             </div>
                                             <h3 className="text-xl font-extrabold text-red-800 pr-20 line-clamp-2">{jobDisplayTitle(job)}</h3>
-                                            <p className="text-sm font-bold text-red-600 mt-1 truncate">{job.structureName || 'Struttura Privata'}</p>
+                                            <p className="text-sm font-bold text-red-600 mt-1 truncate">{job.structureName || 'Struttura privata'}</p>
                                             
                                             <div className="grid grid-cols-2 gap-2 mt-4 mb-4">
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-[10px] text-red-500 uppercase font-bold">Data</p>
+                                                    <p className="text-xs text-red-600 font-semibold">Data</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{formatDate(job.sosDate, 'weekday')}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-[10px] text-red-500 uppercase font-bold">Turno</p>
+                                                    <p className="text-xs text-red-600 font-semibold">Turno</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{job.sosShift}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-[10px] text-red-500 uppercase font-bold">Compenso</p>
+                                                    <p className="text-xs text-red-600 font-semibold">Compenso</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">€{job.salaryMin}</p>
                                                 </div>
                                                 <div className="bg-white/80 p-2 rounded-lg border border-red-100 shadow-sm">
-                                                    <p className="text-[10px] text-red-500 uppercase font-bold">Città</p>
+                                                    <p className="text-xs text-red-600 font-semibold">Città</p>
                                                     <p className="text-sm font-bold text-slate-800 truncate">{job.city}</p>
                                                 </div>
                                             </div>
@@ -283,7 +283,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
                                                 onClick={() => onApply(job)} 
                                                 className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-colors shadow-md flex items-center justify-center gap-2 mt-auto outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                                             >
-                                                <Icon type="check-double" className="w-5 h-5"/> Mi Propongo
+                                                <Icon type="check-double" className="w-5 h-5"/> Mi propongo
                                             </button>
                                         </div>
                                     ))}
@@ -293,7 +293,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ onSelectJob, onApply, on
 
                         {regularJobs.length > 0 && (
                             <>
-                                {sosJobs.length > 0 && <h3 className="text-xl font-extrabold text-slate-800 mb-4">Tutte le Offerte</h3>}
+                                {sosJobs.length > 0 && <h3 className="text-xl font-extrabold text-slate-800 mb-4">Tutte le offerte</h3>}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {regularJobs.map(job => (
                                         <JobCard 

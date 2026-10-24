@@ -17,9 +17,9 @@ const IDEAS = [
     'Preparare la stagione estiva in piscina scoperta',
 ];
 
-/** Bordo Vasca Live: stanze di confronto in tempo reale tra professionisti. */
+/** Bordo vasca live: stanze di confronto in tempo reale tra professionisti. */
 const Live: React.FC = () => {
-    usePageTitle('Bordo Vasca Live');
+    usePageTitle('Bordo vasca live');
     const { user } = useAuth();
     const { showToast } = useToast();
 
@@ -125,7 +125,7 @@ const Live: React.FC = () => {
         <div className="pt-4 max-w-5xl mx-auto w-full">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-4xl font-bold text-abisso leading-none">Bordo Vasca Live</h1>
+                    <h1 className="text-4xl font-bold text-abisso leading-none">Bordo vasca live</h1>
                     <p className="text-slate-600 mt-2 max-w-xl">
                         Stanze di confronto in tempo reale: chi conduce porta sul palco gli ospiti, il pubblico interviene in chat con domande e mani alzate.
                     </p>

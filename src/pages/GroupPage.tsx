@@ -305,7 +305,7 @@ const GroupPage: React.FC = () => {
                             </div>
                         ) : (
                             <ul className="grid sm:grid-cols-2 gap-4">
-                                {events.map((e) => <li key={e.$id}><EventCard event={e} currentUserId={user?.$id} /></li>)}
+                                {events.map((e) => <li key={e.$id} className="min-w-0"><EventCard event={e} currentUserId={user?.$id} /></li>)}
                             </ul>
                         )}
                     </>

@@ -210,9 +210,11 @@ async function auditLayout(page, touch) {
             for (const el of document.querySelectorAll('button, a[href], [role="button"], input, textarea, [role="tab"], [role="menuitem"]')) {
                 const r = el.getBoundingClientRect();
                 if (!visible(el, r) || r.bottom < 0 || r.top > innerHeight) continue;
+                // Elementi nascosti per l'accessibilità (link "salta al contenuto", input dei toggle).
+                if (r.width <= 2 || r.height <= 2 || el.closest('.sr-only')) continue;
                 // I link dentro un testo seguono la riga: si escludono.
                 if (el.tagName === 'A' && getComputedStyle(el).display === 'inline') continue;
-                if (r.height < 28 || r.width < 28) small.push(`${describe(el)} ${Math.round(r.width)}×${Math.round(r.height)}`);
+                if (r.height < 24 || r.width < 24) small.push(`${describe(el)} ${Math.round(r.width)}×${Math.round(r.height)}`);
             }
         }
         return { overflow, offenders: offenders.map((o) => o.text), small: small.slice(0, 8), smallCount: small.length };
@@ -276,7 +278,7 @@ const bad = report.filter((r) => r.overflow > 0 || r.offenders.length);
 lines.push(`## Elementi fuori dallo schermo (${bad.length})`, '');
 for (const r of bad) lines.push(`- **${r.page}** — scorrimento orizzontale ${r.overflow}px`, ...r.offenders.map((o) => `  - ${o}`));
 const tiny = report.filter((r) => r.smallCount);
-lines.push('', `## Pulsanti piccoli da toccare, sotto 28 px (${tiny.length} pagine)`, '');
+lines.push('', `## Pulsanti piccoli da toccare, sotto 24 px (WCAG 2.5.8) (${tiny.length} pagine)`, '');
 for (const r of tiny) lines.push(`- **${r.page}** (${r.smallCount})`, ...r.small.map((o) => `  - ${o}`));
 writeFileSync(`${OUT}/layout.md`, lines.join('\n') + '\n');
 writeFileSync(`${OUT}/layout.json`, JSON.stringify(report, null, 2));

@@ -50,7 +50,7 @@ const ProfilePage: React.FC = () => {
                         targetProfile = await databaseService.getProfile(id);
                     } catch (error) {
                         try {
-                            // 2. Se non lo trova, cerca nelle Pagine Aziendali (Facilities)
+                            // 2. Se non lo trova, cerca nelle Strutture (Facilities)
                             const fac = await databaseService.getFacility(id);
                             if (fac) targetProfile = fac;
                         } catch (e) {

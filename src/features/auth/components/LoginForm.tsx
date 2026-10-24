@@ -146,15 +146,15 @@ export const LoginForm: React.FC = () => {
                             className="flex items-center text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-4 outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded pr-2"
                         >
                             <Icon type="arrow-left" className="w-4 h-4 mr-1" />
-                            Torna al Login
+                            Torna all’accesso
                         </button>
-                        <h2 className="text-xl font-bold text-slate-900">Recupera Password</h2>
+                        <h2 className="text-xl font-bold text-slate-900">Recupera la password</h2>
                         <p className="text-sm text-slate-500 mt-1">Inserisci la tua email, ti invieremo le istruzioni.</p>
                     </div>
 
                     <form onSubmit={handlePasswordRecovery} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="recoveryEmail">Email Registrata</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="recoveryEmail">Email dell’account</label>
                             <input
                                 id="recoveryEmail"
                                 type="email"
@@ -179,7 +179,7 @@ export const LoginForm: React.FC = () => {
                                     <span>Invio in corso...</span>
                                 </>
                             ) : (
-                                'Invia Link'
+                                'Invia il link'
                             )}
                         </button>
                     </form>

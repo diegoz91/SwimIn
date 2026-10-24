@@ -190,7 +190,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   return (
     <div className="flex h-[calc(100dvh-12.5rem)] md:h-[calc(100dvh-9rem)] max-w-6xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in duration-500">
       
-      <div className={`w-full md:w-[380px] flex-col bg-slate-50 border-r border-slate-200 ${showList ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`w-full md:w-80 lg:w-[380px] flex-shrink-0 flex-col bg-slate-50 border-r border-slate-200 ${showList ? 'flex' : 'hidden md:flex'}`}>
         <div className="p-5 border-b border-slate-200 bg-white">
           <h2 className="text-2xl font-extrabold text-slate-800">Messaggi</h2>
         </div>
@@ -237,10 +237,10 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             onProfileClick={onProfileClick}
           />
         ) : (
-          <div className="hidden md:flex flex-col items-center justify-center h-full text-slate-400 bg-slate-50">
+          <div className="hidden md:flex flex-col items-center justify-center h-full text-slate-400 bg-slate-50 text-center px-8">
             <Icon type="mail" className="w-24 h-24 text-slate-200 mb-6" />
-            <h3 className="text-2xl font-bold text-slate-600">I tuoi messaggi</h3>
-            <p className="mt-2 font-medium">Seleziona una conversazione dalla lista per iniziare a chattare</p>
+            <h2 className="text-3xl font-bold text-abisso">I tuoi messaggi</h2>
+            <p className="mt-2 text-slate-500 max-w-xs">Scegli una conversazione dall’elenco, oppure scrivi a un collegamento dalla sua pagina.</p>
           </div>
         )}
       </div>

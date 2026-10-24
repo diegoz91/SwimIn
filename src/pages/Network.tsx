@@ -149,21 +149,21 @@ const Network: React.FC = () => {
     return (
         <div className="pt-4 w-full">
             
-            <div className="flex justify-center mb-8">
-                <div className="bg-slate-100 p-1.5 rounded-2xl inline-flex shadow-inner border border-slate-200">
-                    <span className="px-5 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-white text-blue-600 shadow-sm" aria-current="page">
-                        <Icon type="users" className="w-4 h-4" />
+            <div className="flex justify-center mb-6 sm:mb-8">
+                <nav aria-label="Sezioni della rete" className="bg-slate-100 p-1.5 rounded-2xl flex w-full sm:w-auto shadow-inner border border-slate-200">
+                    <span className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-white text-corsia-700 shadow-sm" aria-current="page">
+                        <Icon type="users" className="w-4 h-4 hidden min-[380px]:block" />
                         <span>Collegamenti</span>
                     </span>
-                    <Link to="/gruppi" className="px-5 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
-                        <Icon type="users" className="w-4 h-4" />
+                    <Link to="/gruppi" className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
+                        <Icon type="users" className="w-4 h-4 hidden min-[380px]:block" />
                         <span>Gruppi</span>
                     </Link>
-                    <Link to="/eventi" className="px-5 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
-                        <Icon type="calendar" className="w-4 h-4" />
+                    <Link to="/eventi" className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
+                        <Icon type="calendar" className="w-4 h-4 hidden min-[380px]:block" />
                         <span>Eventi</span>
                     </Link>
-                </div>
+                </nav>
             </div>
 
                 <div className="animate-in fade-in duration-500">

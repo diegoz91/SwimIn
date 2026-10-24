@@ -133,7 +133,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
     };
 
     const { structureName, structureLogo } = useMemo(() => {
-        const name = structure?.structureName || localJob.structureName || 'Struttura Non Specificata';
+        const name = structure?.structureName || localJob.structureName || 'Struttura non specificata';
         const logo = structure?.logo || localJob.facilityLogo || initialsAvatar(name);
         return { structureName: name, structureLogo: logo };
     }, [structure, localJob.structureName, localJob.facilityLogo]);
@@ -160,7 +160,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                     </button>
                     {isAdmin && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200 shadow-sm flex items-center gap-1">
-                            <Icon type="star" className="w-3.5 h-3.5" /> Il tuo Annuncio
+                            <Icon type="star" className="w-3.5 h-3.5" /> Il tuo annuncio
                         </span>
                     )}
                 </div>
@@ -207,7 +207,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                 <div className="p-5 sm:p-8 bg-slate-800 border-b border-slate-700">
                     <h2 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
                         <Icon type="users" className="w-6 h-6 text-blue-400" />
-                        Candidature Ricevute ({applicants.length})
+                        Candidature ricevute ({applicants.length})
                     </h2>
                     
                     {isLoadingApps ? (
@@ -244,7 +244,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                             <button 
                                                 onClick={() => navigate(`/profile/${prof.userId || prof.$id}`)} 
                                                 className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors font-bold text-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                                                title="Vedi Passaporto"
+                                                title="Vedi passaporto"
                                             >
                                                 Profilo
                                             </button>
@@ -336,7 +336,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                 )}
                 {localJob.qualificationsRequired && localJob.qualificationsRequired.length > 0 && (
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon type="certificate" className="w-5 h-5 text-amber-500" /> Brevetti Richiesti</h2>
+                        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon type="certificate" className="w-5 h-5 text-amber-500" /> Brevetti richiesti</h2>
                         <ul className="space-y-3">
                             {localJob.qualificationsRequired.map((qual: string, i: number) => (
                                 <li key={i} className="flex items-start text-slate-700 text-[15px]"><Icon type="star" className="w-4 h-4 text-amber-400 mt-0.5 mr-2 flex-shrink-0" /><span className="font-medium">{qual}</span></li>
@@ -405,7 +405,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon type="check-double" className="w-8 h-8" />
                             </div>
-                            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Assumi Candidato</h3>
+                            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Assumi il candidato</h3>
                             <p className="text-slate-500 text-sm mb-6">
                                 Sei sicuro di voler assumere ufficialmente <strong>{candidateToHire.applicantName}</strong> per questa posizione?
                                 <br/><br/>
@@ -422,7 +422,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     onClick={confirmHireCandidate} 
                                     className="flex-1 font-bold text-white bg-green-600 py-3 rounded-xl hover:bg-green-700 transition shadow-md outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                                 >
-                                    Assumi Ora
+                                    Assumi
                                 </button>
                             </div>
                         </div>

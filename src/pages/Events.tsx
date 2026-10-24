@@ -119,7 +119,7 @@ const Events: React.FC = () => {
                 </div>
             ) : (
                 <ul className="grid sm:grid-cols-2 gap-4">
-                    {shown.map((e) => <li key={e.$id}><EventCard event={e} currentUserId={me} /></li>)}
+                    {shown.map((e) => <li key={e.$id} className="min-w-0"><EventCard event={e} currentUserId={me} /></li>)}
                 </ul>
             )}
 

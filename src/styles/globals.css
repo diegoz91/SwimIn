@@ -47,6 +47,15 @@
     @apply bg-cloro-200 text-abisso;
   }
 
+  /* iOS Safari ingrandisce la pagina se un campo ha il testo sotto i 16 px: sui touch lo portiamo a 16. */
+  @media (max-width: 1023px) and (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

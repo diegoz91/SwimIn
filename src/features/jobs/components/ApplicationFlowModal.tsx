@@ -106,10 +106,10 @@ const ApplicationTypeStep: React.FC<{ onSelect: (type: 'rapid' | CustomApplicati
         >
             <div className="flex items-center gap-3 mb-2">
                 <Icon type="sparkles" className="w-6 h-6 text-blue-500 group-hover:text-blue-600" />
-                <h3 className="font-bold text-lg text-slate-800">Candidatura Rapida</h3>
+                <h3 className="font-bold text-lg text-slate-800">Candidatura rapida</h3>
             </div>
             <p className="text-slate-600 ml-9">Usa il tuo profilo SwimIn e il CV esistente. Veloce e immediata.</p>
-            <p className="text-xs font-semibold text-slate-400 mt-3 ml-9 uppercase tracking-wide">Tempo stimato: 30 secondi</p>
+            <p className="text-xs font-semibold text-slate-500 mt-3 ml-9">Tempo stimato: 30 secondi</p>
         </button>
         <button 
             className="w-full text-left border-2 border-slate-200 rounded-xl p-5 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group outline-none focus-visible:ring-2 focus-visible:ring-blue-500" 
@@ -117,10 +117,10 @@ const ApplicationTypeStep: React.FC<{ onSelect: (type: 'rapid' | CustomApplicati
         >
             <div className="flex items-center gap-3 mb-2">
                 <Icon type="pencil" className="w-6 h-6 text-blue-500 group-hover:text-blue-600" />
-                <h3 className="font-bold text-lg text-slate-800">Candidatura Personalizzata</h3>
+                <h3 className="font-bold text-lg text-slate-800">Candidatura personalizzata</h3>
             </div>
             <p className="text-slate-600 ml-9">Aggiungi una lettera di presentazione, documenti aggiuntivi o orari per distinguerti.</p>
-             <p className="text-xs font-semibold text-slate-400 mt-3 ml-9 uppercase tracking-wide">Tempo stimato: 2-3 minuti</p>
+             <p className="text-xs font-semibold text-slate-500 mt-3 ml-9">Tempo stimato: 2-3 minuti</p>
         </button>
     </div>
 );
@@ -153,7 +153,7 @@ const RapidApplicationStep: React.FC<{ user: UserProfile; onSubmit: () => void; 
              <button onClick={onBack} className="font-semibold text-slate-600 px-4 py-2.5 rounded-full hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Indietro</button>
             <button onClick={onSubmit} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 shadow-md hover:shadow-lg transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <Icon type="send" className="w-4 h-4" />
-                Invia Candidatura
+                Invia candidatura
             </button>
         </div>
     </div>
@@ -209,7 +209,7 @@ const CompatibilityAnalysisStep: React.FC<{ user: UserProfile, job: Job, onProce
 
              <div className="flex justify-between items-center pt-4 border-t border-slate-100">
                 <button onClick={onBack} className="font-semibold text-slate-600 px-4 py-2.5 rounded-full hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Annulla</button>
-                <button onClick={onProceed} className="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Scrivi Lettera &rarr;</button>
+                <button onClick={onProceed} className="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Scrivi la lettera &rarr;</button>
             </div>
         </div>
     );
@@ -258,7 +258,7 @@ const CoverLetterStep: React.FC<{ data: CustomApplicationData, setData: React.Di
 
 const DocsStep: React.FC<{ onNext: () => void, onBack: () => void }> = ({ onNext, onBack }) => (
     <div className="animate-in slide-in-from-right-4 duration-300">
-        <h3 className="font-bold text-lg text-slate-800 mb-4">Documenti Aggiuntivi (Opzionale)</h3>
+        <h3 className="font-bold text-lg text-slate-800 mb-4">Documenti aggiuntivi (facoltativi)</h3>
         <p className="text-sm text-slate-600 mb-4">Carica eventuali file aggiuntivi come un CV in PDF o scansioni di brevetti non inseriti nel profilo.</p>
         <div className="border-2 border-dashed border-slate-300 p-8 rounded-xl text-center hover:bg-slate-50 transition-colors cursor-pointer mb-6">
             <Icon type="document" className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -273,7 +273,7 @@ const DocsStep: React.FC<{ onNext: () => void, onBack: () => void }> = ({ onNext
 
 const AvailabilityStep: React.FC<{ data: CustomApplicationData, setData: React.Dispatch<React.SetStateAction<CustomApplicationData>>, onNext: () => void, onBack: () => void }> = ({ data, setData, onNext, onBack }) => (
     <div className="animate-in slide-in-from-right-4 duration-300">
-        <h3 className="font-bold text-lg text-slate-800 mb-4">Disponibilità e Orari</h3>
+        <h3 className="font-bold text-lg text-slate-800 mb-4">Disponibilità e orari</h3>
         <p className="text-sm text-slate-600 mb-4">Indica alla struttura i tuoi orari di disponibilità per facilitare il processo di selezione.</p>
         <textarea 
             value={data.availability?.notes || ''}
@@ -291,7 +291,7 @@ const AvailabilityStep: React.FC<{ data: CustomApplicationData, setData: React.D
 
 const FinalMessageStep: React.FC<{ data: CustomApplicationData, setData: React.Dispatch<React.SetStateAction<CustomApplicationData>>, onNext: () => void, onBack: () => void }> = ({ data, setData, onNext, onBack }) => (
     <div className="animate-in slide-in-from-right-4 duration-300">
-        <h3 className="font-bold text-lg text-slate-800 mb-4">Note Finali</h3>
+        <h3 className="font-bold text-lg text-slate-800 mb-4">Note finali</h3>
         <p className="text-sm text-slate-600 mb-4">Vuoi aggiungere un ultimo dettaglio o una richiesta speciale prima di inviare?</p>
         <textarea 
             value={data.finalMessage}
@@ -310,9 +310,9 @@ const FinalMessageStep: React.FC<{ data: CustomApplicationData, setData: React.D
 const PreviewStep: React.FC<{ job: Job, data: CustomApplicationData, onSubmit: () => void, onBack: () => void }> = ({ job, data, onSubmit, onBack }) => (
     <div className="animate-in slide-in-from-right-4 duration-300">
         <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Riepilogo Posizione</h4>
+            <h4 className="text-sm font-semibold text-slate-500 mb-1">Riepilogo della posizione</h4>
             <p className="font-bold text-lg text-slate-800">{jobDisplayTitle(job)}</p>
-            <p className="text-slate-600">{job.structureName || 'Struttura Privata'}</p>
+            <p className="text-slate-600">{job.structureName || 'Struttura privata'}</p>
         </div>
         <div className="mb-6">
             <h4 className="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">La tua lettera finale</h4>
@@ -325,8 +325,8 @@ const PreviewStep: React.FC<{ job: Job, data: CustomApplicationData, onSubmit: (
         <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm flex items-start gap-3">
             <Icon type="info" className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
-                <p className="font-bold mb-1">Ultimo Controllo</p>
-                <p>Cliccando su Invia Candidatura, trasmetterai il tuo profilo e la tua lettera alla struttura. L'azione non è annullabile.</p>
+                <p className="font-bold mb-1">Ultimo controllo</p>
+                <p>Cliccando su Invia candidatura, trasmetterai il tuo profilo e la tua lettera alla struttura. L'azione non è annullabile.</p>
             </div>
         </div>
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
@@ -343,7 +343,7 @@ const ConfirmationStep: React.FC<{ job: Job; onClose: () => void; onNavigate: (v
         <div className="mx-auto bg-green-100 rounded-full h-20 w-20 flex items-center justify-center mb-6 shadow-inner">
             <Icon type="check-double" className="w-10 h-10 text-green-600"/>
         </div>
-        <h3 className="text-2xl font-extrabold text-slate-800 mb-2">Candidatura Inviata!</h3>
+        <h3 className="text-2xl font-extrabold text-slate-800 mb-2">Candidatura inviata</h3>
         <p className="text-slate-600 mt-2 text-lg">
             Ti sei candidato con successo per <strong>{jobDisplayTitle(job)}</strong> presso <strong>{job.structureName || 'la struttura'}</strong>.
         </p>
@@ -376,13 +376,13 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
         idle: '',
         requirements: `Candidatura per ${jobDisplayTitle(job)}`,
         type: 'Come vuoi candidarti?',
-        rapid: 'Candidatura Rapida',
+        rapid: 'Candidatura rapida',
         custom_analysis: `Candidatura per ${jobDisplayTitle(job)}`,
-        custom_letter: ['Lettera Motivazionale', 'Step 1 di 4'],
-        custom_docs: ['Documentazione', 'Step 2 di 4'],
-        custom_availability: ['Disponibilità', 'Step 3 di 4'],
-        custom_final: ['Messaggio Finale', 'Step 4 di 4'],
-        custom_preview: 'Anteprima Candidatura',
+        custom_letter: ['Lettera motivazionale', 'Passo 1 di 4'],
+        custom_docs: ['Documentazione', 'Passo 2 di 4'],
+        custom_availability: ['Disponibilità', 'Passo 3 di 4'],
+        custom_final: ['Messaggio finale', 'Passo 4 di 4'],
+        custom_preview: 'Anteprima della candidatura',
         confirmation: 'Inviata!',
     };
     

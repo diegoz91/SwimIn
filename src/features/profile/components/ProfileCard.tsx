@@ -22,7 +22,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSelectProfile 
 
     const extractedTitle = isProfessional 
         ? ((user as UserProfile).title || 'Professionista') 
-        : ((user as StructureProfile).structureType || 'Centro Sportivo');
+        : ((user as StructureProfile).structureType || 'Centro sportivo');
 
     const extractedLocation = user.city ? `${user.city}${user.province ? ` (${user.province})` : ''}` : 'Sede non specificata';
     

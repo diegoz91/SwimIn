@@ -37,8 +37,8 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
         : (profile as StructureProfile).structureName || 'Struttura';
     
     const displayTitle = isProfessional 
-        ? ((profile as UserProfile).title || 'Professionista del Nuoto') 
-        : ((profile as StructureProfile).structureType || 'Centro Sportivo');
+        ? ((profile as UserProfile).title || 'Professionista del nuoto') 
+        : ((profile as StructureProfile).structureType || 'Centro sportivo');
 
     const displayAvatar = (isProfessional ? (profile as UserProfile).avatar : (profile as StructureProfile).logo) || 
         initialsAvatar(displayName);

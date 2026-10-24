@@ -62,7 +62,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated, groupId
                 <div className="flex gap-3 items-center">
                     <img 
                         src={displayAvatar || defaultAvatar} 
-                        alt="Tuo Profilo" 
+                        alt="Il tuo profilo" 
                         className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-slate-50 flex-shrink-0"
                     />
                     <button

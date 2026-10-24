@@ -49,7 +49,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
     const { user } = useAuth();
 
     const { structureName, structureLogo } = useMemo(() => {
-        const name = structure?.structureName || job.structureName || 'Struttura Non Specificata';
+        const name = structure?.structureName || job.structureName || 'Struttura non specificata';
         const logo = structure?.logo || initialsAvatar(name);
         return { structureName: name, structureLogo: logo };
     }, [structure, job.structureName]);
@@ -122,7 +122,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, structure, onSelectJob, o
                     onClick={() => onApply?.(job)} 
                     className="w-full sm:w-auto text-center bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-all text-sm shadow-sm active:scale-95 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                    <Icon type="send" className="w-4 h-4" /> Candidati Ora
+                    <Icon type="send" className="w-4 h-4" /> Candidati
                 </button>
             </div>
         </div>

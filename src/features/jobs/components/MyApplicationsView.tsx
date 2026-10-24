@@ -23,7 +23,7 @@ type StatusFilter = 'all' | 'pending' | 'accepted' | 'hired' | 'rejected';
 
 const filters: { id: StatusFilter; label: string }[] = [
     { id: 'all', label: 'Tutte' },
-    { id: 'pending', label: 'In Corso' },
+    { id: 'pending', label: 'In corso' },
     { id: 'hired', label: 'Assunzioni' },
     { id: 'rejected', label: 'Rifiutate' },
 ];
@@ -52,13 +52,13 @@ export const MyApplicationsView: React.FC<MyApplicationsViewProps> = ({
                     className="text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
                 >
                     <Icon type="arrow-left" className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
-                    Torna alla Bacheca
+                    Torna alle offerte
                 </button>
             </div>
 
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800">Le mie Candidature</h1>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800">Le mie candidature</h1>
                     <p className="text-slate-500 font-medium mt-1">Monitora lo stato delle tue applicazioni di lavoro.</p>
                 </div>
                 <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-bold border border-blue-100">
@@ -139,7 +139,7 @@ export const MyApplicationsView: React.FC<MyApplicationsViewProps> = ({
                             onClick={onBack}
                             className="mt-6 bg-blue-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 transition shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
-                            Esplora Offerte
+                            Esplora le offerte
                         </button>
                     )}
                 </div>

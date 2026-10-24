@@ -122,7 +122,7 @@ const Structures: React.FC = () => {
             ) : (
                 <ul className="grid sm:grid-cols-2 gap-4">
                     {shown.map((s) => (
-                        <li key={s.id}>
+                        <li key={s.id} className="min-w-0">
                             <Link to={`/profile/${s.id}`} className="group flex gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-card hover:border-corsia-200 hover:shadow-lift transition-shadow h-full">
                                 <img src={s.logo} alt="" className="w-16 h-16 rounded-xl object-cover border border-slate-100 flex-shrink-0" />
                                 <div className="min-w-0 flex-1">

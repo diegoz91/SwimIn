@@ -41,7 +41,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
 
     const getUserSubtitle = (user: UserProfile | StructureProfile) => {
         if (user.userType === 'professional') return (user as UserProfile).title || 'Professionista';
-        return (user as StructureProfile).structureType || 'Centro Sportivo';
+        return (user as StructureProfile).structureType || 'Centro sportivo';
     };
 
     const getUserAvatar = (user: UserProfile | StructureProfile, name: string) => {
