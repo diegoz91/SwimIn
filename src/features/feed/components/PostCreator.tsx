@@ -62,7 +62,7 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated, groupId
                 <div className="flex gap-3 items-center">
                     <img 
                         src={displayAvatar || defaultAvatar} 
-                        alt="Tuo Profilo" 
+                        alt="Il tuo profilo" 
                         className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-slate-50 flex-shrink-0"
                     />
                     <button
@@ -76,21 +76,21 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated, groupId
                 {/* PULSANTIERA CON VIDEO ANALISI */}
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                     <button onClick={() => handleOpenModal('photo')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1">
-                        <Icon type="photo" className="w-5 h-5 text-corsia-500" /> <span className="hidden sm:inline">Foto</span>
+                        <Icon type="photo" className="w-5 h-5 text-corsia-500" /> <span className="sr-only sm:not-sr-only">Foto</span>
                     </button>
                     
                     <button onClick={() => handleOpenModal('video')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1">
-                        <Icon type="video" className="w-5 h-5 text-cloro-600" /> <span className="hidden sm:inline">Video</span>
+                        <Icon type="video" className="w-5 h-5 text-cloro-600" /> <span className="sr-only sm:not-sr-only">Video</span>
                     </button>
 
                     {/* TASTO VIDEO ANALISI */}
                     <button onClick={() => handleOpenModal('video-analysis')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1 relative">
                         <Icon type="camera" className="w-5 h-5 text-purple-500" /> 
-                        <span className="hidden sm:inline whitespace-nowrap">Analisi</span>
+                        <span className="sr-only sm:not-sr-only whitespace-nowrap">Analisi</span>
                     </button>
 
                     {!groupId && <button onClick={() => navigate('/jobs')} className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 px-2 sm:px-3 py-2.5 rounded-xl transition-colors flex-1">
-                        <Icon type="briefcase" className="w-5 h-5 text-amber-600" /> <span className="hidden sm:inline">Offerte</span>
+                        <Icon type="briefcase" className="w-5 h-5 text-amber-600" /> <span className="sr-only sm:not-sr-only">Offerte</span>
                     </button>}
                 </div>
             </div>

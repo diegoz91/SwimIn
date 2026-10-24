@@ -91,7 +91,7 @@ const Events: React.FC = () => {
                                     <button onClick={() => setOnlineToo((v) => !v)} aria-pressed={onlineToo} className={`px-3.5 py-2 rounded-full font-semibold border ${onlineToo ? 'bg-corsia-50 border-corsia-200 text-corsia-700' : 'border-slate-200 text-slate-600'}`}>
                                         {onlineToo ? 'Anche online' : 'Solo in presenza'}
                                     </button>
-                                    <button onClick={() => setProvince('')} className="font-semibold text-corsia-700 hover:underline">Tutta Italia</button>
+                                    <button onClick={() => setProvince('')} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">Tutta Italia</button>
                                 </>
                             )}
                         </div>
@@ -119,7 +119,7 @@ const Events: React.FC = () => {
                 </div>
             ) : (
                 <ul className="grid sm:grid-cols-2 gap-4">
-                    {shown.map((e) => <li key={e.$id}><EventCard event={e} currentUserId={me} /></li>)}
+                    {shown.map((e) => <li key={e.$id} className="min-w-0"><EventCard event={e} currentUserId={me} /></li>)}
                 </ul>
             )}
 

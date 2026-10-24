@@ -17,7 +17,7 @@ interface ApplicationCardProps {
 
 const statusStyles: Record<Application['status'], { text: string; icon: IconType; color: string; bgColor: string }> = {
     'pending': { text: 'Inviata', icon: 'send', color: 'text-slate-600', bgColor: 'bg-slate-100' },
-    'reviewed': { text: 'In Revisione', icon: 'search', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+    'reviewed': { text: 'In revisione', icon: 'search', color: 'text-blue-700', bgColor: 'bg-blue-100' },
     'accepted': { text: 'Accettata', icon: 'certificate', color: 'text-green-700', bgColor: 'bg-green-100' },
     'rejected': { text: 'Rifiutata', icon: 'x', color: 'text-red-700', bgColor: 'bg-red-100' },
     'hired': { text: 'Assunto', icon: 'sparkles', color: 'text-green-700', bgColor: 'bg-green-100' }, // 💡 AGGIUNTO STATO HIRED
@@ -62,7 +62,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
                             >
                                 {jobDisplayTitle(job)}
                             </h3>
-                            <p className="text-md text-slate-600 font-medium">{job.structureName || 'Struttura Privata'}</p>
+                            <p className="text-md text-slate-600 font-medium">{job.structureName || 'Struttura privata'}</p>
                             <div className="flex items-center text-sm text-slate-500 mt-1">
                                 <Icon type="location" className="w-4 h-4 mr-1 opacity-70" />
                                 <span>{job.city}{job.province ? `, ${job.province}` : ''}</span>

@@ -174,7 +174,7 @@ export const GlobalChatWidget: React.FC = () => {
 
   return (
     <div 
-        className="hidden md:flex fixed bottom-0 right-6 w-80 bg-white shadow-[0_0_20px_rgba(0,0,0,0.15)] rounded-t-2xl border border-slate-200 z-50 flex-col overflow-hidden transition-all duration-300 ease-in-out"
+        className="hidden xl:flex fixed bottom-0 right-6 w-80 bg-white shadow-[0_0_20px_rgba(0,0,0,0.15)] rounded-t-2xl border border-slate-200 z-50 flex-col overflow-hidden transition-all duration-300 ease-in-out"
         style={{ height: isOpen ? '500px' : '52px' }}
     >
       <div 

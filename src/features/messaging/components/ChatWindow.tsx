@@ -544,7 +544,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 onClick={() => uid === currentUserId && react(msg, key)}
                                 title={`${nameOf(uid)}: ${r.label}${uid === currentUserId ? ' (tocca per togliere)' : ''}`}
                                 aria-label={`${nameOf(uid)} ha reagito con ${r.label}`}
-                                className="bg-white border border-slate-200 rounded-full px-1.5 py-0.5 text-sm shadow-sm leading-none"
+                                className="bg-white border border-slate-200 rounded-full px-2 py-1 min-w-[1.75rem] text-sm shadow-sm leading-none"
                               >
                                 <span aria-hidden="true">{r.emoji}</span>
                               </button>

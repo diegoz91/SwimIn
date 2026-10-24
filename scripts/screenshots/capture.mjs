@@ -5,7 +5,7 @@
  * Le richieste verso Appwrite vengono intercettate e servite dai fixture.
  */
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { account, apiResponses, collections, ME } from './fixtures.mjs';
 
 const BASE = process.argv[2] || 'http://localhost:4173';
@@ -157,17 +157,87 @@ const PUBLIC_INTERACTIONS = [
     ['registrazione-errori', '/register', (p) => p.getByRole('button', { name: 'Crea account' }).click()],
 ];
 
+// Computer, tablet (verticale e orizzontale), smartphone standard e piccolo.
 const VIEWPORTS = [
     ['desktop', { width: 1440, height: 900 }],
-    ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 2 }],
+    ['laptop', { width: 1280, height: 720 }, { interactions: false }],
+    ['tablet', { width: 820, height: 1180, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+    ['tablet-orizzontale', { width: 1180, height: 820, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { interactions: false }],
+    ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+    ['mobile-piccolo', { width: 360, height: 740, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
 ];
+const ONLY = (process.env.VIEWPORTS || '').split(',').filter(Boolean);
+
+/**
+ * Controllo del layout: niente scorrimento orizzontale della pagina, nessun elemento
+ * visibile che esce dallo schermo (salvo dentro contenitori che scorrono), e sui
+ * dispositivi touch pulsanti abbastanza grandi da toccare.
+ */
+async function auditLayout(page, touch) {
+    return page.evaluate((touch) => {
+        const vw = document.documentElement.clientWidth;
+        const describe = (el) => {
+            const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 4).join('.') : '';
+            const text = (el.innerText || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+            return `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''}${text ? ` «${text}»` : ''}`;
+        };
+        const clipped = (el) => {
+            for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                const ox = getComputedStyle(p).overflowX;
+                if (ox === 'hidden' || ox === 'auto' || ox === 'scroll' || ox === 'clip') return true;
+            }
+            return false;
+        };
+        const visible = (el, r) => {
+            if (r.width === 0 || r.height === 0) return false;
+            const st = getComputedStyle(el);
+            return st.visibility !== 'hidden' && st.display !== 'none' && st.opacity !== '0' && st.position !== 'fixed';
+        };
+        const overflow = Math.max(0, document.documentElement.scrollWidth - vw);
+        const offenders = [];
+        for (const el of document.body.querySelectorAll('*')) {
+            if (offenders.length >= 6) break;
+            const r = el.getBoundingClientRect();
+            if (!visible(el, r) || (r.right <= vw + 1 && r.left >= -1)) continue;
+            if (el.closest('[aria-hidden="true"], .sr-only, [role="dialog"] ~ *')) continue;
+            if (clipped(el)) continue;
+            // Solo l'elemento più esterno che sborda (i figli lo seguono).
+            if (offenders.some((o) => o.el.contains(el))) continue;
+            offenders.push({ el, text: `${describe(el)} (${Math.round(r.left)}→${Math.round(r.right)} su ${vw})` });
+        }
+        const small = [];
+        if (touch) {
+            for (const el of document.querySelectorAll('button, a[href], [role="button"], input, textarea, [role="tab"], [role="menuitem"]')) {
+                const r = el.getBoundingClientRect();
+                if (!visible(el, r) || r.bottom < 0 || r.top > innerHeight) continue;
+                // Elementi nascosti per l'accessibilità (link "salta al contenuto", input dei toggle).
+                if (r.width <= 2 || r.height <= 2 || el.closest('.sr-only')) continue;
+                // I link dentro un testo seguono la riga: si escludono.
+                if (el.tagName === 'A' && getComputedStyle(el).display === 'inline') continue;
+                if (r.height < 24 || r.width < 24) small.push(`${describe(el)} ${Math.round(r.width)}×${Math.round(r.height)}`);
+            }
+        }
+        return { overflow, offenders: offenders.map((o) => o.text), small: small.slice(0, 8), smallCount: small.length };
+    }, touch);
+}
+const report = [];
+const shot = async (page, vpName, name, touch) => {
+    const a = await auditLayout(page, touch).catch((e) => ({ overflow: 0, offenders: [`controllo non riuscito: ${e.message}`], small: [], smallCount: 0 }));
+    if (a.overflow > 0 || a.offenders.length) {
+        console.log(`↔ ${vpName}-${name}: la pagina scorre in orizzontale di ${a.overflow}px`);
+        for (const o of a.offenders) console.log(`    ${o}`);
+    }
+    report.push({ page: `${vpName}-${name}`, ...a });
+};
 
 const browser = await chromium.launch();
 const errors = [];
 
-for (const [vpName, viewport] of VIEWPORTS) {
+for (const [vpName, viewport, opts = {}] of VIEWPORTS) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
     for (const loggedIn of [false, true]) {
-        const context = await browser.newContext({ viewport, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
         await mockAppwrite(page, { loggedIn });
@@ -176,13 +246,14 @@ for (const [vpName, viewport] of VIEWPORTS) {
                 await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
                 await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
                 await page.waitForTimeout(800);
-                await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: vpName === 'desktop' ? false : false });
+                await page.screenshot({ path: `${OUT}/${vpName}-${name}.png` });
+                await shot(page, vpName, name, touch);
                 console.log(`✓ ${vpName}-${name}`);
             } catch (e) {
                 console.log(`✗ ${vpName}-${name}: ${e.message}`);
             }
         }
-        for (const [name, path, act] of loggedIn ? PRIVATE_INTERACTIONS : PUBLIC_INTERACTIONS) {
+        for (const [name, path, act] of opts.interactions === false ? [] : loggedIn ? PRIVATE_INTERACTIONS : PUBLIC_INTERACTIONS) {
             try {
                 await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
                 await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
@@ -190,6 +261,7 @@ for (const [vpName, viewport] of VIEWPORTS) {
                 await act(page);
                 await page.waitForTimeout(700);
                 await page.screenshot({ path: `${OUT}/${vpName}-${name}.png` });
+                await shot(page, vpName, name, touch);
                 console.log(`✓ ${vpName}-${name}`);
             } catch (e) {
                 console.log(`✗ ${vpName}-${name}: ${e.message}`);
@@ -199,6 +271,18 @@ for (const [vpName, viewport] of VIEWPORTS) {
     }
 }
 await browser.close();
+
+// Rapporto del layout (sul branch ci-screenshots, accanto alle immagini).
+const lines = ['# Controllo del layout', '', `Pagine controllate: ${report.length}`, ''];
+const bad = report.filter((r) => r.overflow > 0 || r.offenders.length);
+lines.push(`## Elementi fuori dallo schermo (${bad.length})`, '');
+for (const r of bad) lines.push(`- **${r.page}** — scorrimento orizzontale ${r.overflow}px`, ...r.offenders.map((o) => `  - ${o}`));
+const tiny = report.filter((r) => r.smallCount);
+lines.push('', `## Pulsanti piccoli da toccare, sotto 24 px (WCAG 2.5.8) (${tiny.length} pagine)`, '');
+for (const r of tiny) lines.push(`- **${r.page}** (${r.smallCount})`, ...r.small.map((o) => `  - ${o}`));
+writeFileSync(`${OUT}/layout.md`, lines.join('\n') + '\n');
+writeFileSync(`${OUT}/layout.json`, JSON.stringify(report, null, 2));
+console.log(`\nLayout: ${bad.length} pagine con elementi fuori dallo schermo, ${tiny.length} con pulsanti piccoli (vedi layout.md).`);
 
 if (errors.length) {
     console.log('\nErrori JavaScript rilevati:');

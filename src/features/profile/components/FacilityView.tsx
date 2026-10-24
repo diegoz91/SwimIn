@@ -179,7 +179,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         if (isNowFollowing !== null) {
             setIsFollowing(isNowFollowing);
             setFollowersCount(prev => isNowFollowing ? prev + 1 : prev - 1);
-            showToast(isNowFollowing ? 'Pagina Seguita!' : 'Non segui più questa pagina', 'info');
+            showToast(isNowFollowing ? 'Ora segui questa pagina.' : 'Non segui più questa pagina', 'info');
         }
     };
 
@@ -391,7 +391,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         </div>
                         <p className="text-lg text-slate-600 font-medium mt-1">{structureType || 'Struttura sportiva'}</p>
                         {ratingOf(facility as StructureProfile) && (
-                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
+                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="py-1 mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
                                 <Stars value={ratingOf(facility as StructureProfile)!.average} />
                                 <span className="font-semibold text-abisso">{ratingOf(facility as StructureProfile)!.average.toLocaleString('it-IT', { minimumFractionDigits: 1 })}</span>
                                 <span>({ratingOf(facility as StructureProfile)!.count})</span>
@@ -404,12 +404,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 {city}{province ? ` (${province.toUpperCase()})` : ''}
                             </span>
                             {facility.phone && (
-                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
                                     <Icon type="phone" className="w-4 h-4" /> {facility.phone}
                                 </a>
                             )}
                             {facility.website && (
-                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
                                     <Icon type="globe" className="w-4 h-4" /> {facility.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                                 </a>
                             )}
@@ -503,7 +503,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 </h3>
                                 {sosJobs.map(job => (
                                     <div key={job.$id} className="bg-red-50 border-2 border-red-500 p-5 rounded-2xl shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS ATTIVO</div>
+                                        <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS attivo</div>
                                         <div className="pt-2 sm:pt-0 pr-20 sm:pr-0">
                                             <h3 className="font-bold text-lg text-red-800">{jobDisplayTitle(job)}</h3>
                                             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-red-700 font-medium">
@@ -715,7 +715,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         {isStaff && user && (
                             <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
                                 <span>Fai parte dello staff di {structureName}.</span>
-                                <button onClick={() => handleRemoveStaff(user.$id)} className="font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
+                                <button onClick={() => handleRemoveStaff(user.$id)} className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
                             </div>
                         )}
 
@@ -858,7 +858,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon type="trash" className="w-8 h-8" />
                             </div>
-                            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Elimina Annuncio</h3>
+                            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Elimina l’annuncio</h3>
                             <p className="text-slate-500 text-sm mb-6">Sei sicuro di voler eliminare definitivamente questa comunicazione dalla bacheca del team?</p>
                             <div className="flex gap-3">
                                 <button 

@@ -116,7 +116,7 @@ const Header: React.FC = () => {
           <span className="hidden sm:inline-flex"><Brand size="md" /></span>
         </Link>
 
-        <form onSubmit={submitSearch} role="search" className="flex-1 max-w-sm hidden md:block">
+        <form onSubmit={submitSearch} role="search" className="flex-1 max-w-sm hidden lg:block">
           <label htmlFor="global-search" className="sr-only">Cerca su SwimIn</label>
           <div className="relative">
             <Icon type="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -156,7 +156,7 @@ const Header: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2 ml-auto md:ml-0 md:pl-4 md:border-l border-slate-200 h-10">
-          <Link to="/cerca" className="md:hidden p-2 text-slate-500 hover:text-abisso rounded-full" aria-label="Cerca">
+          <Link to="/cerca" className="lg:hidden p-2 text-slate-500 hover:text-abisso rounded-full" aria-label="Cerca">
             <Icon type="search" className="w-6 h-6" />
           </Link>
 

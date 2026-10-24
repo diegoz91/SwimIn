@@ -30,8 +30,8 @@ export const ConnectionSuggestionCard: React.FC<ConnectionSuggestionCardProps> =
         : (user as StructureProfile).structureName || 'Struttura';
         
     const title = isProfessional 
-        ? ((user as UserProfile).title || user.city || 'Professionista del Nuoto')
-        : ((user as StructureProfile).structureType || user.city || 'Centro Sportivo');
+        ? ((user as UserProfile).title || user.city || 'Professionista del nuoto')
+        : ((user as StructureProfile).structureType || user.city || 'Centro sportivo');
         
     const displayAvatar = (isProfessional ? (user as UserProfile).avatar : (user as StructureProfile).logo) || 
         initialsAvatar(fullName);

@@ -66,7 +66,7 @@ export const Comment: React.FC<CommentProps> = ({
             setLiking(false);
         }
     };
-    let authorName = 'Utente Sconosciuto';
+    let authorName = 'Utente sconosciuto';
     let authorSubtitle = '';
     let avatarUrl = '';
 
@@ -113,7 +113,7 @@ export const Comment: React.FC<CommentProps> = ({
             <div className="flex-1 min-w-0">
                 <div className="bg-slate-100 rounded-2xl p-3 inline-block min-w-[50%] max-w-full">
                     <button 
-                        className="font-bold text-slate-800 text-sm cursor-pointer hover:text-blue-600 transition-colors line-clamp-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                        className="py-0.5 -my-0.5 font-bold text-slate-800 text-sm cursor-pointer hover:text-blue-600 transition-colors line-clamp-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                         onClick={() => comment.authorId && onSelectProfile(comment.authorId)}
                     >
                         {authorName}
@@ -132,7 +132,7 @@ export const Comment: React.FC<CommentProps> = ({
                             onClick={toggleLike}
                             disabled={liking}
                             aria-pressed={liked}
-                            className={`font-semibold transition-colors outline-none focus-visible:text-corsia-700 ${liked ? 'text-corsia-700' : 'hover:text-corsia-700'}`}
+                            className={`py-1.5 -my-1.5 font-semibold transition-colors outline-none focus-visible:text-corsia-700 ${liked ? 'text-corsia-700' : 'hover:text-corsia-700'}`}
                         >
                             {liked ? 'Ti piace' : 'Mi piace'}
                         </button>
@@ -146,7 +146,7 @@ export const Comment: React.FC<CommentProps> = ({
                     {onReply && (
                         <button 
                             onClick={() => onReply(comment.$id, authorName)}
-                            className="font-semibold hover:text-blue-600 transition-colors outline-none focus-visible:text-blue-600"
+                            className="py-1.5 -my-1.5 font-semibold hover:text-blue-600 transition-colors outline-none focus-visible:text-blue-600"
                         >
                             Rispondi
                         </button>

@@ -61,8 +61,8 @@ jobs:
       # Le schermate vengono pubblicate comunque (passo precedente), così si vede cosa non va.
       - name: Controllo errori
         run: |
-          if grep -q "^✗" screenshots/log.txt || grep -q "Errori JavaScript rilevati" screenshots/log.txt; then
-            echo "::error::Alcune schermate non sono riuscite o ci sono errori JavaScript (vedi log.txt sul branch ci-screenshots)."
-            grep -E "^✗|^ - " screenshots/log.txt | head -40
+          if grep -q "^✗" screenshots/log.txt || grep -q "Errori JavaScript rilevati" screenshots/log.txt || grep -q "^↔" screenshots/log.txt; then
+            echo "::error::Schermate non riuscite, errori JavaScript o pagine che escono dallo schermo (vedi log.txt e layout.md sul branch ci-screenshots)."
+            grep -E "^✗|^ - |^↔|^    " screenshots/log.txt | head -60
             exit 1
           fi

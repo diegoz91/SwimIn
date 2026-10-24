@@ -119,7 +119,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                                 </div>
                                                 {/* Azioni Rapide Hover */}
                                                 <div className="flex items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-1">
-                                                    <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-none" title="Invia Messaggio">
+                                                    <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-none" title="Invia messaggio">
                                                         <Icon type="chat-bubble" className="w-4 h-4"/>
                                                     </button>
                                                     <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg outline-none" title="Rimuovi">
@@ -161,7 +161,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                     {/* Profili Trovati */}
                                     {searchResults.profiles.length > 0 && (
                                         <div>
-                                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 pl-2">Persone</h3>
+                                            <h3 className="text-sm font-semibold text-slate-500 mb-3 pl-2">Persone</h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 {searchResults.profiles.map(prof => (
                                                     <ConnectionSuggestionCard 
@@ -179,14 +179,14 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                     {/* Strutture Trovate */}
                                     {searchResults.facilities.length > 0 && (
                                         <div className={searchResults.profiles.length > 0 ? "pt-6 border-t border-slate-100" : ""}>
-                                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 pl-2">Pagine Aziendali</h3>
+                                            <h3 className="text-sm font-semibold text-slate-500 mb-3 pl-2">Strutture</h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 {searchResults.facilities.map(fac => (
                                                     <div key={fac.$id} onClick={() => onSelectProfile(fac.$id)} className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white">
                                                         <img src={fac.logo || initialsAvatar(fac.name)} alt={fac.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm" />
                                                         <div className="min-w-0 flex-1">
                                                             <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
-                                                            <p className="text-xs text-slate-500 truncate">{fac.type || 'Centro Sportivo'} • {fac.city}</p>
+                                                            <p className="text-xs text-slate-500 truncate">{fac.type || 'Centro sportivo'} • {fac.city}</p>
                                                         </div>
                                                         <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
                                                     </div>
@@ -204,7 +204,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
                             <h2 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" />
-                                Richieste in Sospeso ({pendingRequests.length})
+                                Richieste in sospeso ({pendingRequests.length})
                             </h2>
                             <div className="space-y-3">
                                 {pendingRequests.map(req => (

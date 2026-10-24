@@ -124,7 +124,7 @@ const Talent: React.FC = () => {
                 </div>
             </div>
             {province && (
-                <button onClick={() => setProvince('')} className="mb-4 text-sm font-semibold text-corsia-700 hover:underline">
+                <button onClick={() => setProvince('')} className="py-1 mb-4 text-sm font-semibold text-corsia-700 hover:underline">
                     Cerca in tutta Italia invece che in provincia di {provinceName(province) || province}
                 </button>
             )}

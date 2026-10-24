@@ -301,7 +301,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 onClick={() => navigate(`/profile/${post.authorId}`)}
-                                className="font-bold text-slate-900 leading-tight hover:text-blue-600 transition-colors truncate text-left outline-none focus-visible:underline"
+                                className="py-0.5 -my-0.5 font-bold text-slate-900 leading-tight hover:text-blue-600 transition-colors truncate text-left outline-none focus-visible:underline"
                             >
                                 {authorName}
                             </button>
@@ -398,7 +398,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             <button onClick={openDetail} className="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent z-10 flex items-end p-4 text-left">
                                 <span className="bg-purple-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg border border-purple-400 shadow-lg flex items-center gap-2">
                                     <Icon type="camera" className="w-5 h-5" />
-                                    <span className="font-extrabold text-sm uppercase tracking-wider">Video-analisi tecnica</span>
+                                    <span className="font-extrabold text-sm">Video-analisi tecnica</span>
                                 </span>
                             </button>
                         )}
@@ -420,7 +420,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 {(likes > 0 || commentsCount > 0 || reposts > 0) && (
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-500 font-medium">
                         {likes > 0 ? (
-                            <button onClick={() => setIsLikesModalOpen(true)} className="hover:text-corsia-700 hover:underline flex items-center gap-1.5">
+                            <button onClick={() => setIsLikesModalOpen(true)} className="py-1 -my-1 hover:text-corsia-700 hover:underline flex items-center gap-1.5">
                                 <span className="flex -space-x-1" aria-hidden="true">
                                     {topReactions(counts).map((r) => (
                                         <span key={r.key} className="w-5 h-5 grid place-items-center rounded-full bg-white ring-2 ring-white text-sm leading-none">{r.emoji}</span>
@@ -431,7 +431,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                         ) : <span />}
                         <span className="flex items-center gap-3">
                             {commentsCount > 0 && (
-                                <button onClick={() => (onCommentClick ? onCommentClick() : setShowComments((v) => !v))} className="hover:text-corsia-700 hover:underline">
+                                <button onClick={() => (onCommentClick ? onCommentClick() : setShowComments((v) => !v))} className="py-1.5 -my-1.5 hover:text-corsia-700 hover:underline">
                                     {commentsCount} {commentsCount === 1 ? 'commento' : 'commenti'}
                                 </button>
                             )}
@@ -559,7 +559,7 @@ const PureRepost: React.FC<PostCardProps> = ({ post, ...rest }) => {
                 <span>{mine ? 'Hai ripubblicato' : `${displayNameOf(reposter)} ha ripubblicato`} un post che non è più disponibile.</span>
                 {mine && (
                     <button
-                        className="font-semibold text-slate-600 hover:text-galleggiante"
+                        className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante"
                         onClick={async () => {
                             try { await databaseService.deletePost(post); rest.onDeleted?.(post.$id); } catch (err) { showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error'); }
                         }}

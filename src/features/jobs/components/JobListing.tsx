@@ -44,7 +44,7 @@ export const JobListing: React.FC<JobListingProps> = ({
   view = 'lavoro' 
 }) => {
   const { user } = useAuth();
-  const structureName = job.structureName || 'Struttura Non Specificata';
+  const structureName = job.structureName || 'Struttura non specificata';
   const locationString = job.city ? `${job.city}${job.province ? ` (${job.province})` : ''}` : 'Sede non specificata';
   const displayLogo = job.facilityLogo || initialsAvatar(structureName);
 

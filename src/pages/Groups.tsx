@@ -92,7 +92,7 @@ const Groups: React.FC = () => {
                 <section className="mb-8" aria-labelledby="my-groups">
                     <h2 id="my-groups" className="text-2xl font-bold text-abisso mb-3">I tuoi gruppi</h2>
                     <ul className="grid sm:grid-cols-2 gap-4">
-                        {mineGroups.map((g) => <li key={g.$id}><GroupRow group={g} status={statusOf.get(g.$id)} /></li>)}
+                        {mineGroups.map((g) => <li key={g.$id} className="min-w-0"><GroupRow group={g} status={statusOf.get(g.$id)} /></li>)}
                     </ul>
                 </section>
             )}
@@ -132,7 +132,7 @@ const Groups: React.FC = () => {
                     </div>
                 ) : (
                     <ul className="grid sm:grid-cols-2 gap-4">
-                        {discover.map((g) => <li key={g.$id}><GroupRow group={g} /></li>)}
+                        {discover.map((g) => <li key={g.$id} className="min-w-0"><GroupRow group={g} /></li>)}
                     </ul>
                 )}
             </section>
