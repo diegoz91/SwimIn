@@ -98,6 +98,17 @@ const API_FUNCTION_ID = 'api';
 type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string; code?: string };
 
 async function callApi<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+    try {
+        return await callApiOnce<T>(action, params);
+    } catch (err) {
+        // Subito dopo un deploy la nuova versione della Function può impiegare qualche secondo ad attivarsi: un secondo tentativo.
+        if (!(err instanceof ApiOutdatedError)) throw err;
+        await new Promise((r) => setTimeout(r, 2500));
+        return await callApiOnce<T>(action, params);
+    }
+}
+
+async function callApiOnce<T>(action: string, params: Record<string, unknown>): Promise<T> {
     const execution = await functions.createExecution(
         API_FUNCTION_ID,
         JSON.stringify({ action, ...params }),
@@ -115,7 +126,7 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
     if (!payload.ok) {
         // La Function su Appwrite è più vecchia del sito: va ridistribuita (npm run setup-db).
         if (/^Azione sconosciuta/.test(payload.error || '')) {
-            console.error(`Function "api" non aggiornata: manca l'azione "${action}". Lancia npm run setup-db.`);
+            console.error(`Function "api" non aggiornata: manca l'azione "${action}". Controlla che il sito e il deploy (GitHub → Deploy Appwrite) usino lo stesso progetto Appwrite, poi lancia npm run setup-db.`);
             throw new ApiOutdatedError(action);
         }
         const err = new ApiError(payload.error || 'Operazione non riuscita.', payload.code);

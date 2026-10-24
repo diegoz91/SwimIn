@@ -53,6 +53,15 @@ const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_P
 const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
 const functions = new Functions(client);
+// Identifica questo deploy (commit su GitHub, altrimenti data e ora del lancio a mano).
+const DEPLOY_VERSION = (process.env.GITHUB_SHA || '').slice(0, 12) || `manuale-${new Date().toISOString().slice(0, 16)}`;
+/** Messaggio visibile anche come annotazione su GitHub Actions. */
+const notice = (message) => {
+    console.log(`   ${message}`);
+    if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Deploy Appwrite::${String(message).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`);
+};
+/** Ultimi caratteri del project ID: per riconoscere il progetto senza mostrarlo tutto. */
+const projectHint = () => `…${String(APPWRITE_PROJECT_ID).slice(-4)} su ${new URL(APPWRITE_ENDPOINT).host}`;
 
 const DB_ID = 'swimwaveup_db';
 const FUNCTION_ID = 'api';
@@ -710,6 +719,7 @@ async function deployFunction() {
         });
         console.log(`   🚀 Deploy avviato (${deployment.$id}): attendo la build…`);
         await waitForDeployment(deployment.$id);
+        await verifyLiveFunction(deployment.$id);
     } finally {
         rmSync(tmp, { recursive: true, force: true });
     }
@@ -734,6 +744,36 @@ async function waitForDeployment(deploymentId) {
         if (Date.now() - started > 10 * 60_000) throw new Error('La build della Function sta impiegando più di 10 minuti: controlla in Console → Functions.');
         await new Promise((r) => setTimeout(r, 5000));
     }
+}
+
+/**
+ * Controllo finale: la Function che risponde davvero deve essere quella appena caricata.
+ * Se non lo è la attiva esplicitamente; se ancora non risponde, il deploy fallisce con un
+ * messaggio chiaro (prima il sito poteva dire "Questa funzione è in aggiornamento" senza indizi).
+ */
+async function verifyLiveFunction(deploymentId) {
+    const probe = async () => {
+        const ex = await functions.createExecution({ functionId: FUNCTION_ID, body: JSON.stringify({ action: 'health' }), async: false, method: 'POST', headers: { 'content-type': 'application/json' } });
+        try {
+            return JSON.parse(ex.responseBody || '{}')?.data?.version || null;
+        } catch {
+            return null;
+        }
+    };
+    let live;
+    try {
+        live = await probe();
+    } catch (e) {
+        notice(`⚠️ Function caricata ma non verificata (${e.message}). Progetto ${projectHint()}.`);
+        return;
+    }
+    if (live !== DEPLOY_VERSION && typeof functions.updateFunctionDeployment === 'function') {
+        await functions.updateFunctionDeployment({ functionId: FUNCTION_ID, deploymentId });
+        await new Promise((r) => setTimeout(r, 5000));
+        live = await probe();
+    }
+    if (live !== DEPLOY_VERSION) throw new Error(`La Function attiva non è quella appena caricata (risponde "${live || 'nessuna versione'}", attesa "${DEPLOY_VERSION}"). Controlla in Console → Functions → api → Deployments.`);
+    notice(`✅ Function "api" versione ${DEPLOY_VERSION} attiva sul progetto ${projectHint()}. Il sito deve usare lo stesso progetto (VITE_APPWRITE_PROJECT_ID su Vercel).`);
 }
 
 /**
@@ -774,6 +814,8 @@ async function setupFunctionVariables() {
     // Se la variabile non è indicata (es. deploy automatico) si mantiene la scelta già fatta.
     const email = env.EMAIL_NOTIFICATIONS ? (env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off') : current.EMAIL_NOTIFICATIONS?.value || 'off';
     await set('EMAIL_NOTIFICATIONS', email);
+    // Versione del codice caricato: la Function la restituisce con l'azione pubblica "health", per verificare il deploy.
+    await set('APP_VERSION', DEPLOY_VERSION);
     console.log(`   ✉️  Email di notifica: ${email === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);
 }
 
