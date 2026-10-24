@@ -115,8 +115,9 @@ const schema = [
             str('premiumUntil', 40), str('premiumSince', 40), str('premiumSource', 20), bool('premiumTrialUsed', { default: false }),
             int('inmailCredits'), str('inmailResetAt', 40),
             int('followersCount', { default: 0 }), int('followingCount', { default: 0 }),
+            str('digestSentAt', 40), // ultimo riepilogo email settimanale (scritto dalla Function)
         ],
-        indexes: [idx('by_user', ['userId']), idx('by_type', ['userType'])],
+        indexes: [idx('by_user', ['userId']), idx('by_type', ['userType']), idx('by_digest', ['digestSentAt'])],
     },
     {
         // Creati dalla Function (autore verificato); l'autore può modificarli ed eliminarli.
@@ -672,7 +673,10 @@ async function deployFunction() {
         runtime: process.env.APPWRITE_FUNCTION_RUNTIME || 'node-22',
         // Anche senza login, ma la Function accetta da ospiti solo le azioni pubbliche (PUBLIC_ACTIONS).
         execute: ['any'],
-        timeout: 15,
+        // Le chiamate dell'app finiscono in pochi secondi; il margine serve al riepilogo settimanale programmato.
+        timeout: 120,
+        // Riepilogo email: il lunedì, ogni ora dalle 6 alle 18 (UTC), un gruppo di persone per volta.
+        schedule: '0 6-18 * * 1',
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',
         // users.write: eliminazione account; files.write: pulizia dei file dell'account eliminato.

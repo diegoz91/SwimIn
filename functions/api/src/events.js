@@ -6,12 +6,13 @@
 export const EVENT_TYPES = ['allenamento', 'gara', 'corso', 'open_day', 'webinar', 'incontro', 'altro'];
 const TYPE_LABEL = { allenamento: "L'allenamento", gara: 'La gara', corso: 'Il corso', open_day: "L'open day", webinar: 'Il webinar', incontro: "L'incontro", altro: "L'evento" };
 
-export function eventActions({ get, list, listAll, create, update, remove = async () => null, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl = (v) => v || '' }) {
+export function eventActions({ assertClean = () => {}, get, list, listAll, create, update, remove = async () => null, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl = (v) => v || '' }) {
   const text = (v, label, min, max, required = true) => {
     const t = typeof v === 'string' ? v.trim() : '';
     if (!t && !required) return undefined;
     if (t.length < min) fail(400, `${label}: almeno ${min} caratteri.`);
     if (t.length > max) fail(400, `${label}: massimo ${max} caratteri.`);
+    assertClean(t, 'text');
     return t;
   };
   const label = (meet) => {

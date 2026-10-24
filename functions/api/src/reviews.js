@@ -4,6 +4,7 @@
  * La media è tenuta sul profilo/pagina come somma e conteggio (ratingSum, ratingCount).
  */
 import { Permission, Query, Role } from 'node-appwrite';
+import { makeAssertClean } from './textfilter.js';
 
 const isMonth = (v) => /^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/.test(v);
 
@@ -48,6 +49,7 @@ export function reviewActions({ find, get, create, update, remove, list, fail, n
       const text = typeof content === 'string' ? content.trim() : '';
       if (text.length < 20) fail(400, 'Scrivi almeno 20 caratteri: racconta cosa ti è piaciuto o no.');
       if (text.length > 2000) fail(400, 'La recensione può avere al massimo 2000 caratteri.');
+      makeAssertClean(fail)(text, 'text');
       if (visitedAt && (!isMonth(visitedAt) || visitedAt > new Date().toISOString().slice(0, 7))) fail(400, 'Data della visita non valida.');
 
       const existing = (await list(C.reviews, [Query.equal('structureId', structureId), Query.equal('authorId', me), Query.limit(1)])).documents[0];

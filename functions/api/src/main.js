@@ -25,6 +25,8 @@ import { recommendationActions } from './recommendations.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
+import { makeAssertClean } from './textfilter.js';
+import { digestActions } from './digest.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -207,6 +209,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
    * Limite anti-spam: al massimo `max` righe create da chi chiama in `windowMs`
    * (conta le righe della tabella, nessuna tabella in più).
    */
+  const assertClean = makeAssertClean(fail);
+
   const rateLimit = async (tableId, field, me, max, windowMs, message, extra = []) => {
     const since = new Date(Date.now() - windowMs).toISOString();
     const recent = await count(tableId, [Query.equal(field, me), Query.greaterThan('$createdAt', since), ...extra]);
@@ -295,10 +299,11 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     return url;
   };
   const alertsApi = alertActions({ find, list, listAll, create, remove, fail, notify, C, Query, Permission, Role });
-  const recs = recommendationActions({ find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b), isRecruiterOf: (a, b) => isRecruiterOf(a, b) });
+  const recs = recommendationActions({ assertClean, find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b), isRecruiterOf: (a, b) => isRecruiterOf(a, b) });
+  const digest = digestActions({ list, count, update, C, Query, messaging, ID, displayName, appUrl, log });
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
-  const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
-  const events = eventActions({ get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
+  const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertClean, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
+  const events = eventActions({ assertClean, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
@@ -315,6 +320,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...content_,
     ...groups,
     ...chat,
+    ...digest,
     ...alertsApi,
     ...recs,
     ...events,
@@ -447,6 +453,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const pollData = cleanPoll(poll);
       if (pollData?.error) fail(400, pollData.error);
       if (pollData && !content) fail(400, 'Scrivi la domanda del sondaggio.');
+      assertClean(content, 'post');
+      if (pollData) assertClean(pollData.options.join(' '), 'post');
+      // Lo stesso testo ripubblicato a pochi minuti di distanza è quasi sempre spam o un doppio invio.
+      if (content) {
+        const last = (await list(C.posts, [Query.equal('authorId', me), Query.orderDesc('$createdAt'), Query.limit(1)])).documents[0];
+        if (last && last.content === content && Date.now() - new Date(last.$createdAt).getTime() < 10 * 60_000) fail(409, 'Hai appena pubblicato lo stesso post.');
+      }
 
       await rateLimit(C.posts, 'authorId', me, 15, 3_600_000, 'Hai pubblicato molti post nell’ultima ora: riprova più tardi.');
       const author = await get(C.profiles, me);
@@ -473,6 +486,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     async createComment(me, { postId, content, parentCommentId = null }) {
       postId = requireString(postId, 'postId', 36);
       content = requireString(content, 'content', 2000);
+      assertClean(content, 'comment');
       const post = await get(C.posts, postId);
       await assertNotBlocked(me, post.authorId);
       // Nei gruppi commentano solo i membri.
@@ -507,6 +521,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const text = typeof content === 'string' ? content.trim() : '';
       if (text.length > 4000) fail(400, 'Il post supera i 4000 caratteri.');
       if (!text && !(post.media || []).length) fail(400, 'Il post è vuoto.');
+      assertClean(text, 'post');
       const mentions = extractMentions(text);
       const patch = { content: text, editedAt: new Date().toISOString(), hashtags: extractHashtags(text), mentions };
       if (category !== undefined) patch.category = POST_CATEGORIES.includes(category) ? category : 'generale';
@@ -960,6 +975,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const participants = [...(room.speakers || []), ...(room.listeners || []), room.hostId];
       if (!participants.includes(me)) fail(403, 'Entra nella stanza per scrivere.');
       const text = kind === 'hand' ? '✋' : requireString(content, 'content', 1000);
+      if (kind !== 'hand') assertClean(text, 'comment');
       return create(C.liveMessages, { roomId, authorId: me, content: text, kind }, [Permission.read(Role.users())]);
     },
 
@@ -1041,6 +1057,24 @@ export default async ({ req, res, log, error }) => {
     } catch (e) {
       error(`[webhook ${path}] ${e?.message || e}`);
       return res.json({ ok: false, error: e?.message || 'Errore' }, e instanceof HttpError ? e.status : 500);
+    }
+  }
+
+  // Esecuzione programmata (impostata da setup-db): riepilogo email settimanale.
+  if (req.headers['x-appwrite-trigger'] === 'schedule' && !userId) {
+    const client = makeClient();
+    const api = createApi(new TablesDB(client), {
+      messaging: env.EMAIL_NOTIFICATIONS === 'on' ? new Messaging(client) : null,
+      appUrl: env.APP_URL || '',
+      log: (m) => log(m),
+    });
+    try {
+      const result = await api._weeklyDigest();
+      log(`riepilogo settimanale: ${JSON.stringify(result)}`);
+      return res.json({ ok: true, data: result });
+    } catch (e) {
+      error(`[riepilogo] ${e?.message || e}`);
+      return res.json({ ok: false }, 500);
     }
   }
 

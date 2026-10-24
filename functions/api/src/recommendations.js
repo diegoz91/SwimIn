@@ -8,7 +8,7 @@
 export const RELATIONSHIPS = ['collega', 'responsabile', 'collaboratore', 'allievo', 'struttura', 'altro'];
 export const MAX_RECOMMENDATION = 3000;
 
-export function recommendationActions({ find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked, isRecruiterOf = async () => false }) {
+export function recommendationActions({ assertClean = () => {}, find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked, isRecruiterOf = async () => false }) {
   const perms = (status, authorId, profileId) =>
     status === 'published' ? [Permission.read(Role.users())] : [Permission.read(Role.user(authorId)), Permission.read(Role.user(profileId))];
 
@@ -49,6 +49,7 @@ export function recommendationActions({ find, get, list, listAll, create, update
       const text = typeof content === 'string' ? content.trim() : '';
       if (text.length < 50) fail(400, 'Scrivi almeno 50 caratteri: racconta com’è lavorare con questa persona.');
       if (text.length > MAX_RECOMMENDATION) fail(400, `Massimo ${MAX_RECOMMENDATION} caratteri.`);
+      assertClean(text, 'text');
       const rel = RELATIONSHIPS.includes(relationship) ? relationship : 'altro';
       const data = { profileId, authorId: me, relationship: author.userType === 'structure' ? 'struttura' : rel, content: text, status: 'pending' };
       const existing = await mineFor(me, profileId);

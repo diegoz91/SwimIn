@@ -74,6 +74,8 @@ export interface BaseProfile extends AppwriteDocument {
   hideProfileViews?: boolean;
   /** Preferenze di notifica push/email per categoria (JSON, scritto dalla Function). */
   notificationPrefs?: string;
+  /** Ultimo riepilogo email settimanale inviato (scritto dalla Function). */
+  digestSentAt?: string | null;
   /** SwimIn Premium (scritti solo dalla Function): attivo finché premiumUntil è nel futuro. */
   premiumUntil?: string | null;
   premiumSince?: string | null;

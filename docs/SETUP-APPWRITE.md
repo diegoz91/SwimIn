@@ -76,6 +76,7 @@ APPWRITE_FUNCTION_RUNTIME=node-20.0
   3. Rilancia `npm run setup-db`.
 
   Senza provider le email restano spente e nelle impostazioni compare solo la colonna Push.
+- **Riepilogo settimanale.** Con le email attive, `setup-db` imposta sulla Function l'esecuzione programmata `0 6-18 * * 1` (lunedì, ogni ora dalle 6 alle 18 UTC) e un timeout di 120 secondi. Ogni esecuzione invia il riepilogo a 250 persone non ancora raggiunte nella settimana; chi non ha novità o l'ha disattivato non riceve nulla. Il risultato di ogni esecuzione è nei log della Function (*Functions → api → Executions*).
 - **Cosa si riceve.** I valori predefiniti, modificabili da ogni utente per categoria:
   - push: tutte le categorie;
   - email: collegamenti, candidature e lavoro, SOS, avvisi;

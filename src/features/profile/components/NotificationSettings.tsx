@@ -13,6 +13,7 @@ const CATEGORY_LABELS: Record<NotifyCategory, { label: string; hint: string }> =
     jobs: { label: 'Candidature e lavoro', hint: 'Nuove candidature, esiti, assunzioni.' },
     sos: { label: 'Sostituzioni urgenti', hint: 'SOS nella tua provincia quando sei disponibile.' },
     general: { label: 'Turni, verifiche e avvisi', hint: 'Turni assegnati, brevetti verificati, risposte alle recensioni.' },
+    digest: { label: 'Riepilogo settimanale', hint: 'Il lunedì, un’email con richieste, messaggi, visite e offerte della settimana.' },
 };
 
 const Section: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => (
@@ -129,7 +130,7 @@ export const NotificationsTab: React.FC = () => {
                                     <p className="text-xs text-slate-500">{CATEGORY_LABELS[cat].hint}</p>
                                 </div>
                                 <div className="flex gap-5">
-                                    <Checkbox id={`push-${cat}`} checked={prefs[cat].push} onChange={(v) => setPref(cat, 'push', v)} label="Push" />
+                                    {cat !== 'digest' && <Checkbox id={`push-${cat}`} checked={prefs[cat].push} onChange={(v) => setPref(cat, 'push', v)} label="Push" />}
                                     {config?.emailAvailable && <Checkbox id={`email-${cat}`} checked={prefs[cat].email} onChange={(v) => setPref(cat, 'email', v)} label="Email" />}
                                 </div>
                             </li>
