@@ -161,11 +161,6 @@ export interface AdminReport {
 export interface ClientErrorRow { $id: string; $createdAt: string; userId: string; message: string; stack?: string; url?: string; userAgent?: string }
 export interface AdminUserRow { $id: string; name: string; email: string; userType: string; personType?: string; city?: string; suspended: boolean }
 
-const ownedBy = (userId: string) => [
-    Permission.read(Role.users()),
-    Permission.update(Role.user(userId)),
-    Permission.delete(Role.user(userId)),
-];
 
 export interface BillingStatus {
     premium: boolean;
@@ -221,7 +216,11 @@ export interface TeamBoard {
     members: TeamMember[];
     announcements: SquadAnnouncement[];
     shifts: SquadShift[];
+    /** Messaggi della chat staff non ancora letti. */
+    chatUnread?: number;
 }
+export interface StaffMessage { $id: string; $createdAt: string; structureId: string; authorId: string; content: string }
+export interface StaffChatMember { $id: string; name: string; avatar: string; role: 'admin' | 'staff' }
 export type NotifyCategory = 'messages' | 'connections' | 'social' | 'jobs' | 'sos' | 'general';
 export type NotificationPrefs = Record<NotifyCategory, { push: boolean; email: boolean }>;
 export interface PushConfig {
@@ -1147,6 +1146,16 @@ export const databaseService = {
     async getTeamBoard(structureId: string) {
         return await callApi<TeamBoard>('getTeamBoard', { structureId });
     },
+    /** Chat staff (solo amministratori e staff, verificati dalla Function a ogni lettura). */
+    async listStaffMessages(structureId: string, opts: { after?: string; before?: string } = {}) {
+        return await callApi<{ messages: StaffMessage[]; members?: StaffChatMember[]; hasMore: boolean }>('listStaffMessages', { structureId, ...opts });
+    },
+    async sendStaffMessage(structureId: string, content: string) {
+        return await callApi<StaffMessage>('sendStaffMessage', { structureId, content });
+    },
+    async deleteStaffMessage(messageId: string) {
+        return await callApi<{ deleted: boolean }>('deleteStaffMessage', { messageId });
+    },
     async createSquadAnnouncement(structureId: string, content: string, isImportant: boolean) {
         return await callApi<SquadAnnouncement>('createAnnouncement', { structureId, content, isImportant });
     },
@@ -1353,6 +1362,17 @@ export const databaseService = {
     /** Iscrizione: myStatus dice se si è dentro o in lista d'attesa. */
     async joinSwimMeet(meetId: string, _userId?: string) {
         return await callApi<SwimMeet & { myStatus: 'going' | 'waitlist' }>('joinSwimMeet', { meetId });
+    },
+
+    /** Link dell'evento online (solo organizzatore e iscritti). */
+    async getEventLink(meetId: string) {
+        return await callApi<{ onlineUrl: string | null }>('getEventLink', { meetId });
+    },
+    async closeJob(jobId: string) {
+        return await callApi<Job>('closeJob', { jobId });
+    },
+    async reopenJob(jobId: string) {
+        return await callApi<Job>('reopenJob', { jobId });
     },
 
     async leaveSwimMeet(meetId: string, _userId?: string) {

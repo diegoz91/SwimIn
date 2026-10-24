@@ -37,6 +37,7 @@ export interface AppwriteConfig {
         poll_votes: string;
         groups: string;
         group_members: string;
+        typing: string;
     };
     buckets: {
         avatars: string;
@@ -76,6 +77,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         poll_votes: 'poll_votes',
         groups: 'groups',
         group_members: 'group_members',
+        typing: 'typing',
     },
     buckets: {
         avatars: 'avatars',

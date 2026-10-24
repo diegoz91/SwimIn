@@ -8,7 +8,8 @@ import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { FollowButton } from '@/components/common/FollowButton';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { StaffChat } from '@/features/team/StaffChat';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
 import { contractLabel } from '@/data/swimming';
@@ -69,8 +70,16 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [isFollowing, setIsFollowing] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);
     
-    const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>('info');
-    const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'turni' | 'radar'>('bacheca');
+    // Da una notifica della chat staff (?area=chat-staff) si apre direttamente la chat.
+    const location = useLocation();
+    const openChat = new URLSearchParams(location.search).get('area') === 'chat-staff';
+    const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>(openChat ? 'staff' : 'info');
+    const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'radar'>(openChat ? 'chat' : 'bacheca');
+    const [chatUnread, setChatUnread] = useState(0);
+    const staffAreaRef = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (openChat) window.setTimeout(() => staffAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }, [openChat]);
 
     const [localJobs, setLocalJobs] = useState<Job[]>(openJobs);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -136,6 +145,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 setStaff(board.members || []);
                 setAnnouncements(board.announcements || []);
                 setShifts(board.shifts || []);
+                setChatUnread(board.chatUnread || 0);
                 if (board.role === 'staff' && (board.announcements || []).some((a) => !(a.readBy || []).includes(user?.$id || ''))) {
                     databaseService.markAnnouncementsRead(facilityId).catch((err) => console.error('Bacheca letta:', err));
                 }
@@ -330,8 +340,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     )}
                 </div>
                 <div className="px-6 pb-6 relative">
-                    <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-4">
-                        <div className="relative">
+                    <div className="flex flex-wrap justify-between items-end gap-3 -mt-12 sm:-mt-16 mb-4">
+                        <div className="relative flex-shrink-0">
                             <img src={displayLogo} alt={structureName} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
                             {isAdmin && (
                                 <ImageUploadButton
@@ -356,7 +366,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                         {/* Fallback per Profili Struttura Legacy Phase 1 */}
                         {!isAdmin && isLegacyStructure && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="py-2.5 px-5 rounded-full font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
                                     <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                                 </button>
@@ -540,12 +550,16 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                 {/* 3. GESTIONE TEAM (Admin & Staff) */}
                 {activeTab === 'staff' && (isAdmin || isStaff) && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div ref={staffAreaRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden scroll-mt-20">
                         
                         <div className="border-b border-slate-100 bg-slate-50/50 p-4">
                             <div className="flex space-x-3 overflow-x-auto hide-scrollbar-mobile pb-1">
                                 <button onClick={() => setStaffSubTab('bacheca')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'bacheca' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
                                     Bacheca
+                                </button>
+                                <button onClick={() => setStaffSubTab('chat')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'chat' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
+                                    Chat staff
+                                    {chatUnread > 0 && staffSubTab !== 'chat' && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-corsia-600 text-white text-xs grid place-items-center" aria-label={`${chatUnread} messaggi non letti`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
                                 </button>
                                 <button onClick={() => setStaffSubTab('turni')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'turni' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
                                     Turni
@@ -692,6 +706,10 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     </p>
                                 )}
                             </div>
+                        )}
+
+                        {staffSubTab === 'chat' && user && (
+                            <StaffChat structureId={facilityId} structureName={structureName || 'Struttura'} currentUserId={user.$id} isAdmin={isAdmin} onRead={() => setChatUnread(0)} />
                         )}
 
                         {isStaff && user && (

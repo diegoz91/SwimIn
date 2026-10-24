@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -29,6 +29,8 @@ const EventPage: React.FC = () => {
     const [group, setGroup] = useState<Group | null>(null);
     const [busy, setBusy] = useState(false);
     const [editing, setEditing] = useState(false);
+    /** Link per collegarsi: lo restituisce la Function solo a organizzatore e iscritti. */
+    const [link, setLink] = useState<string | null>(null);
     usePageTitle(event?.title || 'Evento');
 
     useEffect(() => {
@@ -46,6 +48,16 @@ const EventPage: React.FC = () => {
         if (event.groupId) databaseService.getGroup(event.groupId).then((g) => alive && setGroup(g)).catch((err) => console.warn('Gruppo dell’evento:', err));
         return () => { alive = false; };
     }, [event]);
+
+    // Oggetto stabile: la modale si reimposta quando cambia l'evento.
+    const editEvent = useMemo(() => (event ? { ...event, onlineUrl: link } : null), [event, link]);
+    const canSeeLink = !!event?.isOnline && !!user && (event.creatorId === user.$id || (event.participants || []).includes(user.$id));
+    useEffect(() => {
+        if (!event || !canSeeLink) { setLink(null); return; }
+        let alive = true;
+        databaseService.getEventLink(event.$id).then((r) => alive && setLink(r.onlineUrl)).catch((err) => console.warn('Link dell’evento:', err));
+        return () => { alive = false; };
+    }, [event?.$id, canSeeLink]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (event === null) {
         return (
@@ -133,8 +145,8 @@ const EventPage: React.FC = () => {
                         <div className="min-w-0">
                             <dt className="sr-only">Dove</dt>
                             <dd className="text-abisso font-semibold break-words">{where}</dd>
-                            {event.isOnline && event.onlineUrl && (going || isOrganizer) && open && (
-                                <dd><a href={event.onlineUrl} target="_blank" rel="noopener noreferrer" className="text-corsia-700 font-semibold hover:underline break-all">Collegati all’evento</a></dd>
+                            {event.isOnline && link && (going || isOrganizer) && open && (
+                                <dd><a href={link} target="_blank" rel="noopener noreferrer" className="text-corsia-700 font-semibold hover:underline break-all">Collegati all’evento</a></dd>
                             )}
                             {event.isOnline && !going && !isOrganizer && open && <dd className="text-slate-500">Il link compare quando ti iscrivi.</dd>}
                             {!event.isOnline && (
@@ -218,7 +230,11 @@ const EventPage: React.FC = () => {
                 </ul>
             </section>
 
-            <EventFormModal open={editing} event={event} onClose={() => setEditing(false)} onSaved={(e) => setEvent(e)} />
+            <EventFormModal open={editing} event={editEvent} onClose={() => setEditing(false)} onSaved={(e) => {
+                setEvent(e);
+                if (e.isOnline) databaseService.getEventLink(e.$id).then((r) => setLink(r.onlineUrl)).catch((err) => console.warn('Link dell’evento:', err));
+                else setLink(null);
+            }} />
         </div>
     );
 };

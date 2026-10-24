@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Query } from 'appwrite';
 import { ChatWindow } from './ChatWindow';
 import { messagePreview } from '@/services/chatFiles';
+import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { ConversationListItem } from './ConversationListItem';
 import { databaseService } from '@/services/database'; 
 import { databases, client } from '@/services/appwrite';
@@ -34,6 +35,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   startChatWithUserId,
   onProfileClick 
 }) => {
+  const typingUsers = useTypingUsers(currentUserId);
   const [conversations, setConversations] = useState<Conversation[]>([]);
     const blocks = useBlocks();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -148,24 +150,8 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
         });
     });
 
-    const channelProfiles = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.profiles}.documents`;
-    const unsubscribeProfiles = client.subscribe(channelProfiles, (response: any) => {
-        if (response.events.some((e: string) => e.includes('.update'))) {
-            const profileId = response.payload.userId || response.payload.$id;
-            const typingTarget = response.payload.typingTo;
-            
-            setConversations(prev => prev.map(conv => {
-                if ((conv.participant.userId || conv.participant.$id) === profileId) {
-                    return { ...conv, isParticipantTyping: typingTarget === currentUserId };
-                }
-                return conv;
-            }));
-        }
-    });
-
     return () => {
         unsubscribeMsgs();
-        unsubscribeProfiles();
     };
   }, [currentUserId, selectedConversationId, loadConversations]);
 
@@ -229,7 +215,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
               {conversations.filter((conv) => !blocks.isHidden(conv.participant?.userId || conv.participant?.$id)).map(conv => (
                 <ConversationListItem
                   key={conv.conversationId}
-                  conversation={conv}
+                  conversation={{ ...conv, isParticipantTyping: typingUsers.has(conv.participant.userId || conv.participant.$id) }}
                   currentUserId={currentUserId}
                   isSelected={conv.conversationId === selectedConversationId}
                   onSelect={() => handleSelectConversation(conv.conversationId)}

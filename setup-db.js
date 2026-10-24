@@ -282,6 +282,30 @@ const schema = [
         indexes: [idx('by_group', ['groupId']), idx('by_user', ['userId'])],
     },
     {
+        // "Sta scrivendo…": una riga per persona, leggibile solo dal destinatario (scritta dalla Function).
+        id: 'typing', name: 'Typing', permissions: SERVER_ONLY,
+        attributes: [str('userId', 36, { required: true }), str('targetId', 36, { required: true }), str('until', 40, { required: true })],
+        indexes: [],
+    },
+    {
+        // Dati riservati degli eventi (link per collegarsi): restituiti dalla Function solo a iscritti e organizzatore.
+        id: 'event_private', name: 'Event private', permissions: SERVER_ONLY,
+        attributes: [str('onlineUrl', 500)],
+        indexes: [],
+    },
+    {
+        // Chat dello staff di una struttura: solo tramite la Function, che verifica il team a ogni lettura.
+        id: 'staff_messages', name: 'Staff messages', permissions: SERVER_ONLY,
+        attributes: [str('structureId', 36, { required: true }), str('authorId', 36, { required: true }), str('content', 2000, { required: true })],
+        indexes: [idx('by_structure', ['structureId'])],
+    },
+    {
+        // Ultima lettura della chat staff per persona (contatore dei non letti).
+        id: 'staff_chat_reads', name: 'Staff chat reads', permissions: SERVER_ONLY,
+        attributes: [str('structureId', 36, { required: true }), str('userId', 36, { required: true }), str('lastReadAt', 40, { required: true })],
+        indexes: [idx('by_user', ['userId'])],
+    },
+    {
         // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
         id: 'subscriptions', name: 'Subscriptions', permissions: SERVER_ONLY,
         attributes: [
@@ -523,6 +547,47 @@ async function lockClientWrites(tableId, keep = [Permission.read(Role.users())])
 }
 
 /**
+ * Righe create quando la Function dava ai client anche modifica o cancellazione
+ * (commenti, annunci, candidature): restano solo i permessi di lettura.
+ */
+async function stripClientWrites(tableId) {
+    let cursor = null;
+    let changed = 0;
+    for (;;) {
+        const { rows } = await tablesDB.listRows({ databaseId: DB_ID, tableId, queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])] });
+        for (const row of rows) {
+            const perms = row.$permissions || [];
+            const keep = perms.filter((p) => !/^(update|delete)\(/.test(p));
+            if (keep.length !== perms.length) {
+                await tablesDB.updateRow({ databaseId: DB_ID, tableId, rowId: row.$id, permissions: keep });
+                changed++;
+            }
+        }
+        if (rows.length < 100) break;
+        cursor = rows[rows.length - 1].$id;
+    }
+    if (changed) console.log(`   🔐 ${tableId}: tolti modifica e cancellazione dal client a ${changed} righe`);
+}
+
+/** Link degli eventi online: dalla riga pubblica alla tabella riservata event_private. */
+async function migrateEventLinks() {
+    let cursor = null;
+    let moved = 0;
+    for (;;) {
+        const { rows } = await tablesDB.listRows({ databaseId: DB_ID, tableId: 'swim_meets', queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])] });
+        for (const row of rows) {
+            if (!row.onlineUrl) continue;
+            await tablesDB.upsertRow({ databaseId: DB_ID, tableId: 'event_private', rowId: row.$id, data: { onlineUrl: row.onlineUrl }, permissions: [] });
+            await tablesDB.updateRow({ databaseId: DB_ID, tableId: 'swim_meets', rowId: row.$id, data: { onlineUrl: null } });
+            moved++;
+        }
+        if (rows.length < 100) break;
+        cursor = rows[rows.length - 1].$id;
+    }
+    if (moved) console.log(`   🔐 swim_meets: link di ${moved} eventi online resi riservati`);
+}
+
+/**
  * Profili creati prima di questa versione: email e telefono delle persone erano sul
  * profilo, leggibile da tutti gli utenti. Il telefono passa in private_info, l'email
  * viene tolta (resta nell'account) e la colonna smette di essere obbligatoria.
@@ -546,6 +611,7 @@ async function migratePrivateInfo() {
         for (const row of rows) {
             const patch = {};
             if (row.email) patch.email = null;
+            if (row.typingTo) patch.typingTo = null; // "sta scrivendo" ora è nella tabella typing, non sul profilo pubblico
             if (row.userType === 'professional' && row.phone) {
                 await tablesDB.upsertRow({ databaseId: DB_ID, tableId: 'private_info', rowId: row.$id, data: { phone: row.phone }, permissions: [] });
                 patch.phone = null;
@@ -727,6 +793,8 @@ async function main() {
     for (const t of ['profiles', 'facilities', 'swim_meets', 'posts', 'live_rooms']) await lockClientWrites(t);
     // Bacheca e turni: nessun permesso sulle righe, si leggono solo tramite la Function.
     for (const t of ['announcements', 'shifts']) await lockClientWrites(t, []);
+    for (const t of ['comments', 'jobs', 'applications']) await stripClientWrites(t);
+    await migrateEventLinks();
     phase = 'bucket di storage';
     await setupBuckets();
     phase = 'Function api';

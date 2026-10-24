@@ -212,7 +212,10 @@ export function cleanCertifications(list, previous = []) {
 /**
  * @param ctx helper della Function (find, get, create, update, fail, users, endpoint)
  */
-export function profileActions({ find, get, create, update, fail, users, endpoint, C, isRecruiterOf = async () => false }) {
+/** Una riga "sta scrivendo" per persona (id = utente: ne scrive una conversazione alla volta). */
+const typingKey = (userId) => userId;
+
+export function profileActions({ find, get, create, update, remove = async () => null, fail, users, endpoint, C, isRecruiterOf = async () => false, Permission = null, Role = null }) {
   /** URL di un'immagine caricata nello storage di questo progetto (no link esterni/traccianti). */
   const storageUrl = (v, label) => {
     if (v == null || v === '') return '';
@@ -354,18 +357,27 @@ export function profileActions({ find, get, create, update, fail, users, endpoin
     },
 
     /** Presenza online e "sta scrivendo…". */
+    /**
+     * Presenza online e "sta scrivendo…". L'indicatore non sta sul profilo (pubblico):
+     * è una riga leggibile solo dal destinatario, così nessun altro sa con chi si sta parlando.
+     */
     async setPresence(me, { isOnline, typingTo } = {}) {
-      const out = {};
-      if (isOnline !== undefined) {
-        out.isOnline = !!isOnline;
-        out.lastActive = new Date().toISOString();
-      }
+      if (isOnline !== undefined) await update(C.profiles, me, { isOnline: !!isOnline, lastActive: new Date().toISOString() });
       if (typingTo !== undefined) {
-        if (typingTo !== null && (typeof typingTo !== 'string' || typingTo.length > 36)) fail(400, 'Destinatario non valido.');
-        out.typingTo = typingTo;
+        if (typingTo !== null && (typeof typingTo !== 'string' || !typingTo || typingTo.length > 36 || typingTo === me)) fail(400, 'Destinatario non valido.');
+        const id = typingKey(me);
+        const existing = await find(C.typing, id);
+        if (typingTo === null) {
+          if (existing) await remove(C.typing, id);
+        } else {
+          const data = { userId: me, targetId: typingTo, until: new Date(Date.now() + 6000).toISOString() };
+          const perms = Permission && Role ? [Permission.read(Role.user(typingTo))] : [];
+          // Cambio di destinatario: la riga va ricreata con i nuovi permessi.
+          if (existing && existing.targetId !== typingTo) await remove(C.typing, id);
+          if (existing && existing.targetId === typingTo) await update(C.typing, id, { until: data.until });
+          else await create(C.typing, data, perms, id);
+        }
       }
-      if (!Object.keys(out).length) return { ok: true };
-      await update(C.profiles, me, out);
       return { ok: true };
     },
 

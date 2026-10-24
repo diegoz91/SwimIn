@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Query } from 'appwrite';
 import { ChatWindow } from './ChatWindow';
 import { messagePreview } from '@/services/chatFiles';
+import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { ConversationListItem } from './ConversationListItem';
 import { databaseService } from '@/services/database'; 
 import { databases, client } from '@/services/appwrite';
@@ -27,6 +28,7 @@ export const GlobalChatWidget: React.FC = () => {
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
+  const typingUsers = useTypingUsers(user?.$id);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -142,14 +144,12 @@ export const GlobalChatWidget: React.FC = () => {
         if (response.events.some((e: string) => e.includes('.update'))) {
             const payload = response.payload as UserProfile | StructureProfile;
             const profileId = payload.userId || payload.$id;
-            const typingTarget = payload.typingTo;
             const isOnline = payload.isOnline;
 
             setConversations(prev => prev.map(conv => {
                 if ((conv.participant.userId || conv.participant.$id) === profileId) {
                     return { 
                         ...conv, 
-                        isParticipantTyping: typingTarget === user.$id,
                         participant: { ...conv.participant, isOnline } 
                     };
                 }
@@ -226,7 +226,7 @@ export const GlobalChatWidget: React.FC = () => {
                     {conversations.map(conv => (
                       <ConversationListItem
                         key={conv.conversationId}
-                        conversation={conv}
+                        conversation={{ ...conv, isParticipantTyping: typingUsers.has(conv.participant.userId || conv.participant.$id) }}
                         currentUserId={user.$id}
                         isSelected={false}
                         onSelect={() => handleSelectConversation(conv.conversationId)}

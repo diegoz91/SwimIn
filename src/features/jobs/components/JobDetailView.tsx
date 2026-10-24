@@ -117,6 +117,21 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
         setCandidateToHire(null);
     };
 
+    const [isToggling, setIsToggling] = useState(false);
+    const toggleOpen = async () => {
+        if (localJob.isActive && !window.confirm('Chiudere l’annuncio? Non riceverà più candidature; potrai riaprirlo finché non scade.')) return;
+        setIsToggling(true);
+        try {
+            const saved = localJob.isActive ? await databaseService.closeJob(localJob.$id) : await databaseService.reopenJob(localJob.$id);
+            setLocalJob((prev) => ({ ...prev, isActive: saved.isActive }));
+            showToast(saved.isActive ? 'Annuncio riaperto.' : 'Annuncio chiuso.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        } finally {
+            setIsToggling(false);
+        }
+    };
+
     const { structureName, structureLogo } = useMemo(() => {
         const name = structure?.structureName || localJob.structureName || 'Struttura Non Specificata';
         const logo = structure?.logo || localJob.facilityLogo || initialsAvatar(name);
@@ -166,9 +181,24 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* BADGE POSIZIONE CHIUSA */}
             {!localJob.isActive && (
-                <div className="bg-red-50 text-red-700 border border-red-200 p-4 font-bold flex items-center gap-2 m-5 sm:m-8 rounded-xl mb-0 shadow-sm">
+                <div className="bg-slate-100 text-slate-700 border border-slate-200 p-4 font-semibold flex items-center gap-2 m-5 sm:m-8 rounded-xl mb-0">
                     <Icon type="lock-closed" className="w-5 h-5" />
-                    Questa posizione è stata chiusa perché è stato selezionato un candidato.
+                    Questa posizione è chiusa e non riceve più candidature.
+                </div>
+            )}
+
+            {/* Chi gestisce l'annuncio lo chiude o lo riapre (verificato dalla Function). */}
+            {isAdmin && !localJob.isSOS && (
+                <div className="px-5 sm:px-8 pt-5 flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={toggleOpen}
+                        disabled={isToggling}
+                        className="px-5 py-2.5 rounded-full font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-60 flex items-center gap-2"
+                    >
+                        <Icon type={localJob.isActive ? 'lock-closed' : 'check'} className="w-4 h-4" />
+                        {localJob.isActive ? 'Chiudi l’annuncio' : 'Riapri l’annuncio'}
+                    </button>
+                    <span className="text-sm text-slate-500">{localJob.isActive ? 'Chiudilo quando hai trovato chi cercavi: non riceverà più candidature.' : 'Torna visibile in bacheca, se non è scaduto.'}</span>
                 </div>
             )}
 

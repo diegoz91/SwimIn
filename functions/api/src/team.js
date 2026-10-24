@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 /**
  * Area staff di una struttura: bacheca comunicazioni, turni, membri.
  * Vi accedono solo gli amministratori della struttura e i membri dello staff
@@ -11,7 +13,7 @@ const SHIFT_STATUSES = ['scheduled', 'confirmed', 'declined'];
 
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 
-export function teamActions({ find, get, list, listAll, create, update, remove, removeAll, fail, notify, C, Query, displayName }) {
+export function teamActions({ find, get, list, listAll, create, update, remove, removeAll, count = async () => 0, fail, notify, deliver = async () => null, C, Query, displayName }) {
   /** Amministratori e staff della struttura (pagina Facility o profilo Struttura). */
   const teamOf = async (structureId) => {
     if (typeof structureId !== 'string' || !structureId) fail(400, 'Parametro mancante: structureId');
@@ -36,6 +38,21 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
   const setStaff = (team, staff) =>
     update(team.kind === 'facility' ? C.facilities : C.profiles, team.row.$id, { staff });
 
+  /** Ultima lettura della chat staff di una persona (riga con id deterministico). */
+  const readKey = (structureId, userId) => createHash('sha256').update(`${structureId}:${userId}`).digest('hex').slice(0, 32);
+  const unreadChat = async (structureId, me) => {
+    const read = await find(C.staffChatReads, readKey(structureId, me));
+    const queries = [Query.equal('structureId', structureId), Query.notEqual('authorId', me)];
+    if (read?.lastReadAt) queries.push(Query.greaterThan('$createdAt', read.lastReadAt));
+    return count(C.staffMessages, queries);
+  };
+  const markChatRead = async (structureId, me) => {
+    const id = readKey(structureId, me);
+    const data = { structureId, userId: me, lastReadAt: new Date().toISOString() };
+    if (await find(C.staffChatReads, id)) await update(C.staffChatReads, id, data);
+    else await create(C.staffChatReads, data, [], id);
+  };
+
   const memberCard = (p) => ({
     $id: p.$id,
     userId: p.$id,
@@ -54,10 +71,11 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
     async getTeamBoard(me, { structureId } = {}) {
       const { team, role } = await requireRole(me, structureId, 'staff');
       const ids = [...new Set(team.staff)].slice(0, 100);
-      const [members, announcements, shifts] = await Promise.all([
+      const [members, announcements, shifts, chatUnread] = await Promise.all([
         ids.length ? listAll(C.profiles, [Query.equal('$id', ids)]) : [],
         list(C.announcements, [Query.equal('structureId', structureId), Query.orderDesc('$createdAt'), Query.limit(50)]),
         list(C.shifts, [Query.equal('structureId', structureId), Query.greaterThanEqual('date', isoDay(Date.now() - 7 * 86_400_000)), Query.orderAsc('date'), Query.limit(200)]),
+        unreadChat(structureId, me).catch(() => 0),
       ]);
       return {
         role,
@@ -65,7 +83,60 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         announcements: announcements.documents,
         // Lo staff vede tutti i turni della squadra (serve per gli scambi), non solo i propri.
         shifts: shifts.documents,
+        chatUnread,
       };
+    },
+
+    // ---------------- CHAT STAFF ----------------
+    /**
+     * Messaggi della chat staff (dal più vecchio). Con `after` (data ISO) solo i nuovi:
+     * il client la interroga a intervalli mentre è aperta. Leggerla la segna come letta.
+     */
+    async listStaffMessages(me, { structureId, after = null, before = null } = {}) {
+      const { team } = await requireRole(me, structureId, 'staff');
+      const queries = [Query.equal('structureId', structureId)];
+      if (typeof after === 'string' && after) queries.push(Query.greaterThan('$createdAt', after), Query.orderAsc('$createdAt'), Query.limit(100));
+      else {
+        if (typeof before === 'string' && before) queries.push(Query.lessThan('$createdAt', before));
+        queries.push(Query.orderDesc('$createdAt'), Query.limit(60));
+      }
+      const { documents } = await list(C.staffMessages, queries);
+      const rows = after ? documents : [...documents].reverse();
+      if (!after || rows.length) await markChatRead(structureId, me);
+      const ids = [...new Set([...team.admins, ...team.staff])].slice(0, 100);
+      return {
+        messages: rows,
+        // Nomi e foto del team, per mostrare chi scrive (anche chi ha lasciato lo staff resta riconoscibile).
+        members: after ? undefined : (ids.length ? await listAll(C.profiles, [Query.equal('$id', ids)]) : []).map((p) => ({ $id: p.$id, name: displayName(p), avatar: p.avatar || p.logo || '', role: team.admins.includes(p.$id) ? 'admin' : 'staff' })),
+        hasMore: !after && documents.length === 60,
+      };
+    },
+
+    async sendStaffMessage(me, { structureId, content } = {}) {
+      const { team } = await requireRole(me, structureId, 'staff');
+      const text = typeof content === 'string' ? content.trim() : '';
+      if (!text) fail(400, 'Scrivi un messaggio.');
+      if (text.length > 2000) fail(400, 'Massimo 2000 caratteri.');
+      const recent = await count(C.staffMessages, [Query.equal('structureId', structureId), Query.equal('authorId', me), Query.greaterThan('$createdAt', new Date(Date.now() - 60_000).toISOString())]);
+      if (recent >= 20) fail(429, 'Stai scrivendo troppo velocemente: aspetta qualche secondo.');
+      const row = await create(C.staffMessages, { structureId, authorId: me, content: text }, []);
+      await markChatRead(structureId, me);
+      const author = await find(C.profiles, me);
+      const title = `${team.name} · ${author ? displayName(author) : 'Staff'}`;
+      for (const id of new Set([...team.admins, ...team.staff])) {
+        if (id !== me) await deliver(id, 'staff_chat', text.slice(0, 140), structureId, { title, channels: ['push'] });
+      }
+      return row;
+    },
+
+    /** L'autore o un amministratore della struttura eliminano un messaggio. */
+    async deleteStaffMessage(me, { messageId } = {}) {
+      if (typeof messageId !== 'string' || !messageId) fail(400, 'Messaggio non valido.');
+      const msg = await get(C.staffMessages, messageId);
+      const { role } = await requireRole(me, msg.structureId, 'staff');
+      if (msg.authorId !== me && role !== 'admin') fail(403, 'Puoi eliminare solo i tuoi messaggi.');
+      await remove(C.staffMessages, messageId);
+      return { deleted: true };
     },
 
     async createAnnouncement(me, { structureId, content, isImportant = false } = {}) {

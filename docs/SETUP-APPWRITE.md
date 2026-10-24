@@ -130,16 +130,17 @@ I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rila
 |---|---|---|---|
 | profiles, facilities | utenti loggati | solo Function | solo Function (`updateMyProfile`, `updateFacility`) |
 | posts, swim_meets, live_rooms | utenti loggati | solo Function (autore verificato) | solo Function (`updatePost`, `cancelSwimMeet`, `endLiveRoom`) |
-| jobs | utenti loggati | solo Function (struttura verificata) | solo Function |
+| jobs | utenti loggati | solo Function (struttura verificata) | solo Function (`closeJob`, `reopenJob`) |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
-| push_subscriptions, blocks, client_errors, profile_views, subscriptions | solo Function | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors, profile_views, subscriptions, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
+| typing ("sta scrivendo") | solo il destinatario (permesso sulla riga) | solo Function | solo Function |
 | comment_likes, follows | utenti loggati | solo Function | solo Function |
 | poll_votes | solo chi ha votato (permesso sulla riga) | solo Function | solo Function |
 | groups, group_members | utenti loggati | solo Function (`createGroup`, `joinGroup`) | solo Function (amministratori del gruppo) |
 | endorsements | utenti loggati | solo Function (solo tra collegati) | solo Function |
 | reports | nessuno (solo Console) | solo Function | solo Console |
-| comments, likes | utenti loggati | solo Function | autore (commenti) |
+| comments, likes | utenti loggati | solo Function | solo Function (`deleteComment`: autore, autore del post, amministratori del gruppo) |
 | messages | mittente e destinatario | solo Function | solo Function (letto/non letto) |
 | connections | i due utenti coinvolti | solo Function | solo Function |
 | applications | candidato e chi gestisce l'annuncio | solo Function | solo Function; il candidato può ritirarla |

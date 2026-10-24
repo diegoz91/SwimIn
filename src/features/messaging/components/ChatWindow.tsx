@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import { initialsAvatar } from '@/utils/avatar';
 import { RichText } from '@/utils/richText';
+import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { REACTIONS, reactionOf } from '@/data/reactions';
 import {
   CHAT_ACCEPT, chatFileUrl, discardChatFile, downloadChatFile, formatFileSize, isImageAttachment, parseAttachments, uploadChatFile,
@@ -106,7 +107,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [isParticipantTyping, setIsParticipantTyping] = useState(false);
+  const typingUsers = useTypingUsers(currentUserId);
   const [pending, setPending] = useState<Pending[]>([]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -117,10 +118,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingRef = useRef(0);
   const pendingRef = useRef<Pending[]>([]);
   const { showToast } = useToast();
 
   const participantId = participant.userId || participant.$id;
+  const isParticipantTyping = typingUsers.has(participantId);
   pendingRef.current = pending;
 
   const scrollToBottom = () => {
@@ -181,20 +184,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }
     });
 
-    const channelProfile = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.profiles}.documents.${participantId}`;
-    const unsubscribeProfile = client.subscribe(channelProfile, (response: { events: string[]; payload: unknown }) => {
-        const isUpdate = response.events.some((e: string) => e.includes('.update'));
-        if (isUpdate) {
-            setIsParticipantTyping((response.payload as { typingTo?: string | null }).typingTo === currentUserId);
-        }
-    });
-
     return () => {
       isMounted = false;
       unsubscribeMessages();
-      unsubscribeProfile();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      databaseService.setTypingStatus(currentUserId, null);
+      if (lastTypingRef.current) databaseService.setTypingStatus(currentUserId, null);
+      lastTypingRef.current = 0;
       // Allegati caricati ma non inviati: si eliminano.
       for (const p of pendingRef.current) {
         if (p.fileId) discardChatFile(p.fileId);
@@ -220,14 +215,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => document.removeEventListener('keydown', onKey);
   }, [lightbox]);
 
+  // "Sta scrivendo": al massimo un aggiornamento ogni 3 secondi (la riga scade da sola dopo 6).
   const handleTyping = (text: string) => {
       setNewMessage(text);
-      databaseService.setTypingStatus(currentUserId, participantId);
-
+      const now = Date.now();
+      if (text.trim() && now - lastTypingRef.current > 3000) {
+          lastTypingRef.current = now;
+          databaseService.setTypingStatus(currentUserId, participantId);
+      }
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
+          if (!lastTypingRef.current) return;
+          lastTypingRef.current = 0;
           databaseService.setTypingStatus(currentUserId, null);
-      }, 2000);
+      }, 4000);
   };
 
   const addFiles = (list: FileList | null) => {
@@ -283,7 +284,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     setNewMessage('');
     setPending((prev) => prev.filter((p) => !sent.includes(p)));
     setReplyTo(null);
-    databaseService.setTypingStatus(currentUserId, null);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (lastTypingRef.current) databaseService.setTypingStatus(currentUserId, null);
+    lastTypingRef.current = 0;
 
     try {
       setIsSending(true);

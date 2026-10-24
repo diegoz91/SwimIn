@@ -309,7 +309,9 @@ assert.equal(JSON.parse(c2.certificationsList[0]).verified,true); // invariato: 
 const c3=await api.updateMyProfile('zoe',{certificationsList:[{...cert,expiry:'2035-01-01'}]});
 assert.equal(JSON.parse(c3.certificationsList[0]).verified,undefined); // modificato: verifica persa
 assert.deepEqual((await api.updateMyProfile('zoe',{availability:['lun-sera','xx','lun-sera']})).availability,['lun-sera']);
-await api.setPresence('zoe',{isOnline:false,typingTo:'anna'}); assert.equal(col('profiles').zoe.isOnline,false); assert.equal(col('profiles').zoe.typingTo,'anna');
+await api.setPresence('zoe',{isOnline:false,typingTo:'anna'}); assert.equal(col('profiles').zoe.isOnline,false); assert.equal(col('profiles').zoe.typingTo,undefined); // non più sul profilo pubblico
+assert.deepEqual([col('typing').zoe.targetId,col('typing').zoe.$permissions],['anna',['read("user:anna")']]);
+await api.setPresence('zoe',{typingTo:null}); assert.equal(col('typing').zoe,undefined);
 // Pagine struttura
 await rejects(api.createFacility('piscina',{name:'Doppia',city:'Milano',province:'MI'}),403);
 const fac=await api.createFacility('zoe',{name:'Piscina Zoe',city:'Milano',province:'MI'});
