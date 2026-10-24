@@ -23,7 +23,7 @@ import { Checkbox, Field } from '@/components/form/Field';
 import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
 import { addDaysISO, formatDate, isValidISODate, todayISO, weekStartISO } from '@/utils/dates';
 import { ShiftWeek } from './ShiftWeek';
-import { ProfileStatsCard } from '@/features/premium/ProfileStatsCard';
+import { StatsDashboard } from '@/features/premium/StatsDashboard';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 
@@ -803,7 +803,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
 
                 {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
-                {activeTab === 'analytics' && isAdmin && isLegacyStructure && <ProfileStatsCard premium={isPremium(facility)} />}
+                {activeTab === 'analytics' && isAdmin && isLegacyStructure && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} viewersLink={null} /></div>}
                 {activeTab === 'analytics' && isAdmin && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
                         <div className="mb-6">

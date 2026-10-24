@@ -75,3 +75,13 @@ test('menzioni, tendenze, sondaggi e segui', async () => {
   await api.deletePost('anna', { postId: poll.$id });
   assert.equal(Object.keys(col('poll_votes')).length, 0);
 });
+
+test('anteprima dei post nelle statistiche: menzioni leggibili e taglio pulito', async () => {
+  const { plainPreview } = await import('../src/social.js');
+  assert.equal(plainPreview('@[Diego Zago](6ada9fd50038895230ad) Questo è un test #master'), '@Diego Zago Questo è un test #master');
+  const long = `Ciao @[Sara Colombo](u_sara) ${'parola '.repeat(40)}`;
+  const out = plainPreview(long, 60);
+  assert.ok(out.length <= 61 && out.endsWith('…'), out);
+  assert.ok(!out.includes('@['));
+  assert.equal(plainPreview(''), '');
+});
