@@ -85,7 +85,7 @@ const Notifications: React.FC = () => {
                 <button
                     onClick={markAll}
                     disabled={unreadCount === 0 || isMarking}
-                    className="text-sm font-bold text-blue-600 hover:text-blue-800 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    className="py-1 -my-1 text-sm font-bold text-blue-600 hover:text-blue-800 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                     Segna tutte come lette
                 </button>

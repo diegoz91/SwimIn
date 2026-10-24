@@ -95,7 +95,7 @@ export const LoginForm: React.FC = () => {
                                 <button 
                                     type="button" 
                                     onClick={() => setShowRecovery(true)}
-                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                                    className="py-1 -my-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                                 >
                                     Password dimenticata?
                                 </button>

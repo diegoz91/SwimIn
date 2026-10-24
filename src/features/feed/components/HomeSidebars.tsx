@@ -37,7 +37,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                 <Link to="/profile" className="block w-fit rounded-full">
                     <img src={avatarOf(user)} alt="" className="w-16 h-16 rounded-full object-cover ring-4 ring-white bg-white" />
                 </Link>
-                <Link to="/profile" className="block mt-2 font-semibold text-abisso hover:underline leading-tight">{displayNameOf(user)}</Link>
+                <Link to="/profile" className="py-1 block mt-2 font-semibold text-abisso hover:underline leading-tight">{displayNameOf(user)}</Link>
                 <p className="text-sm text-slate-500 mt-0.5 leading-snug">{headlineOf(user)}</p>
                 {user.city && (
                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">

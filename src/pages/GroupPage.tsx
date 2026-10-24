@@ -212,7 +212,7 @@ const GroupPage: React.FC = () => {
                         <span>{groupCategoryLabel(group.category)}</span>
                         {group.province && (<><span aria-hidden="true">·</span><span>{provinceName(group.province) || group.province}</span></>)}
                         <span aria-hidden="true">·</span>
-                        <button onClick={() => setTab('membri')} className="font-semibold text-corsia-700 hover:underline">
+                        <button onClick={() => setTab('membri')} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">
                             {group.membersCount === 1 ? '1 membro' : `${(group.membersCount || 0).toLocaleString('it-IT')} membri`}
                         </button>
                     </p>

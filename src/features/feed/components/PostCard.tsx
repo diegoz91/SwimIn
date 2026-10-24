@@ -559,7 +559,7 @@ const PureRepost: React.FC<PostCardProps> = ({ post, ...rest }) => {
                 <span>{mine ? 'Hai ripubblicato' : `${displayNameOf(reposter)} ha ripubblicato`} un post che non è più disponibile.</span>
                 {mine && (
                     <button
-                        className="font-semibold text-slate-600 hover:text-galleggiante"
+                        className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante"
                         onClick={async () => {
                             try { await databaseService.deletePost(post); rest.onDeleted?.(post.$id); } catch (err) { showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error'); }
                         }}

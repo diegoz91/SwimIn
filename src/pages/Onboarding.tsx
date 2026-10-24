@@ -123,7 +123,7 @@ const Onboarding: React.FC = () => {
         <div className="min-h-screen w-full bg-piastrella">
             <header className="max-w-2xl mx-auto px-4 h-20 flex items-center justify-between">
                 <Brand size="sm" />
-                <button onClick={skip} disabled={saving} className="text-sm font-semibold text-slate-500 hover:text-abisso">
+                <button onClick={skip} disabled={saving} className="py-1 -my-1 text-sm font-semibold text-slate-500 hover:text-abisso">
                     Completa più tardi
                 </button>
             </header>

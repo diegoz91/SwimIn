@@ -104,7 +104,7 @@ const Structures: React.FC = () => {
                 </div>
             </div>
             {province && (
-                <button onClick={() => setProvince('')} className="mb-4 text-sm font-semibold text-corsia-700 hover:underline">
+                <button onClick={() => setProvince('')} className="py-1 mb-4 text-sm font-semibold text-corsia-700 hover:underline">
                     Mostra tutta Italia invece di {provinceName(province) || province}
                 </button>
             )}

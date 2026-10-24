@@ -391,7 +391,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         </div>
                         <p className="text-lg text-slate-600 font-medium mt-1">{structureType || 'Struttura sportiva'}</p>
                         {ratingOf(facility as StructureProfile) && (
-                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
+                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="py-1 mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
                                 <Stars value={ratingOf(facility as StructureProfile)!.average} />
                                 <span className="font-semibold text-abisso">{ratingOf(facility as StructureProfile)!.average.toLocaleString('it-IT', { minimumFractionDigits: 1 })}</span>
                                 <span>({ratingOf(facility as StructureProfile)!.count})</span>
@@ -404,12 +404,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 {city}{province ? ` (${province.toUpperCase()})` : ''}
                             </span>
                             {facility.phone && (
-                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
                                     <Icon type="phone" className="w-4 h-4" /> {facility.phone}
                                 </a>
                             )}
                             {facility.website && (
-                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1.5 text-corsia-700 hover:underline">
+                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
                                     <Icon type="globe" className="w-4 h-4" /> {facility.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                                 </a>
                             )}
@@ -715,7 +715,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                         {isStaff && user && (
                             <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
                                 <span>Fai parte dello staff di {structureName}.</span>
-                                <button onClick={() => handleRemoveStaff(user.$id)} className="font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
+                                <button onClick={() => handleRemoveStaff(user.$id)} className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante">Lascia lo staff</button>
                             </div>
                         )}
 

@@ -570,18 +570,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   {(phone || email || user.website || (profUser?.languages || []).length > 0) && (
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm">
                           {phone && (
-                              <a href={`tel:${phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline" title={isOwnProfile && isProfessional ? 'Visibile solo ai tuoi collegamenti e alle strutture a cui ti candidi' : undefined}>
+                              <a href={`tel:${phone.replace(/\s/g, '')}`} className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline" title={isOwnProfile && isProfessional ? 'Visibile solo ai tuoi collegamenti e alle strutture a cui ti candidi' : undefined}>
                                   <Icon type="phone" className="w-4 h-4" /> {phone}
                                   {isOwnProfile && isProfessional && <Icon type="lock-closed" className="w-3.5 h-3.5 text-slate-400" />}
                               </a>
                           )}
                           {email && (
-                              <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
+                              <a href={`mailto:${email}`} className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
                                   <Icon type="paper-plane" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{email}</span>
                               </a>
                           )}
                           {user.website && (
-                              <a href={user.website} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
+                              <a href={user.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
                                   <Icon type="globe" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{user.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</span>
                               </a>
                           )}

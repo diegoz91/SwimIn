@@ -46,7 +46,7 @@ export const PoolSection: React.FC<{ profile: StructureProfile; isOwnProfile: bo
                     href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-corsia-700 font-semibold hover:underline"
+                    className="py-1 -my-1 inline-flex items-center gap-1.5 text-sm text-corsia-700 font-semibold hover:underline"
                 >
                     <Icon type="location" className="w-4 h-4" /> {address}
                 </a>
