@@ -24,4 +24,24 @@ export const testConnection = async (): Promise<boolean> => {
   }
 };
 
+/** Una voce del registro dell'account (accessi e modifiche), come la restituisce Appwrite. */
+export interface AccountLog {
+  event: string;
+  time: string;
+  ip?: string;
+  clientName?: string;
+  osName?: string;
+  deviceName?: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  countryName?: string;
+}
+
+/** Registro dell'account (GET /account/logs): l'SDK web non ha un metodo dedicato. */
+export async function listAccountLogs(): Promise<AccountLog[]> {
+  const url = new URL(`${APPWRITE_CONFIG.endpoint.replace(/\/$/, '')}/account/logs`);
+  const res = (await client.call('get', url, { 'content-type': 'application/json' })) as { logs?: AccountLog[] };
+  return res.logs || [];
+}
+
 export { client };

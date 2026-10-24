@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Models } from 'appwrite';
-import { account } from '@/services/appwrite';
+import { account, listAccountLogs, type AccountLog } from '@/services/appwrite';
 import { useToast } from '@/context/ToastContext';
 import { authErrorMessage } from '@/utils/authErrors';
 import { passwordStrength } from '@/utils/validation';
@@ -14,7 +14,7 @@ import { Badge, Group, Row, RowPanel, RowSkeleton, SectionHeader, btn, whenOf } 
 const isMobileSession = (s: Pick<Models.Session, 'deviceName' | 'osName'>) =>
     /smartphone|phone|tablet|mobile/i.test(s.deviceName || '') || /android|ios|ipad/i.test(s.osName || '');
 
-const deviceLabel = (s: Pick<Models.Session, 'clientName' | 'osName' | 'deviceBrand' | 'deviceModel'>) => {
+const deviceLabel = (s: { clientName?: string; osName?: string; deviceBrand?: string; deviceModel?: string }) => {
     const client = s.clientName || 'Browser';
     const os = s.osName || [s.deviceBrand, s.deviceModel].filter(Boolean).join(' ');
     return os ? `${client} su ${os}` : client;
@@ -210,11 +210,11 @@ const SessionsGroup: React.FC = () => {
 
 /** Ultime attività sull'account (accessi, cambi di password ed email), dal registro di Appwrite. */
 const ActivityGroup: React.FC = () => {
-    const [logs, setLogs] = useState<Models.Log[] | null>(null);
+    const [logs, setLogs] = useState<AccountLog[] | null>(null);
     const [all, setAll] = useState(false);
 
     useEffect(() => {
-        account.listLogs().then(({ logs: list }) => setLogs(list)).catch((err) => { console.warn('Attività:', err); setLogs([]); });
+        listAccountLogs().then(setLogs).catch((err: unknown) => { console.warn('Attività:', err); setLogs([]); });
     }, []);
 
     if (logs !== null && logs.length === 0) return null;
