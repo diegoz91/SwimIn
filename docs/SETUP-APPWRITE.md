@@ -101,6 +101,8 @@ Per aggiornarli in automatico:
    - `APPWRITE_API_KEY` (la stessa chiave di `.env.setup`)
 2. Facoltativo: aggiungi tra le *Variables* `APP_URL` ed `EMAIL_NOTIFICATIONS`.
 
+Alla fine di ogni deploy `setup-db` chiama la Function con l'azione pubblica `health` e controlla che risponda la versione appena caricata; se non è così la attiva e, se ancora non risponde, il deploy fallisce. Su GitHub l'esito compare come annotazione, per esempio "Function api versione a4b2a9a26287 attiva sul progetto …57b3". Se il sito dice "Questa funzione è in aggiornamento" dopo un deploy riuscito, quasi sempre il sito (Vercel, `VITE_APPWRITE_PROJECT_ID`) e i secret di GitHub (`APPWRITE_PROJECT_ID`) puntano a progetti diversi: le ultime quattro cifre devono coincidere.
+
 Da quel momento il workflow **Deploy Appwrite** lancia `npm run setup-db` a ogni merge che tocca `functions/api/` o `setup-db.js`, e aspetta che la build della Function sia pronta. Si può avviare anche a mano da *Actions → Deploy Appwrite → Run workflow*.
 
 ## 10. SwimIn Premium (pagamenti)
