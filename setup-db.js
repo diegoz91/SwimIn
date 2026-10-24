@@ -282,6 +282,15 @@ const schema = [
         indexes: [idx('by_group', ['groupId']), idx('by_user', ['userId'])],
     },
     {
+        // Referenze scritte: permessi sulla riga (in attesa: autore e destinatario; pubblicate: tutti), scritte dalla Function.
+        id: 'recommendations', name: 'Recommendations', permissions: SERVER_ONLY,
+        attributes: [
+            str('profileId', 36, { required: true }), str('authorId', 36, { required: true }), str('relationship', 20),
+            str('content', 3000, { required: true }), str('status', 20, { required: true }),
+        ],
+        indexes: [idx('by_profile', ['profileId']), idx('by_author', ['authorId'])],
+    },
+    {
         // Avvisi di lavoro (ricerche salvate): ognuno legge i propri, scritti dalla Function.
         id: 'job_alerts', name: 'Job alerts', permissions: SERVER_ONLY,
         attributes: [

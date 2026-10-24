@@ -7,20 +7,25 @@ import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { initialsAvatar } from '@/utils/avatar';
-import type { EnrichedPost, Facility, Job, StructureProfile, UserProfile } from '@/types/types';
+import type { EnrichedPost, Facility, Group, Job, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
+import { EventCard } from '@/features/events/EventCard';
+import { groupCategoryLabel } from '@/data/groups';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { useBlocks } from '@/context/BlocksContext';
 
-type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'post';
+type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'gruppi' | 'eventi' | 'post';
 
 interface Results {
     people: UserProfile[];
     structures: (StructureProfile | Facility)[];
     jobs: Job[];
+    groups: Group[];
+    events: SwimMeet[];
+    hashtags: { tag: string; posts: number }[];
     posts: EnrichedPost[];
 }
 
-const EMPTY: Results = { people: [], structures: [], jobs: [], posts: [] };
+const EMPTY: Results = { people: [], structures: [], jobs: [], groups: [], events: [], hashtags: [], posts: [] };
 
 const nameOf = (p: UserProfile | StructureProfile | Facility) =>
     'userType' in p
@@ -78,7 +83,10 @@ const Search: React.FC = () => {
             databaseService.searchNetwork(q, user.$id),
             databaseService.searchJobs(q),
             databaseService.searchPosts(q, user.$id),
-        ]).then(([network, jobs, posts]) => {
+            databaseService.searchGroups(q),
+            databaseService.searchEvents(q),
+            databaseService.searchHashtags(q),
+        ]).then(([network, jobs, posts, groups, events, hashtags]) => {
             if (cancelled) return;
             const net = network.status === 'fulfilled' ? network.value : { profiles: [], facilities: [] };
             setResults({
@@ -86,6 +94,9 @@ const Search: React.FC = () => {
                 structures: [...net.profiles.filter((p): p is StructureProfile => p.userType === 'structure'), ...net.facilities],
                 jobs: jobs.status === 'fulfilled' ? jobs.value : [],
                 posts: posts.status === 'fulfilled' ? posts.value.filter((p) => !blocks.isHidden(p.authorId)) : [],
+                groups: groups.status === 'fulfilled' ? groups.value : [],
+                events: events.status === 'fulfilled' ? events.value.filter((e) => !blocks.isHidden(e.creatorId)) : [],
+                hashtags: hashtags.status === 'fulfilled' ? hashtags.value : [],
             });
             setIsLoading(false);
         });
@@ -100,7 +111,7 @@ const Search: React.FC = () => {
         setParams(input.trim() ? { q: input.trim() } : {});
     };
 
-    const total = results.people.length + results.structures.length + results.jobs.length + results.posts.length;
+    const total = results.people.length + results.structures.length + results.jobs.length + results.groups.length + results.events.length + results.hashtags.length + results.posts.length;
     const show = (t: Tab) => tab === 'tutti' || tab === t;
     const limit = (n: number) => (tab === 'tutti' ? 3 : n);
 
@@ -109,6 +120,8 @@ const Search: React.FC = () => {
         { id: 'persone', label: 'Persone', count: results.people.length },
         { id: 'strutture', label: 'Strutture', count: results.structures.length },
         { id: 'offerte', label: 'Offerte', count: results.jobs.length },
+        { id: 'gruppi', label: 'Gruppi', count: results.groups.length },
+        { id: 'eventi', label: 'Eventi', count: results.events.length },
         { id: 'post', label: 'Post', count: results.posts.length },
     ];
 
@@ -123,7 +136,7 @@ const Search: React.FC = () => {
                         type="search"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Cerca persone, piscine, offerte e post"
+                        placeholder="Cerca persone, piscine, offerte, gruppi, eventi, #hashtag"
                         autoFocus={!q}
                         className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white border border-slate-200 shadow-card text-abisso focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-none"
                     />
@@ -151,7 +164,7 @@ const Search: React.FC = () => {
             {q.length < 2 ? (
                 <div className="text-center py-16 text-slate-500">
                     <Icon type="search" className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                    <p>Scrivi almeno due lettere: un nome, una città, un ruolo come “istruttore” o una piscina.</p>
+                    <p>Scrivi almeno due lettere: un nome, una città, un ruolo come “istruttore”, una piscina, un gruppo o un #hashtag.</p>
                 </div>
             ) : isLoading ? (
                 <PageLoader label="Ricerca in corso…" />
@@ -162,6 +175,18 @@ const Search: React.FC = () => {
                 </div>
             ) : (
                 <div className="space-y-4">
+                    {tab === 'tutti' && results.hashtags.length > 0 && (
+                        <ul className="flex flex-wrap gap-2" aria-label="Hashtag">
+                            {results.hashtags.map((h) => (
+                                <li key={h.tag}>
+                                    <Link to={`/hashtag/${encodeURIComponent(h.tag)}`} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white border border-slate-200 text-sm font-semibold text-corsia-700 hover:border-corsia-300">
+                                        <Icon type="hashtag" className="w-4 h-4" /> {h.tag}
+                                        <span className="text-slate-500 font-normal">{h.posts === 1 ? '1 post' : `${h.posts} post`}</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                     {show('persone') && results.people.length > 0 && (
                         <Section title="Persone" count={results.people.length} onMore={() => setTab('persone')}>
                             <ul className="divide-y divide-slate-100">
@@ -206,6 +231,33 @@ const Search: React.FC = () => {
                                 ))}
                             </ul>
                         </Section>
+                    )}
+                    {show('gruppi') && results.groups.length > 0 && (
+                        <Section title="Gruppi" count={results.groups.length} onMore={() => setTab('gruppi')}>
+                            <ul className="divide-y divide-slate-100">
+                                {results.groups.slice(0, limit(50)).map((g) => (
+                                    <ResultRow
+                                        key={g.$id}
+                                        to={`/gruppi/${g.$id}`}
+                                        image={g.cover || initialsAvatar(g.name)}
+                                        title={g.name}
+                                        subtitle={[groupCategoryLabel(g.category), g.membersCount === 1 ? '1 membro' : `${g.membersCount || 0} membri`].join(' – ')}
+                                        square
+                                    />
+                                ))}
+                            </ul>
+                        </Section>
+                    )}
+                    {show('eventi') && results.events.length > 0 && (
+                        <section className="space-y-3">
+                            <h2 className="text-xl font-bold text-abisso px-1">Eventi</h2>
+                            <ul className="grid sm:grid-cols-2 gap-3">
+                                {results.events.slice(0, limit(50)).map((e) => <li key={e.$id} className="min-w-0"><EventCard event={e} currentUserId={user?.$id} /></li>)}
+                            </ul>
+                            {tab === 'tutti' && results.events.length > 3 && (
+                                <button onClick={() => setTab('eventi')} className="w-full py-3 text-sm font-semibold text-corsia-700 bg-white rounded-2xl border border-slate-200">Mostra tutti gli eventi ({results.events.length})</button>
+                            )}
+                        </section>
                     )}
                     {show('post') && results.posts.length > 0 && (
                         <div className="space-y-4">

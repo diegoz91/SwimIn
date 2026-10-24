@@ -21,6 +21,7 @@ import { groupActions } from './groups.js';
 import { chatActions } from './chat.js';
 import { eventActions } from './events.js';
 import { alertActions } from './alerts.js';
+import { recommendationActions } from './recommendations.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -58,6 +59,7 @@ const C = {
   staffMessages: 'staff_messages',
   typing: 'typing',
   jobAlerts: 'job_alerts',
+  recommendations: 'recommendations',
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
   pushSubscriptions: 'push_subscriptions',
@@ -157,7 +159,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const create = (tableId, data, permissions, rowId = ID.unique()) =>
     db.createRow({ databaseId: DB, tableId, rowId, data, permissions });
 
-  const update = (tableId, rowId, data) => db.updateRow({ databaseId: DB, tableId, rowId, data });
+  /** Con `permissions` sostituisce anche i permessi della riga. */
+  const update = (tableId, rowId, data, permissions) => db.updateRow({ databaseId: DB, tableId, rowId, data, ...(permissions ? { permissions } : {}) });
 
   const remove = (tableId, rowId) => db.deleteRow({ databaseId: DB, tableId, rowId });
 
@@ -292,6 +295,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     return url;
   };
   const alertsApi = alertActions({ find, list, listAll, create, remove, fail, notify, C, Query, Permission, Role });
+  const recs = recommendationActions({ find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b), isRecruiterOf: (a, b) => isRecruiterOf(a, b) });
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
   const events = eventActions({ get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
@@ -312,6 +316,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...groups,
     ...chat,
     ...alertsApi,
+    ...recs,
     ...events,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
@@ -636,6 +641,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await groups._leaveAll(me);
       await removeAll(C.pollVotes, [Query.equal('userId', me)]);
       await removeAll(C.jobAlerts, [Query.equal('userId', me)]);
+      await recs._removeAllFor(me);
       for (const f of await listAll(C.follows, [Query.equal('followerId', me)])) {
         await remove(C.follows, f.$id);
         const other = await find(C.profiles, f.followeeId);

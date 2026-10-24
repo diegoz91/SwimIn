@@ -10,6 +10,8 @@ import { useToast } from '@/context/ToastContext';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ReportModal } from '@/components/common/ReportModal';
 import { SkillsSection } from './SkillsSection';
+import { RecommendationsSection } from './RecommendationsSection';
+import { useAuth } from '@/hooks/useAuth';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { ProfileActionsMenu } from '@/components/common/ProfileActionsMenu';
 import { useBlocks } from '@/context/BlocksContext';
@@ -49,6 +51,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { user: viewer } = useAuth();
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
     
@@ -58,6 +61,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const blocks = useBlocks();
     const isWorker = isProfessional && !isFan;
     const profUser = isProfessional ? (user as UserProfile) : null;
+    /** Referenze: le scrivono i collegamenti reciproci e le strutture per cui la persona lavora (il server lo ricontrolla). */
+    const profileKeyId = user.userId || user.$id;
+    const mutual = !!viewer && (viewer.connections || []).includes(profileKeyId) && (user.connections || []).includes(viewer.$id);
+    const canWriteRecommendation = !isOwnProfile && isProfessional && !!viewer && (mutual || (viewer.userType === 'structure' && ((viewer as StructureProfile).staff || []).includes(profileKeyId)));
+    const askRecommendation = async () => {
+        try {
+            const r = await databaseService.requestRecommendation(profileKeyId);
+            showToast(r.already ? 'Hai già chiesto una referenza a questa persona.' : 'Richiesta inviata.', r.already ? 'info' : 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Richiesta non inviata.', 'error');
+        }
+    };
 
     const [experienceModal, setExperienceModal] = useState<{isOpen: boolean, mode: 'add'|'edit', experience?: Experience, index?: number}>({ isOpen: false, mode: 'add' });
     const [certificationModal, setCertificationModal] = useState<{isOpen: boolean, mode: 'add'|'edit', certification?: Certification, index?: number}>({ isOpen: false, mode: 'add' });
@@ -501,7 +516,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       >
                           <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                       </button>
-                      <ProfileActionsMenu userId={user.userId || user.$id} name={displayName} />
+                      <ProfileActionsMenu userId={user.userId || user.$id} name={displayName} extraItems={mutual && viewer?.userType === 'professional' ? [{ label: 'Chiedi una referenza', icon: 'star', onClick: askRecommendation }] : []} />
                     </div>
                   )}
               </div>
@@ -635,6 +650,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 isOwnProfile={isOwnProfile}
                 onProfileUpdated={(p) => onUpdateProfile?.(p)}
             />
+          )}
+
+          {isProfessional && profUser && (isWorker || canWriteRecommendation) && (
+            <RecommendationsSection profile={profUser} isOwnProfile={isOwnProfile} canWrite={canWriteRecommendation} />
           )}
 
           {isProfessional && (isWorker || experiences.length > 0 || certifications.length > 0) && (
