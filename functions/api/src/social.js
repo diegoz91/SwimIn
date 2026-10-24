@@ -23,6 +23,15 @@ const REACTION_VERBS = {
 const DAY = 86_400_000;
 const viewId = (viewerId, profileId) => crypto.createHash('sha256').update(`${viewerId}:${profileId}`).digest('hex').slice(0, 32);
 
+/** Anteprima di un post: le menzioni @[Nome](id) diventano @Nome e il taglio non spezza le parole. */
+export const plainPreview = (content, max = 140) => {
+  const text = String(content || '').replace(/@\[([^\]\n]{1,80})\]\([A-Za-z0-9_.-]{1,36}\)/g, '@$1').replace(/\s+/g, ' ').trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
+};
+
 export function socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked }) {
   const requireId = (v, name) => {
     if (typeof v !== 'string' || !v || v.length > 36) fail(400, `Parametro mancante: ${name}`);
@@ -235,7 +244,7 @@ export function socialActions({ find, get, list, listAll, create, update, remove
         viewsPerDay: days.map((d) => ({ day: d, views: perDay[d] })),
         viewersByKind: byKind,
         anonymousViews: views.filter((v) => v.anonymous).length,
-        posts: posts.map((p) => ({ id: p.$id, createdAt: p.$createdAt, text: String(p.content || '').slice(0, 80), reactions: p.likesCount || 0, comments: p.commentsCount || 0, reposts: p.repostsCount || 0 })),
+        posts: posts.map((p) => ({ id: p.$id, createdAt: p.$createdAt, text: plainPreview(p.content, 140), reactions: p.likesCount || 0, comments: p.commentsCount || 0, reposts: p.repostsCount || 0 })),
         totals: {
           reactions: posts.reduce((n, p) => n + (p.likesCount || 0), 0),
           comments: posts.reduce((n, p) => n + (p.commentsCount || 0), 0),

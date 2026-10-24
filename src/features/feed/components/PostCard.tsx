@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -594,16 +594,20 @@ const EmbeddedOriginal: React.FC<{ postId: string }> = ({ postId }) => {
     if (original === null) return <p className="mt-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">Il post originale non è più disponibile.</p>;
     const { text, media } = getPostContent(original);
     return (
-        <button onClick={() => navigate(`/post/${original.$id}`)} className="mt-3 mb-1 w-full text-left rounded-xl border border-slate-200 hover:border-corsia-300 overflow-hidden transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
-            <span className="flex items-center gap-2 px-4 pt-3">
+        // Il riquadro si apre con un clic; menzioni e hashtag restano link veri, e da tastiera c'è "Vedi il post originale".
+        <div onClick={() => navigate(`/post/${original.$id}`)} className="mt-3 mb-1 rounded-xl border border-slate-200 hover:border-corsia-300 overflow-hidden transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 px-4 pt-3">
                 <img src={avatarOf(author)} alt="" className="w-8 h-8 rounded-full object-cover" />
                 <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-abisso truncate">{displayNameOf(author)}</span>
-                    <span className="block text-[11px] text-slate-400">{formatRelativeTime(original.$createdAt)}</span>
+                    <Link to={`/profile/${original.authorId}`} onClick={(e) => e.stopPropagation()} className="block py-1 -my-1 text-sm font-semibold text-abisso truncate hover:underline">{displayNameOf(author)}</Link>
+                    <span className="block text-[11px] text-slate-500">{formatRelativeTime(original.$createdAt)}</span>
                 </span>
-            </span>
-            {text && <span className="block px-4 pt-2 pb-3 text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">{plainText(text)}</span>}
-            {media[0] && media[0].type !== 'video' && <img src={media[0].url} alt={media[0].alt || ''} className="w-full max-h-72 object-cover" loading="lazy" />}
-        </button>
+            </div>
+            {text && <p className="px-4 pt-2 text-sm text-slate-700 whitespace-pre-wrap break-words line-clamp-4"><RichText text={text} /></p>}
+            {media[0] && media[0].type !== 'video' && <img src={media[0].url} alt={media[0].alt || ''} className="w-full max-h-72 object-cover mt-3" loading="lazy" />}
+            <p className="px-4 py-2.5">
+                <Link to={`/post/${original.$id}`} onClick={(e) => e.stopPropagation()} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Vedi il post originale</Link>
+            </p>
+        </div>
     );
 };

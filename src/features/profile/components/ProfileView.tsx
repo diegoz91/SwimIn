@@ -24,7 +24,7 @@ import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
-import { ProfileStatsCard } from '@/features/premium/ProfileStatsCard';
+import { ProfileAnalyticsCard } from '@/features/premium/ProfileAnalyticsCard';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -368,110 +368,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {isWorker && isOwnProfile && profUser && (
-        <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <h2 className="text-xl font-extrabold text-red-700 flex items-center gap-2">
-                    <Icon type="alert-triangle" className="w-6 h-6" />
-                    Disponibilità per sostituzioni urgenti
-                </h2>
-                <p className="text-red-700 text-sm mt-2 font-medium max-w-xl">
-                    Attiva questa modalità per segnalare la tua disponibilità immediata. Riceverai priorità per le chiamate SOS dalle piscine nella tua zona.
-                </p>
-            </div>
-            <button
-                role="switch"
-                aria-checked={!!profUser.availableForEmergencies}
-                aria-label="Disponibilità per sostituzioni urgenti"
-                onClick={async () => {
-                    const newState = !profUser.availableForEmergencies;
-                    let updated: UserProfile;
-                    try {
-                        updated = (await databaseService.updateProfile(profUser.userId || profUser.$id, { availableForEmergencies: newState })) as UserProfile;
-                    } catch (error) {
-                        showToast(error instanceof Error ? error.message : 'Impostazione non salvata.', 'error');
-                        return;
-                    }
-                    if (onUpdateProfile) onUpdateProfile(updated);
-                    showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
-                }}
-                className={`relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${profUser.availableForEmergencies ? 'bg-red-600 shadow-inner' : 'bg-red-200'}`}
-            >
-                <span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${profUser.availableForEmergencies ? 'translate-x-8' : 'translate-x-0'}`} />
-            </button>
-        </div>
-      )}
-
-      {isOwnProfile && <ProfileStatsCard premium={isPremium(user)} onOpenViews={() => setViewsOpen(true)} />}
-
-      {isProfessional && isOwnProfile && completionScore < 100 && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex items-center gap-5 sm:gap-6" data-html2canvas-ignore="true">
-            <CompletionRing value={completionScore} />
-            <div className="min-w-0">
-                <h2 className="text-xl font-extrabold text-slate-800">Completa il profilo</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Un profilo completo compare prima nelle ricerche delle strutture.</p>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                    {missingSteps.map((s) => (
-                        <span key={s.label} className="text-xs font-semibold text-corsia-700 bg-corsia-50 border border-corsia-100 px-2.5 py-1 rounded-full">+ {s.label}</span>
-                    ))}
-                </div>
-            </div>
-        </div>
-      )}
-
-      {/* PAGINE AZIENDALI GESTITE (LINKEDIN MODEL) */}
-      {isWorker && isOwnProfile && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-                    <Icon type="building" className="w-6 h-6 text-blue-600" />
-                    Le mie strutture
-                </h2>
-                <button
-                    onClick={() => setIsFacilityModalOpen(true)}
-                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                    <Icon type="plus" className="w-4 h-4" /> Crea pagina
-                </button>
-            </div>
-            
-            {managedFacilities.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {managedFacilities.map(fac => (
-                        <div
-                            key={fac.$id}
-                            onClick={() => navigate(`/profile/${fac.$id}`)}
-                            className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white"
-                        >
-                            <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                {fac.logo ? (
-                                    <img src={fac.logo} alt={fac.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <Icon type="building" className="w-6 h-6 text-slate-400" />
-                                )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
-                                <p className="text-xs text-slate-500 font-medium truncate">{[fac.type, fac.city].filter(Boolean).join(', ')}</p>
-                            </div>
-                            <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
-                        <Icon type="building" className="w-6 h-6 text-slate-400" />
-                    </div>
-                    <p className="text-slate-600 font-bold">Nessuna pagina gestita</p>
-                    <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
-                        Sei il direttore o il proprietario di un impianto? Crea la pagina della struttura per pubblicare annunci e gestire lo staff.
-                    </p>
-                </div>
-            )}
-        </div>
-      )}
-
       <div id="passaporto-natatorio" className="bg-slate-50">
           
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative mb-6">
@@ -609,6 +505,114 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   )}
               </div>
             </div>
+          </div>
+
+          {/* Riquadri visibili solo a te (fuori dal PDF del profilo): analisi, completamento, disponibilità, strutture. */}
+          <div data-html2canvas-ignore="true">
+      {isWorker && isOwnProfile && profUser && (
+        <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <h2 className="text-xl font-extrabold text-red-700 flex items-center gap-2">
+                    <Icon type="alert-triangle" className="w-6 h-6" />
+                    Disponibilità per sostituzioni urgenti
+                </h2>
+                <p className="text-red-700 text-sm mt-2 font-medium max-w-xl">
+                    Attiva questa modalità per segnalare la tua disponibilità immediata. Riceverai priorità per le chiamate SOS dalle piscine nella tua zona.
+                </p>
+            </div>
+            <button
+                role="switch"
+                aria-checked={!!profUser.availableForEmergencies}
+                aria-label="Disponibilità per sostituzioni urgenti"
+                onClick={async () => {
+                    const newState = !profUser.availableForEmergencies;
+                    let updated: UserProfile;
+                    try {
+                        updated = (await databaseService.updateProfile(profUser.userId || profUser.$id, { availableForEmergencies: newState })) as UserProfile;
+                    } catch (error) {
+                        showToast(error instanceof Error ? error.message : 'Impostazione non salvata.', 'error');
+                        return;
+                    }
+                    if (onUpdateProfile) onUpdateProfile(updated);
+                    showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
+                }}
+                className={`relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${profUser.availableForEmergencies ? 'bg-red-600 shadow-inner' : 'bg-red-200'}`}
+            >
+                <span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${profUser.availableForEmergencies ? 'translate-x-8' : 'translate-x-0'}`} />
+            </button>
+        </div>
+      )}
+
+      {isOwnProfile && <ProfileAnalyticsCard premium={isPremium(user)} onOpenViews={() => setViewsOpen(true)} />}
+
+      {isProfessional && isOwnProfile && completionScore < 100 && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex items-center gap-5 sm:gap-6" data-html2canvas-ignore="true">
+            <CompletionRing value={completionScore} />
+            <div className="min-w-0">
+                <h2 className="text-xl font-extrabold text-slate-800">Completa il profilo</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Un profilo completo compare prima nelle ricerche delle strutture.</p>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                    {missingSteps.map((s) => (
+                        <span key={s.label} className="text-xs font-semibold text-corsia-700 bg-corsia-50 border border-corsia-100 px-2.5 py-1 rounded-full">+ {s.label}</span>
+                    ))}
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* PAGINE AZIENDALI GESTITE (LINKEDIN MODEL) */}
+      {isWorker && isOwnProfile && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                    <Icon type="building" className="w-6 h-6 text-blue-600" />
+                    Le mie strutture
+                </h2>
+                <button
+                    onClick={() => setIsFacilityModalOpen(true)}
+                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                    <Icon type="plus" className="w-4 h-4" /> Crea pagina
+                </button>
+            </div>
+            
+            {managedFacilities.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {managedFacilities.map(fac => (
+                        <div
+                            key={fac.$id}
+                            onClick={() => navigate(`/profile/${fac.$id}`)}
+                            className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white"
+                        >
+                            <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                {fac.logo ? (
+                                    <img src={fac.logo} alt={fac.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <Icon type="building" className="w-6 h-6 text-slate-400" />
+                                )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
+                                <p className="text-xs text-slate-500 font-medium truncate">{[fac.type, fac.city].filter(Boolean).join(', ')}</p>
+                            </div>
+                            <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
+                        <Icon type="building" className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <p className="text-slate-600 font-bold">Nessuna pagina gestita</p>
+                    <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
+                        Sei il direttore o il proprietario di un impianto? Crea la pagina della struttura per pubblicare annunci e gestire lo staff.
+                    </p>
+                </div>
+            )}
+        </div>
+      )}
+
           </div>
 
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">

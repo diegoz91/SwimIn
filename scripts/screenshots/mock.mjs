@@ -30,6 +30,13 @@ export function applyQueries(rows, rawQueries) {
     return out;
 }
 
+/** Righe di una collezione con le modifiche di `state.overrides[collezione][id]` (es. un profilo Premium). */
+const withOverrides = (collection, state) => {
+    const rows = collections[collection] || [];
+    const patch = state.overrides?.[collection];
+    return patch ? rows.map((r) => (patch[r.$id] ? { ...r, ...patch[r.$id] } : r)) : rows;
+};
+
 /**
  * state: { loggedIn: boolean, mfaRequired?: boolean, calls?: {action, params}[], responses?: {[action]: fn} }
  * Con `loggedIn: false` il login (POST /account/sessions/email) apre la sessione;
@@ -84,13 +91,13 @@ export async function mockAppwrite(page, state) {
 
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
         if (one) {
-            const row = (collections[one[1]] || []).find((r) => r.$id === one[2]);
+            const row = withOverrides(one[1], state).find((r) => r.$id === one[2]);
             return row ? json(route, row) : json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
         }
         const list = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents$/);
         if (list && method === 'GET') {
             const queries = [...url.searchParams.entries()].filter(([k]) => k.startsWith('queries')).map(([, v]) => v);
-            const rows = applyQueries(collections[list[1]] || [], queries);
+            const rows = applyQueries(withOverrides(list[1], state), queries);
             return json(route, { total: rows.length, documents: rows });
         }
         return json(route, {});

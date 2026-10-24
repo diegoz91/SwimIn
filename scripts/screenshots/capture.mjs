@@ -43,6 +43,7 @@ const PRIVATE_PAGES = [
     ['impostazioni-info', '/profile?tab=impostazioni&sezione=info'],
     ['benvenuto', '/benvenuto'],
     ['salvati', '/salvati'],
+    ['statistiche', '/statistiche'],
     ['strutture', '/strutture'],
     ['appassionato', '/profile/u_paolo'],
     ['talenti', '/talenti'],
@@ -63,7 +64,7 @@ const PRIVATE_INTERACTIONS = [
     }],
     ['commenti', '/', (p) => p.getByRole('button', { name: /^Commenta$/ }).first().click()],
     ['reazioni', '/', (p) => p.getByRole('button', { name: /^Consiglia$/ }).first().hover()],
-    ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
+    ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).first().click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
     ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); await p.waitForTimeout(900); }],
@@ -245,6 +246,32 @@ for (const [vpName, viewport, opts = {}] of VIEWPORTS) {
         }
         await context.close();
     }
+}
+// Le stesse pagine con un profilo Premium: statistiche complete e riquadro "Analisi" sbloccato.
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
+    await mockAppwrite(page, { loggedIn: true, overrides: { profiles: { [ME]: { premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } } });
+    for (const [name, path, act] of [
+        ['statistiche-premium', '/statistiche'],
+        ['analisi-profilo', '/profile', async (p) => { await p.locator('#analytics-title').scrollIntoViewIfNeeded(); await p.mouse.wheel(0, -120); }],
+    ]) {
+        try {
+            await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+            await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
+            await page.waitForTimeout(800);
+            if (act) { await act(page); await page.waitForTimeout(500); }
+            await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: name === 'statistiche-premium' });
+            await shot(page, vpName, name, touch);
+            console.log(`✓ ${vpName}-${name}`);
+        } catch (e) {
+            console.log(`✗ ${vpName}-${name}: ${e.message}`);
+        }
+    }
+    await context.close();
 }
 await browser.close();
 

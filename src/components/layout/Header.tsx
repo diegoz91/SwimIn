@@ -232,6 +232,9 @@ const Header: React.FC = () => {
                   <PremiumBadge /> {isPremium(user) ? 'Il tuo Premium' : user?.premiumTrialUsed ? 'Passa a Premium' : 'Prova Premium gratis'}
                 </Link>
                 <div className="border-t border-slate-100 py-1">
+                  <Link to="/statistiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                    <Icon type="chart" className="w-5 h-5 text-slate-400" /> Statistiche
+                  </Link>
                   <Link to="/profile?tab=impostazioni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
                   </Link>

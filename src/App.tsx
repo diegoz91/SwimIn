@@ -39,6 +39,7 @@ const PostPage = lazy(() => import('@/pages/PostPage'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Search = lazy(() => import('@/pages/Search'));
 const Saved = lazy(() => import('@/pages/Saved'));
+const Stats = lazy(() => import('@/pages/Stats'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const Structures = lazy(() => import('@/pages/Structures'));
@@ -128,6 +129,7 @@ const AppContent: React.FC = () => {
               <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
               <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
+              <Route path="/statistiche" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
               <Route path="/strutture" element={<ProtectedRoute><Structures /></ProtectedRoute>} />
               <Route path="/talenti" element={<ProtectedRoute><Talent /></ProtectedRoute>} />
               <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
