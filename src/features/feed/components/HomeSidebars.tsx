@@ -34,7 +34,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                 {user.cover && <img src={user.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
             </div>
             <div className="relative px-4 pb-4 -mt-8">
-                <Link to="/profile" className="block w-fit rounded-full">
+                <Link to="/profile" tabIndex={-1} aria-hidden="true" className="block w-fit rounded-full">
                     <img src={avatarOf(user)} alt="" className="w-16 h-16 rounded-full object-cover ring-4 ring-white bg-white" />
                 </Link>
                 <Link to="/profile" className="py-1 block mt-2 font-semibold text-abisso hover:underline leading-tight">{displayNameOf(user)}</Link>
@@ -45,30 +45,30 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     </p>
                 )}
             </div>
-            <dl className="border-t border-slate-100 text-sm">
+            <div className="border-t border-slate-100 text-sm">
                 <Link to="/network" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                    <dt className="text-slate-500">Collegamenti</dt>
-                    <dd className="font-semibold text-corsia-700">{user.connections?.length || 0}</dd>
+                    <span className="text-slate-500">Collegamenti</span>
+                    <span className="font-semibold text-corsia-700">{user.connections?.length || 0}</span>
                 </Link>
                 <Link to="/gruppi" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                    <dt className="text-slate-500">Gruppi</dt>
-                    <dd className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></dd>
+                    <span className="text-slate-500">Gruppi</span>
+                    <span className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></span>
                 </Link>
                 {isProfessional && (
                     <>
                         <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                            <dt className="text-slate-500">Brevetti</dt>
-                            <dd className={`font-semibold ${attention.length ? 'text-galleggiante' : 'text-corsia-700'}`}>
+                            <span className="text-slate-500">Brevetti</span>
+                            <span className={`font-semibold ${attention.length ? 'text-galleggiante' : 'text-corsia-700'}`}>
                                 {certs.length}{attention.length ? ` · ${attention.length} da rinnovare` : ''}
-                            </dd>
+                            </span>
                         </Link>
                         <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                            <dt className="text-slate-500">Competenze</dt>
-                            <dd className="font-semibold text-corsia-700">{skills.length}</dd>
+                            <span className="text-slate-500">Competenze</span>
+                            <span className="font-semibold text-corsia-700">{skills.length}</span>
                         </Link>
                     </>
                 )}
-            </dl>
+            </div>
             {isProfessional && (user as UserProfile).availableForEmergencies && (
                 <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-galleggiante flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-galleggiante" aria-hidden="true" /> Disponibile per sostituzioni urgenti
@@ -258,7 +258,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                             const sent = requested.includes(id);
                             return (
                                 <li key={id} className="flex items-center gap-3 px-4 py-2.5">
-                                    <Link to={`/profile/${id}`} className="flex-shrink-0">
+                                    <Link to={`/profile/${id}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
                                         <img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover" />
                                     </Link>
                                     <Link to={`/profile/${id}`} className="min-w-0 flex-1">

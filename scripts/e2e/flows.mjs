@@ -75,9 +75,9 @@ const FLOWS = [
     ['pubblicare un post', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/');
         await page.getByText('Di cosa vorresti parlare alla rete di SwimIn?').first().click();
-        const dialog = page.getByRole('dialog');
-        await dialog.locator('textarea').first().fill('Allenamento di prova: 10x100 stile a 1’40”. #master');
-        await dialog.getByRole('button', { name: 'Pubblica', exact: true }).click();
+        const box = page.getByPlaceholder(/^Condividi un pensiero/);
+        await box.fill('Allenamento di prova: 10x100 stile a 1’40”. #master');
+        await page.locator('[role="dialog"]', { has: box }).getByRole('button', { name: 'Pubblica', exact: true }).click();
         const c = await called(state, 'createPost');
         assert.match(c.params.content, /10x100/);
     }],
@@ -170,6 +170,7 @@ for (const [name, vp, initial, run] of FLOWS) {
         await page.screenshot({ path: file }).catch(() => undefined);
         results.push({ name, vp, ok: false, error: e.message.split('\n')[0] });
         console.log(`✗ e2e ${name} (${vp}): ${e.message.split('\n')[0]}`);
+        console.log(`    pagina: ${page.url()} · account: ${state.accountCalls.slice(-8).join(', ')} · Function: ${state.calls.map((c) => c.action).slice(-8).join(', ')}`);
     }
     await context.close();
 }

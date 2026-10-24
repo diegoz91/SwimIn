@@ -169,7 +169,7 @@ const GroupPage: React.FC = () => {
         const p = profiles.get(m.userId);
         return (
             <li key={m.$id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3">
-                <Link to={`/profile/${m.userId}`} className="flex-shrink-0">
+                <Link to={`/profile/${m.userId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
                     <img src={p ? avatarOf(p) : ''} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                 </Link>
                 <Link to={`/profile/${m.userId}`} className="min-w-0 flex-1">

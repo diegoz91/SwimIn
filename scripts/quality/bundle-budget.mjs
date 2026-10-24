@@ -11,9 +11,9 @@ import { join } from 'node:path';
 const DIST = process.argv[2] || 'dist';
 const OUT = process.argv[3];
 const BUDGET = {
-    initialJs: Number(process.env.BUDGET_INITIAL_JS_KB || 260),
-    initialCss: Number(process.env.BUDGET_INITIAL_CSS_KB || 30),
-    chunk: Number(process.env.BUDGET_CHUNK_KB || 200),
+    initialJs: Number(process.env.BUDGET_INITIAL_JS_KB || 160),
+    initialCss: Number(process.env.BUDGET_INITIAL_CSS_KB || 20),
+    chunk: Number(process.env.BUDGET_CHUNK_KB || 130),
 };
 
 const kb = (bytes) => Math.round((bytes / 1024) * 10) / 10;

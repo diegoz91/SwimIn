@@ -140,6 +140,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         mfaChallenge.current = { id: await createLoginChallenge(useRecovery), recovery: useRecovery };
       }
       await completeLoginChallenge(mfaChallenge.current.id, code);
+      // Se la sessione chiede ancora un fattore, account.get() fallisce: l'errore arriva al form invece di un falso accesso.
+      await account.get();
       mfaChallenge.current = null;
       await checkAuth();
     } finally {

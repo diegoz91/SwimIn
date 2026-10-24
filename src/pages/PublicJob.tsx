@@ -106,18 +106,18 @@ const PublicJob: React.FC = () => {
 
                             <dl className="grid sm:grid-cols-2 gap-3 mt-6 text-sm">
                                 {job.contractType && (
-                                    <div className="flex gap-3"><Icon type="briefcase" className="w-5 h-5 text-slate-400 flex-shrink-0" /><div><dt className="text-slate-500">Contratto</dt><dd className="font-semibold text-abisso">{contractLabel(job.contractType)}</dd></div></div>
+                                    <div className="relative pl-8 min-w-0"><dt className="text-slate-500"><Icon type="briefcase" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" />Contratto</dt><dd className="font-semibold text-abisso">{contractLabel(job.contractType)}</dd></div>
                                 )}
                                 {salary && (
-                                    <div className="flex gap-3"><Icon type="sparkles" className="w-5 h-5 text-slate-400 flex-shrink-0" /><div><dt className="text-slate-500">Compenso</dt><dd className="font-semibold text-abisso">{salary}</dd></div></div>
+                                    <div className="relative pl-8 min-w-0"><dt className="text-slate-500"><Icon type="sparkles" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" />Compenso</dt><dd className="font-semibold text-abisso">{salary}</dd></div>
                                 )}
                                 {job.isSOS && job.sosDate && (
-                                    <div className="flex gap-3"><Icon type="calendar" className="w-5 h-5 text-slate-400 flex-shrink-0" /><div><dt className="text-slate-500">Turno</dt><dd className="font-semibold text-abisso first-letter:uppercase">{formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</dd></div></div>
+                                    <div className="relative pl-8 min-w-0"><dt className="text-slate-500"><Icon type="calendar" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" />Turno</dt><dd className="font-semibold text-abisso first-letter:uppercase">{formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</dd></div>
                                 )}
                                 {job.workingHours && (
-                                    <div className="flex gap-3"><Icon type="clock" className="w-5 h-5 text-slate-400 flex-shrink-0" /><div><dt className="text-slate-500">Orario</dt><dd className="font-semibold text-abisso">{job.workingHours}</dd></div></div>
+                                    <div className="relative pl-8 min-w-0"><dt className="text-slate-500"><Icon type="clock" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" />Orario</dt><dd className="font-semibold text-abisso">{job.workingHours}</dd></div>
                                 )}
-                                <div className="flex gap-3"><Icon type="clock" className="w-5 h-5 text-slate-400 flex-shrink-0" /><div><dt className="text-slate-500">Pubblicata</dt><dd className="font-semibold text-abisso">{formatDate(job.postedAt.slice(0, 10))}{job.expiresAt && !job.isSOS ? ` · scade il ${formatDate(job.expiresAt, 'short')}` : ''}</dd></div></div>
+                                <div className="relative pl-8 min-w-0"><dt className="text-slate-500"><Icon type="clock" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" />Pubblicata</dt><dd className="font-semibold text-abisso">{formatDate(job.postedAt.slice(0, 10))}{job.expiresAt && !job.isSOS ? ` · scade il ${formatDate(job.expiresAt, 'short')}` : ''}</dd></div>
                             </dl>
 
                             <div className="flex flex-wrap gap-2 mt-6">

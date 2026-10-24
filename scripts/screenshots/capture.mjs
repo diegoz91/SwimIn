@@ -178,7 +178,9 @@ async function auditA11y(page, pageName) {
     const result = await page.evaluate(async () => {
         // eslint-disable-next-line no-undef
         const r = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] });
-        return r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(' '), html: n.html.slice(0, 160), summary: (n.failureSummary || '').split('\n').slice(1, 3).join(' ').slice(0, 200) })), count: v.nodes.length }));
+        // Gli elenchi dei menu a tendina si scorrono con le frecce dal campo che li apre: non sono regioni da raggiungere col tab.
+        for (const v of r.violations) if (v.id === 'scrollable-region-focusable') v.nodes = v.nodes.filter((n) => !n.html.includes('data-keyboard-scroll'));
+        return r.violations.filter((v) => v.nodes.length).map((v) => ({ id: v.id, impact: v.impact, help: v.help, pairs: v.id === 'color-contrast' ? v.nodes.map((n) => { const d = n.any?.[0]?.data || {}; return `${d.fgColor} su ${d.bgColor} (${d.contrastRatio}, ${d.fontSize} ${d.fontWeight}) «${(n.html.match(/class="([^"]*)"/)?.[1] || '').split(' ').filter((c) => /text-|bg-/.test(c)).join(' ')}»`; }) : [], nodes: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(' '), html: n.html.slice(0, 160), summary: (n.failureSummary || '').split('\n').slice(1, 3).join(' ').slice(0, 200) })), count: v.nodes.length }));
     });
     for (const v of result) a11y.push({ page: pageName, ...v });
 }
@@ -252,10 +254,11 @@ console.log(`\nLayout: ${bad.length} pagine con elementi fuori dallo schermo, ${
 if (AXE) {
     const byRule = new Map();
     for (const v of a11y) {
-        const r = byRule.get(v.id) || { id: v.id, impact: v.impact, help: v.help, pages: [], nodes: 0, examples: [] };
+        const r = byRule.get(v.id) || { id: v.id, impact: v.impact, help: v.help, pages: [], nodes: 0, examples: [], pairs: {} };
         r.pages.push(v.page);
         r.nodes += v.count;
-        for (const n of v.nodes) if (r.examples.length < 6 && !r.examples.some((e) => e.target === n.target)) r.examples.push(n);
+        for (const p of v.pairs || []) r.pairs[p] = (r.pairs[p] || 0) + 1;
+        for (const n of v.nodes) if (r.examples.length < 15 && !r.examples.some((e) => e.target === n.target)) r.examples.push(n);
         byRule.set(v.id, r);
     }
     const order = { critical: 0, serious: 1, moderate: 2, minor: 3 };
@@ -264,6 +267,7 @@ if (AXE) {
     const md = ['# Accessibilità (axe-core, WCAG 2.1 A/AA)', '', `Viste controllate: ${A11Y_VIEWPORTS.join(', ')}. Regole violate: ${rules.length} (gravi o critiche: ${blocking.length}).`, ''];
     for (const r of rules) {
         md.push(`## ${r.id} (${r.impact}) — ${r.help}`, '', `${r.nodes} elementi in ${r.pages.length} pagine: ${r.pages.slice(0, 12).join(', ')}${r.pages.length > 12 ? '…' : ''}`, '');
+        for (const [p, n] of Object.entries(r.pairs).sort((a, b) => b[1] - a[1]).slice(0, 40)) md.push(`- ${n}× ${p}`);
         for (const e of r.examples) md.push(`- \`${e.target}\` ${e.summary}`, `  \`${e.html.replace(/`/g, "'")}\``);
         md.push('');
     }

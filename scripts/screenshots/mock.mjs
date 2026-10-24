@@ -59,8 +59,8 @@ export async function mockAppwrite(page, state) {
             state.loggedIn = true;
             return json(route, { $id: 'sess1', userId: account.$id, current: true });
         }
-        if (path === '/account/mfa/challenge' && method === 'POST') return json(route, { $id: 'challenge1', userId: account.$id, expire: new Date(Date.now() + 600_000).toISOString() });
-        if (path === '/account/mfa/challenge' && method === 'PUT') {
+        if (/^\/account\/mfa\/challenges?$/.test(path) && method === 'POST') return json(route, { $id: 'challenge1', userId: account.$id, expire: new Date(Date.now() + 600_000).toISOString() });
+        if (/^\/account\/mfa\/challenges?$/.test(path) && method === 'PUT') {
             let body = {};
             try { body = JSON.parse(route.request().postData() || '{}'); } catch { body = {}; }
             if (state.mfaCode && body.otp !== state.mfaCode) return json(route, { message: 'Invalid token passed in the request.', code: 401, type: 'user_invalid_token' }, 401);

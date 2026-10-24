@@ -72,12 +72,8 @@ export const ConnectionSuggestionCard: React.FC<ConnectionSuggestionCardProps> =
 
     return (
         <div 
-            className="flex flex-col items-center text-center bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all relative group outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+            className="flex flex-col items-center text-center bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all relative group focus-within:ring-2 focus-within:ring-blue-500 cursor-pointer"
             onClick={() => onSelectProfile(userId)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
-            aria-label={`Visualizza profilo di ${fullName}`}
         >
             <button 
                 onClick={handleDismiss}
@@ -102,7 +98,10 @@ export const ConnectionSuggestionCard: React.FC<ConnectionSuggestionCardProps> =
             </div>
             
             <h3 className="font-bold text-slate-800 text-base leading-tight w-full truncate px-2" title={fullName}>
-                {fullName}
+                {/* Il nome è il punto di accesso da tastiera alla scheda: la card intera resta cliccabile col mouse. */}
+                <button type="button" onClick={(e) => { e.stopPropagation(); onSelectProfile(userId); }} onKeyDown={handleKeyDown} className="py-1 -my-1 max-w-full truncate outline-none focus-visible:underline" aria-label={`Visualizza profilo di ${fullName}`}>
+                    {fullName}
+                </button>
             </h3>
             
             <p className="text-sm text-slate-500 mb-2 line-clamp-1 w-full px-2" title={title}>

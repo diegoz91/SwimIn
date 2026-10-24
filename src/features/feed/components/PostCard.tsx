@@ -294,7 +294,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
             <div className="p-4 sm:p-5">
                 <div className="flex items-start gap-3 mb-4">
-                    <button onClick={() => navigate(`/profile/${post.authorId}`)} className="flex-shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <button onClick={() => navigate(`/profile/${post.authorId}`)} tabIndex={-1} aria-hidden="true" className="flex-shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                         <img src={displayAvatar} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-100 hover:opacity-80 transition-opacity" />
                     </button>
                     <div className="flex-1 min-w-0">

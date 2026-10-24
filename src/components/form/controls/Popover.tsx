@@ -123,7 +123,7 @@ export const Popover: React.FC<PopoverProps> = ({ open, anchorRef, onClose, titl
                             <Icon type="x" className="w-5 h-5" />
                         </button>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">{children}</div>
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" data-keyboard-scroll="combobox">{children}</div>
                     {footer && <div className="border-t border-slate-100 px-4 py-3">{footer}</div>}
                 </div>
             </div>,
@@ -147,7 +147,8 @@ export const Popover: React.FC<PopoverProps> = ({ open, anchorRef, onClose, titl
                 pos.placement === 'below' ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1'
             }`}
         >
-            <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: pos.available - (footer ? 52 : 0) }}>
+            {/* L'elenco si scorre con le frecce dal campo che lo apre (aria-activedescendant), non serve un focus suo. */}
+            <div className="overflow-y-auto overscroll-contain" data-keyboard-scroll="combobox" style={{ maxHeight: pos.available - (footer ? 52 : 0) }}>
                 {children}
             </div>
             {footer && <div className="border-t border-slate-100 px-3 py-2">{footer}</div>}

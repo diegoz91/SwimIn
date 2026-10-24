@@ -141,7 +141,8 @@ export function Select<V extends string = string>({
                 aria-haspopup="listbox"
                 aria-expanded={open}
                 aria-controls={open ? listId : undefined}
-                aria-label={selected ? undefined : label}
+                // Un combobox non prende il nome dal contenuto: nome e valore scelto vanno nell'etichetta.
+                aria-label={selected ? `${label}: ${selected.label}` : label}
                 {...a11y}
                 disabled={disabled}
                 onClick={() => (open ? close() : openMenu())}

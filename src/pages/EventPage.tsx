@@ -136,14 +136,11 @@ const EventPage: React.FC = () => {
                 </div>
 
                 <dl className="grid sm:grid-cols-2 gap-3 mt-5 text-sm">
-                    <div className="flex gap-3 items-start">
-                        <Icon type="clock" className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <div><dt className="sr-only">Quando</dt><dd className="text-abisso font-semibold first-letter:uppercase">{formatDate(event.date, 'weekday')}</dd><dd className="text-slate-500">{timeRange(event)}</dd></div>
+                    <div className="relative pl-8 min-w-0">
+                        <dt><Icon type="clock" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" /><span className="sr-only">Quando</span></dt><dd className="text-abisso font-semibold first-letter:uppercase">{formatDate(event.date, 'weekday')}</dd><dd className="text-slate-500">{timeRange(event)}</dd>
                     </div>
-                    <div className="flex gap-3 items-start">
-                        <Icon type={event.isOnline ? 'video' : 'location'} className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <div className="min-w-0">
-                            <dt className="sr-only">Dove</dt>
+                    <div className="relative pl-8 min-w-0">
+                        <dt><Icon type={event.isOnline ? 'video' : 'location'} className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" /><span className="sr-only">Dove</span></dt>
                             <dd className="text-abisso font-semibold break-words">{where}</dd>
                             {event.isOnline && link && (going || isOrganizer) && open && (
                                 <dd><a href={link} target="_blank" rel="noopener noreferrer" className="text-corsia-700 font-semibold hover:underline break-all">Collegati all’evento</a></dd>
@@ -152,19 +149,14 @@ const EventPage: React.FC = () => {
                             {!event.isOnline && (
                                 <dd><a href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(where)}`} target="_blank" rel="noopener noreferrer" className="text-corsia-700 font-semibold hover:underline">Apri la mappa</a></dd>
                             )}
-                        </div>
                     </div>
-                    <div className="flex gap-3 items-start">
-                        <Icon type="sparkles" className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <div><dt className="sr-only">Quota</dt><dd className="text-abisso font-semibold">{priceLabel(event.price)}</dd>{!!event.price && <dd className="text-slate-500">Da pagare all’organizzatore</dd>}</div>
+                    <div className="relative pl-8 min-w-0">
+                        <dt><Icon type="sparkles" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" /><span className="sr-only">Quota</span></dt><dd className="text-abisso font-semibold">{priceLabel(event.price)}</dd>{!!event.price && <dd className="text-slate-500">Da pagare all’organizzatore</dd>}
                     </div>
-                    <div className="flex gap-3 items-start">
-                        <Icon type="users" className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                            <dt className="sr-only">Posti</dt>
+                    <div className="relative pl-8 min-w-0">
+                        <dt><Icon type="users" className="absolute left-0 top-0.5 w-5 h-5 text-slate-400" /><span className="sr-only">Posti</span></dt>
                             <dd className="text-abisso font-semibold">{(event.participants || []).length} {(event.participants || []).length === 1 ? 'partecipante' : 'partecipanti'}{event.maxParticipants ? ` su ${event.maxParticipants}` : ''}</dd>
                             <dd className="text-slate-500">{left === null ? 'Posti illimitati' : left === 0 ? `Al completo${(event.waitlist || []).length ? ` · ${(event.waitlist || []).length} in attesa` : ''}` : left === 1 ? 'Ultimo posto' : `${left} posti liberi`}</dd>
-                        </div>
                     </div>
                 </dl>
 

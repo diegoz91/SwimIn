@@ -109,7 +109,7 @@ export const RecommendationsSection: React.FC<{ profile: UserProfile; isOwnProfi
         return (
             <li key={r.$id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex items-start gap-3">
-                    <Link to={`/profile/${r.authorId}`} className="flex-shrink-0">
+                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
                         <img src={r.author.avatar || initialsAvatar(r.author.name)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                     </Link>
                     <div className="min-w-0 flex-1">
