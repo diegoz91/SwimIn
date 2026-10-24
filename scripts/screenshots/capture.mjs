@@ -80,6 +80,7 @@ const PUBLIC_PAGES = [
     ['privacy', '/privacy'],
     ['404', '/pagina-inesistente'],
     ['profilo-pubblico', '/u/u_giulia'],
+    ['offerta-pubblica', '/offerte/j1'],
 ];
 
 const PRIVATE_PAGES = [
@@ -121,6 +122,7 @@ const PRIVATE_INTERACTIONS = [
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
     ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); await p.waitForTimeout(900); }],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
+    ['avvisi-lavoro', '/jobs', (p) => p.getByRole('button', { name: /^Avvisi$/ }).click()],
     ['form-evento', '/eventi', (p) => p.getByRole('button', { name: 'Crea un evento' }).first().click()],
     ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],
     ['ripubblica', '/', (p) => p.getByRole('button', { name: /Ripubblica/ }).first().click()],

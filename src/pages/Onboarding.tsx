@@ -18,6 +18,7 @@ import { useComuni } from '@/data/comuni';
 import { provinceName } from '@/data/italy';
 import { check, comuneOf, isoDate, maxLength, minLength, province as provinceRule, required, notBefore, notAfter } from '@/utils/validation';
 import { addDaysISO, todayISO } from '@/utils/dates';
+import { takePendingJobPath } from '@/utils/pendingJob';
 
 const inputClass =
     'w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none';
@@ -109,14 +110,14 @@ const Onboarding: React.FC = () => {
         if (!isLast) return setStep((s) => s + 1);
         if (await save()) {
             showToast('Profilo pronto. Benvenuto in SwimIn!', 'success');
-            navigate('/', { replace: true });
+            navigate(takePendingJobPath(), { replace: true });
         }
     };
 
     const skip = async () => {
         // Salva solo ciò che è valido: i campi incompleti si sistemano dal profilo.
         if (!Object.values(step0Errors).some(Boolean)) await save();
-        navigate('/', { replace: true });
+        navigate(takePendingJobPath(), { replace: true });
     };
 
     return (

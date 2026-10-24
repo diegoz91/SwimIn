@@ -20,6 +20,7 @@ import { contentActions, extractHashtags, extractMentions, cleanPoll } from './c
 import { groupActions } from './groups.js';
 import { chatActions } from './chat.js';
 import { eventActions } from './events.js';
+import { alertActions } from './alerts.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
@@ -56,6 +57,7 @@ const C = {
   groupMembers: 'group_members',
   staffMessages: 'staff_messages',
   typing: 'typing',
+  jobAlerts: 'job_alerts',
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
   pushSubscriptions: 'push_subscriptions',
@@ -289,6 +291,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     if (!ok || url.length > 2048) fail(400, `${label}: immagine non valida.`);
     return url;
   };
+  const alertsApi = alertActions({ find, list, listAll, create, remove, fail, notify, C, Query, Permission, Role });
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
   const events = eventActions({ get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
@@ -308,6 +311,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...content_,
     ...groups,
     ...chat,
+    ...alertsApi,
     ...events,
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
@@ -631,6 +635,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await billingApi._cancelAllFor(me);
       await groups._leaveAll(me);
       await removeAll(C.pollVotes, [Query.equal('userId', me)]);
+      await removeAll(C.jobAlerts, [Query.equal('userId', me)]);
       for (const f of await listAll(C.follows, [Query.equal('followerId', me)])) {
         await remove(C.follows, f.$id);
         const other = await find(C.profiles, f.followeeId);
@@ -800,6 +805,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       // Solo lettura per i client: chiusura e riapertura passano da closeJob/reopenJob (limiti Base, evidenza Premium).
       const created = await create(C.jobs, job, [Permission.read(Role.users())]);
       if (job.isSOS && job.province) created.notified = await alertSOS(created, me);
+      created.alerted = await alertsApi._notifyJobAlerts(created, me).catch((e) => { log(`avvisi di lavoro: ${e?.message || e}`); return 0; });
       return created;
     },
 

@@ -30,6 +30,7 @@ const CATEGORY_OF = {
   group: 'social',
   profile_view: 'social',
   application: 'jobs',
+  job_alert: 'jobs',
   rejected: 'jobs',
   hired: 'jobs',
   sos: 'sos',
@@ -46,6 +47,7 @@ export function targetUrl(type, relatedId) {
     case 'connection': return '/network';
     case 'application':
     case 'rejected':
+    case 'job_alert':
     case 'sos': return relatedId ? `/jobs?annuncio=${encodeURIComponent(relatedId)}` : '/jobs';
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';

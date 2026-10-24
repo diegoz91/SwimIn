@@ -3,13 +3,7 @@
  * ma con titolo, descrizione e immagine del profilo nei meta tag: così l'anteprima
  * su WhatsApp, LinkedIn, Facebook e nei motori di ricerca mostra la persona o la piscina.
  */
-import { callPublic, escapeHtml, originOf } from './_public.js';
-
-const setMeta = (html, attr, key, value) => {
-    const tag = `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`;
-    const re = new RegExp(`<meta\\s+${attr}="${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'i');
-    return re.test(html) ? html.replace(re, tag) : html.replace('</head>', `    ${tag}\n  </head>`);
-};
+import { callPublic, escapeHtml, originOf, setMeta } from './_public.js';
 
 export function renderProfileHtml(html, data, { origin, id }) {
     const url = `${origin}/u/${encodeURIComponent(id)}`;

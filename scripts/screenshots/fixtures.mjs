@@ -257,6 +257,17 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    publicJob: () => ({
+        id: 'j1', title: 'Assistente bagnanti turni serali', role: 'assistente bagnanti', contractType: 'part-time', city: 'Milano', province: 'MI',
+        description: 'Cerchiamo due assistenti bagnanti per i turni serali (18–22) nella vasca coperta da 25 metri, da novembre a maggio.\nAmbiente giovane, turni concordati con anticipo.',
+        salaryMin: 900, salaryMax: 1100, workingHours: 'Lun–ven 18:00–22:00', requirements: ['Disponibilità serale', 'Esperienza in impianti coperti'],
+        qualifications: ['Brevetto Assistente Bagnanti FIN', 'BLSD'], isSOS: false, sosDate: '', sosShift: '', structureId: 'u_lido', structureName: 'Piscina Lido di Milano',
+        structureLogo: '', postedAt: new Date(now - 86400000).toISOString(), expiresAt: new Date(now + 29 * 86400000).toISOString().slice(0, 10),
+    }),
+    listJobAlerts: () => [
+        { $id: 'al1', $createdAt: new Date(now - 3 * 86400000).toISOString(), userId: ME, query: 'istruttore', province: 'MI', contractType: '', sosOnly: false },
+        { $id: 'al2', $createdAt: new Date(now - 9 * 86400000).toISOString(), userId: ME, query: '', province: 'MB', contractType: '', sosOnly: true },
+    ],
     getTrends: () => [{ tag: 'master', posts: 8 }, { tag: 'salvamento', posts: 5 }, { tag: 'scuolanuoto', posts: 4 }, { tag: 'soglia', posts: 2 }],
     getBillingStatus: () => ({ premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'person', prices: { month: 499, year: 4790 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null }),
     listProfileViews: () => ({

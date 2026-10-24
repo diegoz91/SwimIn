@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderProfileHtml } from '../../api/og.js';
 import { renderSitemap } from '../../api/sitemap.js';
+import { renderJobHtml, jobPosting } from '../../api/job.js';
 
 const html = `<!DOCTYPE html><html><head><title>SwimIn</title>
 <meta name="description" content="x" />
@@ -39,4 +40,26 @@ test('sitemap', () => {
     const xml = renderSitemap('https://swimin.it', [{ id: 'a&b', updatedAt: '2026-10-20T10:00:00Z' }]);
     assert.match(xml, /<loc>https:\/\/swimin.it\/u\/a%26b<\/loc><lastmod>2026-10-20<\/lastmod>/);
     assert.match(xml, /<loc>https:\/\/swimin.it\/privacy<\/loc>/);
+});
+
+test('pagina pubblica di un\'offerta con JobPosting', () => {
+    const job = { id: 'j1', title: 'Assistente bagnanti', description: 'Turni serali.\nBrevetto FIN.', role: 'assistente bagnanti', contractType: 'part-time', city: 'Milano', province: 'MI', salaryMin: 900, salaryMax: 1200, requirements: ['Disponibilità serale'], qualifications: ['Brevetto Assistente Bagnanti <FIN>'], isSOS: false, structureName: 'Piscina Lido', structureLogo: '', postedAt: '2026-10-20T08:00:00Z', expiresAt: '2026-11-19' };
+    const out = renderJobHtml(html, job, { origin: 'https://swimin.it', id: 'j1' });
+    assert.match(out, /<title>Assistente bagnanti · Piscina Lido, Milano \(MI\) \| SwimIn<\/title>/);
+    assert.match(out, /<link rel="canonical" href="https:\/\/swimin.it\/offerte\/j1" \/>/);
+    assert.match(out, /"@type":"JobPosting"/);
+    assert.ok(!out.includes('<FIN>'));
+    const ld = jobPosting(job, 'https://swimin.it/offerte/j1');
+    assert.equal(ld.employmentType, 'PART_TIME');
+    assert.deepEqual(ld.baseSalary.value, { '@type': 'QuantitativeValue', minValue: 900, maxValue: 1200, unitText: 'MONTH' });
+    assert.equal(ld.validThrough, '2026-11-19T23:59:59+01:00');
+    assert.equal(ld.jobLocation.address.addressRegion, 'MI');
+});
+
+test('offerta chiusa: non indicizzare', () => {
+    assert.match(renderJobHtml(html, null, { origin: 'https://swimin.it', id: 'x' }), /noindex/);
+});
+
+test('sitemap con le offerte', () => {
+    assert.match(renderSitemap('https://swimin.it', [], [{ id: 'j1', updatedAt: '2026-10-21T00:00:00Z' }]), /<loc>https:\/\/swimin.it\/offerte\/j1<\/loc><lastmod>2026-10-21<\/lastmod>/);
 });
