@@ -68,15 +68,13 @@ const Kpi: React.FC<{ icon: IconType; label: string; value: number }> = ({ icon,
     </div>
 );
 
-/** Visite al giorno: barre con griglia, date ogni settimana e il giorno migliore evidenziato. */
+/** Visite al giorno: barre in HTML (restano leggibili a ogni larghezza), date ogni settimana, giorno migliore evidenziato. */
 const ViewsChart: React.FC<{ days: ProfileStats['viewsPerDay']; total: number }> = ({ days, total }) => {
     const max = Math.max(...days.map((d) => d.views), 0);
     const top = Math.max(4, Math.ceil(max / 4) * 4);
     const best = max > 0 ? days.find((d) => d.views === max) : null;
-    const W = 720, H = 220, L = 32, B = 28, T = 12;
-    const bw = (W - L) / days.length;
-    const y = (v: number) => T + (H - T - B) * (1 - v / top);
-    const ticks = [0, top / 2, top];
+    // Una data ogni 7 giorni partendo da oggi all'indietro, così l'ultima etichetta è sempre "oggi" e non si sovrappone.
+    const labelled = new Set(days.map((_, i) => i).filter((i) => (days.length - 1 - i) % 7 === 0));
 
     return (
         <Card
@@ -84,28 +82,30 @@ const ViewsChart: React.FC<{ days: ProfileStats['viewsPerDay']; total: number }>
             title="Visite al profilo"
             aside={<p className="text-sm text-slate-500">{total === 0 ? 'Nessuna visita negli ultimi 30 giorni' : best ? `Giorno migliore: ${DAY_SHORT(best.day)}, ${best.views} ${best.views === 1 ? 'visita' : 'visite'}` : ''}</p>}
         >
-            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label={`Visite al profilo negli ultimi 30 giorni: ${total} in tutto${best ? `, massimo ${best.views} il ${DAY_SHORT(best.day)}` : ''}.`}>
-                {ticks.map((t) => (
-                    <g key={t}>
-                        <line x1={L} x2={W} y1={y(t)} y2={y(t)} stroke="#e2e8f0" />
-                        <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="12" fill="#536074">{t}</text>
-                    </g>
-                ))}
-                {days.map((d, i) => {
-                    const h = (H - T - B) * (d.views / top);
-                    const isBest = best && d.day === best.day;
-                    return (
-                        <g key={d.day}>
-                            <rect x={L + i * bw + bw * 0.18} y={y(d.views)} width={bw * 0.64} height={Math.max(h, d.views ? 2 : 0)} rx="3" fill={isBest ? '#0B6F6A' : '#1A80AF'}>
-                                <title>{`${DAY_SHORT(d.day)}: ${d.views} ${d.views === 1 ? 'visita' : 'visite'}`}</title>
-                            </rect>
-                            {(i % 7 === 0 || i === days.length - 1) && (
-                                <text x={L + i * bw + bw / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="#536074">{DAY_SHORT(d.day)}</text>
-                            )}
-                        </g>
-                    );
-                })}
-            </svg>
+            <div role="img" aria-label={`Visite al profilo negli ultimi 30 giorni: ${total} in tutto${best ? `, massimo ${best.views} il ${DAY_SHORT(best.day)}` : ''}.`} className="flex gap-2">
+                <div className="flex flex-col justify-between h-48 sm:h-56 text-xs text-slate-500 tabular-nums text-right w-6 flex-shrink-0 -mt-2 pb-0" aria-hidden="true">
+                    <span>{top}</span><span>{top / 2}</span><span>0</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="relative h-48 sm:h-56">
+                        {[0, 50, 100].map((t) => <div key={t} className="absolute inset-x-0 border-t border-slate-200" style={{ top: `${t}%` }} aria-hidden="true" />)}
+                        <div className="absolute inset-0 flex items-end gap-[2px] sm:gap-1">
+                            {days.map((d) => (
+                                <div key={d.day} className="flex-1 h-full flex items-end" title={`${DAY_SHORT(d.day)}: ${d.views} ${d.views === 1 ? 'visita' : 'visite'}`}>
+                                    <div className={`w-full rounded-t-sm ${best && d.day === best.day ? 'bg-cloro-700' : 'bg-corsia-500'}`} style={{ height: `${(d.views / top) * 100}%`, minHeight: d.views ? 3 : 0 }} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex gap-[2px] sm:gap-1 mt-2 text-xs text-slate-500" aria-hidden="true">
+                        {days.map((d, i) => (
+                            <div key={d.day} className="flex-1 relative h-4">
+                                {labelled.has(i) && <span className="absolute right-0 whitespace-nowrap">{i === days.length - 1 ? 'oggi' : DAY_SHORT(d.day)}</span>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </Card>
     );
 };

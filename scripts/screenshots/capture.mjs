@@ -64,7 +64,7 @@ const PRIVATE_INTERACTIONS = [
     }],
     ['commenti', '/', (p) => p.getByRole('button', { name: /^Commenta$/ }).first().click()],
     ['reazioni', '/', (p) => p.getByRole('button', { name: /^Consiglia$/ }).first().hover()],
-    ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).click()],
+    ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).first().click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
     ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); await p.waitForTimeout(900); }],
