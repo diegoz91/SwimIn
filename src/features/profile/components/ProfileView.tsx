@@ -531,14 +531,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
       )}
       {isWorker && isOwnProfile && profUser && (
-        <div className="bg-red-50 rounded-3xl shadow-sm border border-red-200 p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <h2 className="text-xl font-extrabold text-red-700 flex items-center gap-2">
-                    <Icon type="alert-triangle" className="w-6 h-6" />
-                    Disponibilità per sostituzioni urgenti
-                </h2>
-                <p className="text-red-700 text-sm mt-2 font-medium max-w-xl">
-                    Attiva questa modalità per segnalare la tua disponibilità immediata. Riceverai priorità per le chiamate SOS dalle piscine nella tua zona.
+        <div className={`bg-white rounded-3xl shadow-sm border p-5 sm:p-6 mb-6 flex items-center gap-4 ${profUser.availableForEmergencies ? 'border-red-200' : 'border-slate-200'}`}>
+            <span className={`w-11 h-11 rounded-2xl grid place-items-center flex-shrink-0 ${profUser.availableForEmergencies ? 'bg-red-50 text-galleggiante-700' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
+                <Icon type="alert-triangle" className="w-6 h-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold text-abisso">Disponibile per sostituzioni urgenti</h2>
+                <p className="text-sm text-slate-600 mt-0.5">
+                    {profUser.availableForEmergencies
+                        ? 'Attiva: le piscine della tua zona ti avvisano per primo quando serve coprire un turno.'
+                        : 'Attivala quando puoi coprire un turno all’ultimo momento: avrai la priorità sugli SOS delle piscine vicine.'}
                 </p>
             </div>
             <button
@@ -557,9 +559,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     if (onUpdateProfile) onUpdateProfile(updated);
                     showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
                 }}
-                className={`relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${profUser.availableForEmergencies ? 'bg-red-600 shadow-inner' : 'bg-red-200'}`}
+                className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center cursor-pointer rounded-full transition-colors duration-150 outline-none focus-visible:ring-4 focus-visible:ring-red-100 ${profUser.availableForEmergencies ? 'bg-red-600' : 'bg-slate-300 hover:bg-slate-400'}`}
             >
-                <span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${profUser.availableForEmergencies ? 'translate-x-8' : 'translate-x-0'}`} />
+                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${profUser.availableForEmergencies ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
         </div>
       )}
