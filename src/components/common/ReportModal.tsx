@@ -49,7 +49,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 bg-abisso/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
             <form
                 onSubmit={submit}
                 onClick={(e) => e.stopPropagation()}

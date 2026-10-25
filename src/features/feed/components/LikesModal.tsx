@@ -51,7 +51,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
 
     return (
         <div 
-            className="fixed inset-0 bg-slate-900 bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity"
+            className="fixed inset-0 bg-abisso/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity"
             onClick={onClose}
         >
             <div 

@@ -73,7 +73,7 @@ export const MyApplicationsView: React.FC<MyApplicationsViewProps> = ({
                         onClick={() => setActiveFilter(filter.id)}
                         className={`whitespace-nowrap px-5 py-2.5 rounded-full font-bold text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${
                             activeFilter === filter.id 
-                                ? 'bg-slate-800 text-white shadow-md' 
+                                ? 'bg-abisso text-white shadow-md' 
                                 : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                     >

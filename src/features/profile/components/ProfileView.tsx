@@ -370,7 +370,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <button 
                     onClick={handleDownloadPDF}
                     disabled={isGeneratingPDF}
-                    className="bg-slate-800 text-white font-bold px-4 py-2 rounded-xl hover:bg-slate-900 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                    className="bg-abisso text-white font-bold px-4 py-2 rounded-xl hover:bg-corsia-900 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                 >
                     {isGeneratingPDF ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

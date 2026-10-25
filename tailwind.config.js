@@ -179,6 +179,8 @@ export default {
       addBase({
         ':root': { ...light, colorScheme: 'light' },
         ':root.dark': { ...dark, colorScheme: 'dark' },
+        // Riquadri volutamente scuri anche nel tema chiaro (es. lettore video): tengono la tavolozza originale.
+        '.palette-fixed': light,
       });
     }),
   ],

@@ -131,7 +131,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
             {/* PLAYER VIDEO-ANALISI */}
             {isVideoAnalysis && videoMedia && (
-                <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden mt-4 mb-6 relative animate-in slide-in-from-top-4">
+                <div className="palette-fixed bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden mt-4 mb-6 relative animate-in slide-in-from-top-4">
                     <div className="absolute top-4 left-4 z-10 bg-purple-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-2 shadow-lg border border-purple-400">
                         <Icon type="camera" className="w-4 h-4 animate-pulse" />
                         MODALITÀ ANALISI TECNICA
