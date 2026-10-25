@@ -79,13 +79,35 @@ const HomeGate: React.FC = () => {
 /** Pagine a schermo intero, senza header e navigazione (es. onboarding). */
 const CHROMELESS = ['/benvenuto'];
 
+/** L'area che scorre tra intestazione e menu in basso; a ogni cambio di pagina riparte dall'alto. */
+const ScrollRoot: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({ enabled, children }) => {
+  const { pathname } = useLocation();
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (enabled) ref.current?.scrollTo({ top: 0 });
+    else window.scrollTo({ top: 0 });
+  }, [pathname, enabled]);
+  if (!enabled) return <>{children}</>;
+  return (
+    <div id="scroll-root" ref={ref} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col">
+      {children}
+    </div>
+  );
+};
+
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
   const { pathname } = useLocation();
   const showChrome = authenticated && !CHROMELESS.includes(pathname);
 
   return (
-    <div className="min-h-screen bg-piastrella font-sans text-abisso flex flex-col relative">
+    // Con l'intestazione e il menu in basso la pagina è un "guscio": intestazione in alto, menu in basso e
+    // solo il contenuto in mezzo scorre (#scroll-root). Così le due barre restano sempre al loro posto,
+    // anche sui browser degli smartphone che nascondono o spostano la barra degli indirizzi.
+    <div
+      className={`bg-piastrella font-sans text-abisso flex flex-col relative ${showChrome ? 'h-screen overflow-hidden' : 'min-h-screen'}`}
+      style={showChrome ? { height: '100dvh' } : undefined}
+    >
       <a
         href="#contenuto"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-bold"
@@ -97,9 +119,10 @@ const AppContent: React.FC = () => {
       <PremiumPrompt />
       {showChrome && <Header />}
 
+      <ScrollRoot enabled={showChrome}>
       <main
         id="contenuto"
-        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[4.25rem] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10' : ''}`}
+        className={`flex-1 w-full flex flex-col ${showChrome ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 md:pb-10' : ''}`}
       >
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -148,6 +171,7 @@ const AppContent: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
       </main>
+      </ScrollRoot>
 
       {showChrome && <BottomNav />}
       {showChrome && (

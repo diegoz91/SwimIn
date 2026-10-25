@@ -87,7 +87,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                 
                 {/* 📇 COLONNA SINISTRA: RUBRICA COLLEGAMENTI */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-24">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
                         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                             <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" /> I tuoi collegamenti

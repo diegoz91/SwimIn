@@ -15,6 +15,7 @@ import type { EnrichedPost, Job, Application } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
 import { useBlocks } from '@/context/BlocksContext';
 import { rankForYou, saveFeedMode, savedFeedMode, type FeedMode } from '@/utils/feedRank';
+import { scrollPageTo } from '@/utils/scroll';
 
 interface EnrichedHiredApp extends Application {
     job?: Job;
@@ -125,7 +126,7 @@ const Home: React.FC = () => {
         <div className="w-full pt-4 grid grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)_18rem] xl:grid-cols-[16rem_minmax(0,1fr)_20rem] gap-6">
 
             <aside className="hidden lg:block" aria-label="Il tuo profilo">
-                <div className="sticky top-[5.5rem]">
+                <div className="sticky top-6">
                     <HomeProfileCard user={user} />
                 </div>
             </aside>
@@ -200,7 +201,7 @@ const Home: React.FC = () => {
                                     onSelectPost={(p) => navigate(`/post/${p.$id}`, { state: { post: p } })}
                                     onDeleted={(id) => setPosts((prev) => prev.filter((x) => x.$id !== id))}
                                     onUpdated={(updated) => setPosts((prev) => prev.map((x) => (x.$id === updated.$id ? updated : x)))}
-                                    onReposted={(created) => { setPosts((prev) => [created, ...prev]); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    onReposted={(created) => { setPosts((prev) => [created, ...prev]); scrollPageTo(0, true); }}
                                 />
                             ))}
                             {hasMore && (
@@ -229,7 +230,7 @@ const Home: React.FC = () => {
             </div>
 
             <aside className="hidden lg:block" aria-label="Suggerimenti">
-                <div className="sticky top-[5.5rem]">
+                <div className="sticky top-6">
                     <HomeRightRail user={user} jobs={latestJobs} isLoadingJobs={isLoadingJobs} />
                 </div>
             </aside>

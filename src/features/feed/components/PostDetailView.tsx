@@ -10,6 +10,7 @@ import { getPostContent } from '@/utils/postMedia';
 import { initialsAvatar } from '@/utils/avatar';
 import { displayNameOf } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
+import { scrollPageTo } from '@/utils/scroll';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -112,7 +113,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
     return (
         <div className="max-w-3xl mx-auto pb-20 md:pb-8 animate-in fade-in duration-500">
-            <div className="sticky top-16 md:top-20 z-30 bg-slate-50/90 backdrop-blur-sm pb-4 pt-2 mb-2">
+            <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-sm pb-4 pt-2 mb-2">
                 <button 
                     onClick={onBack} 
                     className="inline-flex items-center text-slate-600 hover:text-blue-600 font-bold bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -234,7 +235,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                                         if(videoRef.current) {
                                                             videoRef.current.currentTime = timeVal!;
                                                             videoRef.current.play();
-                                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                            scrollPageTo(0, true);
                                                         }
                                                     }}
                                                     className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-extrabold transition-all shadow-sm flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-purple-500 group-hover:scale-105"
