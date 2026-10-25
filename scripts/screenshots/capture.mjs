@@ -140,6 +140,8 @@ async function auditLayout(page, touch) {
         };
         const clipped = (el) => {
             for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                // L'area che scorre tra intestazione e menu non è un ritaglio: chi esce da lì esce dallo schermo.
+                if (p.id === 'scroll-root') return false;
                 const ox = getComputedStyle(p).overflowX;
                 if (ox === 'hidden' || ox === 'auto' || ox === 'scroll' || ox === 'clip') return true;
             }
@@ -150,7 +152,8 @@ async function auditLayout(page, touch) {
             const st = getComputedStyle(el);
             return st.visibility !== 'hidden' && st.display !== 'none' && st.opacity !== '0' && st.position !== 'fixed';
         };
-        const overflow = Math.max(0, document.documentElement.scrollWidth - vw);
+        const root = document.getElementById('scroll-root');
+        const overflow = Math.max(0, document.documentElement.scrollWidth - vw, root ? root.scrollWidth - root.clientWidth : 0);
         const offenders = [];
         for (const el of document.body.querySelectorAll('*')) {
             if (offenders.length >= 6) break;

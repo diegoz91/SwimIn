@@ -110,7 +110,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-md">
+    <header className="relative flex-shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 sm:gap-6">
         <Link to="/" className="flex-shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-corsia-500" aria-label="SwimIn, vai alla home">
           <span className="sm:hidden"><Brand size="sm" markOnly /></span>

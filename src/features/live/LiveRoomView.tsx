@@ -172,7 +172,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                 </div>
             </section>
 
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-card flex flex-col h-[70vh] lg:h-[calc(100dvh-7.5rem)] lg:sticky lg:top-[5.25rem]" aria-label="Chat della diretta">
+            <section className="bg-white rounded-3xl border border-slate-200 shadow-card flex flex-col h-[70vh] lg:h-[calc(100dvh-7.5rem)] lg:sticky lg:top-4" aria-label="Chat della diretta">
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-abisso">Chat</h2>
                     {questions.length > 0 && <span className="text-xs font-semibold text-corsia-700">{questions.length} domande</span>}

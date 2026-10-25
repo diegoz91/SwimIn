@@ -122,6 +122,23 @@ const FLOWS = [
         await page.getByText('Iscriviti e candidati').first().click();
         await page.waitForURL((u) => /register|login/.test(u.pathname), { timeout: 8000 });
     }],
+    ['intestazione e menu restano fermi mentre la pagina scorre', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/profile');
+        const nav = page.getByRole('navigation', { name: 'Navigazione principale' });
+        const header = page.locator('header').first();
+        const before = { nav: await nav.boundingBox(), header: await header.boundingBox() };
+        await page.evaluate(() => { const r = document.getElementById('scroll-root'); r?.scrollTo({ top: r.scrollHeight }); });
+        await page.mouse.move(195, 400);
+        await page.mouse.wheel(0, 1500);
+        await page.waitForTimeout(400);
+        const scrolled = await page.evaluate(() => document.getElementById('scroll-root')?.scrollTop || 0);
+        assert.ok(scrolled > 200, `la pagina non è scorsa (${scrolled})`);
+        const after = { nav: await nav.boundingBox(), header: await header.boundingBox() };
+        const vh = page.viewportSize().height;
+        assert.ok(after.nav && Math.abs(after.nav.y + after.nav.height - vh) <= 2, `menu in basso non attaccato al fondo: ${JSON.stringify(after.nav)}`);
+        assert.equal(Math.round(after.nav.y), Math.round(before.nav.y));
+        assert.ok(after.header && after.header.y <= 1 && after.header.y >= -1, `intestazione spostata: ${JSON.stringify(after.header)}`);
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

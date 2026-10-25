@@ -9,6 +9,7 @@ import { SecuritySection } from './settings/SecuritySection';
 import { PrivacySection } from './settings/PrivacySection';
 import { AboutSection } from './settings/AboutSection';
 import { AppearanceSection } from './settings/AppearanceSection';
+import { scrollPageTo } from '@/utils/scroll';
 
 interface SettingsProps {
     currentUser: AuthenticatedUser;
@@ -51,14 +52,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
     // Cambiando sezione si riparte dall'inizio, con il focus sul titolo per chi usa la tastiera o uno screen reader.
     useEffect(() => {
         if (!active) return;
-        window.scrollTo({ top: 0 });
+        scrollPageTo(0);
         contentRef.current?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
     }, [active]);
 
     return (
         <div className="max-w-5xl mx-auto w-full">
             <div className="flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
-                <aside className={`w-full md:w-72 flex-shrink-0 md:sticky md:top-24 ${active ? 'hidden md:block' : ''}`}>
+                <aside className={`w-full md:w-72 flex-shrink-0 md:sticky md:top-6 ${active ? 'hidden md:block' : ''}`}>
                     <h1 className="text-3xl font-bold text-abisso mb-4">Impostazioni</h1>
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="px-4 py-4 flex items-center gap-3 border-b border-slate-100">

@@ -29,7 +29,7 @@ const BottomNav: React.FC = () => {
 
     return (
         <nav
-            className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex"
+            className="md:hidden relative flex-shrink-0 z-40 bg-white border-t border-slate-200 flex"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             aria-label="Navigazione principale"
         >
