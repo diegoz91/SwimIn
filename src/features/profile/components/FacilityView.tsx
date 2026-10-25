@@ -852,7 +852,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
             {/* MODAL ELIMINAZIONE ANNUNCIO */}
             {announcementToDelete && (
-                <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-abisso/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
                         <div className="p-6 text-center">
                             <div className="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-4">

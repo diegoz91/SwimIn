@@ -6,6 +6,22 @@
     <title>SwimIn - Il network dei professionisti del nuoto</title>
     <meta name="description" content="SwimIn è il network professionale del nuoto: istruttori, assistenti bagnanti, allenatori e piscine si collegano, condividono esperienze e trovano lavoro." />
     <meta name="theme-color" content="#0E6A97" />
+    <!-- Tema scuro prima del primo disegno (niente lampo bianco). La logica completa è in src/utils/theme.ts. -->
+    <script>
+      (function () {
+        try {
+          var p = localStorage.getItem('swimin-theme');
+          var dark = p === 'dark' || (p !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#08131A');
+          }
+        } catch (e) {
+          /* localStorage non disponibile: resta il tema chiaro */
+        }
+      })();
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

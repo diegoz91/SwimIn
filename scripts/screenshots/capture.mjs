@@ -250,6 +250,46 @@ for (const [vpName, viewport, opts = {}] of VIEWPORTS) {
         await context.close();
     }
 }
+// Tema scuro (preferenza "automatico" con il sistema in modalità scura): pagine principali, con layout e accessibilità.
+const DARK_PAGES = [
+    [false, 'landing', '/'],
+    [false, 'login', '/login'],
+    [true, 'home', '/'],
+    [true, 'profilo', '/profile'],
+    [true, 'lavoro', '/jobs'],
+    [true, 'rete', '/network'],
+    [true, 'messaggi', '/messages'],
+    [true, 'notifiche', '/notifiche'],
+    [true, 'gruppo', '/gruppi/g1'],
+    [true, 'evento', '/eventi/e1'],
+    [true, 'impostazioni-aspetto', '/profile?tab=impostazioni&sezione=aspetto'],
+    [true, 'impostazioni-notifiche', '/profile?tab=impostazioni&sezione=notifiche'],
+    [true, 'premium', '/premium'],
+];
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    for (const loggedIn of [false, true]) {
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', colorScheme: 'dark' });
+        const page = await context.newPage();
+        page.on('pageerror', (e) => errors.push(`[${vpName} scuro] ${e.message}`));
+        await mockAppwrite(page, { loggedIn });
+        for (const [auth, name, path] of DARK_PAGES.filter(([a]) => a === loggedIn)) {
+            try {
+                await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+                await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
+                await page.waitForTimeout(800);
+                await page.screenshot({ path: `${OUT}/${vpName}-scuro-${name}.png` });
+                await shot(page, vpName, `scuro-${name}`, touch);
+                console.log(`✓ ${vpName}-scuro-${name}${auth ? '' : ' (ospite)'}`);
+            } catch (e) {
+                console.log(`✗ ${vpName}-scuro-${name}: ${e.message}`);
+            }
+        }
+        await context.close();
+    }
+}
+
 // Le stesse pagine con un profilo Premium: statistiche complete e riquadro "Analisi" sbloccato.
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
     if (ONLY.length && !ONLY.includes(vpName)) continue;

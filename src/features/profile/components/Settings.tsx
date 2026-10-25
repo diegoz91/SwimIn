@@ -8,6 +8,7 @@ import { AccountSection } from './settings/AccountSection';
 import { SecuritySection } from './settings/SecuritySection';
 import { PrivacySection } from './settings/PrivacySection';
 import { AboutSection } from './settings/AboutSection';
+import { AppearanceSection } from './settings/AppearanceSection';
 
 interface SettingsProps {
     currentUser: AuthenticatedUser;
@@ -15,18 +16,19 @@ interface SettingsProps {
     onLogout?: () => void;
 }
 
-type SectionId = 'account' | 'sicurezza' | 'notifiche' | 'privacy' | 'info';
+type SectionId = 'account' | 'sicurezza' | 'notifiche' | 'aspetto' | 'privacy' | 'info';
 
 const SECTIONS: { id: SectionId; label: string; hint: string; icon: IconType }[] = [
     { id: 'account', label: 'Account', hint: 'Email, piano, uscita ed eliminazione', icon: 'user' },
     { id: 'sicurezza', label: 'Accesso e sicurezza', hint: 'Password, verifica in due passaggi, dispositivi', icon: 'lock-closed' },
     { id: 'notifiche', label: 'Notifiche', hint: 'Push ed email per ogni tipo di avviso', icon: 'bell' },
+    { id: 'aspetto', label: 'Aspetto', hint: 'Tema chiaro, scuro o automatico', icon: 'moon' },
     { id: 'privacy', label: 'Privacy e visibilità', hint: 'Profilo pubblico, blocchi, i tuoi dati', icon: 'shield' },
     { id: 'info', label: 'Info e assistenza', hint: 'Documenti legali, contatti, versione', icon: 'info' },
 ];
 
 // Nomi accettati nei link (anche quelli già inviati per email o nelle notifiche).
-const ALIASES: Record<string, SectionId> = { notifications: 'notifiche', security: 'sicurezza', 'password-e-accesso': 'sicurezza', legale: 'info', about: 'info' };
+const ALIASES: Record<string, SectionId> = { tema: 'aspetto', appearance: 'aspetto', notifications: 'notifiche', security: 'sicurezza', 'password-e-accesso': 'sicurezza', legale: 'info', about: 'info' };
 const sectionFrom = (v: string | null): SectionId | null => {
     if (!v) return null;
     if (SECTIONS.some((s) => s.id === v)) return v as SectionId;
@@ -109,6 +111,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
                         {shown === 'account' && <AccountSection user={currentUser} onEditProfile={() => onNavigate('profile')} onLogout={onLogout} />}
                         {shown === 'sicurezza' && <SecuritySection user={currentUser} />}
                         {shown === 'notifiche' && <NotificationsTab />}
+                        {shown === 'aspetto' && <AppearanceSection />}
                         {shown === 'privacy' && <PrivacySection user={currentUser} />}
                         {shown === 'info' && <AboutSection />}
                     </div>

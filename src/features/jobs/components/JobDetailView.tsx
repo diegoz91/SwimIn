@@ -221,7 +221,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* CRM ADMIN: DASHBOARD CANDIDATI */}
             {isAdmin && (
-                <div className="p-5 sm:p-8 bg-slate-800 border-b border-slate-700">
+                <div className="palette-fixed p-5 sm:p-8 bg-slate-800 border-b border-slate-700">
                     <h2 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
                         <Icon type="users" className="w-6 h-6 text-blue-400" />
                         Candidature ricevute ({applicants.length})
@@ -416,7 +416,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* 💡 MODALE CUSTOM CONFERMA ASSUNZIONE */}
             {candidateToHire && (
-                <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-abisso/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
                         <div className="p-6 text-center">
                             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">

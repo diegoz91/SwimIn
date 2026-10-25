@@ -114,7 +114,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const isPostButtonDisabled = (content.trim() === '' && mediaFiles.length === 0 && !videoFile) || uploading;
 
     return (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200" onClick={handleSafeClose}>
+        <div className="fixed inset-0 bg-abisso/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200" onClick={handleSafeClose}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
                     <h2 className="text-xl font-extrabold text-slate-800">Crea un post</h2>

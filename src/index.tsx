@@ -9,6 +9,11 @@ import '@/styles/globals.css';
 import SwimInApp from './App';
 import { missingEnvVars } from '@/config/constants';
 import { registerServiceWorker } from '@/services/push';
+import { applyTheme, watchSystemTheme } from '@/utils/theme';
+
+// Tema già applicato da index.html prima del disegno; qui si riallinea e si seguono i cambi del sistema.
+applyTheme();
+watchSystemTheme();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
