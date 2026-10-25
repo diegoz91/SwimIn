@@ -236,7 +236,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             // Librerie del PDF caricate solo quando servono (pesano diverse centinaia di kB).
             const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#f8fafc' });
+            // Il PDF esce sempre nel tema chiaro, anche se l'app è in tema scuro (si stampa su carta bianca).
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#f8fafc', onclone: (doc) => doc.documentElement.classList.remove('dark') });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -246,6 +247,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             pdf.save(`Passaporto_Natatorio_${displayName.replace(/\s+/g, '_')}.pdf`);
             showToast('Passaporto scaricato con successo!', 'success');
         } catch (error) {
+            console.error('PDF del profilo:', error);
             showToast('Errore durante la generazione del PDF.', 'error');
         } finally {
             setIsGeneratingPDF(false);
