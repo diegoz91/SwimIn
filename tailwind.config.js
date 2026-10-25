@@ -1,4 +1,6 @@
 import animate from 'tailwindcss-animate';
+import plugin from 'tailwindcss/plugin';
+import palette from 'tailwindcss/colors';
 
 /**
  * Design system SwimIn — "acqua premium".
@@ -49,24 +51,92 @@ const slate = {
   600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617',
 };
 
+const oro = { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A', 800: '#634814' };
+
+/*
+ * TEMA CHIARO E SCURO
+ * Ogni colore è una variabile CSS (--c-…) letta dalle classi Tailwind: con la classe `dark`
+ * su <html> le variabili cambiano e tutta l'app passa al tema scuro senza toccare i componenti.
+ * - Grigi: la scala si capovolge (bg-slate-100 diventa un grigio scuro, text-slate-900 un quasi bianco).
+ * - Colori del brand e di stato: le tinte chiare (50-300) diventano tinte scure per sfondi e bordi;
+ *   per i testi (--t-…) le tonalità scure (600-950) diventano chiare, così i link restano leggibili.
+ * - bg-white è la superficie delle schede, text-white resta bianco (testo sui pulsanti).
+ */
+const SURFACE = '#0F1D27';
+const PAGE = '#08131A';
+const SLATE_DARK = {
+  50: '#132330', 100: '#182A37', 200: '#24384A', 300: '#33485B',
+  400: '#8597AC', 500: '#9DADBF', 600: '#B6C3D1', 700: '#CDD6E0', 800: '#E2E8F0', 900: '#F1F5F9', 950: '#F8FAFC',
+};
+const ACCENTS = {
+  corsia, cloro, oro,
+  red: palette.red, green: palette.green, amber: palette.amber, purple: palette.purple, orange: palette.orange,
+  indigo: palette.indigo, sky: palette.sky, emerald: palette.emerald, yellow: palette.yellow, violet: palette.violet,
+  rose: palette.rose, cyan: palette.cyan, teal: palette.teal, pink: palette.pink,
+};
+
+const rgb = (hex) => {
+  const h = hex.replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(' ');
+};
+const mix = (a, b, t) => {
+  const [r1, g1, b1] = rgb(a).split(' ').map(Number);
+  const [r2, g2, b2] = rgb(b).split(' ').map(Number);
+  return `#${[r1 * t + r2 * (1 - t), g1 * t + g2 * (1 - t), b1 * t + b2 * (1 - t)].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+};
+const ref = (prefix, name, shade) => `rgb(var(--${prefix}-${name}-${shade}) / <alpha-value>)`;
+const scale = (prefix, name, shades) => Object.fromEntries(Object.keys(shades).map((k) => [k, ref(prefix, name, k)]));
+
+const light = {};
+const dark = {};
+for (const [name, shades] of Object.entries({ ...ACCENTS, slate })) {
+  const base = shades[600] || shades[500];
+  for (const [k, hex] of Object.entries(shades)) {
+    light[`--c-${name}-${k}`] = rgb(hex);
+    light[`--t-${name}-${k}`] = rgb(hex);
+    if (name === 'slate') {
+      dark[`--c-${name}-${k}`] = rgb(SLATE_DARK[k]);
+      dark[`--t-${name}-${k}`] = rgb(SLATE_DARK[k]);
+      continue;
+    }
+    const n = Number(k);
+    const tint = { 50: 0.14, 100: 0.22, 200: 0.34, 300: 0.5 }[n];
+    dark[`--c-${name}-${k}`] = rgb(tint ? mix(base, SURFACE, tint) : hex);
+    const lighter = { 600: 400, 700: 300, 800: 200, 900: 100, 950: 50 }[n];
+    dark[`--t-${name}-${k}`] = rgb(lighter && shades[lighter] ? shades[lighter] : lighter ? mix(hex, '#ffffff', 0.35) : hex);
+  }
+}
+Object.assign(light, { '--c-white': '255 255 255', '--c-page': rgb('#F2F8FA'), '--c-abisso': rgb('#0A2738'), '--t-abisso': rgb('#0A2738'), '--t-galleggiante-700': rgb('#C42828') });
+Object.assign(dark, { '--c-white': rgb(SURFACE), '--c-page': rgb(PAGE), '--c-abisso': rgb('#1E3A4E'), '--t-abisso': rgb('#E8F1F6'), '--t-galleggiante-700': rgb('#FF9B9B') });
+
+const colorScale = (name, shades) => scale('c', name, shades);
+const textScale = (name, shades) => scale('t', name, shades);
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        blue: corsia,
-        slate,
-        corsia,
-        cloro,
-        abisso: '#0A2738',
-        piastrella: '#F2F8FA',
+        ...Object.fromEntries(Object.entries(ACCENTS).map(([name, shades]) => [name, colorScale(name, shades)])),
+        // La scala `blue` usa le stesse variabili di Corsia.
+        blue: colorScale('corsia', corsia),
+        slate: colorScale('slate', slate),
+        // bg-white = superficie delle schede (scura nel tema scuro); il testo bianco resta bianco (textColor sotto).
+        white: 'rgb(var(--c-white) / <alpha-value>)',
+        abisso: 'rgb(var(--c-abisso) / <alpha-value>)',
+        piastrella: 'rgb(var(--c-page) / <alpha-value>)',
         // Rosso SOS: DEFAULT per sfondi, bordi e icone; 700 per i testi (contrasto AA su bianco).
         galleggiante: { DEFAULT: '#E23D3D', 700: '#C42828' },
-        // Solo per SwimIn Premium (badge, pagina dei piani): l'oro della medaglia.
-        oro: { 50: '#FBF6EA', 100: '#F4E7C4', 300: '#E0C277', 500: '#B8892B', 600: '#9A7022', 700: '#7A581A', 800: '#634814' },
         // compatibilità con il vecchio token
-        brand: { 50: corsia[50], 100: corsia[100], 500: corsia[500], 600: corsia[600], 900: corsia[900] },
+        brand: { 50: ref('c', 'corsia', 50), 100: ref('c', 'corsia', 100), 500: ref('c', 'corsia', 500), 600: ref('c', 'corsia', 600), 900: ref('c', 'corsia', 900) },
+      },
+      textColor: {
+        ...Object.fromEntries(Object.entries(ACCENTS).map(([name, shades]) => [name, textScale(name, shades)])),
+        blue: textScale('corsia', corsia),
+        white: '#ffffff',
+        abisso: 'rgb(var(--t-abisso) / <alpha-value>)',
+        galleggiante: { DEFAULT: '#E23D3D', 700: 'rgb(var(--t-galleggiante-700) / <alpha-value>)' },
       },
       fontFamily: {
         sans: ['"Figtree Variable"', 'Figtree', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
@@ -102,5 +172,14 @@ export default {
     },
   },
   // Abilita le classi animate-in / fade-in / zoom-in-95 / slide-in-from-* usate nei componenti.
-  plugins: [animate],
+  darkMode: 'class',
+  plugins: [
+    animate,
+    plugin(({ addBase }) => {
+      addBase({
+        ':root': { ...light, colorScheme: 'light' },
+        ':root.dark': { ...dark, colorScheme: 'dark' },
+      });
+    }),
+  ],
 };

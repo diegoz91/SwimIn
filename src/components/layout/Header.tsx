@@ -13,6 +13,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import type { AppNotification } from '@/types/types';
 import { isEnthusiast } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
+import { ThemeSegmented } from '@/components/common/ThemePicker';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 
@@ -231,6 +232,9 @@ const Header: React.FC = () => {
                 <Link to="/premium" role="menuitem" className="flex items-center gap-3 mx-3 mb-2 px-3 py-2.5 rounded-xl bg-oro-50 text-sm font-semibold text-abisso hover:bg-oro-100">
                   <PremiumBadge /> {isPremium(user) ? 'Il tuo Premium' : user?.premiumTrialUsed ? 'Passa a Premium' : 'Prova Premium gratis'}
                 </Link>
+                <div className="px-3 pb-2">
+                  <ThemeSegmented />
+                </div>
                 <div className="border-t border-slate-100 py-1">
                   <Link to="/statistiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="chart" className="w-5 h-5 text-slate-400" /> Statistiche

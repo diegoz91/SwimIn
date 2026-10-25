@@ -15,7 +15,7 @@ export const CompletionRing: React.FC<{ value: number; size?: number }> = ({ val
     return (
         <div className="relative flex-shrink-0" style={{ width: size, height: size }} role="img" aria-label={`Profilo completo al ${value}%`}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E6F2F6" strokeWidth={stroke} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--c-slate-200))" strokeWidth={stroke} />
                 <circle
                     cx={size / 2}
                     cy={size / 2}
