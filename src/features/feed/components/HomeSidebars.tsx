@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
-import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
+import { avatarOf, displayNameOf, headlineOf, isEnthusiast } from '@/utils/profile';
 import { initialsAvatar } from '@/utils/avatar';
 import { certificationsNeedingAttention, describeExpiry, parseCertifications } from '@/utils/certifications';
 import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
@@ -21,9 +21,18 @@ const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: s
     </section>
 );
 
+const RowLink: React.FC<{ to: string; label: string }> = ({ to, label }) => (
+    <Link to={to} className="flex justify-between items-center px-4 py-2.5 hover:bg-piastrella">
+        <span className="text-slate-500">{label}</span>
+        <Icon type="chevron-right" className="w-4 h-4 text-corsia-700" />
+    </Link>
+);
+
 /** Colonna sinistra: la tua scheda, con collegamenti e stato dei brevetti. */
 export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
     const isProfessional = user.userType === 'professional';
+    // Brevetti e competenze contano per chi lavora in vasca, non per gli appassionati.
+    const isWorker = isProfessional && !isEnthusiast(user);
     const certs = isProfessional ? parseCertifications((user as UserProfile).certificationsList) : [];
     const attention = isProfessional ? certificationsNeedingAttention((user as UserProfile).certificationsList) : [];
     const skills = isProfessional ? (user as UserProfile).skills || [] : [];
@@ -54,7 +63,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     <span className="text-slate-500">Gruppi</span>
                     <span className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></span>
                 </Link>
-                {isProfessional && (
+                {isWorker ? (
                     <>
                         <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
                             <span className="text-slate-500">Brevetti</span>
@@ -67,7 +76,18 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                             <span className="font-semibold text-corsia-700">{skills.length}</span>
                         </Link>
                     </>
+                ) : isProfessional ? (
+                    <>
+                        <RowLink to="/eventi" label="Eventi e corsi" />
+                        <RowLink to="/strutture" label="Piscine vicino a te" />
+                    </>
+                ) : (
+                    <>
+                        <RowLink to="/jobs" label="Le tue offerte" />
+                        <RowLink to="/talenti" label="Cerca personale" />
+                    </>
                 )}
+                <RowLink to="/salvati" label="Elementi salvati" />
             </div>
             {isProfessional && (user as UserProfile).availableForEmergencies && (
                 <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-galleggiante-700 flex items-center gap-1.5">
@@ -283,12 +303,6 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                 </Panel>
             )}
 
-            <p className="px-2 text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
-                <Link to="/privacy" className="hover:text-slate-600">Privacy</Link>
-                <Link to="/termini" className="hover:text-slate-600">Termini</Link>
-                <Link to="/cookie" className="hover:text-slate-600">Cookie</Link>
-                <span>© {new Date().getFullYear()} SwimIn</span>
-            </p>
         </div>
     );
 };

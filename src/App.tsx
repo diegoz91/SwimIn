@@ -13,6 +13,7 @@ import { PremiumPrompt } from '@/features/premium/PremiumPrompt';
 // Layout & Common
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { PageLoader } from '@/components/common/PageLoader';
@@ -171,6 +172,7 @@ const AppContent: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
       </main>
+      {showChrome && <AppFooter />}
       </ScrollRoot>
 
       {showChrome && <BottomNav />}
