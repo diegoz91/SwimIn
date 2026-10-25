@@ -32,8 +32,8 @@ test('gruppi e community', async () => {
   assert.deepEqual(await api.joinGroup('bob', { groupId: g.$id }), { status: 'pending' });
   assert.equal(notifs('anna').length, 1);
   await rejects(api.createPost('bob', { content: 'Ciao a tutti', groupId: g.$id }), 403);
-  await rejects(api.moderateMember('bob', { groupId: g.$id, userId: 'bob', action: 'approve' }), 403);
-  assert.deepEqual(await api.moderateMember('anna', { groupId: g.$id, userId: 'bob', action: 'approve' }), { membersCount: 2 });
+  await rejects(api.moderateMember('bob', { groupId: g.$id, userId: 'bob', decision: 'approve' }), 403);
+  assert.deepEqual(await api.moderateMember('anna', { groupId: g.$id, userId: 'bob', decision: 'approve' }), { membersCount: 2 });
   assert.equal(notifs('bob').length, 1);
 
   // Post nel gruppo: solo i membri; gli amministratori possono moderarli.
@@ -45,14 +45,14 @@ test('gruppi e community', async () => {
 
   // Ruoli: promozione, unico amministratore, uscita.
   await rejects(api.leaveGroup('anna', { groupId: g.$id }), 409);
-  await api.moderateMember('anna', { groupId: g.$id, userId: 'bob', action: 'promote' });
+  await api.moderateMember('anna', { groupId: g.$id, userId: 'bob', decision: 'promote' });
   assert.deepEqual(col('groups')[g.$id].admins, ['anna', 'bob']);
   assert.deepEqual(await api.leaveGroup('anna', { groupId: g.$id }), { left: true });
   assert.deepEqual(col('groups')[g.$id].admins, ['bob']); assert.equal(col('groups')[g.$id].membersCount, 1);
 
   // Bloccato: non può rientrare.
   await api.joinGroup('carla', { groupId: g.$id });
-  await api.moderateMember('bob', { groupId: g.$id, userId: 'carla', action: 'ban' });
+  await api.moderateMember('bob', { groupId: g.$id, userId: 'carla', decision: 'ban' });
   await rejects(api.joinGroup('carla', { groupId: g.$id }), 403);
 
   // Gruppo aperto: iscrizione immediata.

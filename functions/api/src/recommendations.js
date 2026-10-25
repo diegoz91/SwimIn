@@ -65,7 +65,9 @@ export function recommendationActions({ assertClean = () => {}, find, get, list,
     },
 
     /** Chi la riceve la pubblica, la nasconde o la elimina. */
-    async respondRecommendation(me, { recommendationId, action } = {}) {
+    async respondRecommendation(me, { recommendationId, decision, action: legacyAction } = {}) {
+      // "decision", non "action": nel corpo della chiamata "action" è il nome dell'azione della Function.
+      const action = decision ?? legacyAction;
       if (typeof recommendationId !== 'string' || !recommendationId) fail(400, 'Referenza non valida.');
       const rec = await get(C.recommendations, recommendationId);
       if (rec.profileId !== me) fail(403, 'Puoi gestire solo le referenze che hai ricevuto.');

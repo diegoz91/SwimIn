@@ -105,7 +105,9 @@ export function groupActions({ find, get, list, listAll, create, update, remove,
     },
 
     /** Amministratori: approva o rifiuta una richiesta, rimuovi o blocca un membro, nomina amministratore. */
-    async moderateMember(me, { groupId, userId, action } = {}) {
+    async moderateMember(me, { groupId, userId, decision, action: legacyAction } = {}) {
+      // Il nome del parametro è "decision": "action" è già il nome dell'azione della Function e verrebbe sovrascritto.
+      const action = decision ?? legacyAction;
       const group = await requireAdmin(groupId, me);
       const row = await memberRow(groupId, userId);
       if (!row) fail(404, 'Persona non trovata nel gruppo.');
