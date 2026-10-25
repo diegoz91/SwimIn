@@ -109,6 +109,8 @@ async function callApi<T = unknown>(action: string, params: Record<string, unkno
 }
 
 async function callApiOnce<T>(action: string, params: Record<string, unknown>): Promise<T> {
+    // "action" è il nome dell'azione: un parametro con lo stesso nome lo sovrascriverebbe e la Function risponderebbe "Azione sconosciuta".
+    if ('action' in params) throw new Error(`callApi("${action}"): il parametro "action" è riservato, usa un altro nome (es. "decision").`);
     const execution = await functions.createExecution(
         API_FUNCTION_ID,
         JSON.stringify({ action, ...params }),
@@ -434,7 +436,7 @@ export const databaseService = {
         return await callApi<{ requested: boolean; already?: boolean }>('requestRecommendation', { profileId, message });
     },
     async respondRecommendation(recommendationId: string, action: 'publish' | 'hide' | 'delete') {
-        return await callApi<Recommendation | { deleted: boolean }>('respondRecommendation', { recommendationId, action });
+        return await callApi<Recommendation | { deleted: boolean }>('respondRecommendation', { recommendationId, decision: action });
     },
     async deleteRecommendation(recommendationId: string) {
         return await callApi<{ deleted: boolean }>('deleteRecommendation', { recommendationId });
@@ -636,7 +638,7 @@ export const databaseService = {
         return await callApi<{ left: boolean }>('leaveGroup', { groupId });
     },
     async moderateGroupMember(groupId: string, userId: string, action: 'approve' | 'reject' | 'remove' | 'ban' | 'promote' | 'demote') {
-        return await callApi<{ membersCount: number }>('moderateMember', { groupId, userId, action });
+        return await callApi<{ membersCount: number }>('moderateMember', { groupId, userId, decision: action });
     },
     async deleteGroup(groupId: string) {
         return await callApi<{ deleted: boolean }>('deleteGroup', { groupId });

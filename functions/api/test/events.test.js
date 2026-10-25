@@ -69,7 +69,7 @@ test('eventi con iscrizioni e lista d’attesa', async () => {
   const gev = await api.createSwimMeet('org', { ...base, groupId: g.$id });
   await rejects(api.joinSwimMeet('a', { meetId: gev.$id }), 403);
   await api.joinGroup('a', { groupId: g.$id });
-  await api.moderateMember('org', { groupId: g.$id, userId: 'a', action: 'approve' });
+  await api.moderateMember('org', { groupId: g.$id, userId: 'a', decision: 'approve' });
   assert.equal((await api.joinSwimMeet('a', { meetId: gev.$id })).myStatus, 'going');
   await api.deleteGroup('org', { groupId: g.$id });
   assert.equal(col('swim_meets')[gev.$id].status, 'cancelled');

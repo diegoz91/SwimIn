@@ -37,8 +37,8 @@ test('referenze scritte', async () => {
   assert.equal((await api.listRecommendations('anna', { profileId: 'anna' }))[0].author.name, 'bob');
 
   // Solo la destinataria la pubblica: diventa visibile a tutti.
-  await rejects(api.respondRecommendation('bob', { recommendationId: r.$id, action: 'publish' }), 403);
-  await api.respondRecommendation('anna', { recommendationId: r.$id, action: 'publish' });
+  await rejects(api.respondRecommendation('bob', { recommendationId: r.$id, decision: 'publish' }), 403);
+  await api.respondRecommendation('anna', { recommendationId: r.$id, decision: 'publish' });
   assert.deepEqual(col('recommendations')[r.$id].$permissions, ['read("users")']);
   assert.equal((await api.listRecommendations('carla', { profileId: 'anna' })).length, 1);
   // Le notifiche: alla destinataria "da approvare", all'autore "pubblicata" (con il profilo della destinataria).
@@ -62,7 +62,7 @@ test('referenze scritte', async () => {
   await rejects(api.requestRecommendation('carla', { profileId: 'anna' }), 403);
 
   // Nascondere, ritirare, account eliminato.
-  await api.respondRecommendation('carla', { recommendationId: s.$id, action: 'hide' });
+  await api.respondRecommendation('carla', { recommendationId: s.$id, decision: 'hide' });
   assert.equal(col('recommendations')[s.$id].status, 'hidden');
   await rejects(api.deleteRecommendation('anna', { recommendationId: r.$id }), 403);
   await api.deleteRecommendation('bob', { recommendationId: r.$id });
