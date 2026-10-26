@@ -30,6 +30,7 @@ import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 import { makeAssertClean } from './textfilter.js';
 import { digestActions } from './digest.js';
+import { opsActions } from './ops.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -53,6 +54,7 @@ const C = {
   reviews: 'reviews',
   blocks: 'blocks',
   clientErrors: 'client_errors',
+  appStatus: 'app_status',
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
@@ -152,7 +154,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null, alertWebhook = '', alertUserIds = [] } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -329,6 +331,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
   const assertNotBlocked = moderation._assertNotBlocked;
+  const ops = opsActions({ find, create, update, count, fail, C, Query, users, notify, isAdmin: moderation._isAdmin, log, fetchImpl: fetchImpl || (typeof fetch === 'function' ? fetch : null), alertWebhook, alertUserIds });
 
   // -------------------------------------------------------------------------
   // Tempo reale: segnali per aggiornare le pagine aperte senza ricaricare
@@ -450,6 +453,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   // -------------------------------------------------------------------------
   const actions = {
     ...moderation,
+    ...ops,
     ...team,
     ...social,
     ...content_,
@@ -968,7 +972,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       // Solo lettura per i client: chiusura e riapertura passano da closeJob/reopenJob (limiti Base, evidenza Premium).
       const created = await create(C.jobs, job, [Permission.read(Role.users())]);
       if (job.isSOS && job.province) created.notified = await alertSOS(created, me, premium);
-      created.alerted = await alertsApi._notifyJobAlerts(created, me).catch((e) => { log(`avvisi di lavoro: ${e?.message || e}`); return 0; });
+      // Gli annunci della prova automatica non avvisano le persone vere.
+      created.alerted = (await ops._isTestAccount(me)) ? 0 : await alertsApi._notifyJobAlerts(created, me).catch((e) => { log(`avvisi di lavoro: ${e?.message || e}`); return 0; });
       return created;
     },
 
@@ -1261,6 +1266,8 @@ export default async ({ req, res, log, error }) => {
       plans: Object.fromEntries(PLAN_KEYS.map((k) => [k, env[`PAYPAL_PLAN_${k.toUpperCase()}`]])),
     },
   };
+  // Avvisi agli amministratori: webhook facoltativo (Slack, Discord, Telegram) e id in più oltre all'etichetta admin.
+  const alerting = { alertWebhook: env.ALERT_WEBHOOK_URL || '', alertUserIds: String(env.ALERT_USER_IDS || '').split(',').map((x) => x.trim()).filter(Boolean) };
   const makeClient = () =>
     new Client()
       .setEndpoint(env.APPWRITE_FUNCTION_API_ENDPOINT)
@@ -1271,7 +1278,7 @@ export default async ({ req, res, log, error }) => {
   const path = String(req.path || '/');
   if (path.startsWith('/webhooks/')) {
     const client = makeClient();
-    const api = createApi(new TablesDB(client), { users: new Users(client), appUrl: env.APP_URL || '', log: (m) => log(m), billing });
+    const api = createApi(new TablesDB(client), { users: new Users(client), appUrl: env.APP_URL || '', log: (m) => log(m), billing, ...alerting });
     const raw = typeof req.bodyText === 'string' ? req.bodyText : typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
     try {
       if (path.startsWith('/webhooks/stripe')) return res.json(await api._stripeWebhook(raw, req.headers['stripe-signature']));
@@ -1279,6 +1286,7 @@ export default async ({ req, res, log, error }) => {
       return res.json({ ok: false }, 404);
     } catch (e) {
       error(`[webhook ${path}] ${e?.message || e}`);
+      if (!(e instanceof HttpError)) await api._recordError({ source: 'server', action: `webhook ${path}`, message: e?.message || String(e), stack: e?.stack || '' }).catch(() => null);
       return res.json({ ok: false, error: e?.message || 'Errore' }, e instanceof HttpError ? e.status : 500);
     }
   }
@@ -1287,6 +1295,8 @@ export default async ({ req, res, log, error }) => {
   if (req.headers['x-appwrite-trigger'] === 'schedule' && !userId) {
     const client = makeClient();
     const api = createApi(new TablesDB(client), {
+      users: new Users(client),
+      ...alerting,
       messaging: env.EMAIL_NOTIFICATIONS === 'on' ? new Messaging(client) : null,
       appUrl: env.APP_URL || '',
       log: (m) => log(m),
@@ -1298,6 +1308,7 @@ export default async ({ req, res, log, error }) => {
       return res.json({ ok: true, data: result });
     } catch (e) {
       error(`[riepilogo] ${e?.message || e}`);
+      await api._recordError({ source: 'server', action: 'riepilogo settimanale', message: e?.message || String(e), stack: e?.stack || '' }).catch(() => null);
       return res.json({ ok: false }, 500);
     }
   }
@@ -1330,10 +1341,15 @@ export default async ({ req, res, log, error }) => {
     appUrl: env.APP_URL || '',
     log: (m) => log(m),
     billing,
+    ...alerting,
   });
   const { action, ...params } = body;
   // Controllo di salute (anche da ospiti): quale versione del codice risponde. Lo usa setup-db dopo il deploy.
-  if (action === 'health') return res.json({ ok: true, data: { version: env.APP_VERSION || '', actions: Object.keys(api).filter((k) => !k.startsWith('_')).length } });
+  // Risponde anche lo stato del servizio deciso dagli amministratori (pagina /stato, /api/health su Vercel, monitor).
+  if (action === 'health') {
+    const status = await api._appStatus().catch(() => ({ mode: 'ok', message: '', until: '', updatedAt: null }));
+    return res.json({ ok: true, data: { version: env.APP_VERSION || '', actions: Object.keys(api).filter((k) => !k.startsWith('_')).length, status } });
+  }
   // Senza login si possono chiamare solo le azioni pubbliche (profili pubblici, sitemap).
   if (!userId && !PUBLIC_ACTIONS.includes(action)) return res.json({ ok: false, error: 'Devi effettuare il login.' }, 401);
   // Le azioni che iniziano con "_" sono helper interni, non chiamabili dal client.
@@ -1346,6 +1362,8 @@ export default async ({ req, res, log, error }) => {
   } catch (e) {
     if (e instanceof HttpError) return res.json({ ok: false, error: e.message, ...(e.code ? { code: e.code } : {}) }, e.status);
     error(`[${action}] ${e?.message || e}`);
+    // Registro errori e avviso agli amministratori (una volta l'ora per errore uguale).
+    await api._recordError({ source: 'server', userId: userId || 'system', action, message: e?.message || String(e), stack: e?.stack || '' }).catch((err) => error(`registro errori: ${err?.message || err}`));
     return res.json({ ok: false, error: 'Errore del server. Riprova tra poco.' }, 500);
   }
 };

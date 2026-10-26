@@ -327,6 +327,13 @@ export const apiResponses = {
             limits: { min: 99, max: 99900 },
         };
     },
+    health: () => ({ version: 'anteprima', actions: 300, status: { mode: 'ok', message: '', until: '', updatedAt: null } }),
+    adminSetAppStatus: ({ mode, message = '', until = '' } = {}) => ({ mode, message: mode === 'ok' ? '' : message, until: mode === 'ok' ? '' : until, updatedAt: new Date().toISOString() }),
+    adminListErrors: () => [
+        { $id: 'e1', $createdAt: iso(4), userId: 'system', source: 'server', action: 'createJob', fingerprint: 's1a2b3c4d', message: 'Request timed out after 15000ms', stack: 'Error: Request timed out\n    at TablesDB.createRow (node-appwrite)' },
+        { $id: 'e2', $createdAt: iso(9), userId: 'u_marco', source: 'server', action: 'createJob', fingerprint: 's1a2b3c4d', message: 'Request timed out after 15000ms', stack: '' },
+        { $id: 'e3', $createdAt: iso(42), userId: ME, source: 'client', action: '', fingerprint: 'c9f8e7d6c', message: "TypeError: Cannot read properties of undefined (reading 'map')", url: '/turni', stack: 'TypeError: Cannot read properties of undefined\n    at ShiftMonth (ShiftMonth.tsx:88)', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' },
+    ],
     adminUpdatePlans: ({ prices = {} } = {}) => {
         const d = apiResponses.adminGetPlans();
         return { ...d, plans: d.plans.map((p) => (p.key in prices ? { ...p, amount: prices[p.key], updatedAt: new Date().toISOString() } : p)), changed: Object.keys(prices), warnings: [] };

@@ -54,6 +54,8 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'users', tone: 'bg-cloro-100 text-cloro-700', href: '/turni?inviti=1' };
         case 'sos':
             return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs' };
+        case 'system_alert':
+            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: '/admin?tab=errori' };
         case 'rejected':
             return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs/candidature' };
         default:

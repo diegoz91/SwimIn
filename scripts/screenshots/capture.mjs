@@ -417,6 +417,39 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
         await context.close();
     }
 }
+// Affidabilità: pagina di stato, manutenzione, rallentamenti e pannello admin (stato del servizio, errori).
+const asAdmin = { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) };
+const maintenance = { mode: 'maintenance', message: 'Stiamo aggiornando il database per il lancio. Torniamo online entro mezz’ora.', until: new Date(Date.now() + 30 * 60_000).toISOString() };
+const degraded = { mode: 'degraded', message: 'Le notifiche possono arrivare con qualche minuto di ritardo.', until: '' };
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile', 'mobile-piccolo'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    for (const [name, path, opts, dark] of [
+        ['stato', '/stato', { loggedIn: false }],
+        ['manutenzione', '/', { loggedIn: true, appStatus: maintenance }],
+        ['scuro-manutenzione', '/', { loggedIn: true, appStatus: maintenance }, true],
+        ['rallentamenti', '/', { loggedIn: true, appStatus: degraded }],
+        ['admin-stato', '/admin?tab=stato', { loggedIn: true, responses: asAdmin, appStatus: maintenance }],
+        ['admin-errori', '/admin?tab=errori', { loggedIn: true, responses: asAdmin }],
+    ]) {
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
+        const page = await context.newPage();
+        page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
+        await mockAppwrite(page, opts);
+        try {
+            await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+            await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
+            await page.waitForTimeout(900);
+            if (name === 'admin-errori') await page.locator('summary').first().click();
+            await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: true });
+            await shot(page, vpName, name, touch);
+            console.log(`✓ ${vpName}-${name}`);
+        } catch (e) {
+            console.log(`✗ ${vpName}-${name}: ${e.message}`);
+        }
+        await context.close();
+    }
+}
 await browser.close();
 
 // Rapporto del layout (sul branch ci-screenshots, accanto alle immagini).

@@ -10,9 +10,11 @@ import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
 import type { Certification } from '@/types/types';
 import { AdminPlans } from '@/features/admin/AdminPlans';
+import { AdminStatus } from '@/features/admin/AdminStatus';
+import { AdminErrors } from '@/features/admin/AdminErrors';
 import { useConfirm } from '@/context/ConfirmContext';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -36,7 +38,7 @@ const Admin: React.FC = () => {
     // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
     const [tab, setTab] = useState<Tab>(() => {
         const t = new URLSearchParams(window.location.search).get('tab');
-        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche'] as const).find((x) => x === t) ?? 'panoramica';
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato'] as const).find((x) => x === t) ?? 'panoramica';
     });
     const tabsRef = useRef<HTMLDivElement>(null);
     // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
@@ -131,6 +133,7 @@ const Admin: React.FC = () => {
         { id: 'utenti', label: 'Utenti' },
         { id: 'piani', label: 'Piani e prezzi' },
         { id: 'errori', label: 'Errori', badge: overview?.errors24h },
+        { id: 'stato', label: 'Stato del servizio' },
     ];
 
     return (
@@ -257,25 +260,8 @@ const Admin: React.FC = () => {
                 </>
             )}
 
-            {tab === 'errori' && (
-                errors === null ? <PageLoader /> : errors.length === 0 ? (
-                    <p className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">Nessun errore registrato.</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {errors.map((e) => (
-                            <li key={e.$id} className="bg-white rounded-xl border border-slate-200">
-                                <details>
-                                    <summary className="cursor-pointer px-4 py-3 flex flex-wrap gap-x-3 gap-y-1 items-baseline">
-                                        <span className="font-mono text-sm text-galleggiante-700 break-all">{e.message}</span>
-                                        <span className="text-xs text-slate-500">{e.url} · {formatRelativeTime(e.$createdAt)}</span>
-                                    </summary>
-                                    <pre className="px-4 pb-4 text-xs text-slate-600 whitespace-pre-wrap break-all">{e.stack}{'\n\n'}{e.userAgent}</pre>
-                                </details>
-                            </li>
-                        ))}
-                    </ul>
-                )
-            )}
+            {tab === 'errori' && (errors === null ? <PageLoader variant="list" /> : <AdminErrors rows={errors} />)}
+            {tab === 'stato' && <AdminStatus />}
         </div>
     );
 };

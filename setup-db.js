@@ -418,13 +418,22 @@ const schema = [
         indexes: [idx('by_user', ['userId'])],
     },
     {
-        // Errori JavaScript dei client, letti dal pannello admin tramite la Function.
+        // Registro errori dell'app (source 'client') e della Function ('server'), letto dal pannello admin.
+        // fingerprint raggruppa gli errori uguali: un solo avviso agli amministratori all'ora per impronta.
         id: 'client_errors', name: 'Client errors', permissions: SERVER_ONLY,
         attributes: [
             str('userId', 36, { required: true }), str('message', 500, { required: true }),
             str('stack', 4000), str('url', 500), str('userAgent', 300),
+            str('source', 10), str('action', 80), str('fingerprint', 16),
         ],
-        indexes: [idx('by_user', ['userId'])],
+        indexes: [idx('by_user', ['userId']), idx('by_fingerprint', ['fingerprint']), idx('by_source', ['source'])],
+    },
+    {
+        // Stato del servizio (riga "main"): tutto ok, rallentamenti o manutenzione. Leggibile da tutti,
+        // anche senza accesso; lo scrivono solo gli amministratori tramite la Function (adminSetAppStatus).
+        id: 'app_status', name: 'App status', permissions: [Permission.read(Role.any())],
+        attributes: [str('mode', 20, { required: true }), str('message', 500), str('until', 30), str('updatedBy', 36)],
+        indexes: [],
     },
     {
         // Recensioni delle strutture: scritte dalla Function (una per persona e struttura).
@@ -875,6 +884,9 @@ async function setupFunctionVariables() {
     // Se la variabile non è indicata (es. deploy automatico) si mantiene la scelta già fatta.
     const email = env.EMAIL_NOTIFICATIONS ? (env.EMAIL_NOTIFICATIONS === 'on' ? 'on' : 'off') : current.EMAIL_NOTIFICATIONS?.value || 'off';
     await set('EMAIL_NOTIFICATIONS', email);
+    // Avvisi di errore: webhook facoltativo (Slack, Discord, Telegram) e id di chi riceve gli avvisi oltre agli admin.
+    if (env.ALERT_WEBHOOK_URL) await set('ALERT_WEBHOOK_URL', env.ALERT_WEBHOOK_URL, true);
+    if (env.ALERT_USER_IDS) await set('ALERT_USER_IDS', env.ALERT_USER_IDS);
     // Versione del codice caricato: la Function la restituisce con l'azione pubblica "health", per verificare il deploy.
     await set('APP_VERSION', DEPLOY_VERSION);
     console.log(`   ✉️  Email di notifica: ${email === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);

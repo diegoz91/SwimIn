@@ -400,6 +400,30 @@ const FLOWS = [
         await page.getByRole('button', { name: 'Applica' }).click();
         await called(state, 'applyShiftTemplate');
     }],
+    ['in manutenzione si vede la pagina dedicata, la pagina di stato resta aperta', 'mobile', { loggedIn: true, appStatus: { mode: 'maintenance', message: 'Aggiornamento del database in corso.', until: '' } }, async (page) => {
+        await open(page, '/');
+        await page.getByRole('heading', { name: 'SwimIn è in manutenzione' }).waitFor({ timeout: 8000 });
+        await page.getByText('Aggiornamento del database in corso.').waitFor();
+        await page.getByRole('link', { name: 'Stato del servizio' }).click();
+        await page.getByRole('heading', { name: 'Manutenzione in corso' }).waitFor({ timeout: 8000 });
+    }],
+    ['l’amministratore mette SwimIn in manutenzione', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) } }, async (page, state) => {
+        await open(page, '/admin?tab=stato');
+        await page.getByRole('radio', { name: /^Manutenzione/ }).click();
+        await page.locator('#status-message').fill('Aggiornamento del database: torniamo alle 23:30.');
+        await page.getByRole('button', { name: 'Attiva la manutenzione' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Attiva la manutenzione' }).click();
+        const c = await called(state, 'adminSetAppStatus');
+        assert.equal(c.params.mode, 'maintenance');
+        assert.equal(c.params.message, 'Aggiornamento del database: torniamo alle 23:30.');
+    }],
+    ['rallentamenti: avviso in cima che si può chiudere', 'mobile', { loggedIn: true, appStatus: { mode: 'degraded', message: 'Le notifiche arrivano in ritardo.', until: '' } }, async (page) => {
+        await open(page, '/');
+        const banner = page.getByRole('status').filter({ hasText: 'Le notifiche arrivano in ritardo.' });
+        await banner.waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Chiudi l’avviso' }).click();
+        await banner.waitFor({ state: 'detached', timeout: 4000 });
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

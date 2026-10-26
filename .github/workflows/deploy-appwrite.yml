@@ -63,6 +63,8 @@ jobs:
           APP_URL: ${{ vars.APP_URL }}
           EMAIL_NOTIFICATIONS: ${{ vars.EMAIL_NOTIFICATIONS }}
           FUNCTION_URL: ${{ vars.FUNCTION_URL }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          ALERT_USER_IDS: ${{ vars.ALERT_USER_IDS }}
           # Pagamenti Premium (facoltativi): senza, si usano solo prova gratuita e omaggi.
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
