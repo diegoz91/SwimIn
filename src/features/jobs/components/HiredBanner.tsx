@@ -30,7 +30,7 @@ const writeLocal = (ids: string[]) => {
  * come visto nelle preferenze dell'account (vale su tutti i dispositivi), quindi alla visita
  * successiva non occupa più spazio nella home: le strutture restano raggiungibili da "Lavori presso".
  */
-export const HiredBanner: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
+export const HiredBanner: React.FC<{ user: AuthenticatedUser; onVisibleChange?: (visible: boolean) => void }> = ({ user, onVisibleChange }) => {
     const [apps, setApps] = useState<MyApplication[]>([]);
 
     useEffect(() => {
@@ -53,6 +53,8 @@ export const HiredBanner: React.FC<{ user: AuthenticatedUser }> = ({ user }) => 
         })();
         return () => { alive = false; };
     }, [user.$id, user.userType]);
+
+    useEffect(() => { onVisibleChange?.(apps.length > 0); }, [apps.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!apps.length) return null;
     return (

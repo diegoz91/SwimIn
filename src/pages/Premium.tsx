@@ -134,7 +134,7 @@ const Premium: React.FC = () => {
         }
     };
 
-    if (!status) return <PageLoader />;
+    if (!status) return <PageLoader variant="detail" />;
     const features = PLAN_FEATURES[status.audience];
     const price = status.prices[period];
     const monthlyEquivalent = period === 'year' ? Math.round(status.prices.year / 12) : status.prices.month;

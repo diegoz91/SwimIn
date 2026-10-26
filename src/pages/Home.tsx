@@ -28,6 +28,7 @@ const Home: React.FC = () => {
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [newPosts, setNewPosts] = useState(0);
+    const [hiredVisible, setHiredVisible] = useState(false);
     
     const [latestJobs, setLatestJobs] = useState<Job[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
@@ -126,9 +127,10 @@ const Home: React.FC = () => {
             </aside>
 
             <div className="flex flex-col gap-4 min-w-0">
-                <CertificationAlert user={user} />
+                {/* Un avviso alla volta: l'assunzione (una sola volta) ha la precedenza sui brevetti da rinnovare. */}
+                {!hiredVisible && <CertificationAlert user={user} />}
                 
-                <HiredBanner user={user} />
+                <HiredBanner user={user} onVisibleChange={setHiredVisible} />
                 <div className="lg:hidden">
                     <MyWorkplaces variant="strip" />
                 </div>

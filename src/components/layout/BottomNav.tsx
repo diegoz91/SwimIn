@@ -5,13 +5,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { isEnthusiast } from '@/utils/profile';
+import { LIVE_ENABLED } from '@/config/features';
 
 const ITEMS: { to: string; icon: IconType; label: string; end?: boolean }[] = [
     { to: '/', icon: 'home', label: 'Home', end: true },
     { to: '/network', icon: 'users', label: 'Rete' },
     { to: '/jobs', icon: 'briefcase', label: 'Lavoro' },
     { to: '/messages', icon: 'chat-bubble', label: 'Messaggi' },
-    { to: '/live', icon: 'video', label: 'Live' },
+    LIVE_ENABLED ? { to: '/live', icon: 'video', label: 'Live' } : { to: '/eventi', icon: 'calendar', label: 'Eventi' },
 ];
 
 /** Barra di navigazione inferiore per smartphone. */

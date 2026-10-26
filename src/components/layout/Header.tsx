@@ -19,13 +19,14 @@ import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 import { useMyTeams } from '@/hooks/useMyTeams';
 import { useToast } from '@/context/ToastContext';
+import { LIVE_ENABLED } from '@/config/features';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/network', label: 'Rete', icon: 'users' },
   { to: '/jobs', label: 'Lavoro', icon: 'briefcase' },
   { to: '/messages', label: 'Messaggi', icon: 'chat-bubble' },
-  { to: '/live', label: 'Live', icon: 'video' },
+  LIVE_ENABLED ? { to: '/live', label: 'Live', icon: 'video' } : { to: '/eventi', label: 'Eventi', icon: 'calendar' },
 ];
 
 /** Chi nuota per passione vede le piscine al posto della bacheca lavoro. */

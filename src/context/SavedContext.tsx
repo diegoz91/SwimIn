@@ -36,7 +36,17 @@ export const SavedProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 if (existing) {
                     setItems((prev) => prev.filter((i) => i.$id !== existing.$id));
                     await databaseService.unsaveItem(existing.$id);
-                    showToast('Rimosso dai salvati.', 'info');
+                    showToast('Rimosso dai salvati.', 'info', {
+                        action: {
+                            label: 'Annulla',
+                            onClick: () => {
+                                databaseService
+                                    .saveItem(user.$id, type, id)
+                                    .then((again) => setItems((prev) => [again, ...prev]))
+                                    .catch((err) => { console.error('Ripristino salvato:', err); showToast('Non è stato possibile ripristinarlo.', 'error'); });
+                            },
+                        },
+                    });
                 } else {
                     const saved = await databaseService.saveItem(user.$id, type, id);
                     setItems((prev) => [saved, ...prev]);

@@ -18,7 +18,10 @@ import { AppFooter } from '@/components/layout/AppFooter';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { PageLoader } from '@/components/common/PageLoader';
+import { TopProgress } from '@/components/common/TopProgress';
+import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { lazyPage } from '@/utils/lazyPage';
+import { LIVE_ENABLED } from '@/config/features';
 
 // Widget Chat (sempre presente da loggati, caricato a parte)
 const GlobalChatWidget = lazyPage(() =>
@@ -37,7 +40,7 @@ const MyApplications = lazyPage(() => import('@/pages/MyApplications'));
 const Network = lazyPage(() => import('@/pages/Network'));
 const Profile = lazyPage(() => import('@/pages/Profile'));
 const Chat = lazyPage(() => import('@/pages/Chat'));
-const Live = lazyPage(() => import('@/pages/Live'));
+const Live = LIVE_ENABLED ? lazyPage(() => import('@/pages/Live')) : lazyPage(() => import('@/pages/LiveComingSoon'));
 const NotFound = lazyPage(() => import('@/pages/NotFound'));
 const Landing = lazyPage(() => import('@/pages/Landing'));
 const Onboarding = lazyPage(() => import('@/pages/Onboarding'));
@@ -126,6 +129,8 @@ const AppContent: React.FC = () => {
         Vai al contenuto
       </a>
 
+      <TopProgress />
+      <ConnectionStatus />
       <PushBridge />
       <PremiumPrompt />
       {showChrome && <Header />}

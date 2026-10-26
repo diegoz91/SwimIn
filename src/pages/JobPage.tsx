@@ -72,7 +72,7 @@ const JobPage: React.FC = () => {
         return all.map((r) => ({ label: r, met: swimMatchScore(user as UserProfile, { requirements: [r], qualificationsRequired: [] }) === 100 }));
     }, [job, user]);
 
-    if (job === undefined || managed === null) return <PageLoader />;
+    if (job === undefined || managed === null) return <PageLoader variant="detail" />;
     if (!job) {
         return (
             <div className="max-w-lg mx-auto text-center py-20">
@@ -108,12 +108,16 @@ const JobPage: React.FC = () => {
     };
 
     const toggleOpen = async () => {
-        if (job.isActive && !(await confirm({ title: 'Chiudere l’annuncio?', message: 'Non riceverà più candidature; potrai riaprirlo finché non scade.', confirmLabel: 'Chiudi l’annuncio' }))) return;
+        // Chiudere si annulla dal toast: niente conferma prima.
         setBusy(true);
         try {
             const saved = job.isActive ? await databaseService.closeJob(job.$id) : await databaseService.reopenJob(job.$id);
             setJob({ ...job, isActive: saved.isActive });
-            showToast(saved.isActive ? 'Annuncio riaperto: è di nuovo in bacheca.' : 'Annuncio chiuso.', 'success');
+            if (saved.isActive) showToast('Annuncio riaperto: è di nuovo in bacheca.', 'success');
+            else
+                showToast('Annuncio chiuso: non riceve più candidature.', 'success', {
+                    action: { label: 'Annulla', onClick: () => { databaseService.reopenJob(job.$id).then(() => { setJob({ ...job, isActive: true }); showToast('Annuncio riaperto.', 'success'); }).catch((err) => showToast(err instanceof Error ? err.message : 'Riapertura non riuscita.', 'error')); } },
+                });
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
         } finally {

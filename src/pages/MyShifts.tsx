@@ -112,7 +112,7 @@ const MyShifts: React.FC = () => {
     );
     const firstOverlap = useMemo(() => upcoming.filter((s) => overlaps.has(s.$id)).sort((a, b) => a.date.localeCompare(b.date))[0], [upcoming, overlaps]);
 
-    if (shifts === null) return <PageLoader />;
+    if (shifts === null) return <PageLoader variant="calendar" />;
 
     const actionsFor = (s: ShiftItem) =>
         s.date < todayISO() ? null : (

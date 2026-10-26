@@ -12,6 +12,7 @@ import { EventCard } from '@/features/events/EventCard';
 import { groupCategoryLabel } from '@/data/groups';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { useBlocks } from '@/context/BlocksContext';
+import { clearRecentSearches, readRecentSearches, saveRecentSearch } from '@/utils/recentSearches';
 
 type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'gruppi' | 'eventi' | 'post';
 
@@ -69,6 +70,19 @@ const Search: React.FC = () => {
     const [results, setResults] = useState<Results>(EMPTY);
     const [isLoading, setIsLoading] = useState(false);
     usePageTitle(q ? `Risultati per "${q}"` : 'Cerca');
+    const [recent, setRecent] = useState<string[]>(() => readRecentSearches());
+    const [trends, setTrends] = useState<{ tag: string; posts: number }[]>([]);
+
+    // Campo vuoto: tendenze del momento come spunto (le carichiamo una volta).
+    useEffect(() => {
+        let alive = true;
+        databaseService.getTrends().then((t) => alive && setTrends(Array.isArray(t) ? t.slice(0, 8) : [])).catch((err) => console.warn('Tendenze:', err));
+        return () => { alive = false; };
+    }, []);
+    // Una ricerca con risultati entra tra le recenti.
+    useEffect(() => {
+        if (q.length >= 2 && !isLoading) { saveRecentSearch(q); setRecent(readRecentSearches()); }
+    }, [q, isLoading]);
 
     useEffect(() => setInput(q), [q]);
 
@@ -173,9 +187,59 @@ const Search: React.FC = () => {
             )}
 
             {q.length < 2 ? (
-                <div className="text-center py-16 text-slate-500">
-                    <Icon type="search" className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                    <p>Scrivi almeno due lettere: un nome, una città, un ruolo come “istruttore”, una piscina, un gruppo o un #hashtag.</p>
+                <div className="space-y-6">
+                    {recent.length > 0 && (
+                        <section aria-labelledby="recent-title">
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 id="recent-title" className="text-lg font-bold text-abisso">Ricerche recenti</h2>
+                                <button type="button" onClick={() => { clearRecentSearches(); setRecent([]); }} className="py-1 -my-1 text-sm font-semibold text-slate-600 hover:text-abisso">Cancella</button>
+                            </div>
+                            <ul className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                                {recent.map((r) => (
+                                    <li key={r}>
+                                        <button type="button" onClick={() => { setInput(r); setParams({ q: r }); }} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-piastrella">
+                                            <Icon type="clock" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                            <span className="flex-1 min-w-0 truncate text-abisso">{r}</span>
+                                            <Icon type="chevron-right" className="w-4 h-4 text-slate-400" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
+                    <section aria-labelledby="suggest-title">
+                        <h2 id="suggest-title" className="text-lg font-bold text-abisso mb-2">Prova a cercare</h2>
+                        <ul className="flex flex-wrap gap-2">
+                            {[
+                                'Istruttore di nuoto',
+                                'Assistente bagnanti',
+                                user?.city ? `Piscine ${user.city}` : 'Piscine',
+                                'Acquagym',
+                                'Allenatore master',
+                                'Brevetto salvamento',
+                            ].map((sug) => (
+                                <li key={sug}>
+                                    <button type="button" onClick={() => { setInput(sug); setParams({ q: sug }); }} className="px-3.5 py-2 rounded-full bg-white border border-slate-200 text-sm font-semibold text-abisso hover:border-corsia-300">
+                                        {sug}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                    {trends.length > 0 && (
+                        <section aria-labelledby="trend-title">
+                            <h2 id="trend-title" className="text-lg font-bold text-abisso mb-2">Di tendenza</h2>
+                            <ul className="flex flex-wrap gap-2">
+                                {trends.map((h) => (
+                                    <li key={h.tag}>
+                                        <Link to={`/hashtag/${encodeURIComponent(h.tag)}`} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white border border-slate-200 text-sm font-semibold text-corsia-700 hover:border-corsia-300">
+                                            <Icon type="hashtag" className="w-4 h-4" /> {h.tag}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
                 </div>
             ) : isLoading ? (
                 <PageLoader label="Ricerca in corso…" />

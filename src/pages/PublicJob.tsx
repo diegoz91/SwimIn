@@ -80,7 +80,7 @@ const PublicJob: React.FC = () => {
                         </Link>
                     </div>
                 ) : !job ? (
-                    <PageLoader />
+                    <PageLoader variant="detail" />
                 ) : (
                     <article className="space-y-4">
                         <section className="bg-white rounded-2xl border border-slate-200 shadow-card p-5 sm:p-8">
