@@ -11,6 +11,6 @@ export const LEGAL = {
     vatNumber: '[Partita IVA / Codice fiscale]',
     contactEmail: '[email di contatto privacy]',
     dpoEmail: null as string | null, // Responsabile della protezione dei dati, se nominato
-    lastUpdated: '22 ottobre 2026',
+    lastUpdated: '26 ottobre 2026',
     isDraft: true,
 } as const;
