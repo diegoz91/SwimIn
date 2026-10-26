@@ -18,6 +18,7 @@ import { ThemeSegmented } from '@/components/common/ThemePicker';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 import { useMyTeams } from '@/hooks/useMyTeams';
+import { useToast } from '@/context/ToastContext';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -58,6 +59,7 @@ const Badge: React.FC<{ count: number }> = ({ count }) =>
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { teams } = useMyTeams();
+  const { showToast } = useToast();
   const { isAdmin } = useBlocks();
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,6 +99,27 @@ const Header: React.FC = () => {
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Il mio profilo'
     : user.structureName || 'La mia struttura';
   const displayAvatar = (isProfessional ? user.avatar : user.logo) || initialsAvatar(displayName);
+
+  // Dalla campanella si segnano come lette senza aprire la pagina delle notifiche.
+  const markRead = async (notif: AppNotification) => {
+    setNotifications((prev) => prev.filter((n) => n.$id !== notif.$id));
+    const ok = await databaseService.markNotificationAsRead(notif.$id);
+    if (!ok) {
+      setNotifications((prev) => (prev.some((n) => n.$id === notif.$id) ? prev : [notif, ...prev]));
+      showToast('Non è stato possibile segnare la notifica come letta.', 'error');
+    }
+  };
+  const markAllRead = async () => {
+    const before = notifications;
+    setNotifications([]);
+    try {
+      await databaseService.markAllNotificationsRead();
+    } catch (err) {
+      console.error('Notifiche:', err);
+      setNotifications(before);
+      showToast('Non è stato possibile segnare le notifiche come lette.', 'error');
+    }
+  };
 
   const openNotification = async (notif: AppNotification) => {
     setNotifications((prev) => prev.filter((n) => n.$id !== notif.$id));
@@ -159,9 +182,16 @@ const Header: React.FC = () => {
 
             {openMenu === 'notifications' && (
               <div className="absolute right-0 mt-3 w-[min(22rem,calc(100vw-2rem))] bg-white rounded-2xl shadow-lift border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right">
-                <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-                  <h2 className="font-display text-xl font-bold text-abisso">Notifiche</h2>
-                  {notifications.length > 0 && <span className="text-xs font-semibold text-corsia-700">{notifications.length} da leggere</span>}
+                <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-display text-xl font-bold text-abisso leading-tight">Notifiche</h2>
+                    {notifications.length > 0 && <p className="text-xs text-slate-500">{notifications.length === 1 ? '1 da leggere' : `${notifications.length} da leggere`}</p>}
+                  </div>
+                  {notifications.length > 0 && (
+                    <button type="button" onClick={markAllRead} className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-corsia-700 hover:bg-corsia-50 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                      <Icon type="check-double" className="w-4 h-4" /> Segna tutte come lette
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-[60vh] overflow-y-auto">
                   {notifications.length === 0 ? (
@@ -171,8 +201,8 @@ const Header: React.FC = () => {
                       {notifications.slice(0, 8).map((n) => {
                         const meta = notificationMeta(n);
                         return (
-                          <li key={n.$id}>
-                            <button onClick={() => openNotification(n)} className="w-full text-left px-4 py-3 hover:bg-piastrella flex gap-3 outline-none focus-visible:bg-piastrella">
+                          <li key={n.$id} className="group relative flex items-stretch hover:bg-piastrella">
+                            <button onClick={() => openNotification(n)} className="flex-1 min-w-0 text-left pl-4 pr-2 py-3 flex gap-3 outline-none focus-visible:bg-piastrella">
                               <span className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
                                 <Icon type={meta.icon} className="w-4 h-4" />
                               </span>
@@ -181,6 +211,15 @@ const Header: React.FC = () => {
                                 <span className="block text-xs text-slate-400 mt-0.5">{formatRelativeTime(n.$createdAt)}</span>
                               </span>
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => markRead(n)}
+                              aria-label={`Segna come letta: ${n.content}`}
+                              title="Segna come letta"
+                              className="flex-shrink-0 self-center mr-2 w-9 h-9 grid place-items-center rounded-full text-slate-400 hover:text-corsia-700 hover:bg-white lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                            >
+                              <Icon type="check" className="w-4 h-4" />
+                            </button>
                           </li>
                         );
                       })}
@@ -188,7 +227,7 @@ const Header: React.FC = () => {
                   )}
                 </div>
                 <Link to="/notifiche" className="block text-center text-sm font-semibold text-corsia-700 hover:bg-piastrella py-3 border-t border-slate-100">
-                  Vedi tutte le notifiche
+                  {notifications.length > 8 ? `Vedi tutte (altre ${notifications.length - 8} da leggere)` : 'Vedi tutte le notifiche'}
                 </Link>
               </div>
             )}

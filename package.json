@@ -17,8 +17,6 @@
     "@fontsource/barlow-condensed": "^5.1.0",
     "appwrite": "^29.1.0",
     "canvas-confetti": "^1.9.2",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "6.8.0",

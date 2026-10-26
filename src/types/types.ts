@@ -277,6 +277,17 @@ export interface Application extends AppwriteDocument {
   coverLetter?: string;
   /** Candidato Premium al momento della candidatura: in cima all'elenco (scritto solo dalla Function). */
   priority?: boolean;
+  /** Copia del CV inviata con la candidatura (bucket privato resumes, scritta solo dalla Function). */
+  resumeFileId?: string | null;
+  resumeName?: string | null;
+}
+
+/** Il mio CV (dati in private_info, visibili solo a me). */
+export interface ResumeInfo {
+  fileId: string;
+  name: string;
+  size: number;
+  updatedAt: string | null;
 }
 
 // ----------------------------------------------------

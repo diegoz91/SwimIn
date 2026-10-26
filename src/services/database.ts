@@ -11,7 +11,8 @@ import type {
     StructureProfile, 
     Post, 
     Job, 
-    Application, 
+    Application,
+    ResumeInfo, 
     Connection,
     Review,
     Certification,
@@ -965,11 +966,23 @@ export const databaseService = {
         return response.documents.filter((j) => isJobOpen(j));
     },
 
-    async applyForJob(applicationData: Partial<Application>) {
+    async applyForJob(applicationData: Partial<Application> & { attachResume?: boolean }) {
         return await callApi<Application>('applyForJob', {
             jobId: applicationData.jobId,
             coverLetter: applicationData.coverLetter || '',
+            attachResume: !!applicationData.attachResume,
         });
+    },
+
+    // CV personale: i dati stanno in private_info e li legge solo la persona (Function resume.js).
+    async getMyResume() {
+        return await callApi<ResumeInfo | null>('getMyResume');
+    },
+    async setMyResume(fileId: string) {
+        return await callApi<ResumeInfo>('setMyResume', { fileId });
+    },
+    async deleteMyResume() {
+        return await callApi<{ deleted: boolean }>('deleteMyResume');
     },
 
     async getJobApplications(jobId: string) {

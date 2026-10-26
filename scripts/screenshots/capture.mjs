@@ -112,6 +112,8 @@ const PRIVATE_INTERACTIONS = [
         await p.keyboard.press('Control+A');
         await p.keyboard.type('se');
     }],
+    ['candidatura', '/jobs', (p) => p.getByRole('button', { name: /Candidati/ }).first().click()],
+    ['menu-notifiche', '/', (p) => p.getByRole('button', { name: /^Notifiche/ }).click()],
     ['menu-calendario', '/turni', (p) => p.getByRole('button', { name: 'Aggiungi i turni al calendario' }).click()],
     ['calendario', '/profile', async (p) => {
         await p.locator('section[aria-labelledby="certs-title"] button').first().click();

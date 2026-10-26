@@ -5,7 +5,7 @@ import { useToast } from '@/context/ToastContext';
 import { databaseService, type MyApplication } from '@/services/database';
 import { isEnthusiast } from '@/utils/profile';
 import type { Job, UserProfile } from '@/types/types';
-import { ApplicationFlowModal, type ApplicationFlowState, type CustomApplicationData } from './components/ApplicationFlowModal';
+import { ApplicationFlowModal, type ApplicationFlowState, type ApplyData } from './components/ApplicationFlowModal';
 
 /**
  * Candidature di chi cerca lavoro: elenco delle proprie (per sapere dove si è già candidati)
@@ -47,26 +47,21 @@ export function useApplyFlow() {
                 showToast('Ti sei già candidato per questa posizione.', 'info');
                 return;
             }
-            setFlow({ step: 'requirements', job });
+            setFlow({ step: 'compose', job });
         },
         [canApply, applicationFor, showToast, user?.userType]
     );
 
-    const submit = async (type: 'rapida' | 'personalizzata', custom?: CustomApplicationData) => {
+    const submit = async (data: ApplyData) => {
         if (!user || !flow.job) return;
+        const coverLetter = [data.coverLetter, data.availability ? `Disponibilità: ${data.availability}` : ''].filter(Boolean).join('\n\n');
         try {
-            await databaseService.applyForJob({
-                jobId: flow.job.$id,
-                applicantId: user.$id,
-                status: 'pending',
-                coverLetter: type === 'personalizzata' && custom ? `${custom.coverLetter_interest}\n\n${custom.coverLetter_specialization}`.trim() : undefined,
-            });
-            showToast('Candidatura inviata: la struttura riceve subito una notifica.', 'success');
+            await databaseService.applyForJob({ jobId: flow.job.$id, applicantId: user.$id, status: 'pending', coverLetter: coverLetter || undefined, attachResume: data.attachResume });
             await reload();
             setFlow({ step: 'confirmation', job: flow.job });
         } catch (err) {
+            // La finestra resta aperta: la persona non perde il messaggio scritto.
             showToast(err instanceof Error ? err.message : 'Candidatura non inviata.', 'error');
-            setFlow({ step: 'idle', job: null });
         }
     };
 

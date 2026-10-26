@@ -337,6 +337,9 @@ export const apiResponses = {
     })),
     updateApplicationStatus: ({ applicationId, status } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status }),
     listMyStaffInvites: () => [{ structureId: 'u_aquae', name: 'Aquae Sport Center', logo: '', city: 'Sesto San Giovanni', invitedAt: new Date(now - 3 * 3600000).toISOString() }],
+    getMyResume: () => null,
+    setMyResume: ({ fileId }) => ({ fileId, name: 'Giulia Ferri CV.pdf', size: 184000, updatedAt: new Date().toISOString() }),
+    deleteMyResume: () => ({ deleted: true }),
     listMyTeams: () => [
         { structureId: 'u_lido', name: 'Piscina Lido di Milano', logo: '', city: 'Milano', role: 'staff' },
         { structureId: 'u_rozzano', name: 'Centro Nuoto Rozzano', logo: '', city: 'Rozzano', role: 'staff' },
