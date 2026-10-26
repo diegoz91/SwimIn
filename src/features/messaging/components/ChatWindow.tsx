@@ -10,8 +10,8 @@ import { initialsAvatar } from '@/utils/avatar';
 import { RichText } from '@/utils/richText';
 import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { REACTIONS, reactionOf } from '@/data/reactions';
-import {
 import { useKeepInside } from '@/hooks/useKeepInside';
+import {
   CHAT_ACCEPT, chatFileUrl, discardChatFile, downloadChatFile, formatFileSize, isImageAttachment, parseAttachments, uploadChatFile,
 } from '@/services/chatFiles';
 
