@@ -117,7 +117,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ apply, isManager }) => {
                             <p className="text-sm text-slate-700">Lancia una sostituzione urgente: avvisiamo subito i professionisti disponibili in zona.</p>
                         </div>
                     </div>
-                    <button onClick={() => setSosOpen(true)} className="px-5 py-2.5 rounded-full text-sm font-semibold bg-galleggiante text-white hover:bg-red-700 flex-shrink-0">Richiedi una sostituzione</button>
+                    <button onClick={() => setSosOpen(true)} className="px-5 py-2.5 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800 flex-shrink-0">Richiedi una sostituzione</button>
                 </div>
             )}
 
@@ -196,7 +196,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ apply, isManager }) => {
                                                     {applied ? (
                                                         <span className="w-full justify-center px-4 py-2.5 rounded-full text-sm font-semibold bg-cloro-50 text-cloro-800 border border-cloro-200 inline-flex items-center gap-1.5"><Icon type="check" className="w-4 h-4" /> Ti sei proposto</span>
                                                     ) : apply.canApply ? (
-                                                        <button onClick={() => apply.start(job)} className="w-full px-4 py-2.5 rounded-full text-sm font-semibold bg-galleggiante text-white hover:bg-red-700">Mi propongo</button>
+                                                        <button onClick={() => apply.start(job)} className="w-full px-4 py-2.5 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800">Mi propongo</button>
                                                     ) : (
                                                         <Link to={`/jobs/${job.$id}`} className="w-full block text-center px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso">Dettagli</Link>
                                                     )}

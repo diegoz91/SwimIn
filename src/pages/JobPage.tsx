@@ -138,7 +138,7 @@ const JobPage: React.FC = () => {
             </button>
 
             <article className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden" aria-labelledby="job-title">
-                {job.isSOS && <div className="bg-galleggiante text-white text-sm font-semibold px-5 sm:px-7 py-2 flex items-center gap-2"><Icon type="alert-triangle" className="w-4 h-4" /> Sostituzione urgente · {formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</div>}
+                {job.isSOS && <div className="bg-galleggiante-700 text-white text-sm font-semibold px-5 sm:px-7 py-2 flex items-center gap-2"><Icon type="alert-triangle" className="w-4 h-4" /> Sostituzione urgente · {formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</div>}
                 <div className="p-5 sm:p-7">
                     <div className="flex items-start gap-4">
                         <img src={logo} alt="" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-100 bg-white flex-shrink-0" />

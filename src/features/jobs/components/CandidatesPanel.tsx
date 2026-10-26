@@ -56,7 +56,12 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
         void load();
     }, [load]);
 
-    const groups = useMemo(() => PIPELINE.map((g) => ({ ...g, rows: (rows || []).filter((r) => g.statuses.includes(r.status)) })), [rows]);
+    // Una candidatura nuova aperta ora diventa "vista", ma resta nell'elenco finché non si cambia scheda.
+    const [sticky, setSticky] = useState<Set<string>>(new Set());
+    const groups = useMemo(
+        () => PIPELINE.map((g) => ({ ...g, rows: (rows || []).filter((r) => g.statuses.includes(sticky.has(r.$id) && r.status === 'reviewed' ? 'pending' : r.status)) })),
+        [rows, sticky]
+    );
     const requested = params.get('candidati') as PipelineId | null;
     const firstFull = groups.find((g) => g.rows.length)?.id || 'nuove';
     const tab: PipelineId = groups.some((g) => g.id === requested) ? (requested as PipelineId) : firstFull;
@@ -67,6 +72,7 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
         next.set('candidati', id);
         setParams(next, { replace: true });
         setOpen(null);
+        setSticky(new Set());
     };
 
     const setStatus = async (row: Row, status: Exclude<ApplicationStatus, 'hired'>, quiet = false) => {
@@ -89,7 +95,10 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
     const toggle = (row: Row) => {
         const opening = open !== row.$id;
         setOpen(opening ? row.$id : null);
-        if (opening && row.status === 'pending') void setStatus(row, 'reviewed', true);
+        if (opening && row.status === 'pending') {
+            setSticky((prev) => new Set(prev).add(row.$id));
+            void setStatus(row, 'reviewed', true);
+        }
     };
 
     const confirmHire = async () => {
