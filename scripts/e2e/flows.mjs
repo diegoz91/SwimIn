@@ -109,10 +109,10 @@ const FLOWS = [
     ['candidarsi a un’offerta', 'mobile', { loggedIn: true }, async (page, state) => {
         await open(page, '/jobs');
         await page.getByRole('button', { name: /Candidati/ }).first().click();
-        await page.getByRole('button', { name: /Candidatura rapida/ }).click();
-        await page.getByRole('button', { name: /Invia candidatura/ }).click();
-        await called(state, 'applyForJob');
-        await page.getByText('Inviata!').first().waitFor({ timeout: 5000 });
+        await page.getByRole('button', { name: 'Invia candidatura' }).click();
+        const c = await called(state, 'applyForJob');
+        assert.equal(c.params.attachResume, false, 'senza CV nel profilo non si allega nulla');
+        await page.getByRole('heading', { name: 'Candidatura inviata' }).waitFor({ timeout: 5000 });
     }],
     ['creare un avviso di lavoro', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/jobs');
@@ -297,6 +297,43 @@ const FLOWS = [
         await page.getByText('Sovrapposto').first().waitFor();
         await page.getByRole('group', { name: 'Filtra per struttura' }).getByRole('button', { name: /Centro Nuoto Rozzano/ }).click();
         assert.ok(page.url().includes('struttura=u_rozzano'), 'il filtro resta nell’indirizzo');
+    }],
+    ['caricare il CV dal profilo', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/profile');
+        const section = page.locator('section[aria-labelledby="resume-title"]');
+        await section.getByText('Aggiungi il tuo CV').waitFor({ timeout: 8000 });
+        await section.locator('input[type="file"]').setInputFiles({ name: 'Giulia Ferri CV.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(4096, 37) });
+        const c = await called(state, 'setMyResume');
+        assert.ok(c.params.fileId, 'la Function riceve il file caricato');
+        await section.getByText('Giulia Ferri CV.pdf').waitFor();
+        await section.getByRole('button', { name: 'Elimina' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Elimina' }).click();
+        await called(state, 'deleteMyResume');
+        await section.getByText('Aggiungi il tuo CV').waitFor();
+    }],
+    ['candidatura rapida con il CV del profilo', 'mobile', { loggedIn: true, responses: { getMyResume: () => ({ fileId: 'cv1', name: 'CV Giulia 2026.pdf', size: 240000, updatedAt: new Date().toISOString() }) } }, async (page, state) => {
+        await open(page, '/jobs');
+        await page.getByRole('button', { name: /Candidati/ }).first().click();
+        await page.getByText('Allega CV Giulia 2026.pdf').waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Invia candidatura' }).click();
+        const c = await called(state, 'applyForJob');
+        assert.equal(c.params.attachResume, true, 'il CV del profilo è allegato');
+        await page.getByRole('heading', { name: 'Candidatura inviata' }).waitFor({ timeout: 5000 });
+    }],
+    ['notifiche lette dalla campanella', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/');
+        const bell = page.getByRole('button', { name: /^Notifiche, \d+ da leggere/ });
+        await bell.waitFor({ timeout: 8000 });
+        const before = Number((await bell.getAttribute('aria-label')).match(/\d+/)[0]);
+        await bell.click();
+        await page.getByRole('button', { name: /^Segna come letta:/ }).first().click();
+        if (before > 1) {
+            await page.getByText(before - 1 === 1 ? '1 da leggere' : `${before - 1} da leggere`, { exact: true }).waitFor({ timeout: 3000 });
+            await page.getByRole('button', { name: 'Segna tutte come lette' }).click();
+            await called(state, 'markAllNotificationsRead');
+        }
+        await page.getByText('Sei in pari: nessuna notifica da leggere.').waitFor({ timeout: 3000 });
+        assert.ok(page.url().endsWith('/'), 'si resta sulla pagina: non serve aprire le notifiche');
     }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');

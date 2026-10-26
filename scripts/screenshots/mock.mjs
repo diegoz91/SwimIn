@@ -124,6 +124,17 @@ export async function mockAppwrite(page, state) {
             return json(route, { $id: 'x', status: 'completed', responseStatusCode: 200, responseBody: JSON.stringify({ ok: true, data }) });
         }
 
+        // Storage: caricamento (CV, allegati) e lettura dei file privati.
+        const upload = path.match(/^\/storage\/buckets\/([^/]+)\/files$/);
+        if (upload && method === 'POST') {
+            state.uploads = (state.uploads || 0) + 1;
+            return json(route, { $id: `upl${state.uploads}`, bucketId: upload[1], name: 'file.pdf', mimeType: 'application/pdf', sizeOriginal: 120000, $permissions: [] });
+        }
+        if (/^\/storage\/buckets\/[^/]+\/files\/[^/]+\/(view|download|preview)$/.test(path)) {
+            return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4\n%mock\n' });
+        }
+        if (/^\/storage\/buckets\/[^/]+\/files\/[^/]+$/.test(path) && method === 'DELETE') return route.fulfill({ status: 204, body: '' });
+
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
         if (one) {
             if (state.missing?.[one[1]]?.includes(one[2])) return json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);

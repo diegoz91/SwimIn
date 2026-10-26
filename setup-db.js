@@ -200,6 +200,8 @@ const schema = [
             str('jobId', 36, { required: true }), str('applicantId', 36, { required: true }),
             str('status', 50, { required: true }), str('coverLetter', 3000),
             bool('priority', { default: false }), // candidato Premium: in cima all'elenco della struttura
+            // Copia del CV inviata con la candidatura (bucket resumes, leggibile da candidato e selezionatori).
+            str('resumeFileId', 36), str('resumeName', 120),
         ],
         indexes: [idx('by_job', ['jobId']), idx('by_applicant', ['applicantId'])],
     },
@@ -372,9 +374,13 @@ const schema = [
         indexes: [],
     },
     {
-        // Dati di contatto privati delle persone (telefono): letti solo dalla Function.
+        // Dati privati delle persone (telefono, CV): letti solo dalla Function.
         id: 'private_info', name: 'Private info', permissions: SERVER_ONLY,
-        attributes: [str('phone', 30)],
+        attributes: [
+            str('phone', 30),
+            // CV personale (PDF nel bucket privato resumes): solo il proprietario lo vede.
+            str('resumeFileId', 36), str('resumeName', 120), int('resumeSize'), str('resumeUpdatedAt', 40),
+        ],
         indexes: [],
     },
     {
@@ -489,6 +495,8 @@ const buckets = [
     // Documenti dei brevetti: privati (ogni file leggibile solo da chi lo carica e dal server).
     { id: 'certificates', name: 'Certificates', maxSizeMB: 8, permissions: [Permission.create(Role.users())], extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] },
     // Allegati dei messaggi: privati, leggibili da mittente e destinatario (permessi impostati dalla Function).
+    // CV personali (solo PDF): privati; le copie allegate alle candidature le crea la Function.
+    { id: 'resumes', name: 'Resumes', maxSizeMB: 5, permissions: [Permission.create(Role.users())], extensions: ['pdf'] },
     { id: 'chat_files', name: 'Chat files', maxSizeMB: 10, permissions: [Permission.create(Role.users())], extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'] },
 ];
 const BUCKET_PERMISSIONS = [Permission.read(Role.any()), Permission.create(Role.users())];

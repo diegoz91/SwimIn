@@ -15,6 +15,7 @@ import { reviewActions } from './reviews.js';
 import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
+import { resumeActions } from './resume.js';
 import { socialActions } from './social.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { groupActions } from './groups.js';
@@ -147,7 +148,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {} } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -309,6 +310,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const recs = recommendationActions({ assertClean, find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b), isRecruiterOf: (a, b) => isRecruiterOf(a, b) });
   const digest = digestActions({ list, count, update, C, Query, messaging, ID, displayName, appUrl, log });
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
+  const resume = resumeActions({ find, create, update, fail, C, storage, Permission, Role, copyFile, log });
+  /** Candidature eliminate insieme alle copie dei CV allegati. */
+  const removeApplications = async (queries) => {
+    for (const a of await listAll(C.applications, queries)) {
+      await resume._deleteApplicationCopy(a);
+      await remove(C.applications, a.$id);
+    }
+  };
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertClean, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
   const events = eventActions({ assertClean, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
@@ -441,6 +450,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
+    getMyResume: resume.getMyResume,
+    setMyResume: resume.setMyResume,
+    deleteMyResume: resume.deleteMyResume,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
     ...profileActions({ find, get, create, update, remove, fail, users, endpoint, C, isRecruiterOf, Permission, Role }),
@@ -801,6 +813,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.connections, [Query.equal('receiverId', me)]);
       await removeAll(C.blocks, [Query.equal('blockerId', me)]);
       await removeAll(C.blocks, [Query.equal('blockedId', me)]);
+      await resume._deleteMine(me);
       await remove(C.privateInfo, me).catch(() => null);
       await removeAll(C.pushSubscriptions, [Query.equal('userId', me)]);
       // Recensioni scritte: rimosse, con media delle strutture ricalcolata.
@@ -816,9 +829,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       }
 
       // Lavoro: candidature inviate, annunci pubblicati come Struttura e loro candidature.
-      await removeAll(C.applications, [Query.equal('applicantId', me)]);
+      await removeApplications([Query.equal('applicantId', me)]);
       for (const job of await listAll(C.jobs, [Query.equal('structureId', me)])) {
-        await removeAll(C.applications, [Query.equal('jobId', job.$id)]);
+        await removeApplications([Query.equal('jobId', job.$id)]);
         await remove(C.jobs, job.$id);
       }
 
@@ -830,7 +843,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
           if (field === 'admins' && (current.admins || []).length <= 1) {
             files.push(current.logo, current.cover);
             for (const job of await listAll(C.jobs, [Query.equal('structureId', current.$id)])) {
-              await removeAll(C.applications, [Query.equal('jobId', job.$id)]);
+              await removeApplications([Query.equal('jobId', job.$id)]);
               await remove(C.jobs, job.$id);
             }
             await remove(C.facilities, current.$id);
@@ -1029,7 +1042,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       return update(C.jobs, jobId, { isActive: true });
     },
 
-    async applyForJob(me, { jobId, coverLetter = '' }) {
+    async applyForJob(me, { jobId, coverLetter = '', attachResume = false }) {
       jobId = requireString(jobId, 'jobId', 36);
       const job = await get(C.jobs, jobId);
       if (!job.isActive || (job.expiresAt && job.expiresAt < isoDay(Date.now()))) fail(409, 'Questa posizione non è più disponibile.');
@@ -1040,10 +1053,12 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (existing > 0) fail(409, 'Ti sei già candidato per questa posizione.');
 
       const managers = await jobManagers(job);
+      // CV allegato: una copia leggibile da chi gestisce l'annuncio (resta com'era al momento dell'invio).
+      const cv = attachResume === true ? await resume._copyForApplication(me, managers) : {};
       const application = await create(
         C.applications,
         // Premium: la candidatura compare in cima all'elenco della struttura.
-        { jobId, applicantId: me, status: 'pending', coverLetter: String(coverLetter).slice(0, 3000), priority: isPremium(applicant) },
+        { jobId, applicantId: me, status: 'pending', coverLetter: String(coverLetter).slice(0, 3000), priority: isPremium(applicant), ...cv },
         [
           Permission.read(Role.user(me)),
           ...managers.map((id) => Permission.read(Role.user(id))),
@@ -1063,6 +1078,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       if (application.applicantId !== me) fail(403, 'Puoi ritirare solo le tue candidature.');
       if (application.status === 'hired') fail(409, 'Sei già stato assunto per questa posizione.');
       await remove(C.applications, applicationId);
+      await resume._deleteApplicationCopy(application);
       const job = await find(C.jobs, application.jobId);
       if (job) await update(C.jobs, job.$id, { candidates: removeFromArray(job.candidates, me) });
       return { withdrawn: true };
@@ -1286,6 +1302,14 @@ export default async ({ req, res, log, error }) => {
   const api = createApi(new TablesDB(client), {
     users: new Users(client),
     storage: new Storage(client),
+    // Copia di un file nello stesso bucket con nuovi permessi (CV allegati alle candidature).
+    copyFile: async (bucketId, fileId, name, permissions) => {
+      const storage = new Storage(client);
+      const { InputFile } = await import('node-appwrite/file');
+      const data = await storage.getFileDownload({ bucketId, fileId });
+      const copy = await storage.createFile({ bucketId, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(data), name), permissions });
+      return copy.$id;
+    },
     endpoint: env.APPWRITE_FUNCTION_API_ENDPOINT || '',
     // Email solo se in Appwrite Messaging c'è un provider (setup-db imposta EMAIL_NOTIFICATIONS=on).
     messaging: env.EMAIL_NOTIFICATIONS === 'on' ? new Messaging(client) : null,

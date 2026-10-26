@@ -27,6 +27,7 @@ import { isPremium } from '@/utils/premium';
 import { ProfileAnalyticsCard } from '@/features/premium/ProfileAnalyticsCard';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
+import { ResumeSection } from './ResumeSection';
 import { FacilityFormModal } from './FacilityFormModal';
 import { CompletionRing } from './CompletionRing';
 import { PoolSection } from './PoolSection';
@@ -56,7 +57,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const navigate = useNavigate();
     const { showToast } = useToast();
     const { user: viewer } = useAuth();
-    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
     
     const isProfessional = user.userType === 'professional';
@@ -227,33 +227,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         if (onUpdateProfile) onUpdateProfile({ ...user, ...updated } as UserProfile);
     };
 
-    const handleDownloadPDF = async () => {
-        setIsGeneratingPDF(true);
-        showToast('Generazione Passaporto in corso...', 'info');
-        try {
-            const element = document.getElementById('passaporto-natatorio');
-            if (!element) throw new Error("Elemento non trovato");
-
-            // Librerie del PDF caricate solo quando servono (pesano diverse centinaia di kB).
-            const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
-            // Il PDF esce sempre nel tema chiaro, anche se l'app è in tema scuro (si stampa su carta bianca).
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#f8fafc', onclone: (doc) => doc.documentElement.classList.remove('dark') });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Passaporto_Natatorio_${displayName.replace(/\s+/g, '_')}.pdf`);
-            showToast('Passaporto scaricato con successo!', 'success');
-        } catch (error) {
-            console.error('PDF del profilo:', error);
-            showToast('Errore durante la generazione del PDF.', 'error');
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
-
     const handleCreateFacility = async (data: { name: string; type: string; city: string; province: string }) => {
         if (!profUser) return;
         const adminId = profUser.userId || profUser.$id;
@@ -365,22 +338,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     className="bg-corsia-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-corsia-700 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2"
                 >
                     <Icon type="edit" className="w-4 h-4" /> <span className="hidden sm:inline">Modifica profilo</span><span className="sm:hidden">Modifica</span>
-                </button>
-            )}
-
-            {isWorker && (
-                <button 
-                    onClick={handleDownloadPDF}
-                    disabled={isGeneratingPDF}
-                    className="bg-abisso text-white font-bold px-4 py-2 rounded-xl hover:bg-corsia-900 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-                >
-                    {isGeneratingPDF ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                        <Icon type="document" className="w-4 h-4" />
-                    )}
-                    <span className="hidden sm:inline">Scarica PDF</span>
-                    <span className="sm:hidden">PDF</span>
                 </button>
             )}
         </div>
@@ -525,7 +482,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
 
-          {/* Riquadri visibili solo a te (fuori dal PDF del profilo): analisi, completamento, disponibilità, strutture. */}
+          {/* Riquadri visibili solo a te: analisi, completamento, disponibilità, strutture. */}
           <div data-html2canvas-ignore="true">
       {isOwnProfile && recs.pending.length > 0 && (
         <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
@@ -664,6 +621,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </ul>
             </section>
           )}
+
+          {isWorker && isOwnProfile && <ResumeSection />}
 
           {isWorker && profUser && (
             <AvailabilitySection profile={profUser} isOwnProfile={isOwnProfile} onUpdated={(p) => onUpdateProfile?.(p)} />

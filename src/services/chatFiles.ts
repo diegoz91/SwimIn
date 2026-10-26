@@ -72,23 +72,29 @@ async function sessionJwt() {
 
 const blobCache = new Map<string, Promise<string>>();
 
-/** URL locale (blob:) di un allegato, per <img> o per aprirlo; in cache per la sessione. */
-export function chatFileUrl(fileId: string, mode: 'preview' | 'view' = 'view'): Promise<string> {
-    const key = `${mode}:${fileId}`;
+/**
+ * URL locale (blob:) di un file di un bucket privato, scaricato con il JWT della sessione;
+ * in cache per la sessione. Usato per allegati della chat e CV.
+ */
+export function privateFileUrl(bucketId: string, fileId: string, mode: 'preview' | 'view' = 'view'): Promise<string> {
+    const key = `${bucketId}:${mode}:${fileId}`;
     const cached = blobCache.get(key);
     if (cached) return cached;
     const p = (async () => {
         const path = mode === 'preview' ? `preview?width=640&quality=80&output=webp` : 'view';
-        const res = await fetch(`${APPWRITE_CONFIG.endpoint}/storage/buckets/${bucket}/files/${encodeURIComponent(fileId)}/${path}`, {
+        const res = await fetch(`${APPWRITE_CONFIG.endpoint}/storage/buckets/${bucketId}/files/${encodeURIComponent(fileId)}/${path}`, {
             headers: { 'X-Appwrite-Project': APPWRITE_CONFIG.projectId, 'X-Appwrite-JWT': await sessionJwt() },
         });
-        if (!res.ok) throw new Error(res.status === 404 ? 'Allegato non più disponibile.' : 'Allegato non disponibile.');
+        if (!res.ok) throw new Error(res.status === 404 ? 'File non più disponibile.' : 'File non disponibile.');
         return URL.createObjectURL(await res.blob());
     })();
     blobCache.set(key, p);
     p.catch(() => blobCache.delete(key));
     return p;
 }
+
+/** URL locale (blob:) di un allegato, per <img> o per aprirlo. */
+export const chatFileUrl = (fileId: string, mode: 'preview' | 'view' = 'view') => privateFileUrl(bucket, fileId, mode);
 
 /** Scarica l'allegato con il suo nome originale. */
 export async function downloadChatFile(a: ChatAttachment) {

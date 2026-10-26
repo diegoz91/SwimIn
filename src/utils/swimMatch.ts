@@ -35,15 +35,12 @@ const parseList = (list: string[] | undefined, fields: string[]) =>
         }
     });
 
-/**
- * Percentuale di requisiti dell'annuncio soddisfatti dal profilo, confrontando
- * le parole chiave con brevetti, esperienze, competenze e qualifica.
- * Restituisce null se l'annuncio non ha requisiti.
- */
-export function swimMatchScore(user: Pick<UserProfile, 'certificationsList' | 'experienceList' | 'skills' | 'title'>, job: Pick<Job, 'requirements' | 'qualificationsRequired'>): number | null {
-    const requirements = [...(job.requirements || []), ...(job.qualificationsRequired || [])].filter((r) => r.trim());
-    if (requirements.length === 0) return null;
+type MatchUser = Pick<UserProfile, 'certificationsList' | 'experienceList' | 'skills' | 'title'>;
+type MatchJob = Pick<Job, 'requirements' | 'qualificationsRequired'>;
 
+/** Ogni requisito dell'annuncio con l'esito del confronto con il profilo. */
+export function requirementsStatus(user: MatchUser, job: MatchJob): { requirement: string; met: boolean }[] {
+    const requirements = [...(job.requirements || []), ...(job.qualificationsRequired || [])].filter((r) => r.trim());
     const corpus = new Set(
         keywords(
             [
@@ -55,17 +52,21 @@ export function swimMatchScore(user: Pick<UserProfile, 'certificationsList' | 'e
         )
     );
     const has = (w: string) => corpus.has(w) || (SYNONYMS[w] || []).some((s) => corpus.has(s));
+    return requirements.map((requirement) => {
+        const words = keywords(requirement);
+        if (words.length === 0) return { requirement, met: false };
+        if (/esperienz/i.test(requirement) && (user.experienceList || []).length > 0) return { requirement, met: true };
+        return { requirement, met: words.filter(has).length / words.length >= 0.5 };
+    });
+}
 
-    let met = 0;
-    for (const req of requirements) {
-        const words = keywords(req);
-        if (words.length === 0) continue;
-        if (/esperienz/i.test(req) && (user.experienceList || []).length > 0) {
-            met++;
-            continue;
-        }
-        const found = words.filter(has).length;
-        if (found / words.length >= 0.5) met++;
-    }
-    return Math.round((met / requirements.length) * 100);
+/**
+ * Percentuale di requisiti dell'annuncio soddisfatti dal profilo, confrontando
+ * le parole chiave con brevetti, esperienze, competenze e qualifica.
+ * Restituisce null se l'annuncio non ha requisiti.
+ */
+export function swimMatchScore(user: MatchUser, job: MatchJob): number | null {
+    const status = requirementsStatus(user, job);
+    if (status.length === 0) return null;
+    return Math.round((status.filter((s) => s.met).length / status.length) * 100);
 }

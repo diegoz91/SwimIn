@@ -45,6 +45,7 @@ export interface AppwriteConfig {
         postMedia: string;
         certificates: string;
         chatFiles: string;
+        resumes: string;
     };
 }
 
@@ -86,6 +87,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         postMedia: 'post_media',
         certificates: 'certificates',
         chatFiles: 'chat_files',
+        resumes: 'resumes',
     }
 };
 

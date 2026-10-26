@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useContactInfo } from '@/hooks/useContactInfo';
+import { downloadResume, openResume } from '@/services/resume';
 import { useSignal } from '@/hooks/useSignal';
 import { Icon } from '@/components/ui/Icon';
 import { FormModal } from '@/components/form/FormModal';
@@ -205,6 +206,7 @@ const CandidateRow: React.FC<{
     onStatus: (s: Exclude<ApplicationStatus, 'hired'>) => void;
     onHire: () => void;
 }> = ({ row, job, expanded, busy, onToggle, onStatus, onHire }) => {
+    const { showToast } = useToast();
     const p = row.profile;
     const name = displayNameOf(p);
     const score = p ? swimMatchScore(p, job) : null;
@@ -229,6 +231,7 @@ const CandidateRow: React.FC<{
                     </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    {row.resumeFileId && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 inline-flex items-center gap-1"><Icon type="document" className="w-3 h-3" />CV</span>}
                     {score !== null && (
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${score >= 80 ? 'bg-cloro-100 text-cloro-800' : score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`} title="Requisiti dell’annuncio soddisfatti dal profilo">
                             Affinità {score}%
@@ -249,7 +252,19 @@ const CandidateRow: React.FC<{
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl bg-white border border-slate-200 p-4">
                             <h3 className="text-sm font-semibold text-abisso">Presentazione</h3>
-                            <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{row.coverLetter?.trim() || 'Candidatura rapida, senza lettera: il profilo parla per lei.'}</p>
+                            <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{row.coverLetter?.trim() || (row.resumeFileId ? 'Candidatura rapida con CV, senza messaggio.' : 'Candidatura rapida, senza messaggio: il profilo parla per lei.')}</p>
+                            {row.resumeFileId && (
+                                <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-2 text-sm text-slate-700 min-w-0">
+                                        <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-100 text-galleggiante-700 text-[11px] font-bold" aria-hidden="true">PDF</span>
+                                        <span className="break-all">{row.resumeName || 'CV'}</span>
+                                    </span>
+                                    <span className="flex gap-3 ml-auto">
+                                        <button type="button" onClick={() => openResume(row.resumeFileId as string).catch((err) => showToast(err instanceof Error ? err.message : 'CV non disponibile.', 'error'))} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Apri il CV</button>
+                                        <button type="button" onClick={() => downloadResume(row.resumeFileId as string, row.resumeName || 'CV.pdf').catch((err) => showToast(err instanceof Error ? err.message : 'CV non disponibile.', 'error'))} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Scarica</button>
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="rounded-2xl bg-white border border-slate-200 p-4">
                             <h3 className="text-sm font-semibold text-abisso">Brevetti</h3>
