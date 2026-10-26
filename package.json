@@ -19,6 +19,7 @@
     "canvas-confetti": "^1.9.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
+    "livekit-client": "^2.5.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "6.8.0",

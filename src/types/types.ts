@@ -378,6 +378,10 @@ export interface LiveRoom extends AppwriteDocument {
   speakers: string[]; 
   listeners: string[];
   startedAt: string;
+  /** Diretta video (LiveKit configurato quando è stata aperta). */
+  video?: boolean;
+  /** Durata massima: dopo questa ora la diretta si chiude. */
+  endsAt?: string;
 }
 
 export interface Review extends AppwriteDocument {

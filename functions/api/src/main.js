@@ -24,6 +24,7 @@ import { alertActions } from './alerts.js';
 import { recommendationActions } from './recommendations.js';
 import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS, BASE_STAFF, PLAN_KEYS } from './billing.js';
 import { regionProvinces } from './regions.js';
+import { liveActions } from './live.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 import { makeAssertClean } from './textfilter.js';
@@ -67,6 +68,7 @@ const C = {
   staffChatReads: 'staff_chat_reads',
   pushSubscriptions: 'push_subscriptions',
   plans: 'plans',
+  livePrivate: 'live_private',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
@@ -145,7 +147,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {} } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, live: liveConfig = {} } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -293,6 +295,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
+  const live = liveActions({ find, get, create, update, remove, fail, C, displayName, config: liveConfig, fetchImpl: fetchImpl || fetch, log });
   const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log });
   /** Immagine caricata nello storage di SwimIn (niente link esterni). */
   const storageImage = (v, label) => {
@@ -330,6 +333,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...recs,
     ...events,
     ...billingApi,
+    ...live,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
@@ -739,9 +743,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
 
       // Eventi, dirette, turni, bacheca e notifiche.
       await events._leaveAllEvents(me);
-      for (const room of await listAll(C.liveRooms, [Query.equal('hostId', me)])) {
-        await update(C.liveRooms, room.$id, { status: 'ended', speakers: [], listeners: [] });
-      }
+      for (const room of await listAll(C.liveRooms, [Query.equal('hostId', me), Query.equal('status', 'active')])) await live._endRoom(room);
       await removeAll(C.shifts, [Query.equal('userId', me)]);
       await removeAll(C.shifts, [Query.equal('structureId', me)]);
       await removeAll(C.announcements, [Query.equal('structureId', me)]);
@@ -964,14 +966,25 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     },
 
     // ---------------- BORDO VASCA LIVE ----------------
-    /** Apre una stanza: l'host è sempre chi chiama. */
+    /**
+     * Apre una stanza: l'host è sempre chi chiama. Se le dirette video sono configurate la stanza
+     * è anche video, con una durata massima (piano Base 60 minuti, Premium 4 ore).
+     */
     async createLiveRoom(me, { title, description = '' }) {
       title = requireString(title, 'title', 120);
-      const open = await count(C.liveRooms, [Query.equal('hostId', me), Query.equal('status', 'active')]);
-      if (open > 0) fail(409, 'Hai già una diretta in corso: chiudila prima di aprirne un\'altra.');
+      assertClean(title, 'text');
+      if (description) assertClean(String(description), 'text');
+      // Una diretta lasciata aperta oltre la durata massima si chiude da sola.
+      for (const old of await listAll(C.liveRooms, [Query.equal('hostId', me), Query.equal('status', 'active')])) {
+        if (live._isOver(old)) await live._endRoom(old);
+        else fail(409, 'Hai già una diretta in corso: chiudila prima di aprirne un\'altra.');
+      }
+      const { video, minutes } = live._liveConfig(await get(C.profiles, me));
+      const now = Date.now();
       return create(C.liveRooms, {
         title, description: String(description).trim().slice(0, 1000), hostId: me, status: 'active',
-        speakers: [me], listeners: [], startedAt: new Date().toISOString(),
+        speakers: [me], listeners: [], startedAt: new Date(now).toISOString(),
+        video, ...(video ? { endsAt: new Date(now + minutes * 60_000).toISOString() } : {}),
       }, [Permission.read(Role.users())]);
     },
 
@@ -979,7 +992,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       roomId = requireString(roomId, 'roomId', 36);
       const room = await get(C.liveRooms, roomId);
       if (room.hostId !== me) fail(403, 'Solo chi conduce può chiudere la diretta.');
-      return update(C.liveRooms, roomId, { status: 'ended', speakers: [], listeners: [] });
+      return live._endRoom(room);
     },
 
     /** Messaggio nella chat della stanza: domanda, intervento o mano alzata. */
@@ -1006,6 +1019,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         speakers: onStage ? addToArray(room.speakers, userId) : removeFromArray(room.speakers, userId),
         listeners: onStage ? removeFromArray(room.listeners, userId) : addToArray(room.listeners, userId),
       });
+      await live._syncStagePermission(room, userId, !!onStage);
       if (onStage) await notify(userId, 'general', `Sei stato invitato sul palco in "${room.title}".`, roomId);
       return updated;
     },
@@ -1054,6 +1068,7 @@ export default async ({ req, res, log, error }) => {
       plans: Object.fromEntries(PLAN_KEYS.map((k) => [k, env[`PAYPAL_PLAN_${k.toUpperCase()}`]])),
     },
   };
+  const live = { url: env.LIVEKIT_URL || '', apiKey: env.LIVEKIT_API_KEY || '', apiSecret: env.LIVEKIT_API_SECRET || '' };
   const makeClient = () =>
     new Client()
       .setEndpoint(env.APPWRITE_FUNCTION_API_ENDPOINT)
@@ -1064,11 +1079,12 @@ export default async ({ req, res, log, error }) => {
   const path = String(req.path || '/');
   if (path.startsWith('/webhooks/')) {
     const client = makeClient();
-    const api = createApi(new TablesDB(client), { users: new Users(client), appUrl: env.APP_URL || '', log: (m) => log(m), billing });
+    const api = createApi(new TablesDB(client), { users: new Users(client), appUrl: env.APP_URL || '', log: (m) => log(m), billing, live });
     const raw = typeof req.bodyText === 'string' ? req.bodyText : typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
     try {
       if (path.startsWith('/webhooks/stripe')) return res.json(await api._stripeWebhook(raw, req.headers['stripe-signature']));
       if (path.startsWith('/webhooks/paypal')) return res.json(await api._paypalWebhook(raw, req.headers));
+      if (path.startsWith('/webhooks/livekit')) return res.json(await api._liveWebhook(raw, req.headers.authorization || req.headers.Authorization));
       return res.json({ ok: false }, 404);
     } catch (e) {
       error(`[webhook ${path}] ${e?.message || e}`);
@@ -1114,6 +1130,7 @@ export default async ({ req, res, log, error }) => {
     appUrl: env.APP_URL || '',
     log: (m) => log(m),
     billing,
+    live,
   });
   const { action, ...params } = body;
   // Controllo di salute (anche da ospiti): quale versione del codice risponde. Lo usa setup-db dopo il deploy.

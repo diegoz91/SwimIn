@@ -8,7 +8,8 @@ name: Deploy Appwrite
 # Richiede i secret del repository (Settings → Secrets and variables → Actions):
 #   APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY
 # e, facoltative, le variabili APP_URL, EMAIL_NOTIFICATIONS, FUNCTION_URL, PAYPAL_MODE
-# e i secret STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PAYPAL_CLIENT_ID, PAYPAL_SECRET.
+# e i secret STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PAYPAL_CLIENT_ID, PAYPAL_SECRET,
+# LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET (dirette video).
 on:
   push:
     branches: [main]
@@ -69,3 +70,6 @@ jobs:
           PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
           PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
           PAYPAL_MODE: ${{ vars.PAYPAL_MODE }}
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}

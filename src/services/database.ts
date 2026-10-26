@@ -157,6 +157,18 @@ export class ApiOutdatedError extends Error {
 }
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
+export interface LiveAccess {
+    url: string;
+    token: string;
+    canPublish: boolean;
+    endsAt: string;
+}
+export interface LiveIngress {
+    ingressId: string;
+    kind: 'rtmp' | 'whip';
+    serverUrl: string;
+    streamKey: string;
+}
 export interface AdminPlan {
     key: string;
     audience: Audience;
@@ -1432,6 +1444,17 @@ export const databaseService = {
 
     async endLiveRoom(roomId: string) {
         return await callApi<LiveRoom>('endLiveRoom', { roomId });
+    },
+    /** Token per la stanza video (permessi secondo il ruolo: chi conduce e chi è sul palco pubblicano). */
+    async getLiveAccess(roomId: string) {
+        return await callApi<LiveAccess>('getLiveAccess', { roomId });
+    },
+    /** Chi conduce: crea i dati di trasmissione per OBS Studio o Prism Live Studio (Premium). */
+    async createLiveIngress(roomId: string, kind: 'rtmp' | 'whip') {
+        return await callApi<LiveIngress>('createLiveIngress', { roomId, kind });
+    },
+    async getLiveIngress(roomId: string) {
+        return await callApi<LiveIngress | null>('getLiveIngress', { roomId });
     },
 
     // ==========================================

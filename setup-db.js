@@ -435,8 +435,19 @@ const schema = [
             str('facilityId', 36), str('status', 50, { required: true }),
             str('speakers', 36, { array: true }), str('listeners', 36, { array: true }),
             str('startedAt', 100, { required: true }),
+            bool('video', { default: false }), // diretta video (LiveKit configurato all'apertura)
+            str('endsAt', 40), // durata massima: Base 60 minuti, Premium 4 ore
         ],
         indexes: [idx('by_status', ['status'])],
+    },
+    {
+        // Dati di trasmissione con OBS/Prism (chiave segreta): id della riga = stanza. Solo la Function.
+        id: 'live_private', name: 'Live Private', permissions: SERVER_ONLY,
+        attributes: [
+            str('ingressId', 100, { required: true }), str('kind', 10, { required: true }),
+            str('serverUrl', 500, { required: true }), str('streamKey', 500),
+        ],
+        indexes: [],
     },
     {
         // Chat delle stanze live: scritta solo dalla Function (solo partecipanti).
@@ -817,6 +828,15 @@ async function setupFunctionVariables() {
         console.log('   🔑 Chiavi per le notifiche push generate');
     }
     await setupBillingVariables(set, current);
+    // Dirette video (LiveKit Cloud): senza queste variabili la Live resta chat e palco.
+    if (env.LIVEKIT_URL && env.LIVEKIT_API_KEY && env.LIVEKIT_API_SECRET) {
+        await set('LIVEKIT_URL', env.LIVEKIT_URL.trim());
+        await set('LIVEKIT_API_KEY', env.LIVEKIT_API_KEY.trim());
+        await set('LIVEKIT_API_SECRET', env.LIVEKIT_API_SECRET.trim(), true);
+        console.log(`   🎥 Dirette video attive (${env.LIVEKIT_URL.trim()})`);
+    } else if (!current.LIVEKIT_URL) {
+        console.log('   🎥 Dirette video spente: aggiungi LIVEKIT_URL, LIVEKIT_API_KEY e LIVEKIT_API_SECRET in .env.setup');
+    }
     const appUrl = (env.APP_URL || '').replace(/\/$/, '');
     await set('APP_URL', appUrl || undefined);
     if (env.VAPID_SUBJECT || appUrl || !current.VAPID_SUBJECT) {
