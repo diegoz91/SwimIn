@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useBlocks } from '@/context/BlocksContext';
@@ -36,6 +36,11 @@ const Admin: React.FC = () => {
         const t = new URLSearchParams(window.location.search).get('tab');
         return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche'] as const).find((x) => x === t) ?? 'panoramica';
     });
+    const tabsRef = useRef<HTMLDivElement>(null);
+    // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
+    useEffect(() => {
+        tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }, [tab]);
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [reportStatus, setReportStatus] = useState<'open' | 'resolved' | 'dismissed'>('open');
     const [reports, setReports] = useState<AdminReport[] | null>(null);
@@ -129,7 +134,7 @@ const Admin: React.FC = () => {
     return (
         <div className="pt-4 max-w-5xl mx-auto w-full">
             <h1 className="text-4xl font-bold text-abisso leading-none">Amministrazione</h1>
-            <div className="flex gap-2 overflow-x-auto mt-5 mb-6 pb-1" role="tablist">
+            <div ref={tabsRef} className="flex gap-2 overflow-x-auto mt-5 mb-6 pb-1" role="tablist">
                 {TABS.map((t) => (
                     <button
                         key={t.id}
