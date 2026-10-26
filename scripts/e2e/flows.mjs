@@ -37,6 +37,13 @@ const open = async (page, path) => {
     await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
 };
 
+/** Bacheca dello staff con un turno di oggi (09:00–12:00) per Sara, nello stato indicato. */
+const teamBoard = (status) => ({
+    role: 'admin', announcements: [], chatUnread: 0,
+    shifts: [{ $id: 'sh_rt', structureId: 'u_giulia', userId: 'u_sara', userName: 'Sara Colombo', date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }), shiftTime: '09:00–12:00', role: 'Assistente bagnanti', status }],
+    members: [{ $id: 'u_sara', userId: 'u_sara', firstName: 'Sara', lastName: 'Colombo', title: 'Assistente bagnanti', avatar: '', city: 'Milano', isOnline: false, certificationsList: [] }],
+});
+
 /** [nome, viewport, stato iniziale dell'Appwrite finto, passi] */
 const FLOWS = [
     ['accesso con email e password', 'desktop', { loggedIn: false, password: 'Password1!' }, async (page) => {
@@ -230,6 +237,24 @@ const FLOWS = [
         await page.getByRole('button', { name: 'Ritira' }).first().click();
         await page.getByRole('alertdialog').getByRole('button', { name: 'Ritira' }).click();
         await called(state, 'withdrawApplication');
+    }],
+    ['la struttura vede il turno confermato senza ricaricare la pagina', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } }, responses: { getTeamBoard: () => teamBoard('scheduled') } }, async (page, state) => {
+        await open(page, '/profile?area=staff');
+        await page.getByRole('tab', { name: /^Turni/ }).click();
+        await page.getByText('Da confermare', { exact: true }).first().waitFor({ timeout: 8000 });
+        // Sara conferma dal suo telefono: la Function manda il segnale alla struttura.
+        state.responses.getTeamBoard = () => teamBoard('confirmed');
+        await page.waitForTimeout(500);
+        await state.pushRealtime('signals', 'create', { $id: 'sg1', userId: 'u_giulia', topic: 'team:u_giulia', kind: 'respondShift' });
+        await page.getByText('Confermato', { exact: true }).first().waitFor({ timeout: 6000 });
+        assert.equal(await page.getByText('Da confermare', { exact: true }).count(), 0, 'il turno deve risultare confermato');
+    }],
+    ['un post nuovo di un collegamento compare come avviso nel feed', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/');
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+        await page.waitForTimeout(500);
+        await state.pushRealtime('posts', 'create', { $id: 'p_new', authorId: 'u_marco', content: 'Nuovo post', groupId: null });
+        await page.getByRole('button', { name: '1 nuovo post' }).waitFor({ timeout: 6000 });
     }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');

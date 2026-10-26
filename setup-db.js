@@ -345,6 +345,13 @@ const schema = [
         indexes: [idx('by_user_status', ['userId', 'status']), idx('by_structure_status', ['structureId', 'status'])],
     },
     {
+        // Segnali di tempo reale: la Function scrive una riga per destinatario (leggibile solo da lui),
+        // il client la riceve con Realtime e aggiorna la pagina. Pulizia programmata dopo un giorno.
+        id: 'signals', name: 'Signals', permissions: SERVER_ONLY,
+        attributes: [str('userId', 36, { required: true }), str('topic', 80, { required: true }), str('kind', 40)],
+        indexes: [],
+    },
+    {
         // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
         id: 'subscriptions', name: 'Subscriptions', permissions: SERVER_ONLY,
         attributes: [

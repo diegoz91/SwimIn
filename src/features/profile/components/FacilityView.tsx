@@ -4,6 +4,7 @@ import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type PendingStaffInvite, type TeamMember } from '@/services/database';
 import { TeamMembers } from '@/features/team/TeamMembers';
+import { useSignal } from '@/hooks/useSignal';
 import { ShiftEditModal } from '@/features/team/ShiftEditModal';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
@@ -97,6 +98,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [invites, setInvites] = useState<PendingStaffInvite[]>([]);
     const [boardVersion, setBoardVersion] = useState(0);
     const [editingShift, setEditingShift] = useState<SquadShift | null>(null);
+    // Tempo reale: turni confermati, comunicazioni, staff e inviti si aggiornano senza ricaricare.
+    useSignal(isAdmin || isStaff ? `team:${facilityId}` : null, () => setBoardVersion((v) => v + 1));
     const [chatUnread, setChatUnread] = useState(0);
     const staffAreaRef = React.useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -161,7 +164,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     useEffect(() => {
         if (activeTab !== 'staff' || !(isAdmin || isStaff)) return;
         let alive = true;
-        setIsLoadingStaff(true);
+        // Aggiornamenti in tempo reale (boardVersion > 0): niente scheletro di caricamento.
+        if (boardVersion === 0) setIsLoadingStaff(true);
         databaseService.getTeamBoard(facilityId)
             .then((board) => {
                 if (!alive) return;

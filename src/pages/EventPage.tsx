@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
@@ -41,6 +42,11 @@ const EventPage: React.FC = () => {
         databaseService.getSwimMeet(id).then((e) => alive && setEvent(e));
         return () => { alive = false; };
     }, [id]);
+
+    // Tempo reale: iscrizioni, posti liberati, modifiche e annullamento dell'evento.
+    useSignal(`event:${id}`, () => {
+        databaseService.getSwimMeet(id).then(setEvent).catch((err) => console.warn('Evento (aggiornamento):', err));
+    });
 
     useEffect(() => {
         if (!event) return;

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type MyTeam, type StaffInvite } from '@/services/database';
@@ -59,6 +60,9 @@ const MyShifts: React.FC = () => {
     }, [showToast]);
 
     useEffect(() => { void load(); }, [load]);
+
+    // Tempo reale: turni proposti, modificati o annullati e inviti arrivano senza ricaricare.
+    useSignal('team:*', () => { void load(); void loadTeams(); });
 
     const upcoming = useMemo(() => (shifts || []).filter((s) => s.date >= todayISO()), [shifts]);
     const toConfirm = upcoming.filter((s) => s.status === 'scheduled').length;

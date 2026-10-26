@@ -46,6 +46,25 @@ export async function mockAppwrite(page, state) {
     state.calls ??= [];
     state.accountCalls ??= [];
     await page.route(/\/v1\/realtime/, (route) => route.abort());
+    // Realtime finto: il test manda eventi con state.pushRealtime(collezione, tipo, riga).
+    const sockets = new Set();
+    state.pushRealtime = async (collection, type, row) => {
+        const base = `databases.swimwaveup_db.collections.${collection}.documents`;
+        const data = { events: [`${base}.${row.$id}.${type}`, `${base}.*.${type}`], channels: [base, `${base}.${row.$id}`], timestamp: new Date().toISOString(), payload: row };
+        for (const ws of sockets) ws.send(JSON.stringify({ type: 'event', data }));
+    };
+    if (page.routeWebSocket) {
+        await page.routeWebSocket(/\/v1\/realtime/, (ws) => {
+            sockets.add(ws);
+            ws.onClose(() => sockets.delete(ws));
+            ws.onMessage((raw) => {
+                let msg = {};
+                try { msg = JSON.parse(String(raw)); } catch { msg = {}; }
+                if (msg.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
+            });
+            ws.send(JSON.stringify({ type: 'connected', data: { channels: [], user: state.loggedIn ? { $id: account.$id } : null } }));
+        });
+    }
     await page.route(/cloud\.appwrite\.io\/v1\//, async (route) => {
         const url = new URL(route.request().url());
         const path = url.pathname.replace(/^\/v1/, '');

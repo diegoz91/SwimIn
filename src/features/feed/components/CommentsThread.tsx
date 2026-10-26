@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
+import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { useBlocks } from '@/context/BlocksContext';
 import { databaseService } from '@/services/database';
 import { avatarOf } from '@/utils/profile';
@@ -47,6 +48,8 @@ export const CommentsThread: React.FC<{
     }, [postId, user?.$id, showToast]);
 
     useEffect(() => { void load(); }, [load]);
+    // Tempo reale: commenti nuovi, mi piace ed eliminazioni degli altri compaiono da soli.
+    useLiveCollection('comments', (changes) => { if (changes.some((c) => c.payload.postId === postId)) void load(); });
     useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
 
     const submit = async (e?: React.FormEvent) => {
