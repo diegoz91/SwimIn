@@ -14,6 +14,7 @@ import { useKeepInside } from '@/hooks/useKeepInside';
 import {
   CHAT_ACCEPT, chatFileUrl, discardChatFile, downloadChatFile, formatFileSize, isImageAttachment, parseAttachments, uploadChatFile,
 } from '@/services/chatFiles';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface ChatWindowProps {
   currentUserId: string;
@@ -111,6 +112,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   onProfileClick,
   isWidget = false
 }) => {
+    const confirm = useConfirm();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -333,7 +335,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const remove = async (msg: Message) => {
     setActiveId(null);
-    if (!window.confirm('Eliminare il messaggio per tutti? Anche gli allegati verranno cancellati.')) return;
+    if (!(await confirm({ title: 'Eliminare il messaggio per tutti?', message: 'Anche gli allegati verranno cancellati.', confirmLabel: 'Elimina per tutti', tone: 'danger' }))) return;
     try {
       await databaseService.deleteMessage(msg.$id);
       setMessages((prev) => prev.map((m) => (m.$id === msg.$id ? { ...m, deleted: true, content: '', attachments: [], reactions: null, replyPreview: null } : m)));

@@ -10,6 +10,7 @@ import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
 import type { Certification } from '@/types/types';
 import { AdminPlans } from '@/features/admin/AdminPlans';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche';
 
@@ -28,6 +29,7 @@ const targetLink = (r: AdminReport) =>
 
 /** Pannello amministratori: segnalazioni, utenti, errori. Ogni azione è verificata dal server. */
 const Admin: React.FC = () => {
+    const confirm = useConfirm();
     usePageTitle('Amministrazione');
     const { isAdmin } = useBlocks();
     const { showToast } = useToast();
@@ -87,7 +89,7 @@ const Admin: React.FC = () => {
 
     const resolve = async (r: AdminReport, decision: 'dismiss' | 'remove' | 'suspend') => {
         const question = { dismiss: 'Archiviare la segnalazione senza azioni?', remove: 'Rimuovere il contenuto segnalato? L’autore riceverà una notifica.', suspend: `Sospendere l’account di ${r.target.authorName || 'questo utente'}? Non potrà più accedere.` }[decision];
-        if (!window.confirm(question)) return;
+        if (!(await confirm({ title: { dismiss: 'Archiviare la segnalazione?', remove: 'Rimuovere il contenuto?', suspend: 'Sospendere l’account?' }[decision], message: question, confirmLabel: { dismiss: 'Archivia', remove: 'Rimuovi', suspend: 'Sospendi' }[decision], tone: decision === 'dismiss' ? 'default' : 'danger' }))) return;
         setBusy(r.$id);
         try {
             const res = await databaseService.adminResolveReport(r.$id, decision);
@@ -102,7 +104,7 @@ const Admin: React.FC = () => {
     };
 
     const toggleSuspend = async (u: AdminUserRow) => {
-        if (!window.confirm(u.suspended ? `Riattivare l’account di ${u.name}?` : `Sospendere l’account di ${u.name}?`)) return;
+        if (!(await confirm({ title: u.suspended ? `Riattivare l’account di ${u.name}?` : `Sospendere l’account di ${u.name}?`, message: u.suspended ? 'Potrà di nuovo accedere e usare SwimIn.' : 'Non potrà più accedere finché non lo riattivi.', confirmLabel: u.suspended ? 'Riattiva' : 'Sospendi', tone: u.suspended ? 'default' : 'danger' }))) return;
         try {
             await databaseService.adminSetSuspended(u.$id, !u.suspended);
             setUserRows((rows) => rows.map((x) => (x.$id === u.$id ? { ...x, suspended: !u.suspended } : x)));
@@ -113,7 +115,7 @@ const Admin: React.FC = () => {
     };
 
     const grantPremium = async (u: AdminUserRow, days: number) => {
-        if (!window.confirm(`Regalare ${days} giorni di Premium a ${u.name}?`)) return;
+        if (!(await confirm({ title: `Regalare ${days} giorni di Premium?`, message: `${u.name} riceverà una notifica e avrà subito tutti i vantaggi.`, confirmLabel: 'Regala Premium' }))) return;
         try {
             const r = await databaseService.adminGrantPremium(u.$id, days);
             showToast(`Premium attivo fino al ${r.premiumUntil.slice(8, 10)}/${r.premiumUntil.slice(5, 7)}/${r.premiumUntil.slice(0, 4)}.`, 'success');

@@ -175,8 +175,8 @@ const FLOWS = [
         await page.getByText('Non può costare più di 12 mesi').waitFor({ timeout: 4000 }); // annuale 47,90 > 12 × 3
         assert.ok(await page.getByRole('button', { name: 'Salva prezzi' }).isDisabled(), 'con un errore non si salva');
         await input.fill('5,49');
-        page.once('dialog', (d) => d.accept());
         await page.getByRole('button', { name: 'Salva prezzi' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Aggiorna i prezzi' }).click();
         const c = await called(state, 'adminUpdatePlans');
         assert.deepEqual(c.params.prices, { person_month: 549 });
     }],
@@ -219,6 +219,18 @@ const FLOWS = [
         const c = await called(state, 'inviteStaff');
         assert.equal(c.params.structureId, 'u_giulia');
     }],
+    ['le conferme si aprono nell’app: annullare non fa nulla, confermare sì', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/jobs/candidature');
+        await page.getByRole('button', { name: 'Ritira' }).first().click();
+        const dialog = page.getByRole('alertdialog');
+        await dialog.getByRole('heading', { name: 'Ritirare la candidatura?' }).waitFor({ timeout: 5000 });
+        await dialog.getByRole('button', { name: 'Annulla' }).click();
+        await dialog.waitFor({ state: 'detached' });
+        assert.ok(!state.calls.some((c) => c.action === 'withdrawApplication'), 'annullando non deve ritirare');
+        await page.getByRole('button', { name: 'Ritira' }).first().click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Ritira' }).click();
+        await called(state, 'withdrawApplication');
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });
@@ -257,6 +269,8 @@ for (const [name, vp, initial, run] of FLOWS) {
     const page = await context.newPage();
     const jsErrors = [];
     page.on('pageerror', (e) => jsErrors.push(e.message));
+    // Nessuna finestra del browser (confirm, alert, prompt): le conferme sono quelle dell'app.
+    page.on('dialog', (d) => { jsErrors.push(`finestra del browser: ${d.message()}`); void d.dismiss(); });
     await mockAppwrite(page, state);
     const t0 = Date.now();
     try {

@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import { CERT_CATEGORIES, CERT_ISSUERS, CERT_NAMES, COMMON_CERTS, certCategoryKey } from '@/data/swimming';
 import { check, isoDate, maxLength, minLength, notAfter, notBefore, required } from '@/utils/validation';
 import { addDaysISO, formatDate, isValidISODate, todayISO } from '@/utils/dates';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface CertificationModalProps {
     isOpen: boolean;
@@ -61,6 +62,7 @@ export const validateCertification = (v: Values, today: string = todayISO()): Fo
 });
 
 export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, onClose, onSave, onDelete, certification, mode }) => {
+    const confirm = useConfirm();
     const { showToast } = useToast();
     const [saving, setSaving] = useState(false);
     const validate = useCallback((v: Values) => validateCertification(v), []);
@@ -113,7 +115,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({ isOpen, 
     });
 
     const remove = async () => {
-        if (!onDelete || !window.confirm('Eliminare questo brevetto dal profilo?')) return;
+        if (!onDelete || !(await confirm({ title: 'Eliminare questo brevetto?', message: 'Sparisce dal profilo e dal radar delle scadenze delle strutture.', confirmLabel: 'Elimina', tone: 'danger' }))) return;
         setSaving(true);
         try {
             await onDelete();

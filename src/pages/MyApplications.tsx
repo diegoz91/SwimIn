@@ -10,6 +10,7 @@ import { STATUS, candidateSteps } from '@/features/jobs/applicationStatus';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
 import { initialsAvatar } from '@/utils/avatar';
 import { formatRelativeTime } from '@/utils/format';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Filter = 'attive' | 'assunzioni' | 'concluse';
 const FILTERS: { id: Filter; label: string; match: (a: MyApplication) => boolean }[] = [
@@ -20,6 +21,7 @@ const FILTERS: { id: Filter; label: string; match: (a: MyApplication) => boolean
 
 /** Le mie candidature (/jobs/candidature): stato a tappe di ognuna, ritiro, link all'annuncio. */
 const MyApplications: React.FC = () => {
+    const confirm = useConfirm();
     usePageTitle('Le mie candidature');
     const { showToast } = useToast();
     const apply = useApplyFlow();
@@ -33,7 +35,7 @@ const MyApplications: React.FC = () => {
     const shown = list.filter(FILTERS.find((f) => f.id === filter)!.match);
 
     const withdraw = async (a: MyApplication) => {
-        if (!window.confirm('Ritirare la candidatura? La struttura non la vedrà più.')) return;
+        if (!(await confirm({ title: 'Ritirare la candidatura?', message: 'La struttura non la vedrà più.', confirmLabel: 'Ritira', tone: 'danger' }))) return;
         try {
             await databaseService.withdrawApplication(a.$id);
             await apply.reload();

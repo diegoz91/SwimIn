@@ -10,6 +10,7 @@ import { LiveRoomView } from '@/features/live/LiveRoomView';
 import { avatarOf, displayNameOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
 import type { LiveRoom, StructureProfile, UserProfile } from '@/types/types';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const IDEAS = [
     'Domande e risposte sul brevetto di assistente bagnanti',
@@ -19,6 +20,7 @@ const IDEAS = [
 
 /** Bordo vasca live: stanze di confronto in tempo reale tra professionisti. */
 const Live: React.FC = () => {
+    const confirm = useConfirm();
     usePageTitle('Bordo vasca live');
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -103,7 +105,7 @@ const Live: React.FC = () => {
     const leaveRoom = async () => {
         if (!user || !currentRoom) return;
         if (currentRoom.hostId === user.$id) {
-            if (!window.confirm('Chiudere la diretta per tutti i partecipanti?')) return;
+            if (!(await confirm({ title: 'Chiudere la diretta?', message: 'Termina per tutti i partecipanti.', confirmLabel: 'Chiudi la diretta', tone: 'danger' }))) return;
             try {
                 await databaseService.endLiveRoom(currentRoom.$id);
                 showToast('Diretta chiusa.', 'info');

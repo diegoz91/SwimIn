@@ -28,6 +28,7 @@ import { ShiftWeek } from './ShiftWeek';
 import { StatsDashboard } from '@/features/premium/StatsDashboard';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
+import { useConfirm } from '@/context/ConfirmContext';
 
 // Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
 const ApplicationsChart = lazy(() => import('./ApplicationsChart'));
@@ -50,6 +51,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     onSelectJob,
     onUpdateProfile
 }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
@@ -302,7 +304,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         const question = leaving
             ? `Vuoi lasciare lo staff di ${structureName}? Non vedrai più bacheca e turni.`
             : 'Rimuovere questa persona dallo staff? Non vedrà più bacheca e turni, e i suoi turni futuri verranno annullati.';
-        if (!window.confirm(question)) return;
+        if (!(await confirm({ title: leaving ? 'Lasciare lo staff?' : 'Togliere dallo staff?', message: question, confirmLabel: leaving ? 'Lascia lo staff' : 'Togli dallo staff', tone: 'danger' }))) return;
         try {
             await databaseService.removeStaffMember(facilityId, staffId);
             setStaff(staff.filter((s) => s.userId !== staffId));

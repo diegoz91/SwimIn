@@ -21,6 +21,7 @@ import { RichText, cutText, plainText } from '@/utils/richText';
 import { PollView } from './PollView';
 import { MentionTextarea, fromEditable, toEditable, type MentionMap } from '@/components/form/MentionTextarea';
 import { isPremium } from '@/utils/premium';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -56,6 +57,7 @@ export const PostCard: React.FC<PostCardProps> = (props) => {
 };
 
 const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, onUpdated, repostedBy, onReposted, onCommentClick, canModerate = false }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -232,7 +234,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
     const handleDelete = async () => {
         setIsMenuOpen(false);
-        if (!window.confirm('Eliminare definitivamente questo post? Verranno rimossi anche commenti e consigli.')) return;
+        if (!(await confirm({ title: 'Eliminare il post?', message: 'Verranno rimossi anche commenti e consigli. Non si può annullare.', confirmLabel: 'Elimina', tone: 'danger' }))) return;
         setIsBusy(true);
         try {
             await databaseService.deletePost(post);

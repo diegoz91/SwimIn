@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 
 // Providers
 import { ToastProvider } from '@/context/ToastContext';
+import { ConfirmProvider } from '@/context/ConfirmContext';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { SavedProvider } from '@/context/SavedContext';
 import { BlocksProvider } from '@/context/BlocksContext';
@@ -197,6 +198,7 @@ export const App: React.FC = () => {
   return (
     <Router>
       <ToastProvider>
+      <ConfirmProvider>
         <AuthProvider>
           <SavedProvider>
             <BlocksProvider>
@@ -205,6 +207,7 @@ export const App: React.FC = () => {
             </BlocksProvider>
           </SavedProvider>
         </AuthProvider>
+      </ConfirmProvider>
       </ToastProvider>
     </Router>
   );

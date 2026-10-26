@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { AUDIENCE_LABEL, PLAN_NAME, euro, type Audience } from '@/utils/premium';
 import { formatRelativeTime } from '@/utils/format';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const AUDIENCES: Audience[] = ['person', 'enthusiast', 'structure'];
 const AUDIENCE_HINT: Record<Audience, string> = {
@@ -27,6 +28,7 @@ const toText = (cents: number) => (cents / 100).toLocaleString('it-IT', { minimu
  * i nuovi prezzi valgono per i nuovi abbonamenti, chi è già abbonato mantiene il suo.
  */
 export const AdminPlans: React.FC = () => {
+    const confirm = useConfirm();
     const { showToast } = useToast();
     const [data, setData] = useState<AdminPlansData | null>(null);
     const [draft, setDraft] = useState<Record<string, string>>({});
@@ -68,7 +70,7 @@ export const AdminPlans: React.FC = () => {
 
     const save = async () => {
         const list = Object.entries(changes).map(([k, v]) => `${PLAN_NAME[byKey[k].audience as Audience]} ${byKey[k].period === 'month' ? 'mensile' : 'annuale'}: ${euro(byKey[k].amount)} → ${euro(v)}`);
-        if (!window.confirm(`Aggiornare i prezzi?\n\n${list.join('\n')}\n\nValgono per i nuovi abbonamenti: chi è già abbonato mantiene il prezzo attuale.`)) return;
+        if (!await confirm({ title: 'Aggiornare i prezzi?', message: `${list.join('\n')}\n\nValgono per i nuovi abbonamenti: chi è già abbonato mantiene il prezzo attuale.`, confirmLabel: 'Aggiorna i prezzi' })) return;
         setSaving(true);
         try {
             const res = await databaseService.adminUpdatePlans(changes);

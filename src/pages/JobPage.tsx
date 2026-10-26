@@ -20,12 +20,14 @@ import { initialsAvatar } from '@/utils/avatar';
 import { formatDate } from '@/utils/dates';
 import { formatRelativeTime } from '@/utils/format';
 import type { Job, UserProfile } from '@/types/types';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const salaryOf = (j: Job) =>
     j.salaryMin && j.salaryMax ? `${j.salaryMin.toLocaleString('it-IT')}–${j.salaryMax.toLocaleString('it-IT')} € al mese` : j.salaryMin ? `Da ${j.salaryMin.toLocaleString('it-IT')} €${j.isSOS ? '' : ' al mese'}` : j.salaryMax ? `Fino a ${j.salaryMax.toLocaleString('it-IT')} € al mese` : '';
 
 /** Pagina di un annuncio (/jobs/:id): per chi cerca lavoro dettagli e candidatura, per chi lo gestisce anche i candidati. */
 const JobPage: React.FC = () => {
+    const confirm = useConfirm();
     const { id = '' } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -102,7 +104,7 @@ const JobPage: React.FC = () => {
     };
 
     const toggleOpen = async () => {
-        if (job.isActive && !window.confirm('Chiudere l’annuncio? Non riceverà più candidature; potrai riaprirlo finché non scade.')) return;
+        if (job.isActive && !(await confirm({ title: 'Chiudere l’annuncio?', message: 'Non riceverà più candidature; potrai riaprirlo finché non scade.', confirmLabel: 'Chiudi l’annuncio' }))) return;
         setBusy(true);
         try {
             const saved = job.isActive ? await databaseService.closeJob(job.$id) : await databaseService.reopenJob(job.$id);
@@ -116,7 +118,7 @@ const JobPage: React.FC = () => {
     };
 
     const withdraw = async () => {
-        if (!application || !window.confirm('Ritirare la candidatura? La struttura non la vedrà più.')) return;
+        if (!application || !(await confirm({ title: 'Ritirare la candidatura?', message: 'La struttura non la vedrà più.', confirmLabel: 'Ritira', tone: 'danger' }))) return;
         try {
             await databaseService.withdrawApplication(application.$id);
             await apply.reload();
