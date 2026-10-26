@@ -43,15 +43,15 @@ export const MyWorkplaces: React.FC<{ variant: 'card' | 'strip' }> = ({ variant 
     if (variant === 'strip') {
         return (
             <nav aria-label="Le strutture in cui lavori" className="-mx-4 sm:mx-0">
-                <ul className="flex gap-2 overflow-x-auto px-4 sm:px-0 pb-1 snap-x">
-                    <li className="snap-start flex-shrink-0">
+                <ul className="flex gap-2 overflow-x-auto px-4 sm:px-0 pb-1 scroll-px-4">
+                    <li className="flex-shrink-0">
                         <Link to="/turni" className="h-full inline-flex items-center gap-2 pl-3 pr-4 py-2 rounded-full bg-abisso text-white text-sm font-semibold">
                             <Icon type="calendar" className="w-4 h-4" /> Turni
                             {toConfirm > 0 && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-white text-abisso text-xs font-bold grid place-items-center" aria-label={`${toConfirm} da confermare`}>{toConfirm}</span>}
                         </Link>
                     </li>
                     {teams.map((t) => (
-                        <li key={t.structureId} className="snap-start flex-shrink-0">
+                        <li key={t.structureId} className="flex-shrink-0">
                             <Link to={`/profile/${t.structureId}?area=staff`} className="inline-flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200 text-sm font-semibold text-abisso max-w-[16rem]">
                                 <span className="relative flex-shrink-0">
                                     <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-full object-cover bg-white" />
