@@ -835,6 +835,64 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       return created;
     },
 
+    /**
+     * Modifica di un annuncio da parte di chi lo gestisce: testo, compenso, requisiti, luogo e,
+     * con `expiryDays`, una nuova scadenza a partire da oggi. Le sostituzioni urgenti (SOS)
+     * cambiano solo descrizione e compenso: data e turno restano quelli annunciati.
+     */
+    async updateJob(me, { jobId, ...data } = {}) {
+      jobId = requireString(jobId, 'jobId', 36);
+      const job = await get(C.jobs, jobId);
+      if (!(await jobManagers(job)).includes(me)) fail(403, 'Non gestisci questo annuncio.');
+      const has = (k) => Object.prototype.hasOwnProperty.call(data, k);
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const int = (v) => (v === '' || v === null || v === undefined ? null : Number.isFinite(Number(v)) ? Math.max(0, Math.min(1_000_000_000, Math.round(Number(v)))) : null);
+      const list = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim().slice(0, 500)).filter(Boolean).slice(0, 20) : []);
+      const allowed = job.isSOS ? ['description', 'salaryMin', 'salaryMax'] : ['title', 'description', 'role', 'contractType', 'city', 'province', 'salaryMin', 'salaryMax', 'workingHours', 'requirements', 'qualificationsRequired', 'expiryDays'];
+      const patch = {};
+      for (const k of Object.keys(data)) if (!allowed.includes(k)) fail(400, job.isSOS ? 'Di una sostituzione urgente puoi cambiare solo descrizione e compenso.' : `Campo non modificabile: ${k}.`);
+      if (has('title')) patch.title = requireString(data.title, 'title', 255);
+      if (has('description')) patch.description = requireString(data.description, 'description', 4000);
+      if (has('role')) patch.role = requireString(data.role, 'role', 100);
+      if (has('city')) patch.city = requireString(data.city, 'city', 255);
+      if (has('province')) patch.province = str(data.province, 10)?.toUpperCase() || null;
+      if (has('contractType')) patch.contractType = str(data.contractType, 100);
+      if (has('workingHours')) patch.workingHours = str(data.workingHours, 255);
+      if (has('salaryMin')) patch.salaryMin = int(data.salaryMin);
+      if (has('salaryMax')) patch.salaryMax = int(data.salaryMax);
+      if (has('requirements')) patch.requirements = list(data.requirements);
+      if (has('qualificationsRequired')) patch.qualificationsRequired = list(data.qualificationsRequired);
+      if (has('expiryDays') && data.expiryDays !== null && data.expiryDays !== '') patch.expiresAt = isoDay(Date.now() + clampInt(data.expiryDays, 1, 90, 30) * 86_400_000);
+      for (const t of [patch.title, patch.description]) if (t) assertClean(t, 'text');
+      const min = has('salaryMin') ? patch.salaryMin : job.salaryMin;
+      const max = has('salaryMax') ? patch.salaryMax : job.salaryMax;
+      if (min != null && max != null && min > max) fail(400, 'Il compenso minimo supera il massimo.');
+      if (!Object.keys(patch).length) return job;
+      return update(C.jobs, jobId, patch);
+    },
+
+    /**
+     * Annunci di una struttura per chi li gestisce: attivi, chiusi e scaduti, con il conteggio
+     * delle candidature per fase (nuove, viste, selezionate, assunte, scartate).
+     */
+    async listStructureJobs(me, { structureId } = {}) {
+      structureId = requireString(structureId || me, 'structureId', 36);
+      const facility = await find(C.facilities, structureId);
+      const managers = facility ? facility.admins || [] : [structureId];
+      if (!managers.includes(me)) fail(403, 'Non gestisci questa struttura.');
+      const jobs = (await listAll(C.jobs, [Query.equal('structureId', structureId)])).sort((a, b) => b.$createdAt.localeCompare(a.$createdAt)).slice(0, 200);
+      const counts = {};
+      for (let i = 0; i < jobs.length; i += 50) {
+        const ids = jobs.slice(i, i + 50).map((j) => j.$id);
+        for (const app of await listAll(C.applications, [Query.equal('jobId', ids)])) {
+          const c = (counts[app.jobId] ??= { total: 0, pending: 0, reviewed: 0, accepted: 0, hired: 0, rejected: 0 });
+          c.total += 1;
+          if (c[app.status] !== undefined) c[app.status] += 1;
+        }
+      }
+      return jobs.map((j) => ({ ...j, applications: counts[j.$id] || { total: 0, pending: 0, reviewed: 0, accepted: 0, hired: 0, rejected: 0 } }));
+    },
+
     /** Chiude un annuncio (non riceve più candidature); solo chi lo gestisce. */
     async closeJob(me, { jobId }) {
       jobId = requireString(jobId, 'jobId', 36);
@@ -863,7 +921,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     async applyForJob(me, { jobId, coverLetter = '' }) {
       jobId = requireString(jobId, 'jobId', 36);
       const job = await get(C.jobs, jobId);
-      if (!job.isActive) fail(409, 'Questa posizione non è più disponibile.');
+      if (!job.isActive || (job.expiresAt && job.expiresAt < isoDay(Date.now()))) fail(409, 'Questa posizione non è più disponibile.');
       const applicant = await get(C.profiles, me);
       if (applicant.userType !== 'professional') fail(403, 'Solo i professionisti possono candidarsi.');
 
@@ -906,11 +964,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const job = await get(C.jobs, application.jobId);
       if (!(await jobManagers(job)).includes(me)) fail(403, 'Non gestisci questo annuncio.');
 
+      if (application.status === 'hired') fail(409, 'Questa persona è già stata assunta.');
+      if (application.status === status) return application;
       const updated = await update(C.applications, applicationId, { status });
+      // "Vista" non manda notifiche: il candidato la vede nel percorso della candidatura.
       if (status === 'rejected') {
         await notify(application.applicantId, 'rejected', `La tua candidatura per "${job.title}" non è stata selezionata.`, job.$id);
       } else if (status === 'accepted') {
-        await notify(application.applicantId, 'general', `La tua candidatura per "${job.title}" è avanzata!`, job.$id);
+        await notify(application.applicantId, 'application_update', `${job.structureName || 'La struttura'} ti ha selezionato per "${job.title}": potrebbe contattarti per un colloquio.`, job.$id);
       }
       return updated;
     },

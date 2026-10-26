@@ -18,7 +18,7 @@ export function takePendingJobPath(): string {
     try {
         const id = sessionStorage.getItem(KEY);
         sessionStorage.removeItem(KEY);
-        return id ? `/jobs?annuncio=${encodeURIComponent(id)}` : '/';
+        return id ? `/jobs/${encodeURIComponent(id)}` : '/';
     } catch (err) {
         console.warn('Offerta non letta:', err);
         return '/';

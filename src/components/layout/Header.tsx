@@ -226,14 +226,24 @@ const Header: React.FC = () => {
                     <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
                   </Link>
                   {user?.userType === 'professional' && !isEnthusiast(user) && (
-                    <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                      <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
-                    </Link>
+                    <>
+                      <Link to="/jobs/candidature" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                        <Icon type="send" className="w-5 h-5 text-slate-400" /> Le mie candidature
+                      </Link>
+                      <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                        <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
+                      </Link>
+                    </>
                   )}
-                  {user?.userType === 'structure' && (
-                    <Link to="/talenti" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                      <Icon type="search" className="w-5 h-5 text-slate-400" /> Cerca personale
-                    </Link>
+                  {(user?.userType === 'structure' || ((user as { managedFacilities?: string[] } | null)?.managedFacilities || []).length > 0) && (
+                    <>
+                      <Link to="/jobs/annunci" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                        <Icon type="briefcase" className="w-5 h-5 text-slate-400" /> I miei annunci
+                      </Link>
+                      <Link to="/talenti" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                        <Icon type="search" className="w-5 h-5 text-slate-400" /> Cerca personale
+                      </Link>
+                    </>
                   )}
                   {!isEnthusiast(user) && (
                     <Link to="/strutture" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">

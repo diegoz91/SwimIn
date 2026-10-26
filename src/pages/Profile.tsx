@@ -142,8 +142,7 @@ const ProfilePage: React.FC = () => {
                         facility={viewedProfile as (StructureProfile | Facility)}
                         openJobs={openJobs}
                         onBack={() => navigate(-1)}
-                        // 💡 FIX REDIRECT: Intercetta il click sull'annuncio e passa lo State Router a /jobs!
-                        onSelectJob={(jobId) => navigate(`/jobs`, { state: { selectedJobId: jobId } })}
+                        onSelectJob={(jobId) => navigate(`/jobs/${jobId}`)}
                         onUpdateProfile={handleProfileUpdate}
                     />
                 )

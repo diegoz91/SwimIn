@@ -35,6 +35,7 @@ const CATEGORY_OF = {
   group: 'social',
   profile_view: 'social',
   application: 'jobs',
+  application_update: 'jobs',
   job_alert: 'jobs',
   rejected: 'jobs',
   hired: 'jobs',
@@ -50,10 +51,11 @@ export function targetUrl(type, relatedId) {
     case 'like':
     case 'comment': return relatedId ? `/post/${relatedId}` : '/';
     case 'connection': return '/network';
-    case 'application':
+    case 'application': return relatedId ? `/jobs/${encodeURIComponent(relatedId)}?candidati=nuove` : '/jobs/annunci';
+    case 'application_update':
     case 'rejected':
     case 'job_alert':
-    case 'sos': return relatedId ? `/jobs?annuncio=${encodeURIComponent(relatedId)}` : '/jobs';
+    case 'sos': return relatedId ? `/jobs/${encodeURIComponent(relatedId)}` : '/jobs';
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';

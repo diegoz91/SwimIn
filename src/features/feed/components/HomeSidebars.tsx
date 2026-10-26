@@ -83,7 +83,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     </>
                 ) : (
                     <>
-                        <RowLink to="/jobs" label="Le tue offerte" />
+                        <RowLink to="/jobs/annunci" label="I miei annunci" />
                         <RowLink to="/talenti" label="Cerca personale" />
                     </>
                 )}
@@ -249,7 +249,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                         {jobs.map((job) => (
                             <li key={job.$id}>
                                 <button
-                                    onClick={() => navigate('/jobs', { state: { selectedJobId: job.$id } })}
+                                    onClick={() => navigate(`/jobs/${job.$id}`)}
                                     className="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-piastrella"
                                 >
                                     <img src={job.facilityLogo || initialsAvatar(job.structureName)} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />

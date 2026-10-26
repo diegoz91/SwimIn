@@ -19,7 +19,9 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'connection':
             return { icon: 'users', tone: 'bg-sky-100 text-sky-600', href: '/network' };
         case 'application':
-            return { icon: 'briefcase', tone: 'bg-amber-100 text-amber-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
+            return { icon: 'briefcase', tone: 'bg-amber-100 text-amber-700', href: n.relatedId ? `/jobs/${n.relatedId}?candidati=nuove` : '/jobs/annunci' };
+        case 'application_update':
+            return { icon: 'check-circle', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs/candidature' };
         case 'hired':
             return { icon: 'sparkles', tone: 'bg-green-100 text-green-600', href: n.relatedId ? `/profile/${n.relatedId}` : '/jobs' };
         case 'endorsement':
@@ -39,7 +41,7 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'recommendation_request':
             return { icon: 'pencil', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/profile/${n.relatedId}?referenza=scrivi` : '/profile' };
         case 'job_alert':
-            return { icon: 'briefcase', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
+            return { icon: 'briefcase', tone: 'bg-corsia-100 text-corsia-700', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs' };
         case 'event':
             return { icon: 'calendar', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/eventi/${n.relatedId}` : '/eventi' };
         case 'repost':
@@ -49,9 +51,9 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
         case 'shift':
             return { icon: 'calendar', tone: 'bg-corsia-100 text-corsia-700', href: '/turni' };
         case 'sos':
-            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: n.relatedId ? `/jobs?annuncio=${n.relatedId}` : '/jobs' };
+            return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs' };
         case 'rejected':
-            return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: '/jobs' };
+            return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs/candidature' };
         default:
             return { icon: 'bell', tone: 'bg-slate-100 text-slate-600', href: '/' };
     }

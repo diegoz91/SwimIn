@@ -61,7 +61,8 @@ test('preferenze, destinazioni ed email', () => {
   assert.deepEqual(p.jobs, { push: true, email: true });
   assert.deepEqual(parsePrefs('rotto').connections, { push: true, email: true });
   assert.equal(targetUrl('like', 'p1'), '/post/p1');
-  assert.equal(targetUrl('sos', 'j1'), '/jobs?annuncio=j1');
+  assert.equal(targetUrl('sos', 'j1'), '/jobs/j1');
+  assert.equal(targetUrl('application', 'j1'), '/jobs/j1?candidati=nuove');
   assert.equal(targetUrl('message', 'anna'), '/messages?u=anna');
   const html = emailHtml({ title: '<b>', body: 'x & y', url: '/network', appUrl: 'https://swimin.it/' });
   assert.ok(html.includes('&lt;b&gt;') && html.includes('x &amp; y') && html.includes('https://swimin.it/network'));
