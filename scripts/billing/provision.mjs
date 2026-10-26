@@ -1,12 +1,13 @@
 /**
  * Prepara i prodotti di SwimIn Premium su Stripe e PayPal (idempotente):
- * prezzi e piani mensili/annuali per persone e strutture, e i webhook verso la Function.
+ * prezzi e piani mensili/annuali per professionisti, appassionati e strutture, e i webhook verso la Function.
  * Usato da setup-db.js quando in .env.setup ci sono le chiavi dei due servizi.
  */
-import { PRICES, TRIAL_DAYS } from '../../functions/api/src/billing.js';
+import { PLAN_KEYS, PRICES, TRIAL_DAYS, planName } from '../../functions/api/src/billing.js';
 
-const KEYS = ['person_month', 'person_year', 'structure_month', 'structure_year'];
-const LABEL = { person: 'SwimIn Premium', structure: 'SwimIn Premium Strutture' };
+// Prezzi predefiniti: se un amministratore li cambia dal pannello, la Function crea i nuovi prezzi da sé.
+const KEYS = PLAN_KEYS;
+const LABEL = { person: 'SwimIn Premium', enthusiast: 'SwimIn Premium Passione', structure: 'SwimIn Premium Strutture' };
 const STRIPE_EVENTS = ['checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid'];
 const PAYPAL_EVENTS = ['BILLING.SUBSCRIPTION.ACTIVATED', 'BILLING.SUBSCRIPTION.UPDATED', 'BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.SUSPENDED', 'BILLING.SUBSCRIPTION.EXPIRED', 'PAYMENT.SALE.COMPLETED'];
 
@@ -31,7 +32,7 @@ export async function provisionStripe(secretKey, { webhookUrl } = {}) {
         if (!res.ok) throw new Error(`Stripe ${path}: ${data?.error?.message || res.status}`);
         return data;
     };
-    const found = await call('GET', `/prices?active=true&limit=20&${KEYS.map((k) => `lookup_keys[]=swimin_${k}`).join('&')}`);
+    const found = await call('GET', `/prices?active=true&limit=50&${KEYS.map((k) => `lookup_keys[]=swimin_${k}`).join('&')}`);
     const prices = {};
     for (const key of KEYS) {
         const [audience, period] = key.split('_');
@@ -87,7 +88,7 @@ export async function provisionPaypal({ clientId, secret, mode, webhookUrl }) {
     for (const key of KEYS) {
         const [audience, period] = key.split('_');
         const amount = (PRICES[audience][period] / 100).toFixed(2);
-        const name = `${LABEL[audience]} ${period === 'month' ? 'mensile' : 'annuale'} ${amount} EUR`;
+        const name = planName(audience, period, PRICES[audience][period]);
         const existing = (plansList.plans || []).find((p) => p.name === name && p.status === 'ACTIVE');
         if (existing) {
             plans[key] = existing.id;

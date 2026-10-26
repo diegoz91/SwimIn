@@ -23,7 +23,8 @@ test('eventi con iscrizioni e lista d’attesa', async () => {
     async deleteRow({ tableId, rowId }) { delete col(tableId)[rowId]; },
   };
   const api = createApi(db, { endpoint: 'https://cloud.appwrite.io/v1', users: { delete: async () => {}, get: async () => ({ labels: [] }) } });
-  for (const id of ['org', 'a', 'b', 'c', 'd']) col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [] };
+  for (const id of ['org', 'a', 'b', 'c', 'd', 'e']) col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [] };
+  col('profiles').e.premiumUntil = new Date(Date.now() + 86400000).toISOString();
   const rejects = async (p, status) => { try { await p; assert.fail('doveva fallire'); } catch (e) { assert.equal(e.status, status, e.message); } };
   const notifs = (u) => Object.values(col('notifications')).filter((n) => n.userId === u && n.type === 'event').map((n) => n.content);
   const day = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
@@ -50,6 +51,14 @@ test('eventi con iscrizioni e lista d’attesa', async () => {
   await api.leaveSwimMeet('a', { meetId: ev.$id });
   assert.deepEqual([col('swim_meets')[ev.$id].participants, col('swim_meets')[ev.$id].waitlist], [['org', 'b', 'c'], ['d']]);
   assert.ok(notifs('c')[0].includes('Si è liberato un posto'));
+
+  // Premium: precedenza nella lista d'attesa, anche se arrivato dopo.
+  const small = await api.createSwimMeet('org', { ...base, title: 'Allenamento in vasca', type: 'allenamento', maxParticipants: 2 });
+  await api.joinSwimMeet('a', { meetId: small.$id });
+  await api.joinSwimMeet('c', { meetId: small.$id });
+  await api.joinSwimMeet('e', { meetId: small.$id });
+  await api.leaveSwimMeet('a', { meetId: small.$id });
+  assert.deepEqual([col('swim_meets')[small.$id].participants, col('swim_meets')[small.$id].waitlist], [['org', 'e'], ['c']]);
 
   // Modifica: solo l'organizzatore; più posti fanno entrare chi aspetta; il cambio d'orario avvisa gli iscritti.
   await rejects(api.updateSwimMeet('b', { meetId: ev.$id, time: '10:00' }), 403);

@@ -85,6 +85,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const [staff, setStaff] = useState<TeamMember[]>([]);
+    const [staffLimit, setStaffLimit] = useState<number | null>(null);
     const [isLoadingStaff, setIsLoadingStaff] = useState(false);
     const [announcements, setAnnouncements] = useState<SquadAnnouncement[]>([]);
     const [shifts, setShifts] = useState<SquadShift[]>([]);
@@ -143,6 +144,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             .then((board) => {
                 if (!alive) return;
                 setStaff(board.members || []);
+                setStaffLimit(board.staffLimit ?? null);
                 setAnnouncements(board.announcements || []);
                 setShifts(board.shifts || []);
                 setChatUnread(board.chatUnread || 0);
@@ -728,6 +730,13 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     </div>
                                 ) : staff.length > 0 ? (
                                     <div className="divide-y divide-slate-100">
+                                        {staffLimit !== null && (
+                                            <p className={`px-6 py-3 text-sm flex flex-wrap items-center gap-x-2 gap-y-1 ${staff.length >= staffLimit ? 'bg-oro-50 text-slate-800' : 'text-slate-600'}`}>
+                                                <span className="font-semibold tabular-nums">{staff.length} di {staffLimit} persone</span>
+                                                <span>con il piano Base.</span>
+                                                <Link to="/premium" className="font-semibold text-oro-700 hover:underline py-1 -my-1">Squadra senza limiti con Premium</Link>
+                                            </p>
+                                        )}
                                         {staff.map(member => {
                                             const name = `${member.firstName} ${member.lastName}`.trim();
                                             const certs: Certification[] = (member.certificationsList || []).flatMap((c) => {

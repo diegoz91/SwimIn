@@ -7,8 +7,23 @@ import { databaseService, type BillingStatus } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
-import { PLAN_FEATURES, euro } from '@/utils/premium';
+import { PLAN_FEATURES, PLAN_NAME, euro, type Audience } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
+
+const HERO: Record<Audience, { title: string; text: string }> = {
+    person: {
+        title: 'Fatti trovare dalle piscine giuste.',
+        text: 'Candidature in cima alla lista, più visibilità nelle ricerche delle strutture, messaggi diretti, tutte le visite al profilo e statistiche.',
+    },
+    enthusiast: {
+        title: 'Vivi il nuoto in prima fila.',
+        text: 'Precedenza nelle liste d’attesa degli eventi, messaggi diretti, tutte le visite al profilo, statistiche dei tuoi post e il badge sul profilo.',
+    },
+    structure: {
+        title: 'Trova personale prima degli altri.',
+        text: 'Annunci senza limiti e in evidenza, SOS in tutta la regione, area staff senza limiti, ricerca avanzata, messaggi diretti e statistiche della pagina.',
+    },
+};
 
 const SOURCE: Record<string, string> = { trial: 'prova gratuita', stripe: 'carta', paypal: 'PayPal', admin: 'omaggio SwimIn' };
 
@@ -132,16 +147,10 @@ const Premium: React.FC = () => {
                 <div className="absolute inset-x-0 bottom-0 lane-rope opacity-60" aria-hidden="true" />
                 <div className="flex items-center gap-3">
                     <PremiumBadge size="md" />
-                    <span className="font-semibold text-oro-300">SwimIn Premium</span>
+                    <span className="font-semibold text-oro-300">SwimIn {PLAN_NAME[status.audience]}</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl font-bold mt-4 leading-[1.05] max-w-2xl">
-                    {status.audience === 'structure' ? 'Trova personale prima degli altri.' : 'Fatti trovare dalle piscine giuste.'}
-                </h1>
-                <p className="text-white/80 mt-3 max-w-xl">
-                    {status.audience === 'structure'
-                        ? 'Annunci senza limiti e in evidenza, ricerca avanzata dei professionisti disponibili, messaggi diretti e statistiche della pagina.'
-                        : 'Candidature in cima alla lista, messaggi diretti, tutte le visite al profilo, statistiche e visite anonime.'}
-                </p>
+                <h1 className="text-4xl sm:text-5xl font-bold mt-4 leading-[1.05] max-w-2xl">{HERO[status.audience].title}</h1>
+                <p className="text-white/80 mt-3 max-w-xl">{HERO[status.audience].text}</p>
             </section>
 
             {status.premium && (
@@ -166,7 +175,7 @@ const Premium: React.FC = () => {
                                 Disdici il rinnovo
                             </button>
                         )}
-                        <button onClick={() => navigate('/profile')} className="px-4 py-2 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900">Vai alle statistiche</button>
+                        <button onClick={() => navigate('/statistiche')} className="px-4 py-2 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900">Vai alle statistiche</button>
                     </div>
                 </section>
             )}
@@ -182,7 +191,7 @@ const Premium: React.FC = () => {
                                 onClick={() => setPeriod(p)}
                                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${period === p ? 'bg-abisso text-white' : 'text-slate-600 hover:text-abisso'}`}
                             >
-                                {p === 'month' ? 'Mensile' : `Annuale · risparmi ${saving}%`}
+                                {p === 'month' ? 'Mensile' : saving > 0 ? `Annuale · risparmi ${saving}%` : 'Annuale'}
                             </button>
                         ))}
                     </div>
@@ -210,7 +219,7 @@ const Premium: React.FC = () => {
 
                 <section className="rounded-2xl border-2 border-oro-500 bg-white p-6 flex flex-col shadow-lift relative">
                     <span className="absolute -top-3 left-6 bg-oro-700 text-white text-xs font-semibold px-3 py-1 rounded-full">Consigliato</span>
-                    <h2 className="text-2xl font-bold text-abisso flex items-center gap-2">Premium <PremiumBadge /></h2>
+                    <h2 className="text-2xl font-bold text-abisso flex items-center gap-2">{PLAN_NAME[status.audience]} <PremiumBadge /></h2>
                     <p className="text-3xl font-bold text-abisso mt-2">
                         {euro(price)} <span className="text-base font-semibold text-slate-500">/ {period === 'month' ? 'mese' : 'anno'}</span>
                     </p>

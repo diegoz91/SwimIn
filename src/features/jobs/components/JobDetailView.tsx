@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Icon } from '@/components/ui/Icon';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
-import { databaseService } from '@/services/database';
+import { ApiError, databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { initialsAvatar } from '@/utils/avatar';
@@ -104,15 +104,17 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
     // 💡 FUNZIONE DI CONFERMA ASSUNZIONE DALLA MODALE
     const confirmHireCandidate = async () => {
         if (!candidateToHire) return;
-        const { appId, applicantId, applicantName } = candidateToHire;
+        const { appId, applicantName } = candidateToHire;
         
-        const success = await databaseService.hireCandidate(appId, localJob.$id, localJob.structureId, applicantId);
-        if (success) {
+        try {
+            await databaseService.hireCandidate(appId);
             setApplicants(prev => prev.map(a => a.$id === appId ? { ...a, status: 'hired' } : a));
             setLocalJob(prev => ({ ...prev, isActive: false }));
             showToast(`Hai assunto ${applicantName}! Benvenuto nel Team.`, 'success');
-        } else {
-            showToast('Errore durante l\'assunzione.', 'error');
+        } catch (err) {
+            console.error('hireCandidate:', err);
+            // Limite del piano Base: l'invito a Premium si apre da solo, con la spiegazione.
+            if (!(err instanceof ApiError && err.code === 'premium_required')) showToast(err instanceof Error ? err.message : 'Errore durante l\'assunzione.', 'error');
         }
         setCandidateToHire(null);
     };
@@ -239,7 +241,7 @@ export const JobDetailView: React.FC<JobDetailViewProps> = ({
                     ) : (
                         <div className="space-y-4">
                             {/* Candidati Premium in cima alla lista, come su LinkedIn. */}
-                            {[...applicants].sort((a, b) => Number(isPremium(b.applicantProfile)) - Number(isPremium(a.applicantProfile))).map(app => {
+                            {[...applicants].sort((a, b) => Number(!!b.priority || isPremium(b.applicantProfile)) - Number(!!a.priority || isPremium(a.applicantProfile))).map(app => {
                                 const prof = app.applicantProfile;
                                 if (!prof) return null;
                                 const match = getSwimMatchAnalysis(prof, localJob);

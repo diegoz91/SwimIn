@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { BASE_STAFF, isPremium } from './billing.js';
 
 /**
  * Area staff di una struttura: bacheca comunicazioni, turni, membri.
@@ -77,8 +78,15 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         list(C.shifts, [Query.equal('structureId', structureId), Query.greaterThanEqual('date', isoDay(Date.now() - 7 * 86_400_000)), Query.orderAsc('date'), Query.limit(200)]),
         unreadChat(structureId, me).catch(() => 0),
       ]);
+      // Piano Base: area staff fino a BASE_STAFF persone (basta un amministratore Premium per toglierlo).
+      let staffLimit = null;
+      if (role === 'admin') {
+        const admins = await Promise.all(team.admins.slice(0, 10).map((id) => find(C.profiles, id)));
+        staffLimit = admins.some((p) => isPremium(p)) ? null : BASE_STAFF;
+      }
       return {
         role,
+        staffLimit,
         members: members.map(memberCard),
         announcements: announcements.documents,
         // Lo staff vede tutti i turni della squadra (serve per gli scambi), non solo i propri.

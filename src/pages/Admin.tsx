@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useBlocks } from '@/context/BlocksContext';
@@ -9,8 +9,9 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
 import type { Certification } from '@/types/types';
+import { AdminPlans } from '@/features/admin/AdminPlans';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'errori' | 'verifiche';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -30,7 +31,16 @@ const Admin: React.FC = () => {
     usePageTitle('Amministrazione');
     const { isAdmin } = useBlocks();
     const { showToast } = useToast();
-    const [tab, setTab] = useState<Tab>('panoramica');
+    // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
+    const [tab, setTab] = useState<Tab>(() => {
+        const t = new URLSearchParams(window.location.search).get('tab');
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche'] as const).find((x) => x === t) ?? 'panoramica';
+    });
+    const tabsRef = useRef<HTMLDivElement>(null);
+    // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
+    useEffect(() => {
+        tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }, [tab]);
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [reportStatus, setReportStatus] = useState<'open' | 'resolved' | 'dismissed'>('open');
     const [reports, setReports] = useState<AdminReport[] | null>(null);
@@ -117,13 +127,14 @@ const Admin: React.FC = () => {
         { id: 'segnalazioni', label: 'Segnalazioni', badge: overview?.openReports },
         { id: 'verifiche', label: 'Brevetti', badge: overview?.pendingCerts },
         { id: 'utenti', label: 'Utenti' },
+        { id: 'piani', label: 'Piani e prezzi' },
         { id: 'errori', label: 'Errori', badge: overview?.errors24h },
     ];
 
     return (
         <div className="pt-4 max-w-5xl mx-auto w-full">
             <h1 className="text-4xl font-bold text-abisso leading-none">Amministrazione</h1>
-            <div className="flex gap-2 overflow-x-auto mt-5 mb-6 pb-1" role="tablist">
+            <div ref={tabsRef} className="flex gap-2 overflow-x-auto mt-5 mb-6 pb-1" role="tablist">
                 {TABS.map((t) => (
                     <button
                         key={t.id}
@@ -212,6 +223,8 @@ const Admin: React.FC = () => {
             )}
 
             {tab === 'verifiche' && <AdminVerifications onCountChange={onCertCount} />}
+
+            {tab === 'piani' && <AdminPlans />}
 
             {tab === 'utenti' && (
                 <>

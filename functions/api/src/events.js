@@ -3,6 +3,8 @@
  * L'organizzatore è chi chiama; iscrizioni con posti limitati e lista d'attesa:
  * quando qualcuno rinuncia, il primo in attesa entra e riceve una notifica.
  */
+import { isPremium } from './billing.js';
+
 export const EVENT_TYPES = ['allenamento', 'gara', 'corso', 'open_day', 'webinar', 'incontro', 'altro'];
 const TYPE_LABEL = { allenamento: "L'allenamento", gara: 'La gara', corso: 'Il corso', open_day: "L'open day", webinar: 'Il webinar', incontro: "L'incontro", altro: "L'evento" };
 
@@ -73,10 +75,19 @@ export function eventActions({ assertClean = () => {}, get, list, listAll, creat
     return out;
   };
 
-  /** Chi è in attesa entra finché ci sono posti; ognuno riceve una notifica. */
+  /**
+   * Chi è in attesa entra finché ci sono posti; ognuno riceve una notifica.
+   * Gli iscritti Premium hanno la precedenza (tra loro, e tra gli altri, vale l'ordine di arrivo).
+   */
   const fillFromWaitlist = async (meet) => {
     let participants = meet.participants || [];
     let waitlist = meet.waitlist || [];
+    const free = meet.maxParticipants ? meet.maxParticipants - participants.length : waitlist.length;
+    if (free > 0 && waitlist.length > free) {
+      const profiles = await listAll(C.profiles, [Query.equal('$id', waitlist.slice(0, 100))]).catch(() => []);
+      const premium = new Set(profiles.filter((p) => isPremium(p)).map((p) => p.$id));
+      waitlist = [...waitlist.filter((id) => premium.has(id)), ...waitlist.filter((id) => !premium.has(id))];
+    }
     const promoted = [];
     while (waitlist.length && (!meet.maxParticipants || participants.length < meet.maxParticipants)) {
       const next = waitlist[0];

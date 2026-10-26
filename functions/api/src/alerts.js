@@ -2,7 +2,10 @@
  * Avvisi di lavoro: chi cerca lavoro salva una ricerca (parole chiave, provincia,
  * contratto) e riceve una notifica appena una struttura pubblica un annuncio adatto.
  */
-export const MAX_ALERTS = 10;
+import { BASE_ALERTS, PREMIUM_ALERTS, isPremium } from './billing.js';
+
+/** Al massimo PREMIUM_ALERTS avvisi (Premium), BASE_ALERTS con il piano Base. */
+export const MAX_ALERTS = PREMIUM_ALERTS;
 const MAX_NOTIFIED_PER_JOB = 500;
 
 const norm = (s) => String(s || '').toLocaleLowerCase('it-IT').normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -43,6 +46,9 @@ export function alertActions({ find, list, listAll, create, remove, fail, notify
       const alert = clean(data);
       const mine = await listAll(C.jobAlerts, [Query.equal('userId', me)]);
       if (mine.length >= MAX_ALERTS) fail(409, `Puoi avere al massimo ${MAX_ALERTS} avvisi: eliminane uno.`);
+      if (!isPremium(profile) && mine.length >= BASE_ALERTS) {
+        fail(402, `Con il piano Base puoi salvare ${BASE_ALERTS} avvisi di lavoro. Eliminane uno o passa a Premium per averne fino a ${PREMIUM_ALERTS}.`, 'premium_required');
+      }
       const same = mine.find((a) => a.query === alert.query && (a.province || '') === alert.province && (a.contractType || '') === alert.contractType && !!a.sosOnly === alert.sosOnly);
       if (same) return same;
       return create(C.jobAlerts, { userId: me, ...alert }, [Permission.read(Role.user(me))]);

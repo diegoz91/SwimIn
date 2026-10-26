@@ -5,6 +5,7 @@ import { getPostContent } from '@/utils/postMedia';
 import { requestPremium } from '@/services/premiumPrompt';
 import { isJobOpen } from '@/utils/jobs';
 import { APPWRITE_CONFIG } from '@/config/constants';
+import type { Audience } from '@/utils/premium';
 import type { 
     UserProfile, 
     StructureProfile, 
@@ -156,6 +157,25 @@ export class ApiOutdatedError extends Error {
 }
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
+export interface AdminPlan {
+    key: string;
+    audience: Audience;
+    period: 'month' | 'year';
+    /** Centesimi di euro, IVA inclusa. */
+    amount: number;
+    defaultAmount: number;
+    updatedAt: string | null;
+    subscribers: number;
+    stripe: boolean;
+    paypal: boolean;
+}
+export interface AdminPlans {
+    plans: AdminPlan[];
+    providers: { stripe: boolean; paypal: boolean };
+    limits: { min: number; max: number };
+    changed?: string[];
+    warnings?: string[];
+}
 export interface AdminOverview { people: number; structures: number; posts: number; openReports: number; errors24h: number; pendingCerts: number }
 export interface AdminReport {
     $id: string;
@@ -181,7 +201,7 @@ export interface BillingStatus {
     source: 'trial' | 'stripe' | 'paypal' | 'admin' | null;
     trialAvailable: boolean;
     trialDays: number;
-    audience: 'person' | 'structure';
+    audience: Audience;
     prices: { month: number; year: number };
     providers: { stripe: boolean; paypal: boolean };
     inmailCredits: number;
@@ -238,6 +258,8 @@ export interface TeamMember {
 }
 export interface TeamBoard {
     role: 'admin' | 'staff';
+    /** Solo per gli amministratori: persone massime nello staff con il piano Base (null = senza limiti). */
+    staffLimit?: number | null;
     members: TeamMember[];
     announcements: SquadAnnouncement[];
     shifts: SquadShift[];
@@ -857,6 +879,13 @@ export const databaseService = {
     async adminGrantPremium(userId: string, days: number) {
         return await callApi<{ premiumUntil: string }>('adminGrantPremium', { userId, days });
     },
+    async adminGetPlans() {
+        return await callApi<AdminPlans>('adminGetPlans');
+    },
+    /** Nuovi prezzi in centesimi, per chiave di piano (person_month, enthusiast_year…). */
+    async adminUpdatePlans(prices: Record<string, number>) {
+        return await callApi<AdminPlans>('adminUpdatePlans', { prices });
+    },
 
     /** Profili per id (fino a 100), es. l'elenco dei collegamenti. */
     async getProfilesByIds(ids: string[]): Promise<Profile[]> {
@@ -938,12 +967,15 @@ export const databaseService = {
     async getJobApplications(jobId: string) {
         try {
             const response = await databases.listDocuments<Application>(databaseId, collections.applications, [
-                Query.equal('jobId', jobId), 
-                Query.orderDesc('$createdAt')
+                Query.equal('jobId', jobId),
+                Query.orderDesc('$createdAt'),
+                Query.limit(200),
             ]);
-            return response.documents;
-        } catch (error) { 
-            return []; 
+            // Candidati Premium in cima (il campo lo scrive solo la Function), poi dal più recente.
+            return [...response.documents].sort((a, b) => Number(!!b.priority) - Number(!!a.priority));
+        } catch (error) {
+            console.warn('Candidature:', error);
+            return [];
         }
     },
 
@@ -1323,14 +1355,10 @@ export const databaseService = {
         }
     },
 
-    async hireCandidate(applicationId: string, _jobId?: string, _structureId?: string, _applicantId?: string) {
-        try {
-            await callApi('hireCandidate', { applicationId });
-            return true;
-        } catch (error) {
-            console.error('hireCandidate:', error);
-            return false;
-        }
+    /** Assunzione: il candidato entra nello staff. Lancia l'errore del server (es. limite staff del piano Base). */
+    async hireCandidate(applicationId: string) {
+        await callApi('hireCandidate', { applicationId });
+        return true;
     },
 
 

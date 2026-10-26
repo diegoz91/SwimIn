@@ -31,7 +31,7 @@ test('avvisi di lavoro e annunci pubblici', async () => {
   };
   const api = createApi(db, { endpoint: 'https://cloud.appwrite.io/v1', users: { delete: async () => {}, get: async () => ({ labels: [] }) } });
   const P = (id, extra = {}) => (col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [], ...extra });
-  P('anna'); P('bob'); P('carla'); P('lido', { userType: 'structure', structureName: 'Lido' });
+  P('anna'); P('bob', { premiumUntil: new Date(Date.now() + 86400000).toISOString() }); P('carla'); P('lido', { userType: 'structure', structureName: 'Lido' });
   const rejects = async (p, status) => { try { await p; assert.fail('doveva fallire'); } catch (e) { assert.equal(e.status, status, e.message); } };
   const alerts = (u) => Object.values(col('notifications')).filter((n) => n.userId === u && n.type === 'job_alert');
 
@@ -43,7 +43,11 @@ test('avvisi di lavoro e annunci pubblici', async () => {
   await api.createJobAlert('bob', { query: 'istruttore' });
   await api.createJobAlert('carla', { province: 'MI', contractType: 'stagionale' });
   for (let i = 0; i < 9; i++) await api.createJobAlert('bob', { query: `parola${i}` });
-  await rejects(api.createJobAlert('bob', { query: 'troppi' }), 409);
+  await rejects(api.createJobAlert('bob', { query: 'troppi' }), 409); // Premium: al massimo 10
+  // Base: al massimo 2 avvisi, poi l'invito a Premium.
+  const a2 = await api.createJobAlert('anna', { query: 'pallanuoto' });
+  await rejects(api.createJobAlert('anna', { query: 'sincro' }), 402);
+  await api.deleteJobAlert('anna', { alertId: a2.$id });
 
   const job = await api.createJob('lido', { structureId: 'lido', title: 'Assistente bagnanti turni serali', description: 'Vasca coperta da 25 m, brevetto FIN richiesto.', role: 'assistente bagnanti', contractType: 'part-time', city: 'Milano', province: 'MI' });
   assert.equal(job.alerted, 1);
