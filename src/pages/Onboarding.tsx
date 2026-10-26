@@ -20,6 +20,7 @@ import { check, comuneOf, isoDate, maxLength, minLength, province as provinceRul
 import { addDaysISO, todayISO } from '@/utils/dates';
 import { takePendingJobPath } from '@/utils/pendingJob';
 import { useMyResume } from '@/hooks/useMyResume';
+import { UploadProgress } from '@/components/common/UploadProgress';
 import { resumeFileError } from '@/services/resume';
 
 const inputClass =
@@ -314,7 +315,7 @@ const Onboarding: React.FC = () => {
 
 /** Passo facoltativo: il CV in PDF, usato poi per le candidature rapide. */
 const OnboardingResume: React.FC = () => {
-    const { resume, busy, upload } = useMyResume();
+    const { resume, busy, progress, upload } = useMyResume();
     const { showToast } = useToast();
     const inputRef = React.useRef<HTMLInputElement>(null);
     const [dragging, setDragging] = useState(false);
@@ -334,6 +335,7 @@ const OnboardingResume: React.FC = () => {
             <h1 className="text-4xl font-bold text-abisso leading-none">Hai un CV pronto?</h1>
             <p className="text-slate-600">Caricalo una volta: lo alleghi alle candidature con un tocco. Lo vedi solo tu e le strutture a cui ti candidi. Puoi saltare questo passo e aggiungerlo dal profilo.</p>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void handle(e.target.files?.[0]); e.target.value = ''; }} />
+            {progress !== null && <UploadProgress value={progress} label="Caricamento del CV" />}
             {resume ? (
                 <div className="flex items-center gap-3 p-4 rounded-2xl border-2 border-cloro-300 bg-cloro-50">
                     <Icon type="check-circle" className="w-6 h-6 text-cloro-700 flex-shrink-0" />
