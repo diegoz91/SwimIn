@@ -111,6 +111,7 @@ const schema = [
             str('address', 255), str('postalCode', 10), str('vatNumber', 20),
             int('poolLength'), int('lanes'), str('poolSetting', 20), // 'coperta' | 'scoperta' | 'entrambe'
             str('services', 60, { array: true }),
+            str('openingHours', 40, { array: true }), // 7 giorni da lunedì: '' non indicato, 'chiuso', '07:00-13:00' o '07:00-13:00,15:00-22:00'
             // Persone: lavoro nel nuoto o appassionato (allievi, master, community)
             str('personType', 20), str('sports', 60, { array: true }),
             // Recensioni ricevute (strutture): media = ratingSum / ratingCount

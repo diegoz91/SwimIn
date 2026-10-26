@@ -75,6 +75,23 @@ export const validators = {
       return [null, 'Indirizzo web non valido.'];
     }
   },
+  /** Orari di apertura: 7 giorni da lunedì; per ognuno '', 'chiuso' o una/due fasce "07:00-13:00,15:00-22:00". */
+  openingHours(v) {
+    if (v == null) return [[], null];
+    if (!Array.isArray(v) || (v.length !== 0 && v.length !== 7)) return [null, 'Orari di apertura non validi.'];
+    const range = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-4]):[0-5]\d$/;
+    const out = [];
+    for (const raw of v) {
+      const day = String(raw ?? '').trim().toLowerCase();
+      if (day === '' || day === 'chiuso') { out.push(day); continue; }
+      const parts = day.split(',').map((p) => p.trim());
+      if (parts.length > 2 || !parts.every((p) => range.test(p))) return [null, 'Orari di apertura: usa fasce come 07:00-13:00 (al massimo due al giorno).'];
+      const mins = parts.map((p) => p.split('-').map((t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))));
+      if (mins.some(([a, b]) => b <= a) || (mins[1] && mins[1][0] < mins[0][1])) return [null, 'Orari di apertura: ogni fascia deve finire dopo l’inizio, senza sovrapposizioni.'];
+      out.push(parts.join(','));
+    }
+    return [out, null];
+  },
   vat(v) {
     if (v == null || v === '') return ['', null];
     const n = String(v).trim().replace(/^IT/i, '').replace(/\s/g, '');
@@ -288,6 +305,7 @@ export function profileActions({ find, get, create, update, remove = async () =>
         out.poolSetting = data.poolSetting || null;
       }
       if (has('services')) out.services = take(validators.stringList(data.services, 'Attività', { maxItems: 20, maxLen: 60 }));
+      if (has('openingHours')) out.openingHours = take(validators.openingHours(data.openingHours));
     }
     return out;
   };

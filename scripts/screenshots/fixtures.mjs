@@ -112,6 +112,7 @@ const profiles = [
         bio: 'Vasca olimpionica scoperta, vasca coperta da 25 m e vasca didattica. Corsi per tutte le età.',
         address: 'Piazza Lombardia 1', postalCode: '20131', phone: '02 1234567', website: 'https://piscinalido.example',
         poolLength: 50, lanes: 8, poolSetting: 'entrambe', ratingSum: 13, ratingCount: 3, services: ['Scuola nuoto', 'Nuoto libero', 'Agonismo', 'Acquafitness', 'Corsi di salvamento'],
+        openingHours: ['07:00-22:00', '07:00-22:00', '07:00-13:00,15:00-22:00', '07:00-22:00', '07:00-22:00', '09:00-19:00', 'chiuso'],
     }),
     doc('profiles', 'u_aquae', {
         userId: 'u_aquae', userType: 'structure', email: 'staff@aquae.example', structureName: 'Aquae Sport Center',

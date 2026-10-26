@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
 import type { StructureProfile, Job, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type TeamMember } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -8,14 +8,14 @@ import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { FollowButton } from '@/components/common/FollowButton';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { StaffChat } from '@/features/team/StaffChat';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
-import { contractLabel } from '@/data/swimming';
+import { contractLabel, jobRoleLabel } from '@/data/swimming';
 import { ProfileEditModal } from './ProfileEditModal';
 import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
-import { PoolSection } from './PoolSection';
+import { StructureInfo, openStatusOf } from './StructureInfo';
 import { ReviewsSection } from '@/features/reviews/ReviewsSection';
 import { Stars } from '@/features/reviews/Stars';
 import { ratingOf } from '@/utils/profile';
@@ -29,6 +29,9 @@ import { isPremium } from '@/utils/premium';
 
 // Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
 const ApplicationsChart = lazy(() => import('./ApplicationsChart'));
+
+type FacilityTab = 'info' | 'jobs' | 'staff' | 'analytics';
+const TAB_SLUG: Record<FacilityTab, string> = { info: 'informazioni', jobs: 'posizioni', staff: 'staff', analytics: 'statistiche' };
 
 interface FacilityViewProps {
     facility: StructureProfile | Facility;
@@ -71,12 +74,21 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [followersCount, setFollowersCount] = useState(0);
     
     // Da una notifica della chat staff (?area=chat-staff) si apre direttamente la chat.
-    const location = useLocation();
-    const area = new URLSearchParams(location.search).get('area');
+    const [params, setParams] = useSearchParams();
+    const area = params.get('area');
     const openChat = area === 'chat-staff';
     // ?area=staff (da "Vai all'area staff" dopo un'assunzione) apre l'area staff.
     const openStaff = openChat || area === 'staff';
-    const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>(openStaff ? 'staff' : 'info');
+    // Scheda nell'indirizzo (?scheda=), così il tasto indietro e i link funzionano.
+    const tabParam = params.get('scheda');
+    const activeTab: FacilityTab = openStaff ? 'staff' : (Object.entries(TAB_SLUG).find(([, slug]) => slug === tabParam)?.[0] as FacilityTab) || 'info';
+    const setActiveTab = (t: FacilityTab) => {
+        const next = new URLSearchParams(params);
+        next.delete('area');
+        if (t === 'info') next.delete('scheda');
+        else next.set('scheda', TAB_SLUG[t]);
+        setParams(next, { replace: true });
+    };
     const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'radar'>(openChat ? 'chat' : 'bacheca');
     const [chatUnread, setChatUnread] = useState(0);
     const staffAreaRef = React.useRef<HTMLDivElement>(null);
@@ -302,258 +314,185 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         return diffDays <= 30; 
     };
 
-    const sosJobs = localJobs.filter(j => j.isSOS && isJobOpen(j));
-    const regularJobs = localJobs.filter(j => !j.isSOS && j.isActive);
+    const sosJobs = localJobs.filter((j) => j.isSOS && isJobOpen(j));
+    const regularJobs = localJobs.filter((j) => !j.isSOS && isJobOpen(j));
+    const openPositions = [...sosJobs, ...regularJobs];
+    const status = openStatusOf(facility);
+    const rating = ratingOf(facility as StructureProfile);
+
+    const share = async () => {
+        const url = `${window.location.origin}/u/${facilityId}`;
+        try {
+            if (navigator.share) await navigator.share({ title: `${structureName} su SwimIn`, url });
+            else {
+                await navigator.clipboard.writeText(url);
+                showToast('Link della pagina copiato.', 'success');
+            }
+        } catch (err) {
+            if ((err as Error)?.name !== 'AbortError') console.error('Condivisione:', err);
+        }
+    };
+
+    const TABS: { id: FacilityTab; label: string; icon?: IconType; badge?: number; show: boolean }[] = [
+        { id: 'info', label: 'Informazioni', show: true },
+        { id: 'jobs', label: 'Posizioni aperte', badge: openPositions.length, show: true },
+        { id: 'staff', label: isAdmin ? 'Gestione staff' : 'Area staff', icon: 'shield', badge: chatUnread || undefined, show: isAdmin || isStaff },
+        { id: 'analytics', label: 'Statistiche', icon: 'chart', show: !!isAdmin },
+    ];
 
     return (
-        <div className="max-w-5xl mx-auto w-full pb-8 animate-in fade-in duration-500">
+        <div className="max-w-5xl mx-auto w-full pb-8">
             <div className="mb-4 flex items-center justify-between gap-3">
-            <button 
-                onClick={onBack} 
-                className="text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
-            >
-                <Icon type="arrow-left" className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
-                Torna indietro
-            </button>
-                <button
-                    onClick={async () => {
-                        const url = `${window.location.origin}/u/${facilityId}`;
-                        try {
-                            if (navigator.share) await navigator.share({ title: `${structureName} su SwimIn`, url });
-                            else { await navigator.clipboard.writeText(url); showToast('Link della pagina copiato.', 'success'); }
-                        } catch (err) {
-                            if ((err as Error)?.name !== 'AbortError') console.error('Condivisione:', err);
-                        }
-                    }}
-                    className="bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-full hover:bg-slate-50 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
-                >
+                <button onClick={onBack} className="py-1 -my-1 inline-flex items-center gap-1.5 text-sm font-semibold text-corsia-700 hover:text-corsia-900">
+                    <Icon type="arrow-left" className="w-4 h-4" /> Indietro
+                </button>
+                <button onClick={share} className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-1.5">
                     <Icon type="share" className="w-4 h-4" /> Condividi
                 </button>
             </div>
-            
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                <div className="h-48 sm:h-64 relative bg-gradient-to-br from-blue-700 via-sky-600 to-cyan-500">
+
+            <header className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+                <div className="h-36 sm:h-56 relative bg-gradient-to-br from-corsia-800 via-corsia-600 to-cloro-500">
                     {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" loading="lazy" />}
                     {isAdmin && (
-                        <ImageUploadButton
-                            kind="cover"
-                            currentUrl={coverImage}
-                            onUploaded={(url) => saveImage('cover', url)}
-                            label="Cambia immagine di copertina"
-                            className="absolute top-3 right-3 px-3 py-2"
-                        />
+                        <ImageUploadButton kind="cover" currentUrl={coverImage} onUploaded={(url) => saveImage('cover', url)} label="Cambia immagine di copertina" className="absolute top-3 right-3 px-3 py-2" />
                     )}
                 </div>
-                <div className="px-6 pb-6 relative">
-                    <div className="flex flex-wrap justify-between items-end gap-3 -mt-12 sm:-mt-16 mb-4">
+                <div className="px-5 sm:px-7 pb-5">
+                    <div className="flex flex-wrap items-end justify-between gap-3 -mt-10 sm:-mt-14">
                         <div className="relative flex-shrink-0">
-                            <img src={displayLogo} alt={structureName} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
-                            {isAdmin && (
-                                <ImageUploadButton
-                                    kind="avatar"
-                                    currentUrl={logo}
-                                    onUploaded={(url) => saveImage('logo', url)}
-                                    label="Cambia logo"
-                                    className="absolute -bottom-1 -right-1 w-9 h-9"
-                                />
-                            )}
+                            <img src={displayLogo} alt="" className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-lift bg-white" />
+                            {isAdmin && <ImageUploadButton kind="avatar" currentUrl={logo} onUploaded={(url) => saveImage('logo', url)} label="Cambia logo" className="absolute -bottom-1 -right-1 w-9 h-9" />}
                         </div>
-                        
-                        {/* 💡 PULSANTE "SEGUI PAGINA" FUNZIONANTE */}
-                        {!isAdmin && !isLegacyStructure && (
-                            <button 
-                                onClick={handleToggleFollow}
-                                className={`font-bold py-2.5 px-6 rounded-full transition shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 flex items-center gap-2 ${isFollowing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:ring-slate-500' : 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500'}`}
-                            >
-                                {isFollowing ? <><Icon type="check-double" className="w-4 h-4"/> Segui già</> : <><Icon type="plus" className="w-4 h-4"/> Segui</>}
-                            </button>
-                        )}
-
-                        {/* Fallback per Profili Struttura Legacy Phase 1 */}
-                        {!isAdmin && isLegacyStructure && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="py-2.5 px-5 rounded-full font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
-                                    <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
-                                </button>
-                                <ConnectButton profileId={facilityId} />
-                                <FollowButton profileId={facilityId} />
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">{structureName}{isPremium(facility) && <PremiumBadge size="md" />}</h1>
-                            {('isOnline' in facility) && facility.isOnline && (
-                                <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-sm border border-green-200 animate-in zoom-in" title="Struttura attualmente online">
-                                    <span className="relative flex h-2.5 w-2.5">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                                    </span>
-                                    Online
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-lg text-slate-600 font-medium mt-1">{structureType || 'Struttura sportiva'}</p>
-                        {ratingOf(facility as StructureProfile) && (
-                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }} className="py-1 mt-2 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-abisso">
-                                <Stars value={ratingOf(facility as StructureProfile)!.average} />
-                                <span className="font-semibold text-abisso">{ratingOf(facility as StructureProfile)!.average.toLocaleString('it-IT', { minimumFractionDigits: 1 })}</span>
-                                <span>({ratingOf(facility as StructureProfile)!.count})</span>
-                            </button>
-                        )}
-                        
-                        <div className="flex flex-wrap items-center gap-4 mt-4 text-sm font-semibold text-slate-500">
-                            <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                                <Icon type="location" className="w-4 h-4 text-slate-400" />
-                                {city}{province ? ` (${province.toUpperCase()})` : ''}
-                            </span>
-                            {facility.phone && (
-                                <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
-                                    <Icon type="phone" className="w-4 h-4" /> {facility.phone}
-                                </a>
-                            )}
-                            {facility.website && (
-                                <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 flex items-center gap-1.5 text-corsia-700 hover:underline">
-                                    <Icon type="globe" className="w-4 h-4" /> {facility.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-                                </a>
-                            )}
-                            <span className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 text-blue-700">
-                                <Icon type="users" className="w-4 h-4" />
-                                {/* 💡 Stampa il counter dei veri Followers */}
-                                {followersCount} {isLegacyStructure ? (followersCount === 1 ? 'collegamento' : 'collegamenti') : 'follower'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="border-t border-slate-100 bg-slate-50 flex overflow-x-auto hide-scrollbar-mobile">
-                    <button onClick={() => setActiveTab('info')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 ${activeTab === 'info' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                        Informazioni
-                    </button>
-                    <button onClick={() => setActiveTab('jobs')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'jobs' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                        Posizioni aperte <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs">{localJobs.filter(j => j.isActive).length}</span>
-                    </button>
-                    {/* 💡 ACCESSO AREA TEAM PER ADMIN E STAFF! */}
-                    {(isAdmin || isStaff) && (
-                        <button onClick={() => setActiveTab('staff')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'staff' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                            <Icon type="shield" className="w-4 h-4" /> {isAdmin ? 'Gestione staff' : 'Area staff'}
-                        </button>
-                    )}
-                    {isAdmin && (
-                        <button onClick={() => setActiveTab('analytics')} className={`px-6 py-4 font-bold text-sm outline-none transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'analytics' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
-                            <Icon type="star" className="w-4 h-4" /> Statistiche
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            <div className="animate-in fade-in duration-300">
-                
-                {/* 1. INFO TAB */}
-                {activeTab === 'info' && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <Icon type="info" className="w-5 h-5 text-blue-600" />
-                                Chi siamo
-                            </h2>
-                            {isAdmin && (
-                                <button onClick={() => setIsEditingProfile(true)} className="text-sm font-semibold text-corsia-700 bg-corsia-50 px-4 py-2 rounded-full hover:bg-corsia-100 transition-colors flex items-center gap-2">
-                                    <Icon type="edit" className="w-4 h-4" /> Modifica
-                                </button>
-                            )}
-                        </div>
-                        <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
-                            {bio || (isAdmin ? 'Aggiungi una presentazione: vasche, servizi, ambiente di lavoro.' : 'La struttura non ha ancora inserito una presentazione.')}
-                        </p>
-                    </div>
-                )}
-                {activeTab === 'info' && isLegacyStructure && (
-                    <div className="mt-6">
-                        <PoolSection profile={facility as StructureProfile} isOwnProfile={isAdmin} onEdit={() => setIsEditingProfile(true)} />
-                    </div>
-                )}
-                {activeTab === 'info' && (
-                    <div className="mt-6">
-                        <ReviewsSection
-                            key={facilityId}
-                            structureId={facilityId}
-                            structureName={structureName || 'la struttura'}
-                            isManager={!!isAdmin}
-                            initial={{ ratingSum: (facility as StructureProfile).ratingSum, ratingCount: (facility as StructureProfile).ratingCount }}
-                        />
-                    </div>
-                )}
-
-                {/* 2. JOBS TAB */}
-                {activeTab === 'jobs' && (
-                    <div className="space-y-4">
-                        
-                        {isAdmin && (
-                            <div className="flex flex-wrap justify-end gap-2 mb-4">
-                                <Link to={`/jobs/annunci?struttura=${encodeURIComponent(facilityId)}`} className="px-5 py-2.5 rounded-xl font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-2">
-                                    <Icon type="briefcase" className="w-5 h-5" /> Gestisci annunci e candidati
-                                </Link>
-                                <button 
-                                    onClick={() => setIsCreateModalOpen(true)}
-                                    className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        <div className="flex flex-wrap items-center gap-2 pt-12 sm:pt-0">
+                            {isAdmin ? (
+                                <>
+                                    <button onClick={() => setIsEditingProfile(true)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-1.5">
+                                        <Icon type="pencil" className="w-4 h-4" /> Modifica pagina
+                                    </button>
+                                    <Link to={`/jobs/annunci?struttura=${encodeURIComponent(facilityId)}`} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900 inline-flex items-center gap-1.5">
+                                        <Icon type="briefcase" className="w-4 h-4" /> I miei annunci
+                                    </Link>
+                                </>
+                            ) : isLegacyStructure ? (
+                                <>
+                                    <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 inline-flex items-center gap-1.5">
+                                        <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
+                                    </button>
+                                    <ConnectButton profileId={facilityId} />
+                                    <FollowButton profileId={facilityId} />
+                                </>
+                            ) : (
+                                <button
+                                    onClick={handleToggleFollow}
+                                    aria-pressed={isFollowing}
+                                    className={`px-5 py-2.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 ${isFollowing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-corsia-600 text-white hover:bg-corsia-700'}`}
                                 >
-                                    <Icon type="plus" className="w-5 h-5" /> Pubblica annuncio
+                                    <Icon type={isFollowing ? 'check' : 'plus'} className="w-4 h-4" /> {isFollowing ? 'Segui già' : 'Segui'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <h1 className="mt-3 text-3xl sm:text-4xl font-bold text-abisso leading-[1.05] flex flex-wrap items-center gap-2">
+                        {structureName}
+                        {isPremium(facility) && <PremiumBadge size="md" />}
+                    </h1>
+                    <p className="mt-1 text-slate-600">{[structureType || 'Struttura sportiva', city && `${city}${province ? ` (${province.toUpperCase()})` : ''}`].filter(Boolean).join(' · ')}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                        {rating && (
+                            <button onClick={() => { setActiveTab('info'); window.setTimeout(() => document.getElementById('reviews-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} className="py-1 -my-1 inline-flex items-center gap-1.5 text-slate-600 hover:text-abisso">
+                                <Stars value={rating.average} />
+                                <span className="font-semibold text-abisso">{rating.average.toLocaleString('it-IT', { minimumFractionDigits: 1 })}</span>
+                                <span>({rating.count} {rating.count === 1 ? 'recensione' : 'recensioni'})</span>
+                            </button>
+                        )}
+                        {status && <span className={`inline-flex items-center gap-1.5 font-semibold ${status.open ? 'text-cloro-800' : 'text-slate-600'}`}><span className={`w-2 h-2 rounded-full ${status.open ? 'bg-cloro-500' : 'bg-slate-400'}`} aria-hidden="true" />{status.label}</span>}
+                        <span className="text-slate-600"><span className="font-semibold text-abisso">{followersCount}</span> {isLegacyStructure ? (followersCount === 1 ? 'collegamento' : 'collegamenti') : 'follower'}</span>
+                        {openPositions.length > 0 && (
+                            <button onClick={() => setActiveTab('jobs')} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">
+                                {openPositions.length === 1 ? '1 posizione aperta' : `${openPositions.length} posizioni aperte`}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <nav className="border-t border-slate-100 px-2 sm:px-4 flex gap-1 overflow-x-auto" aria-label="Sezioni della pagina">
+                    {TABS.filter((t) => t.show).map((t) => (
+                        <button
+                            key={t.id}
+                            onClick={() => setActiveTab(t.id)}
+                            aria-current={activeTab === t.id ? 'page' : undefined}
+                            className={`flex-shrink-0 px-3 sm:px-4 py-3.5 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 transition-colors ${activeTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
+                        >
+                            {t.icon && <Icon type={t.icon} className="w-4 h-4" />}
+                            {t.label}
+                            {!!t.badge && <span className="tabular-nums text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700">{t.badge}</span>}
+                        </button>
+                    ))}
+                </nav>
+            </header>
+
+            <div className="mt-4">
+                {activeTab === 'info' && (
+                    <StructureInfo
+                        facility={facility}
+                        isAdmin={!!isAdmin}
+                        openJobs={openPositions}
+                        onEdit={() => setIsEditingProfile(true)}
+                        onShowJobs={() => setActiveTab('jobs')}
+                        reviews={
+                            <ReviewsSection
+                                key={facilityId}
+                                structureId={facilityId}
+                                structureName={structureName || 'la struttura'}
+                                isManager={!!isAdmin}
+                                initial={{ ratingSum: (facility as StructureProfile).ratingSum, ratingCount: (facility as StructureProfile).ratingCount }}
+                            />
+                        }
+                    />
+                )}
+
+                {activeTab === 'jobs' && (
+                    <section className="space-y-4" aria-label="Posizioni aperte">
+                        {isAdmin && (
+                            <div className="flex flex-wrap justify-end gap-2">
+                                <Link to={`/jobs/annunci?struttura=${encodeURIComponent(facilityId)}`} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-1.5">
+                                    <Icon type="briefcase" className="w-4 h-4" /> Annunci e candidati
+                                </Link>
+                                <button onClick={() => setIsCreateModalOpen(true)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900 inline-flex items-center gap-1.5">
+                                    <Icon type="plus" className="w-4 h-4" /> Pubblica annuncio
                                 </button>
                             </div>
                         )}
-
-                        {sosJobs.length > 0 && (
-                            <div className="mb-6 space-y-4">
-                                <h3 className="font-extrabold text-red-700 flex items-center gap-2 mb-2 px-2">
-                                    <Icon type="alert-triangle" className="w-5 h-5 animate-pulse" /> Sostituzioni urgenti
-                                </h3>
-                                {sosJobs.map(job => (
-                                    <div key={job.$id} className="bg-red-50 border-2 border-red-500 p-5 rounded-2xl shadow-[0_0_15px_rgba(239,68,68,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">SOS attivo</div>
-                                        <div className="pt-2 sm:pt-0 pr-20 sm:pr-0">
-                                            <h3 className="font-bold text-lg text-red-800">{jobDisplayTitle(job)}</h3>
-                                            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-red-700 font-medium">
-                                                <span className="flex items-center gap-1"><Icon type="calendar" className="w-3.5 h-3.5" /> {formatDate(job.sosDate, 'weekday')}</span>
-                                                <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {job.sosShift}</span>
-                                                <span className="flex items-center gap-1 bg-white/60 px-2 py-0.5 rounded border border-red-200">€{job.salaryMin} netti</span>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => onSelectJob && onSelectJob(job.$id)} className="w-full sm:w-auto bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl hover:bg-red-700 transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 shadow-md">Vedi dettagli</button>
-                                    </div>
-                                ))}
+                        {openPositions.length === 0 ? (
+                            <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-10 text-center">
+                                <Icon type="briefcase" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                                <h2 className="text-xl font-semibold text-abisso">Nessuna posizione aperta</h2>
+                                <p className="text-slate-500 mt-1">{isAdmin ? 'Pubblica un annuncio: chi ha un avviso di lavoro adatto riceve subito una notifica.' : 'In questo momento la struttura non cerca personale. Seguila per sapere quando pubblica.'}</p>
                             </div>
-                        )}
-
-                        {regularJobs.length > 0 ? (
-                            regularJobs.map(job => (
-                                <div key={job.$id} className="bg-white border border-slate-200 p-5 rounded-2xl hover:shadow-md transition-shadow group">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{jobDisplayTitle(job)}</h3>
-                                            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-500 font-medium">
-                                                <span className="flex items-center gap-1"><Icon type="user" className="w-3.5 h-3.5" /> {job.role}</span>
-                                                <span className="flex items-center gap-1"><Icon type="clock" className="w-3.5 h-3.5" /> {contractLabel(job.contractType)}</span>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => onSelectJob && onSelectJob(job.$id)} className="w-full sm:w-auto bg-blue-50 text-blue-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Vedi dettagli</button>
-                                    </div>
-                                    {job.description && <p className="text-slate-600 mt-3 text-sm line-clamp-2 leading-relaxed">{job.description}</p>}
-                                </div>
-                            ))
                         ) : (
-                            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-                                <Icon type="search" className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                <p className="text-slate-600 font-bold text-lg">Nessuna posizione aperta</p>
-                                {isAdmin ? (
-                                    <p className="text-sm text-slate-500 mt-1">Usa il tasto in alto per pubblicare il tuo primo annuncio!</p>
-                                ) : (
-                                    <p className="text-sm text-slate-500 mt-1">Questa pagina non sta cercando personale al momento.</p>
-                                )}
-                            </div>
+                            <ul className="space-y-3">
+                                {openPositions.map((job) => (
+                                    <li key={job.$id} className={`bg-white rounded-2xl border shadow-card p-5 ${job.isSOS ? 'border-red-200' : 'border-slate-200'}`}>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                {job.isSOS && <p className="text-xs font-semibold text-galleggiante-700">Sostituzione urgente · {formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</p>}
+                                                <h3 className="text-lg font-semibold text-abisso leading-snug">
+                                                    <Link to={`/jobs/${job.$id}`} className="hover:underline">{jobDisplayTitle(job)}</Link>
+                                                </h3>
+                                                <p className="text-sm text-slate-500">{[job.role && jobRoleLabel(job.role), job.contractType && contractLabel(job.contractType), job.city].filter(Boolean).join(' · ')}</p>
+                                            </div>
+                                            <button onClick={() => onSelectJob?.(job.$id)} className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-800 hover:bg-corsia-100">
+                                                {isAdmin ? 'Candidati e dettagli' : 'Dettagli e candidatura'}
+                                            </button>
+                                        </div>
+                                        {job.description && <p className="mt-2 text-sm text-slate-600 line-clamp-2">{job.description}</p>}
+                                    </li>
+                                ))}
+                            </ul>
                         )}
-                    </div>
+                    </section>
                 )}
 
                 {/* 3. GESTIONE TEAM (Admin & Staff) */}

@@ -131,6 +131,8 @@ export interface StructureProfile extends BaseProfile {
   lanes?: number | null;
   poolSetting?: 'coperta' | 'scoperta' | 'entrambe' | null;
   services?: string[];
+  /** Orari di apertura, 7 giorni da lunedì: '' non indicato, 'chiuso', '07:00-13:00' o due fasce separate da virgola. */
+  openingHours?: string[];
   ratingSum?: number;
   ratingCount?: number;
 }
