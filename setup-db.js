@@ -251,8 +251,24 @@ const schema = [
             str('userName', 255, { required: true }), str('date', 100, { required: true }),
             str('shiftTime', 100, { required: true }), str('role', 100, { required: true }),
             str('status', 50, { required: true }),
+            str('seriesId', 36), // turni ricorrenti creati insieme
         ],
         indexes: [idx('by_structure', ['structureId'])],
+    },
+    {
+        // Modelli di settimana dei turni (solo la Function li legge e li scrive).
+        id: 'shift_templates', name: 'Shift templates', permissions: SERVER_ONLY,
+        attributes: [str('structureId', 36, { required: true }), str('name', 80, { required: true }), str('slots', 12000, { required: true }), str('createdBy', 36)],
+        indexes: [idx('by_structure', ['structureId'])],
+    },
+    {
+        // Richieste di cambio turno tra colleghi (toUserId vuoto = aperta a tutto lo staff).
+        id: 'shift_swaps', name: 'Shift swaps', permissions: SERVER_ONLY,
+        attributes: [
+            str('structureId', 36, { required: true }), str('shiftId', 36, { required: true }), str('fromUserId', 36, { required: true }),
+            str('toUserId', 36), str('status', 20, { required: true }), str('message', 300), str('takenBy', 36),
+        ],
+        indexes: [idx('by_structure', ['structureId']), idx('by_shift', ['shiftId'])],
     },
     {
         id: 'facilities', name: 'Facilities', permissions: READ_ONLY,

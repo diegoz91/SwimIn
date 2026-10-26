@@ -5,7 +5,8 @@ import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyTeams } from '@/hooks/useMyTeams';
 import { useToast } from '@/context/ToastContext';
-import { databaseService, type StaffInvite } from '@/services/database';
+import { databaseService, type MyShiftSwap, type StaffInvite } from '@/services/database';
+import { ShiftSwapModal, SwapRequests, type SwapItem } from '@/features/team/ShiftSwap';
 import { initialsAvatar } from '@/utils/avatar';
 import { formatRelativeTime } from '@/utils/format';
 import { Icon } from '@/components/ui/Icon';
@@ -48,6 +49,13 @@ const MyShifts: React.FC = () => {
         setParams(next, { replace: true });
     };
 
+    const [mySwaps, setMySwaps] = useState<MyShiftSwap[]>([]);
+    const [swapShift, setSwapShift] = useState<ShiftItem | null>(null);
+    const loadSwaps = useCallback(async () => {
+        setMySwaps(await databaseService.listMySwaps().catch((err) => { console.warn('Cambi turno:', err); return [] as MyShiftSwap[]; }));
+    }, []);
+    useEffect(() => { void loadSwaps(); }, [loadSwaps]);
+
     const loadInvites = useCallback(async () => {
         setInvites(await databaseService.listMyStaffInvites().catch((err) => { console.error('Inviti:', err); return [] as StaffInvite[]; }));
     }, []);
@@ -65,7 +73,7 @@ const MyShifts: React.FC = () => {
     useEffect(() => { void load(); }, [load]);
 
     // Tempo reale: turni proposti, modificati o annullati e inviti arrivano senza ricaricare.
-    useSignal('team:*', () => { void load(); void loadInvites(); });
+    useSignal('team:*', () => { void load(); void loadInvites(); void loadSwaps(); });
 
     const answer = async (inv: StaffInvite, accept: boolean) => {
         try {
@@ -119,6 +127,9 @@ const MyShifts: React.FC = () => {
             <>
                 {s.status !== 'confirmed' && <button type="button" onClick={() => respond(s, 'confirmed')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-corsia-600 text-white hover:bg-corsia-700">Confermo</button>}
                 {s.status !== 'declined' && <button type="button" onClick={() => respond(s, 'declined')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>}
+                {s.status !== 'declined' && !mySwaps.some((w) => w.shiftId === s.$id) && (
+                    <button type="button" onClick={() => setSwapShift(s)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50" aria-label={`Cedi o scambia il turno del ${s.date}`}>Cedi</button>
+                )}
                 {s.status !== 'declined' && (
                     <AddToCalendar events={[toEvent(s)]} filename={`turno-${s.date}`} label="Calendario" ariaLabel={`Aggiungi al calendario il turno del ${s.date}`} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50 inline-flex items-center gap-1" iconClassName="w-3.5 h-3.5" />
                 )}
@@ -168,6 +179,17 @@ const MyShifts: React.FC = () => {
                     </ul>
                 </section>
             )}
+
+            <SwapRequests
+                items={mySwaps.map((w): SwapItem => {
+                    const when = `${shiftDayLabel(w.shift.date)}, ${w.shift.shiftTime} · ${w.structureName}`;
+                    if (w.fromUserId === user?.$id) return { id: w.$id, kind: 'mine', title: w.toUserId ? 'Richiesta inviata a un collega' : 'Offerto a tutto lo staff', detail: when, message: w.message };
+                    if (w.toUserId === user?.$id) return { id: w.$id, kind: 'incoming', title: `${w.fromName} ti chiede di coprire un turno`, detail: when, message: w.message };
+                    return { id: w.$id, kind: 'open', title: `Turno disponibile: ${w.fromName} cerca un sostituto`, detail: when, message: w.message };
+                })}
+                onChanged={() => { void loadSwaps(); void load(); }}
+            />
+            {user && <ShiftSwapModal shift={swapShift} currentUserId={user.$id} onClose={() => setSwapShift(null)} onSent={() => void loadSwaps()} />}
 
             {shifts.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 px-4">

@@ -384,6 +384,22 @@ const FLOWS = [
         await page.getByRole('button', { name: 'Assistente bagnanti' }).click();
         await page.waitForURL(/q=Assistente/);
     }],
+    ['un collega cerca un sostituto: lo prendo dai miei turni', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/turni');
+        await page.getByRole('heading', { name: 'Cambi turno' }).waitFor({ timeout: 8000 });
+        await page.getByText('Turno disponibile: Sara Colombo cerca un sostituto').waitFor();
+        await page.getByRole('button', { name: 'Lo prendo' }).click();
+        const c = await called(state, 'respondShiftSwap');
+        assert.deepEqual([c.params.swapId, c.params.accept], ['sw1', true]);
+    }],
+    ['la struttura apre i modelli di settimana', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } }, responses: { getTeamBoard: () => teamBoard('scheduled') } }, async (page, state) => {
+        await open(page, '/profile?area=staff');
+        await page.getByRole('tab', { name: /^Turni/ }).click();
+        await page.getByRole('button', { name: 'Modelli' }).click();
+        await page.getByText('Settimana estiva').waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Applica' }).click();
+        await called(state, 'applyShiftTemplate');
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });
