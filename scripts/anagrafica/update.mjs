@@ -73,6 +73,8 @@ writeFileSync(join(dataDir, 'meta.json'), JSON.stringify({ source, comuni: total
 const fnDir = join(ROOT, 'functions', 'api', 'src', 'data');
 mkdirSync(fnDir, { recursive: true });
 writeFileSync(join(fnDir, 'comuni.json'), JSON.stringify(Object.fromEntries(Object.entries(comuni).sort(([a], [b]) => a.localeCompare(b)))));
+// Regione di ogni provincia: con Premium gli SOS di una struttura arrivano anche alle province della stessa regione.
+writeFileSync(join(fnDir, 'regioni.json'), JSON.stringify(Object.fromEntries(province.map((p) => [p.code, p.region]).sort(([a], [b]) => a.localeCompare(b)))));
 
 const genDir = join(ROOT, 'src', 'data', 'generated');
 mkdirSync(genDir, { recursive: true });

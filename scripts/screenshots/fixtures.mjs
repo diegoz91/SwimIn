@@ -302,6 +302,19 @@ export const apiResponses = {
     ],
     getTrends: () => [{ tag: 'master', posts: 8 }, { tag: 'salvamento', posts: 5 }, { tag: 'scuolanuoto', posts: 4 }, { tag: 'soglia', posts: 2 }],
     getBillingStatus: () => ({ premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'person', prices: { month: 499, year: 4790 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null }),
+    adminOverview: () => ({ people: 1284, structures: 96, posts: 5310, openReports: 2, errors24h: 0, pendingCerts: 3 }),
+    adminGetPlans: () => {
+        const plan = (audience, period, amount, defaultAmount, subscribers) => ({ key: `${audience}_${period}`, audience, period, amount, defaultAmount, updatedAt: amount !== defaultAmount ? new Date(now - 3 * 86400000).toISOString() : null, subscribers, stripe: true, paypal: true });
+        return {
+            plans: [plan('person', 'month', 499, 499, 41), plan('person', 'year', 4790, 4790, 18), plan('enthusiast', 'month', 199, 199, 23), plan('enthusiast', 'year', 1900, 1900, 7), plan('structure', 'month', 1490, 1900, 12), plan('structure', 'year', 17900, 17900, 9)],
+            providers: { stripe: true, paypal: true },
+            limits: { min: 99, max: 99900 },
+        };
+    },
+    adminUpdatePlans: ({ prices = {} } = {}) => {
+        const d = apiResponses.adminGetPlans();
+        return { ...d, plans: d.plans.map((p) => (p.key in prices ? { ...p, amount: prices[p.key], updatedAt: new Date().toISOString() } : p)), changed: Object.keys(prices), warnings: [] };
+    },
     getMyStats: () => ({
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),

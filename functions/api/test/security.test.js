@@ -67,11 +67,10 @@ test('sicurezza: righe in sola lettura, gruppi, annunci, scrittura, eventi, limi
   const j1 = await api.createJob('piscina', jobData('Bagnino 1'));
   assert.deepEqual(j1.$permissions, ['read("users")']);
   await api.createJob('piscina', jobData('Bagnino 2'));
-  await api.createJob('piscina', jobData('Bagnino 3'));
   await rejects(api.closeJob('anna', { jobId: j1.$id }), 403);
   assert.equal((await api.closeJob('piscina', { jobId: j1.$id })).isActive, false);
-  await api.createJob('piscina', jobData('Bagnino 4'));
-  await rejects(api.reopenJob('piscina', { jobId: j1.$id }), 402); // già 3 attivi con il piano Base
+  await api.createJob('piscina', jobData('Bagnino 3'));
+  await rejects(api.reopenJob('piscina', { jobId: j1.$id }), 402); // già 2 attivi con il piano Base
   col('profiles').piscina.premiumUntil = new Date(Date.now() + 86_400_000).toISOString();
   assert.equal((await api.reopenJob('piscina', { jobId: j1.$id })).isActive, true);
 

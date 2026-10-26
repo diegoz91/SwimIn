@@ -198,6 +198,7 @@ const schema = [
         attributes: [
             str('jobId', 36, { required: true }), str('applicantId', 36, { required: true }),
             str('status', 50, { required: true }), str('coverLetter', 3000),
+            bool('priority', { default: false }), // candidato Premium: in cima all'elenco della struttura
         ],
         indexes: [idx('by_job', ['jobId']), idx('by_applicant', ['applicantId'])],
     },
@@ -342,6 +343,16 @@ const schema = [
             str('currentPeriodEnd', 40), bool('cancelAtPeriodEnd', { default: false }),
         ],
         indexes: [idx('by_user', ['userId'])],
+    },
+    {
+        // Prezzi dei piani Premium decisi dagli amministratori (azioni adminGetPlans/adminUpdatePlans).
+        // Id della riga = piano (person_month, enthusiast_year…). Nessun permesso: solo la Function.
+        id: 'plans', name: 'Plans', permissions: SERVER_ONLY,
+        attributes: [
+            int('amount', { required: true }), // centesimi di euro, IVA inclusa
+            str('stripePriceId', 100), str('paypalPlanId', 100),
+        ],
+        indexes: [],
     },
     {
         // Dati di contatto privati delle persone (telefono): letti solo dalla Function.

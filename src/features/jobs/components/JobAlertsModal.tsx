@@ -4,7 +4,10 @@ import { Checkbox, Field } from '@/components/form/Field';
 import { ProvinceSelect, Select } from '@/components/form/Pickers';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useToast } from '@/context/ToastContext';
-import { databaseService, type JobAlert } from '@/services/database';
+import { ApiError, databaseService, type JobAlert } from '@/services/database';
+import { useAuth } from '@/hooks/useAuth';
+import { isPremium } from '@/utils/premium';
+import { Link } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icon';
 import { JOB_CONTRACTS, contractLabel } from '@/data/swimming';
 import { provinceName } from '@/data/italy';
@@ -28,6 +31,10 @@ export const describeAlert = (a: Pick<JobAlert, 'query' | 'province' | 'contract
 /** Avvisi di lavoro: ricerche salvate che mandano una notifica a ogni nuovo annuncio adatto. */
 export const JobAlertsModal: React.FC<{ open: boolean; onClose: () => void; initial?: Partial<Values> }> = ({ open, onClose, initial }) => {
     const { showToast } = useToast();
+    const { user } = useAuth();
+    // Limiti verificati dalla Function (BASE_ALERTS / PREMIUM_ALERTS in billing.js).
+    const premium = isPremium(user);
+    const limit = premium ? 10 : 2;
     const [alerts, setAlerts] = useState<JobAlert[] | null>(null);
     const [saving, setSaving] = useState(false);
     const start = (): Values => ({ query: initial?.query || '', province: initial?.province || '', contractType: initial?.contractType || '', sosOnly: false });
@@ -49,7 +56,8 @@ export const JobAlertsModal: React.FC<{ open: boolean; onClose: () => void; init
             showToast('Avviso salvato: ti scriviamo appena esce un annuncio adatto.', 'success');
             form.reset({ query: '', province: '', contractType: '', sosOnly: false });
         } catch (err) {
-            showToast(err instanceof Error ? err.message : 'Avviso non salvato.', 'error');
+            // Limite del piano Base: si apre da solo l'invito a Premium.
+            if (!(err instanceof ApiError && err.code === 'premium_required')) showToast(err instanceof Error ? err.message : 'Avviso non salvato.', 'error');
         } finally {
             setSaving(false);
         }
@@ -100,7 +108,19 @@ export const JobAlertsModal: React.FC<{ open: boolean; onClose: () => void; init
                 )}
             </section>
 
-            <h3 className="text-sm font-semibold text-abisso pt-2 border-t border-slate-100">Nuovo avviso</h3>
+            <div className="pt-2 border-t border-slate-100">
+                <h3 className="text-sm font-semibold text-abisso flex items-baseline justify-between gap-3">
+                    Nuovo avviso
+                    {alerts && <span className="text-xs font-normal text-slate-500 tabular-nums">{alerts.length} di {limit}</span>}
+                </h3>
+                {!premium && (
+                    <p className="text-xs text-slate-500 mt-1">
+                        Con il piano Base puoi salvare 2 avvisi; con{' '}
+                        <Link to="/premium" onClick={onClose} className="font-semibold text-oro-700 hover:underline py-1 -my-1">Premium</Link>{' '}
+                        fino a 10.
+                    </p>
+                )}
+            </div>
             <Field id="alert-query" label="Parole chiave" optional error={errors.query} hint="Ruolo o parole dell’annuncio, es. “assistente bagnanti” o “istruttore neonatale”.">
                 <input {...bind('query')} maxLength={70} placeholder="Es. istruttore" />
             </Field>

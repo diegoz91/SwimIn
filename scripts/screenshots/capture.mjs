@@ -322,6 +322,36 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
     }
     await context.close();
 }
+
+// Piani per ogni tipo di profilo e prezzi nel pannello amministratori.
+const enthusiastStatus = { premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'enthusiast', prices: { month: 199, year: 1900 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null };
+const structureStatus = { ...enthusiastStatus, audience: 'structure', prices: { month: 1900, year: 17900 } };
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    for (const [name, path, responses, dark] of [
+        ['premium-appassionato', '/premium', { getBillingStatus: () => enthusiastStatus }],
+        ['premium-struttura', '/premium', { getBillingStatus: () => structureStatus }],
+        ['admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }],
+        ['scuro-admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }, true],
+    ]) {
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', colorScheme: dark ? 'dark' : 'light' });
+        const page = await context.newPage();
+        page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
+        await mockAppwrite(page, { loggedIn: true, responses });
+        try {
+            await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
+            await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
+            await page.waitForTimeout(800);
+            await page.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: true });
+            await shot(page, vpName, name, touch);
+            console.log(`✓ ${vpName}-${name}`);
+        } catch (e) {
+            console.log(`✗ ${vpName}-${name}: ${e.message}`);
+        }
+        await context.close();
+    }
+}
 await browser.close();
 
 // Rapporto del layout (sul branch ci-screenshots, accanto alle immagini).

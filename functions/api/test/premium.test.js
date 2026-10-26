@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { createApi } from '../src/main.js';
-import { verifyStripeSignature, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from '../src/billing.js';
+import { verifyStripeSignature, INMAIL_CREDITS, BASE_ACTIVE_JOBS, BASE_STAFF } from '../src/billing.js';
 
 const makeDb = () => {
   const store = {};
@@ -53,6 +53,10 @@ test('Premium: prova, messaggi diretti, limiti Base, pagamenti e webhook', async
     if (url.endsWith('/v1/oauth2/token')) return json({ access_token: 'pp_token' });
     if (url.endsWith('/v1/billing/subscriptions') && init.method === 'POST') return json({ id: 'I-ABCDEF123', links: [{ rel: 'approve', href: 'https://www.paypal.com/approve/I-ABCDEF123' }] });
     if (url.includes('/v1/billing/subscriptions/I-ABCDEF123')) return json({ id: 'I-ABCDEF123', status: 'ACTIVE', custom_id: 'bob', plan_id: 'P-PM', billing_info: { next_billing_time: new Date(Date.now() + 30 * 86400000).toISOString() } });
+    if (url.includes('/v1/prices?')) return json({ data: [{ id: 'price_pm', unit_amount: 499, product: 'prod_1' }] });
+    if (url.endsWith('/v1/prices') && init.method === 'POST') return json({ id: `price_new_${new URLSearchParams(init.body).get('unit_amount')}` });
+    if (url.includes('/v1/catalogs/products')) return json({ products: [{ id: 'PROD-1', name: 'SwimIn Premium' }] });
+    if (url.endsWith('/v1/billing/plans') && init.method === 'POST') return json({ id: `P-NEW-${JSON.parse(init.body).billing_cycles[0].pricing_scheme.fixed_price.value}` });
     if (url.endsWith('/verify-webhook-signature')) return json({ verification_status: JSON.parse(init.body).transmission_sig === 'ok' ? 'SUCCESS' : 'FAILURE' });
     return json({ error: { message: 'non previsto' } }, 404);
   };
@@ -64,12 +68,16 @@ test('Premium: prova, messaggi diretti, limiti Base, pagamenti e webhook', async
   const api = createApi(db, { users, fetchImpl, billing, appUrl: 'https://swimin.it' });
   const P = (id, extra) => (col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [], ...extra });
   P('anna'); P('bob'); P('carla'); P('boss'); P('piscina', { userType: 'structure', structureName: 'Piscina Blu' });
+  P('dario', { personType: 'enthusiast' });
 
   // Stato iniziale: Base, prova disponibile, entrambi i metodi di pagamento attivi.
   let st = await api.getBillingStatus('anna');
   assert.equal(st.premium, false); assert.equal(st.trialAvailable, true); assert.deepEqual(st.providers, { stripe: true, paypal: true });
   assert.deepEqual(st.prices, { month: 499, year: 4790 });
   assert.deepEqual((await api.getBillingStatus('piscina')).prices, { month: 1900, year: 17900 });
+  // Appassionati: piano Passione, con prezzo e crediti propri.
+  st = await api.getBillingStatus('dario');
+  assert.deepEqual([st.audience, st.prices], ['enthusiast', { month: 199, year: 1900 }]);
 
   // Messaggi: Base non può scrivere a chi non è un collegamento; alle strutture sì.
   await rejects(api.sendMessage('anna', { receiverId: 'bob', content: 'ciao' }), 402, 'premium_required');
@@ -146,6 +154,53 @@ test('Premium: prova, messaggi diretti, limiti Base, pagamenti e webhook', async
   await rejects(api._paypalWebhook(ppEvent, { 'paypal-transmission-sig': 'no' }), 400);
   assert.deepEqual(await api._paypalWebhook(ppEvent, { 'paypal-transmission-sig': 'ok' }), { received: true });
   assert.deepEqual(await api.manageSubscription('bob', { cancel: true }), { cancelled: true });
+
+  // Prezzi dal pannello: solo amministratori, con controlli; nuovo prezzo Stripe e piano PayPal creati subito.
+  await rejects(api.adminGetPlans('anna'), 403);
+  await rejects(api.adminUpdatePlans('anna', { prices: { person_month: 599 } }), 403);
+  await rejects(api.adminUpdatePlans('boss', { prices: { person_month: 50 } }), 400);
+  await rejects(api.adminUpdatePlans('boss', { prices: { person_month: 299 } }), 400); // annuale > 12 mesi
+  await rejects(api.adminUpdatePlans('boss', { prices: { gold_month: 999 } }), 400);
+  const updated = await api.adminUpdatePlans('boss', { prices: { person_month: 599, person_year: 4790 } });
+  assert.deepEqual(updated.changed, ['person_month']);
+  assert.deepEqual(updated.warnings, []);
+  const pm = updated.plans.find((p) => p.key === 'person_month');
+  assert.deepEqual([pm.amount, pm.defaultAmount, pm.stripe, pm.paypal], [599, 499, true, true]);
+  assert.deepEqual([col('plans').person_month.stripePriceId, col('plans').person_month.paypalPlanId], ['price_new_599', 'P-NEW-5.99']);
+  assert.equal(updated.plans.find((p) => p.key === 'person_year').subscribers, 0); // anna ha disdetto
+  assert.deepEqual((await api.getBillingStatus('carla')).prices, { month: 599, year: 4790 });
+  await api.createCheckout('carla', { provider: 'stripe', period: 'month' });
+  assert.ok(decodeURIComponent(calls.filter((c) => c.url.endsWith('/checkout/sessions')).at(-1).init.body).includes('line_items[0][price]=price_new_599'));
+  const ppCarla = await api.createCheckout('carla', { provider: 'paypal', period: 'month' });
+  assert.ok(ppCarla.url);
+  assert.equal(JSON.parse(calls.filter((c) => c.url.endsWith('/v1/billing/subscriptions')).at(-1).init.body).plan_id, 'P-NEW-5.99');
+  // Il piano appassionati non ha ancora un prezzo Stripe: si crea al primo pagamento.
+  await api.createCheckout('dario', { provider: 'stripe', period: 'month' });
+  assert.equal(col('plans').enthusiast_month.stripePriceId, 'price_new_199');
+
+  // Candidature Premium in cima: la riga lo segna (scritta solo dalla Function).
+  const opening = await api.createJob('piscina', { structureId: 'piscina', title: 'Allenatore', description: 'Squadra agonisti', role: 'allenatore', city: 'Milano' });
+  assert.equal((await api.applyForJob('bob', { jobId: opening.$id })).priority, true);
+  assert.equal((await api.applyForJob('carla', { jobId: opening.$id })).priority, false);
+
+  // Area staff: con il piano Base al massimo BASE_STAFF persone.
+  P('lido', { userType: 'structure', structureName: 'Lido' });
+  const lidoJob = await api.createJob('lido', { structureId: 'lido', title: 'Assistente bagnanti', description: 'Turni estivi', role: 'assistente bagnanti', city: 'Rimini' });
+  const apps = [];
+  for (let i = 0; i <= BASE_STAFF; i++) { P(`s${i}`); apps.push(await api.applyForJob(`s${i}`, { jobId: lidoJob.$id })); }
+  for (let i = 0; i < BASE_STAFF; i++) await api.hireCandidate('lido', { applicationId: apps[i].$id });
+  await rejects(api.hireCandidate('lido', { applicationId: apps[BASE_STAFF].$id }), 402, 'premium_required');
+  await api.adminGrantPremium('boss', { userId: 'lido', days: 30 });
+  assert.deepEqual(await api.hireCandidate('lido', { applicationId: apps[BASE_STAFF].$id }), { hired: true });
+
+  // SOS: Base solo nella provincia; Premium anche nelle altre province della regione.
+  const tomorrow = new Date(Date.now() + 86400000);
+  const slot = `${['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][tomorrow.getUTCDay()]}-mattina`;
+  P('mi1', { province: 'MI', availability: [slot] }); P('bg1', { province: 'BG', availability: [slot] }); P('to1', { province: 'TO', availability: [slot] });
+  P('base', { userType: 'structure', structureName: 'Piscina Base' });
+  const sos = { title: 'Sostituzione', description: 'Turno del mattino', role: 'assistente bagnanti', city: 'Milano', province: 'MI', isSOS: true, sosDate: tomorrow.toISOString().slice(0, 10) };
+  assert.equal((await api.createJob('base', { ...sos, structureId: 'base' })).notified, 1);
+  assert.equal((await api.createJob('piscina', { ...sos, structureId: 'piscina' })).notified, 2); // MI e BG, non TO
 
   // Statistiche solo Premium.
   assert.equal((await api.getMyStats('anna')).viewsPerDay.length, 30);

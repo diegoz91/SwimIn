@@ -22,7 +22,8 @@ import { chatActions } from './chat.js';
 import { eventActions } from './events.js';
 import { alertActions } from './alerts.js';
 import { recommendationActions } from './recommendations.js';
-import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS } from './billing.js';
+import { billingActions, isPremium, audienceOf, INMAIL_CREDITS, BASE_ACTIVE_JOBS, BASE_STAFF, PLAN_KEYS } from './billing.js';
+import { regionProvinces } from './regions.js';
 import { publicActions, PUBLIC_ACTIONS } from './public.js';
 import { pushActions } from './push.js';
 import { makeAssertClean } from './textfilter.js';
@@ -65,6 +66,7 @@ const C = {
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
   pushSubscriptions: 'push_subscriptions',
+  plans: 'plans',
 };
 
 const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
@@ -270,16 +272,19 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   /**
    * Avvisa della sostituzione urgente i professionisti della stessa provincia
    * che hanno dato disponibilità per quel giorno (e fascia, se c'è l'orario).
+   * Con Premium anche quelli delle altre province della stessa regione (prima i più vicini).
    */
-  const alertSOS = async (job, me) => {
+  const alertSOS = async (job, me, premium = false) => {
     const day = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][new Date(`${job.sosDate}T12:00:00Z`).getUTCDay()];
     const hour = job.sosShift ? Number(job.sosShift.slice(0, 2)) : null;
     const part = hour === null ? null : hour < 13 ? 'mattina' : hour < 18 ? 'pomeriggio' : 'sera';
-    const people = await listAll(C.profiles, [Query.equal('province', job.province), Query.equal('userType', 'professional')]);
+    const provinces = premium ? regionProvinces(job.province) : [job.province];
+    const people = await listAll(C.profiles, [Query.equal('province', provinces), Query.equal('userType', 'professional')]);
     const targets = people
       .filter((p) => p.$id !== me && !p.suspended && p.personType !== 'enthusiast')
       .filter((p) => (p.availability || []).some((slot) => (part ? slot === `${day}-${part}` : slot.startsWith(`${day}-`))))
-      .slice(0, 100);
+      .sort((a, b) => Number(b.province === job.province) - Number(a.province === job.province))
+      .slice(0, premium ? 250 : 100);
     const when = `${job.sosDate.slice(8, 10)}/${job.sosDate.slice(5, 7)}${job.sosShift ? `, ${job.sosShift}` : ''}`;
     for (const p of targets) await notify(p.$id, 'sos', `SOS ${job.structureName || 'piscina'} (${job.city}): cercano "${job.title}" il ${when}.`, job.$id);
     return targets.length;
@@ -825,7 +830,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       for (const k of Object.keys(job)) if (job[k] === undefined) delete job[k];
       // Solo lettura per i client: chiusura e riapertura passano da closeJob/reopenJob (limiti Base, evidenza Premium).
       const created = await create(C.jobs, job, [Permission.read(Role.users())]);
-      if (job.isSOS && job.province) created.notified = await alertSOS(created, me);
+      if (job.isSOS && job.province) created.notified = await alertSOS(created, me, premium);
       created.alerted = await alertsApi._notifyJobAlerts(created, me).catch((e) => { log(`avvisi di lavoro: ${e?.message || e}`); return 0; });
       return created;
     },
@@ -868,7 +873,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const managers = await jobManagers(job);
       const application = await create(
         C.applications,
-        { jobId, applicantId: me, status: 'pending', coverLetter: String(coverLetter).slice(0, 3000) },
+        // Premium: la candidatura compare in cima all'elenco della struttura.
+        { jobId, applicantId: me, status: 'pending', coverLetter: String(coverLetter).slice(0, 3000), priority: isPremium(applicant) },
         [
           Permission.read(Role.user(me)),
           ...managers.map((id) => Permission.read(Role.user(id))),
@@ -914,6 +920,16 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const application = await get(C.applications, applicationId);
       const job = await get(C.jobs, application.jobId);
       if (!(await jobManagers(job)).includes(me)) fail(403, 'Non gestisci questo annuncio.');
+      if (application.status === 'hired') return { hired: true };
+
+      // Piano Base: area staff fino a BASE_STAFF membri; Premium senza limite (basta un amministratore Premium).
+      const current = await team._teamOf(job.structureId);
+      if (!current.staff.includes(application.applicantId) && current.staff.length >= BASE_STAFF) {
+        const admins = await Promise.all([...new Set([...current.admins, me])].slice(0, 10).map((id) => find(C.profiles, id)));
+        if (!admins.some((p) => isPremium(p))) {
+          fail(402, `Con il piano Base l'area staff arriva a ${BASE_STAFF} persone. Togli qualcuno dallo staff o passa a Premium per una squadra senza limiti.`, 'premium_required');
+        }
+      }
 
       await update(C.applications, applicationId, { status: 'hired' });
       await update(C.jobs, job.$id, { isActive: false });
@@ -1028,14 +1044,14 @@ export default async ({ req, res, log, error }) => {
     stripe: {
       secretKey: env.STRIPE_SECRET_KEY,
       webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-      prices: { person_month: env.STRIPE_PRICE_PERSON_MONTH, person_year: env.STRIPE_PRICE_PERSON_YEAR, structure_month: env.STRIPE_PRICE_STRUCTURE_MONTH, structure_year: env.STRIPE_PRICE_STRUCTURE_YEAR },
+      prices: Object.fromEntries(PLAN_KEYS.map((k) => [k, env[`STRIPE_PRICE_${k.toUpperCase()}`]])),
     },
     paypal: {
       clientId: env.PAYPAL_CLIENT_ID,
       secret: env.PAYPAL_SECRET,
       webhookId: env.PAYPAL_WEBHOOK_ID,
       mode: env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox',
-      plans: { person_month: env.PAYPAL_PLAN_PERSON_MONTH, person_year: env.PAYPAL_PLAN_PERSON_YEAR, structure_month: env.PAYPAL_PLAN_STRUCTURE_MONTH, structure_year: env.PAYPAL_PLAN_STRUCTURE_YEAR },
+      plans: Object.fromEntries(PLAN_KEYS.map((k) => [k, env[`PAYPAL_PLAN_${k.toUpperCase()}`]])),
     },
   };
   const makeClient = () =>

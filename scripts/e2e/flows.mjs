@@ -167,6 +167,19 @@ const FLOWS = [
         assert.equal(await page.getByRole('button', { name: 'Pubblica', exact: true }).count(), 0, 'chi ha scritto la referenza non deve vedere "Pubblica"');
         assert.equal(await page.getByRole('button', { name: 'Non pubblicare', exact: true }).count(), 0);
     }],
+    ['l’amministratore cambia il prezzo di un piano', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) } }, async (page, state) => {
+        await open(page, '/admin?tab=piani');
+        const input = page.locator('#price-person_month');
+        await input.waitFor({ timeout: 8000 });
+        await input.fill('3');
+        await page.getByText('Non può costare più di 12 mesi').waitFor({ timeout: 4000 }); // annuale 47,90 > 12 × 3
+        assert.ok(await page.getByRole('button', { name: 'Salva prezzi' }).isDisabled(), 'con un errore non si salva');
+        await input.fill('5,49');
+        page.once('dialog', (d) => d.accept());
+        await page.getByRole('button', { name: 'Salva prezzi' }).click();
+        const c = await called(state, 'adminUpdatePlans');
+        assert.deepEqual(c.params.prices, { person_month: 549 });
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

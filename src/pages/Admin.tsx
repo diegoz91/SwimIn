@@ -9,8 +9,9 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
 import type { Certification } from '@/types/types';
+import { AdminPlans } from '@/features/admin/AdminPlans';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'errori' | 'verifiche';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -30,7 +31,11 @@ const Admin: React.FC = () => {
     usePageTitle('Amministrazione');
     const { isAdmin } = useBlocks();
     const { showToast } = useToast();
-    const [tab, setTab] = useState<Tab>('panoramica');
+    // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
+    const [tab, setTab] = useState<Tab>(() => {
+        const t = new URLSearchParams(window.location.search).get('tab');
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche'] as const).find((x) => x === t) ?? 'panoramica';
+    });
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [reportStatus, setReportStatus] = useState<'open' | 'resolved' | 'dismissed'>('open');
     const [reports, setReports] = useState<AdminReport[] | null>(null);
@@ -117,6 +122,7 @@ const Admin: React.FC = () => {
         { id: 'segnalazioni', label: 'Segnalazioni', badge: overview?.openReports },
         { id: 'verifiche', label: 'Brevetti', badge: overview?.pendingCerts },
         { id: 'utenti', label: 'Utenti' },
+        { id: 'piani', label: 'Piani e prezzi' },
         { id: 'errori', label: 'Errori', badge: overview?.errors24h },
     ];
 
@@ -212,6 +218,8 @@ const Admin: React.FC = () => {
             )}
 
             {tab === 'verifiche' && <AdminVerifications onCountChange={onCertCount} />}
+
+            {tab === 'piani' && <AdminPlans />}
 
             {tab === 'utenti' && (
                 <>

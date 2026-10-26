@@ -273,6 +273,8 @@ export interface Application extends AppwriteDocument {
   applicantId: string;
   status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'hired';
   coverLetter?: string;
+  /** Candidato Premium al momento della candidatura: in cima all'elenco (scritto solo dalla Function). */
+  priority?: boolean;
 }
 
 // ----------------------------------------------------

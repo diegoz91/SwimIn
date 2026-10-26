@@ -119,13 +119,15 @@ Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorn
    - copia *Client ID* e *Secret* in `PAYPAL_CLIENT_ID` e `PAYPAL_SECRET`;
    - imposta `PAYPAL_MODE=live` quando passi alla produzione.
 4. **Lancia `npm run setup-db`** (o il workflow *Deploy Appwrite*). Lo script:
-   - crea su Stripe i 4 prezzi e su PayPal i 4 piani: persone 4,99 €/mese o 47,90 €/anno, strutture 19 €/mese o 179 €/anno, tutti IVA inclusa;
+   - crea su Stripe i 6 prezzi e su PayPal i 6 piani predefiniti: professionisti 4,99 €/mese o 47,90 €/anno, appassionati (Premium Passione) 1,99 €/mese o 19 €/anno, strutture 19 €/mese o 179 €/anno, tutti IVA inclusa;
    - registra i webhook verso `FUNCTION_URL/webhooks/stripe` e `/webhooks/paypal`;
    - salva tutto nelle variabili della Function.
 
    Si può rilanciare quante volte vuoi: non crea doppioni.
 
-I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rilanci `setup-db`, si creano i nuovi prezzi; gli abbonamenti già attivi restano al vecchio prezzo.
+**Cambiare i prezzi**: da *Admin › Piani e prezzi* (solo amministratori). La Function salva il nuovo importo nella tabella `plans` e crea subito il nuovo prezzo su Stripe e il nuovo piano su PayPal (se un servizio non risponde, li crea al primo abbonamento). I nuovi prezzi valgono per chi si abbona da quel momento: gli abbonamenti già attivi restano al prezzo sottoscritto. I prezzi predefiniti, usati finché nessuno li cambia, stanno in `functions/api/src/billing.js` (`PRICES`).
+
+**Cosa include il piano Base** (limiti verificati dalla Function, costanti in `billing.js`): strutture fino a 2 annunci attivi (gli SOS non contano) e area staff fino a 5 persone; avvisi di lavoro fino a 2 (10 con Premium); SOS solo nella provincia della struttura (con Premium anche nelle altre province della regione). Premium aggiunge inoltre candidature in cima, precedenza nelle liste d'attesa degli eventi, messaggi diretti a chi non è un collegamento (15 al mese per i professionisti, 5 per gli appassionati, 40 per le strutture), tutte le visite, statistiche e visite anonime.
 
 ## Modello di sicurezza (in breve)
 
@@ -136,7 +138,7 @@ I prezzi stanno in `functions/api/src/billing.js` (`PRICES`). Se li cambi e rila
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function (`closeJob`, `reopenJob`) |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
-| push_subscriptions, blocks, client_errors, profile_views, subscriptions, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors, profile_views, subscriptions, plans, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
 | typing ("sta scrivendo") | solo il destinatario (permesso sulla riga) | solo Function | solo Function |
 | job_alerts (avvisi di lavoro) | solo il proprietario (permesso sulla riga) | solo Function | solo Function |
 | recommendations (referenze) | in attesa o nascoste: autore e destinatario; pubblicate: utenti loggati | solo Function | solo Function |

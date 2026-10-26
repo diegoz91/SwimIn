@@ -10,20 +10,37 @@
 import crypto from 'node:crypto';
 
 export const TRIAL_DAYS = 30;
-/** Prezzi in centesimi di euro. */
+/** Piani: professionisti, appassionati, strutture. */
+export const AUDIENCES = ['person', 'enthusiast', 'structure'];
+export const PERIODS = ['month', 'year'];
+export const PLAN_KEYS = AUDIENCES.flatMap((a) => PERIODS.map((p) => `${a}_${p}`));
+/** Prezzi predefiniti in centesimi di euro (gli amministratori li cambiano dal pannello: tabella `plans`). */
 export const PRICES = {
   person: { month: 499, year: 4790 },
+  enthusiast: { month: 199, year: 1900 },
   structure: { month: 1900, year: 17900 },
 };
+/** Limiti dei prezzi impostabili dal pannello (centesimi). */
+export const PRICE_MIN = 99;
+export const PRICE_MAX = 99_900;
 /** Messaggi diretti a chi non è un collegamento, al mese. */
-export const INMAIL_CREDITS = { person: 15, structure: 40 };
+export const INMAIL_CREDITS = { person: 15, enthusiast: 5, structure: 40 };
 /** Annunci attivi contemporaneamente per le strutture Base (gli SOS non contano). */
-export const BASE_ACTIVE_JOBS = 3;
+export const BASE_ACTIVE_JOBS = 2;
+/** Membri dello staff per le strutture Base. */
+export const BASE_STAFF = 5;
+/** Avvisi di lavoro salvati: Base e Premium. */
+export const BASE_ALERTS = 2;
+export const PREMIUM_ALERTS = 10;
 
 const DAY = 86_400_000;
 
 export const isPremium = (profile, now = Date.now()) => !!profile?.premiumUntil && new Date(profile.premiumUntil).getTime() > now;
-export const audienceOf = (profile) => (profile?.userType === 'structure' ? 'structure' : 'person');
+export const audienceOf = (profile) =>
+  profile?.userType === 'structure' ? 'structure' : profile?.personType === 'enthusiast' ? 'enthusiast' : 'person';
+
+const PLAN_LABEL = { person: 'SwimIn Premium', enthusiast: 'SwimIn Premium Passione', structure: 'SwimIn Premium Strutture' };
+export const planName = (audience, period, amount) => `${PLAN_LABEL[audience]} ${period === 'month' ? 'mensile' : 'annuale'} ${(amount / 100).toFixed(2)} EUR`;
 
 /** Verifica della firma dei webhook Stripe (header Stripe-Signature, tolleranza 5 minuti). */
 export function verifyStripeSignature(rawBody, header, secret, now = Date.now()) {
@@ -46,8 +63,9 @@ const form = (obj, prefix = '') =>
 
 export function billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin, config = {}, fetchImpl = fetch, log = () => {} }) {
   const { stripe = {}, paypal = {}, appUrl = '' } = config;
-  const stripeReady = !!(stripe.secretKey && stripe.prices && Object.values(stripe.prices).every(Boolean));
-  const paypalReady = !!(paypal.clientId && paypal.secret && paypal.plans && Object.values(paypal.plans).every(Boolean));
+  // Prezzi e piani mancanti (es. un prezzo appena cambiato dal pannello) si creano al primo pagamento.
+  const stripeReady = !!stripe.secretKey;
+  const paypalReady = !!(paypal.clientId && paypal.secret);
   const paypalBase = paypal.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
   const back = (path) => `${(appUrl || '').replace(/\/$/, '')}${path}`;
 
@@ -94,6 +112,91 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
       fail(502, 'Il servizio di pagamento non risponde: riprova tra poco.');
     }
     return data;
+  };
+
+  // ---------------- Piani e prezzi ----------------
+  /**
+   * Prezzo e identificativi di ogni piano. La tabella `plans` (scritta solo dagli amministratori,
+   * tramite adminUpdatePlans) ha la precedenza; senza riga valgono i prezzi predefiniti e gli
+   * identificativi creati da setup-db (variabili della Function).
+   */
+  const loadPlans = async () => {
+    let rows = [];
+    try {
+      rows = (await list(C.plans, [Query.limit(50)])).documents;
+    } catch (e) {
+      log(`piani: ${e?.message || e}`); // tabella non ancora creata: prezzi predefiniti
+    }
+    const byKey = Object.fromEntries(rows.map((r) => [r.$id, r]));
+    return Object.fromEntries(
+      PLAN_KEYS.map((key) => {
+        const [audience, period] = key.split('_');
+        const row = byKey[key];
+        const amount = Number.isInteger(row?.amount) ? row.amount : PRICES[audience][period];
+        const isDefault = amount === PRICES[audience][period];
+        return [key, {
+          key, audience, period, amount,
+          stripePriceId: row?.stripePriceId || (isDefault ? stripe.prices?.[key] || '' : ''),
+          paypalPlanId: row?.paypalPlanId || (isDefault ? paypal.plans?.[key] || '' : ''),
+          updatedAt: row?.$updatedAt || null,
+        }];
+      })
+    );
+  };
+
+  const savePlan = async (key, patch) => {
+    if (await find(C.plans, key)) return update(C.plans, key, patch);
+    return create(C.plans, patch, [], key);
+  };
+
+  /** Prezzo Stripe del piano: se manca lo crea (stesso prodotto, la lookup key passa al nuovo prezzo). */
+  const ensureStripePrice = async (plan) => {
+    if (plan.stripePriceId) return plan.stripePriceId;
+    const lookup = `swimin_${plan.key}`;
+    const found = (await stripeCall('GET', `/prices?active=true&limit=1&lookup_keys[]=${lookup}`)).data?.[0];
+    let id = found && found.unit_amount === plan.amount ? found.id : '';
+    if (!id) {
+      const created = await stripeCall('POST', '/prices', {
+        currency: 'eur',
+        unit_amount: plan.amount,
+        recurring: { interval: plan.period },
+        lookup_key: lookup,
+        transfer_lookup_key: true,
+        tax_behavior: 'inclusive',
+        ...(found?.product ? { product: typeof found.product === 'string' ? found.product : found.product.id } : { product_data: { name: `${PLAN_LABEL[plan.audience]} (${plan.period === 'month' ? 'mensile' : 'annuale'})` } }),
+      });
+      id = created.id;
+    }
+    await savePlan(plan.key, { amount: plan.amount, stripePriceId: id });
+    plan.stripePriceId = id;
+    return id;
+  };
+
+  /** Piano PayPal: se manca lo crea sotto il prodotto "SwimIn Premium". */
+  const ensurePaypalPlan = async (plan) => {
+    if (plan.paypalPlanId) return plan.paypalPlanId;
+    const products = await paypalCall('GET', '/v1/catalogs/products?page_size=20');
+    const product = (products.products || []).find((p) => p.name === 'SwimIn Premium') || (await paypalCall('POST', '/v1/catalogs/products', { name: 'SwimIn Premium', type: 'SERVICE', category: 'SOFTWARE' }));
+    const created = await paypalCall('POST', '/v1/billing/plans', {
+      product_id: product.id,
+      name: planName(plan.audience, plan.period, plan.amount),
+      status: 'ACTIVE',
+      billing_cycles: [{ frequency: { interval_unit: plan.period === 'month' ? 'MONTH' : 'YEAR', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 1, total_cycles: 0, pricing_scheme: { fixed_price: { value: (plan.amount / 100).toFixed(2), currency_code: 'EUR' } } }],
+      payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 2 },
+    });
+    await savePlan(plan.key, { amount: plan.amount, paypalPlanId: created.id });
+    plan.paypalPlanId = created.id;
+    return created.id;
+  };
+
+  /** Durata di un piano PayPal: dai piani noti, altrimenti chiedendola a PayPal (piani di prezzi precedenti). */
+  const paypalPeriodOf = async (planId) => {
+    const plans = await loadPlans();
+    const known = Object.values(plans).find((p) => p.paypalPlanId === planId) || Object.entries(paypal.plans || {}).find(([, id]) => id === planId)?.[0];
+    if (known) return (typeof known === 'string' ? known : known.key).endsWith('year') ? 'year' : 'month';
+    if (!planId) return 'month';
+    const plan = await paypalCall('GET', `/v1/billing/plans/${encodeURIComponent(planId)}`).catch(() => null);
+    return plan?.billing_cycles?.find((c) => c.tenure_type === 'REGULAR')?.frequency?.interval_unit === 'YEAR' ? 'year' : 'month';
   };
 
   const subId = (provider, externalId) => crypto.createHash('sha256').update(`${provider}:${externalId}`).digest('hex').slice(0, 32);
@@ -161,7 +264,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
     const sub = await paypalCall('GET', `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`);
     const userId = sub.custom_id;
     if (!userId || (expectedUserId && userId !== expectedUserId)) fail(403, 'Abbonamento non tuo.');
-    const planPeriod = Object.entries(paypal.plans || {}).find(([, id]) => id === sub.plan_id)?.[0] || '';
+    const period = await paypalPeriodOf(sub.plan_id);
     const next = sub.billing_info?.next_billing_time;
     // Un giorno di margine: il rinnovo PayPal può arrivare qualche ora dopo la scadenza.
     const end = next ? new Date(new Date(next).getTime() + DAY).toISOString() : '';
@@ -170,7 +273,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
       externalId: sub.id,
       customerId: sub.subscriber?.payer_id || '',
       status: PAYPAL_STATUS[sub.status] || 'incomplete',
-      period: planPeriod.endsWith('year') ? 'year' : 'month',
+      period,
       currentPeriodEnd: end,
       cancelAtPeriodEnd: sub.status === 'CANCELLED',
     });
@@ -179,11 +282,11 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
   const latestSubscription = async (me) =>
     (await list(C.subscriptions, [Query.equal('userId', me), Query.orderDesc('$updatedAt'), Query.limit(5)])).documents.find((s) => s.status !== 'incomplete') || null;
 
-  return {
+  const api = {
     async getBillingStatus(me) {
       const profile = await get(C.profiles, me);
       const audience = audienceOf(profile);
-      const sub = await latestSubscription(me);
+      const [sub, plans] = await Promise.all([latestSubscription(me), loadPlans()]);
       return {
         premium: isPremium(profile),
         premiumUntil: profile.premiumUntil || null,
@@ -191,7 +294,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
         trialAvailable: !profile.premiumTrialUsed && !isPremium(profile),
         trialDays: TRIAL_DAYS,
         audience,
-        prices: PRICES[audience],
+        prices: { month: plans[`${audience}_month`].amount, year: plans[`${audience}_year`].amount },
         providers: { stripe: stripeReady, paypal: paypalReady },
         inmailCredits: isPremium(profile) ? profile.inmailCredits ?? INMAIL_CREDITS[audience] : 0,
         subscription: sub
@@ -216,7 +319,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
       if (!['month', 'year'].includes(period)) fail(400, 'Scegli mensile o annuale.');
       const profile = await get(C.profiles, me);
       const audience = audienceOf(profile);
-      const key = `${audience}_${period}`;
+      const plan = (await loadPlans())[`${audience}_${period}`];
       const active = await latestSubscription(me);
       if (active && ['active', 'trialing', 'past_due'].includes(active.status) && !active.cancelAtPeriodEnd) fail(409, 'Hai già un abbonamento attivo: lo gestisci da questa pagina.');
       // Se è in corso la prova (o un periodo pagato), il primo addebito parte alla sua scadenza.
@@ -228,7 +331,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
         const email = users ? (await users.get({ userId: me }).catch(() => ({}))).email : undefined;
         const session = await stripeCall('POST', '/checkout/sessions', {
           mode: 'subscription',
-          line_items: { 0: { price: stripe.prices[key], quantity: 1 } },
+          line_items: { 0: { price: await ensureStripePrice(plan), quantity: 1 } },
           success_url: back('/premium?esito=ok'),
           cancel_url: back('/premium?esito=annullato'),
           client_reference_id: me,
@@ -243,7 +346,7 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
       if (provider === 'paypal') {
         if (!paypalReady) fail(503, 'Il pagamento con PayPal non è ancora attivo.');
         const sub = await paypalCall('POST', '/v1/billing/subscriptions', {
-          plan_id: paypal.plans[key],
+          plan_id: await ensurePaypalPlan(plan),
           custom_id: me,
           ...(deferred ? { start_time: new Date(startsAt).toISOString() } : {}),
           application_context: {
@@ -301,6 +404,62 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
       return { premiumUntil };
     },
 
+    /** Amministratori: prezzi attuali di tutti i piani, con gli abbonati attivi. */
+    async adminGetPlans(me) {
+      if (!(await isAdmin(me))) fail(403, 'Area riservata agli amministratori.');
+      const plans = await loadPlans();
+      let subs = [];
+      try {
+        subs = (await list(C.subscriptions, [Query.equal('status', ['active', 'trialing', 'past_due']), Query.limit(5000)])).documents;
+      } catch (e) {
+        log(`abbonati: ${e?.message || e}`);
+      }
+      return {
+        plans: PLAN_KEYS.map((key) => {
+          const p = plans[key];
+          return {
+            key, audience: p.audience, period: p.period, amount: p.amount, defaultAmount: PRICES[p.audience][p.period], updatedAt: p.updatedAt,
+            subscribers: subs.filter((s) => s.audience === p.audience && s.period === p.period).length,
+            stripe: !!p.stripePriceId, paypal: !!p.paypalPlanId,
+          };
+        }),
+        providers: { stripe: stripeReady, paypal: paypalReady },
+        limits: { min: PRICE_MIN, max: PRICE_MAX },
+      };
+    },
+
+    /**
+     * Amministratori: nuovi prezzi (centesimi) per uno o più piani, es. { prices: { person_month: 599 } }.
+     * Valgono per i nuovi abbonamenti; chi è già abbonato mantiene il prezzo che ha sottoscritto.
+     * Prezzi Stripe e piani PayPal nuovi si creano subito (o al primo pagamento, se il servizio non risponde).
+     */
+    async adminUpdatePlans(me, { prices } = {}) {
+      if (!(await isAdmin(me))) fail(403, 'Area riservata agli amministratori.');
+      if (!prices || typeof prices !== 'object') fail(400, 'Indica i prezzi da cambiare.');
+      const plans = await loadPlans();
+      const next = Object.fromEntries(PLAN_KEYS.map((k) => [k, plans[k].amount]));
+      for (const [key, value] of Object.entries(prices)) {
+        if (!PLAN_KEYS.includes(key)) fail(400, 'Piano non valido.');
+        const n = Number(value);
+        if (!Number.isInteger(n) || n < PRICE_MIN || n > PRICE_MAX) fail(400, `Prezzo non valido: da ${(PRICE_MIN / 100).toFixed(2).replace('.', ',')} a ${(PRICE_MAX / 100).toFixed(0)} €.`);
+        next[key] = n;
+      }
+      for (const a of AUDIENCES) {
+        if (next[`${a}_year`] > next[`${a}_month`] * 12) fail(400, 'L’abbonamento annuale non può costare più di 12 mesi.');
+      }
+      const changed = PLAN_KEYS.filter((k) => next[k] !== plans[k].amount);
+      const warnings = [];
+      for (const key of changed) {
+        await savePlan(key, { amount: next[key], stripePriceId: '', paypalPlanId: '' });
+        const plan = { ...plans[key], amount: next[key], stripePriceId: '', paypalPlanId: '' };
+        // Il fallimento di un servizio non blocca il cambio: si riprova al primo pagamento.
+        if (stripeReady) await ensureStripePrice(plan).catch((e) => warnings.push(`Stripe: ${e?.message || e}`));
+        if (paypalReady) await ensurePaypalPlan(plan).catch((e) => warnings.push(`PayPal: ${e?.message || e}`));
+      }
+      log(`prezzi aggiornati da ${me}: ${changed.map((k) => `${k}=${next[k]}`).join(', ') || 'nessuno'}`);
+      return { ...(await api.adminGetPlans(me)), changed, warnings };
+    },
+
     // ---------------- Webhook (chiamati dall'entrypoint, non dal client) ----------------
     async _stripeWebhook(rawBody, signature) {
       if (!verifyStripeSignature(rawBody, signature, stripe.webhookSecret)) fail(400, 'Firma non valida.');
@@ -347,4 +506,5 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
 
     _isPremium: isPremium,
   };
+  return api;
 }
