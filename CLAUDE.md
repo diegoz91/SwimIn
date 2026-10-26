@@ -97,6 +97,7 @@ Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, dir
 - Campanella: dal menu delle notifiche si segna come letta una notifica (pulsante a destra di ognuna) o tutte (`markAllNotificationsRead`), senza aprire `/notifiche`.
 - Attese e avvisi: `PageLoader` (scheletro con `variant` page/list/detail/calendar) accende la barra `TopProgress` in cima; per altri caricamenti `useTopProgress()`. `ConnectionStatus` mostra offline/di nuovo online e al ritorno lancia `swimin:reconnected` (i `useSignal` ricaricano). Azioni leggere e reversibili (togliere un salvato, chiudere un annuncio, lasciare un gruppo aperto) non chiedono conferma: toast con "Annulla" (`showToast(msg, tipo, { action })`). In home un solo avviso alla volta (assunzione prima dei brevetti). Notifiche raggruppate per giorno, swipe con `SwipeAction` (sempre anche un pulsante). Ricerche recenti in `utils/recentSearches.ts`.
 - Funzioni accese/spente: `config/features.ts` (`LIVE_ENABLED` con `VITE_LIVE=on`; spenta: `/live` mostra "in arrivo" e nel menu c'è Eventi).
+- Caricamenti con percentuale reale: `uploadFile()` in `services/upload.ts` (fino a 5 MB una richiesta con JWT e `xhr.upload.onprogress`, oltre i pezzi dell'SDK con `onProgress`) e la barra `UploadProgress`. Usati da video e foto dei post, CV e allegati della chat.
 - Blocchi: `assertNotBlocked` nella Function per messaggi, collegamenti e commenti; nel client filtrare i contenuti con `useBlocks().isHidden()` / `isMutedOrHidden()`.
 
 ## Workflow

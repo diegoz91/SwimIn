@@ -2,6 +2,7 @@ import { ID, Permission, Role } from 'appwrite';
 import { storage } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { compressImage } from '@/utils/image';
+import { uploadFile, type ProgressFn } from '@/services/upload';
 
 const MB = 1024 * 1024;
 const IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -50,7 +51,7 @@ class StorageService {
   }
 
   /** Carica foto o video di un post. Le foto vengono ridimensionate. */
-  async uploadPostMedia(file: File): Promise<string> {
+  async uploadPostMedia(file: File, onProgress?: ProgressFn): Promise<string> {
     let toUpload = file;
     if (file.type.startsWith('image/')) {
       this.validateImageFile(file, 20);
@@ -60,7 +61,7 @@ class StorageService {
     } else {
       throw new Error('Tipo di file non supportato. Puoi caricare solo immagini o video.');
     }
-    const uploaded = await storage.createFile(this.buckets.postMedia, ID.unique(), toUpload);
+    const uploaded = await uploadFile(this.buckets.postMedia, toUpload, undefined, onProgress);
     return this.viewUrl(this.buckets.postMedia, uploaded.$id);
   }
 

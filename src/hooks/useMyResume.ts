@@ -20,6 +20,8 @@ export function useMyResume(enabled = true) {
     const userId = user?.$id || '';
     const [resume, setResume] = useState<ResumeInfo | null | undefined>(() => (cache?.userId === userId ? cache.resume : undefined));
     const [busy, setBusy] = useState(false);
+    /** Percentuale del caricamento in corso, null se non si sta caricando. */
+    const [progress, setProgress] = useState<number | null>(null);
 
     useEffect(() => {
         if (!userId || !enabled) return;
@@ -39,12 +41,14 @@ export function useMyResume(enabled = true) {
     const upload = useCallback(
         async (file: File) => {
             setBusy(true);
+            setProgress(0);
             try {
-                const saved = await uploadResume(file, userId);
+                const saved = await uploadResume(file, userId, setProgress);
                 publish(userId, saved);
                 return saved;
             } finally {
                 setBusy(false);
+                setProgress(null);
             }
         },
         [userId]
@@ -60,5 +64,5 @@ export function useMyResume(enabled = true) {
         }
     }, [userId]);
 
-    return { resume, busy, upload, remove };
+    return { resume, busy, progress, upload, remove };
 }

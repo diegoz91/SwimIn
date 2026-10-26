@@ -29,7 +29,7 @@ interface ChatWindowProps {
 const MESSAGE_REACTIONS = REACTIONS.filter((r) => ['consiglio', 'adoro', 'felice', 'applauso', 'interessante', 'sostegno'].includes(r.key));
 const MAX_ATTACHMENTS = 4;
 
-type Pending = { id: string; file: File; fileId?: string; error?: string; preview?: string };
+type Pending = { id: string; file: File; fileId?: string; error?: string; preview?: string; progress?: number };
 type ReplyPreview = { id: string; senderId: string; text: string };
 
 const parseJson = <T,>(raw: string | null | undefined, fallback: T): T => {
@@ -250,7 +250,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       const id = `p_${Math.random().toString(36).slice(2, 9)}`;
       const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
       setPending((prev) => [...prev, { id, file, preview }]);
-      uploadChatFile(file, currentUserId)
+      uploadChatFile(file, currentUserId, (progress) => setPending((prev) => prev.map((p) => (p.id === id ? { ...p, progress } : p))))
         .then((fileId) => setPending((prev) => {
           if (!prev.some((p) => p.id === id)) { discardChatFile(fileId); return prev; } // rimosso nel frattempo
           return prev.map((p) => (p.id === id ? { ...p, fileId } : p));
@@ -611,7 +611,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     <p className="text-slate-500">{formatFileSize(p.file.size)}</p>
                   </div>
                 )}
-                {!p.fileId && !p.error && <div className="absolute inset-0 bg-white/60 grid place-items-center"><div className="w-5 h-5 border-2 border-corsia-600 border-t-transparent rounded-full animate-spin" aria-label="Caricamento" /></div>}
+                {!p.fileId && !p.error && (
+                  <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-1 px-2">
+                    <span className="text-[11px] font-semibold text-abisso tabular-nums">{p.progress ?? 0}%</span>
+                    <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden" role="progressbar" aria-label={`Caricamento di ${p.file.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={p.progress ?? 0}>
+                      <div className="h-full bg-corsia-600 transition-[width] duration-200" style={{ width: `${p.progress ?? 0}%` }} />
+                    </div>
+                  </div>
+                )}
                 {p.error && <p className="absolute inset-x-0 bottom-0 bg-galleggiante text-white text-[10px] px-1 py-0.5 truncate" title={p.error}>{p.error}</p>}
                 <button type="button" onClick={() => removePending(p)} aria-label={`Rimuovi ${p.file.name}`} className="absolute top-1 right-1 w-5 h-5 grid place-items-center rounded-full bg-abisso/70 text-white hover:bg-abisso">
                   <Icon type="x" className="w-3 h-3" />

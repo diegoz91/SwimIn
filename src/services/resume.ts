@@ -1,8 +1,9 @@
-import { ID, Permission, Role } from 'appwrite';
+import { Permission, Role } from 'appwrite';
 import { storage } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { databaseService } from '@/services/database';
 import { privateFileUrl } from '@/services/chatFiles';
+import { uploadFile, type ProgressFn } from '@/services/upload';
 import type { ResumeInfo } from '@/types/types';
 
 /**
@@ -23,10 +24,10 @@ export function resumeFileError(file: File): string | null {
 }
 
 /** Carica il PDF e lo imposta come CV; il precedente viene sostituito. */
-export async function uploadResume(file: File, userId: string): Promise<ResumeInfo> {
+export async function uploadResume(file: File, userId: string, onProgress?: ProgressFn): Promise<ResumeInfo> {
     const error = resumeFileError(file);
     if (error) throw new Error(error);
-    const uploaded = await storage.createFile(bucket, ID.unique(), file, [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))]);
+    const uploaded = await uploadFile(bucket, file, [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))], onProgress);
     try {
         return await databaseService.setMyResume(uploaded.$id);
     } catch (err) {
