@@ -26,7 +26,7 @@ export const CompletionChecklist: React.FC<{ score: number; steps: CompletionSte
                     </p>
                     {next?.onClick && (
                         <Button size="sm" className="mt-3" onClick={next.onClick}>
-                            {next.label} <span className="text-white/80 font-normal">+{next.weight}%</span>
+                            {next.label} <span className="text-white font-normal">+{next.weight}%</span>
                         </Button>
                     )}
                 </div>
