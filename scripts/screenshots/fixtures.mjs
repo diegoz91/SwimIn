@@ -256,6 +256,7 @@ export const collections = {
     facilities: [],
     live_rooms: [
         doc('live_rooms', 'r1', { title: 'Didattica in vasca piccola: giochi per i 4-5 anni', hostId: 'u_elena', status: 'active', speakers: ['u_elena', 'u_sara'], listeners: ['u_marco', 'u_luca'], startedAt: iso(15) }, 15),
+        doc('live_rooms', 'r2', { title: 'Corso di primo soccorso e BLSD in vasca', hostId: 'u_marco', status: 'active', speakers: ['u_marco'], listeners: ['u_sara'], startedAt: iso(8), video: true, endsAt: new Date(now + 52 * 60000).toISOString() }, 8),
     ],
     live_messages: [
         doc('live_messages', 'lm1', { roomId: 'r1', authorId: 'u_elena', content: 'Benvenuti! Oggi parliamo dei giochi per l\'acquaticità dei 4-5 anni.', kind: 'message' }, 14),
@@ -315,6 +316,9 @@ export const apiResponses = {
         const d = apiResponses.adminGetPlans();
         return { ...d, plans: d.plans.map((p) => (p.key in prices ? { ...p, amount: prices[p.key], updatedAt: new Date().toISOString() } : p)), changed: Object.keys(prices), warnings: [] };
     },
+    // Il server video non esiste nei test: il collegamento fallisce e il palco mostra «Riprova».
+    getLiveAccess: () => ({ url: 'wss://live.invalid', token: 'token-di-prova', canPublish: true, endsAt: new Date(now + 52 * 60000).toISOString() }),
+    getLiveIngress: () => null,
     getMyStats: () => ({
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),

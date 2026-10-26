@@ -10,16 +10,20 @@ import { LiveRoomView } from '@/features/live/LiveRoomView';
 import { avatarOf, displayNameOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
 import type { LiveRoom, StructureProfile, UserProfile } from '@/types/types';
+import { detectDevice, deviceLabel } from '@/utils/device';
+import { isPremium } from '@/utils/premium';
 
 const IDEAS = [
+    'Corso di primo soccorso e BLSD in vasca',
+    'Acquagym dal vivo: lezione da 45 minuti',
     'Domande e risposte sul brevetto di assistente bagnanti',
     'Didattica per i corsi dei più piccoli',
-    'Preparare la stagione estiva in piscina scoperta',
 ];
 
 /** Bordo vasca live: stanze di confronto in tempo reale tra professionisti. */
 const Live: React.FC = () => {
     usePageTitle('Bordo vasca live');
+    const device = React.useMemo(() => detectDevice(), []);
     const { user } = useAuth();
     const { showToast } = useToast();
 
@@ -127,7 +131,7 @@ const Live: React.FC = () => {
                 <div>
                     <h1 className="text-4xl font-bold text-abisso leading-none">Bordo vasca live</h1>
                     <p className="text-slate-600 mt-2 max-w-xl">
-                        Stanze di confronto in tempo reale: chi conduce porta sul palco gli ospiti, il pubblico interviene in chat con domande e mani alzate.
+                        Corsi e dirette in video (sicurezza, acquagym, tecnica), con chat, domande e mani alzate: chi conduce porta sul palco gli ospiti.
                     </p>
                 </div>
                 {!isCreating && (
@@ -160,7 +164,17 @@ const Live: React.FC = () => {
                         <label htmlFor="live-desc" className="block text-sm font-semibold text-slate-700 mb-1.5">Descrizione (facoltativa)</label>
                         <textarea id="live-desc" rows={2} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none" />
                     </div>
-                    <button type="submit" disabled={busy || !title.trim()} className="w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-white bg-galleggiante hover:bg-red-700 disabled:opacity-50">
+                    <div className="rounded-2xl bg-piastrella p-4 text-sm text-slate-700 flex gap-3">
+                        <Icon type={device.kind === 'desktop' ? 'computer' : 'device-phone'} className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p>
+                                Da questo {deviceLabel(device)} puoi trasmettere con {device.canShareScreen ? 'fotocamera, microfono e condivisione dello schermo' : 'fotocamera (anteriore o posteriore) e microfono'}
+                                {device.canShareScreen ? '' : '; per trasmettere lo schermo del telefono usa Prism Live Studio'}. Il browser ti chiederà il permesso.
+                            </p>
+                            <p className="mt-1 text-slate-500">Durata massima {isPremium(user) ? '4 ore' : '60 minuti (4 ore con Premium)'}. Con Premium puoi trasmettere anche da OBS Studio o Prism.</p>
+                        </div>
+                    </div>
+                    <button type="submit" disabled={busy || !title.trim()} className="w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-white bg-galleggiante-700 hover:bg-red-800 disabled:opacity-50">
                         {busy ? 'Apertura…' : 'Vai in diretta'}
                     </button>
                 </form>
@@ -186,9 +200,10 @@ const Live: React.FC = () => {
                             <article key={room.$id} className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden flex flex-col">
                                 <div className="lane-rope" aria-hidden="true" />
                                 <div className="p-5 flex-1">
-                                    <p className="flex items-center gap-2 text-xs font-semibold text-galleggiante-700">
+                                    <p className="flex flex-wrap items-center gap-2 text-xs font-semibold text-galleggiante-700">
                                         <span className="w-2 h-2 rounded-full bg-galleggiante motion-safe:animate-pulse" aria-hidden="true" />
                                         In diretta · {people} {people === 1 ? 'partecipante' : 'partecipanti'} · da {formatRelativeTime(room.startedAt || room.$createdAt).replace(' fa', '')}
+                                        <span className={`rounded-full px-2 py-0.5 ${room.video ? 'bg-corsia-50 text-corsia-800' : 'bg-slate-100 text-slate-600'}`}>{room.video ? 'Video' : 'Solo chat'}</span>
                                     </p>
                                     <h3 className="mt-2 text-xl font-semibold text-abisso leading-snug">{room.title}</h3>
                                     {room.description && <p className="text-sm text-slate-600 mt-1 line-clamp-2">{room.description}</p>}

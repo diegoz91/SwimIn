@@ -129,6 +129,20 @@ Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorn
 
 **Cosa include il piano Base** (limiti verificati dalla Function, costanti in `billing.js`): strutture fino a 2 annunci attivi (gli SOS non contano) e area staff fino a 5 persone; avvisi di lavoro fino a 2 (10 con Premium); SOS solo nella provincia della struttura (con Premium anche nelle altre province della regione). Premium aggiunge inoltre candidature in cima, precedenza nelle liste d'attesa degli eventi, messaggi diretti a chi non è un collegamento (15 al mese per i professionisti, 5 per gli appassionati, 40 per le strutture), tutte le visite, statistiche e visite anonime.
 
+## 11. Dirette video (LiveKit)
+
+Senza configurazione la Live funziona come stanza con chat e palco. Per il video:
+
+1. Crea un account su [livekit.io](https://livekit.io) e un progetto (il piano gratuito basta per partire).
+2. In *Settings › Keys* crea una chiave e copia in `.env.setup` (o tra i secret di GitHub):
+   - `LIVEKIT_URL` (es. `wss://swimin-xxxx.livekit.cloud`);
+   - `LIVEKIT_API_KEY`;
+   - `LIVEKIT_API_SECRET`.
+3. Lancia `npm run setup-db`: salva le tre variabili nella Function.
+4. In *Settings › Webhooks* aggiungi `FUNCTION_URL/webhooks/livekit`, firmato con la stessa chiave: quando una stanza video resta vuota, SwimIn la chiude.
+
+Durata massima di una diretta: 60 minuti con il piano Base, 4 ore con Premium (`LIVE_MINUTES` in `functions/api/src/live.js`). Trasmettere da OBS Studio o Prism Live Studio (RTMP, oppure WHIP da OBS 30+) è incluso in Premium: l'ingresso RTMP viene ricodificato e ha un costo al minuto, WHIP no.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
@@ -138,7 +152,7 @@ Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorn
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function (`closeJob`, `reopenJob`) |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
-| push_subscriptions, blocks, client_errors, profile_views, subscriptions, plans, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
+| push_subscriptions, blocks, client_errors, profile_views, subscriptions, plans, live_private, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
 | typing ("sta scrivendo") | solo il destinatario (permesso sulla riga) | solo Function | solo Function |
 | job_alerts (avvisi di lavoro) | solo il proprietario (permesso sulla riga) | solo Function | solo Function |
 | recommendations (referenze) | in attesa o nascoste: autore e destinatario; pubblicate: utenti loggati | solo Function | solo Function |

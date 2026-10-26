@@ -27,18 +27,28 @@ const sizes = Object.fromEntries([...js, ...assets.filter((f) => f.endsWith('.cs
 
 const initialJs = initial.filter((f) => f.endsWith('.js')).reduce((s, f) => s + (sizes[f] || 0), 0);
 const initialCss = initial.filter((f) => f.endsWith('.css')).reduce((s, f) => s + (sizes[f] || 0), 0);
-const lazy = js.filter((f) => !initial.includes(f)).sort((a, b) => sizes[b] - sizes[a]);
+/**
+ * Librerie pesanti caricate solo quando servono, con un budget proprio: il video delle dirette
+ * (livekit-client) si scarica solo entrando in una stanza video, non pesa sulle altre pagine.
+ */
+const OWN_BUDGET = [{ name: 'Video delle dirette', match: /livekit/i, kb: Number(process.env.BUDGET_LIVE_KB || 200) }];
+const lazyAll = js.filter((f) => !initial.includes(f)).sort((a, b) => sizes[b] - sizes[a]);
+const lazy = lazyAll.filter((f) => !OWN_BUDGET.some((b) => b.match.test(f)));
 const biggest = lazy[0];
 
 const checks = [
     ['JS iniziale', kb(initialJs), BUDGET.initialJs],
     ['CSS iniziale', kb(initialCss), BUDGET.initialCss],
     [`Chunk più pesante (${biggest?.replace('assets/', '')})`, kb(sizes[biggest] || 0), BUDGET.chunk],
+    ...OWN_BUDGET.flatMap((b) => {
+        const f = lazyAll.find((x) => b.match.test(x));
+        return f ? [[`${b.name} (${f.replace('assets/', '')})`, kb(sizes[f]), b.kb]] : [];
+    }),
 ];
 const md = ['# Budget del bundle (gzip)', '', '| Voce | Dimensione | Budget | Esito |', '|---|---|---|---|',
     ...checks.map(([n, v, b]) => `| ${n} | ${v} KB | ${b} KB | ${v <= b ? 'ok' : '**oltre**'} |`),
     '', '## File iniziali', '', ...initial.map((f) => `- ${f}: ${kb(sizes[f] || 0)} KB`),
-    '', '## Chunk a richiesta più grandi', '', ...lazy.slice(0, 15).map((f) => `- ${f}: ${kb(sizes[f])} KB`)];
+    '', '## Chunk a richiesta più grandi', '', ...lazyAll.slice(0, 15).map((f) => `- ${f}: ${kb(sizes[f])} KB`)];
 if (OUT) writeFileSync(OUT, md.join('\n') + '\n');
 let failed = 0;
 for (const [n, v, b] of checks) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LocalVideoTrack, Participant, Room, Track, VideoTrack } from 'livekit-client';
-import { databaseService } from '@/services/database';
+import { ApiError, databaseService } from '@/services/database';
 
 /** Una persona (o OBS/Prism) collegata alla stanza video. */
 export interface LiveParticipant {
@@ -16,7 +16,7 @@ export interface LiveParticipant {
     micOn: boolean;
 }
 
-export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error' | 'unavailable';
 export type MediaKind = 'videoinput' | 'audioinput';
 
 export interface LiveDevices {
@@ -160,7 +160,8 @@ export function useLiveSession(roomId: string, enabled: boolean) {
             } catch (err) {
                 if (cancelled) return;
                 console.error('Diretta video:', err);
-                setStatus('error');
+                // Servizio video non configurato: la stanza resta chat e palco.
+                setStatus(err instanceof ApiError && err.code === 'live_unavailable' ? 'unavailable' : 'error');
                 setError(err instanceof Error ? err.message : 'Collegamento al video non riuscito.');
             }
         })();

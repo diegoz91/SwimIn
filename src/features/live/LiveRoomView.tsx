@@ -9,6 +9,9 @@ import { Icon } from '@/components/ui/Icon';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { formatRelativeTime } from '@/utils/format';
 import type { AuthenticatedUser, LiveMessage, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
+import { useLiveSession } from './useLiveSession';
+import { LiveStage } from './LiveStage';
+import { BroadcastPanel } from './BroadcastPanel';
 
 type Profile = UserProfile | StructureProfile;
 
@@ -33,6 +36,9 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
     const listRef = useRef<HTMLDivElement>(null);
 
     const isHost = room.hostId === user.$id;
+    // Diretta video (LiveKit): ci si collega appena dentro la stanza; senza servizio resta chat e palco.
+    const live = useLiveSession(room.$id, !!room.video);
+    const videoOn = !!room.video && live.status !== 'unavailable';
     const participantIds = useMemo(
         () => [...new Set([room.hostId, ...(room.speakers || []), ...(room.listeners || []), ...messages.map((m) => m.authorId)])],
         [room, messages]
@@ -120,6 +126,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
 
     return (
         <div className="pt-4 grid lg:grid-cols-[minmax(0,1fr)_24rem] gap-4 animate-in fade-in duration-300">
+            <div className="space-y-4 min-w-0">
             <section className="bg-abisso text-white rounded-3xl overflow-hidden flex flex-col" aria-labelledby="live-title">
                 <div className="lane-rope" aria-hidden="true" />
                 <div className="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-white/10">
@@ -138,12 +145,40 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                     </button>
                 </div>
 
-                <div className="p-5 sm:p-7">
-                    <h2 className="text-lg font-bold text-corsia-100">Sul palco</h2>
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-6">
-                        {speakers.map((id) => <Person key={id} id={id} />)}
+                {videoOn ? (
+                    <div className="p-3 sm:p-5">
+                        <LiveStage
+                            session={live}
+                            isHost={isHost}
+                            hostName={displayNameOf(profiles[room.hostId])}
+                            endsAt={room.endsAt}
+                            onTimeUp={isHost ? () => {
+                                showToast('La diretta ha raggiunto la durata massima ed è stata chiusa.', 'info');
+                                databaseService.endLiveRoom(room.$id).catch((err) => console.error('Chiusura diretta:', err));
+                            } : undefined}
+                        />
+                        <h2 className="mt-5 text-sm font-semibold text-corsia-200">Sul palco · {speakers.length}</h2>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                            {speakers.map((id) => (
+                                <div key={id} className="flex items-center gap-2 rounded-full bg-white/5 pl-1 pr-3 py-1">
+                                    <img src={avatarOf(profiles[id])} alt="" className="w-7 h-7 rounded-full object-cover" />
+                                    <span className="text-sm text-white">{displayNameOf(profiles[id])}</span>
+                                    {isHost && id !== room.hostId && (
+                                        <button onClick={() => setStage(id, false)} className="py-1 -my-1 text-xs font-semibold text-corsia-200 hover:text-white">Riporta tra il pubblico</button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="p-5 sm:p-7">
+                        {room.video && live.status === 'unavailable' && <p className="mb-4 text-sm text-corsia-100 bg-white/5 rounded-xl px-3 py-2">Il video non è disponibile in questo momento: la stanza continua con chat e palco.</p>}
+                        <h2 className="text-lg font-bold text-corsia-100">Sul palco</h2>
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-6">
+                            {speakers.map((id) => <Person key={id} id={id} />)}
+                        </div>
+                    </div>
+                )}
 
                 {isHost && raisedHands.length > 0 && (
                     <div className="mx-5 sm:mx-7 mb-5 rounded-2xl bg-white/5 p-4">
@@ -171,6 +206,9 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                     )}
                 </div>
             </section>
+
+            {isHost && videoOn && <BroadcastPanel roomId={room.$id} />}
+            </div>
 
             <section className="bg-white rounded-3xl border border-slate-200 shadow-card flex flex-col h-[70vh] lg:h-[calc(100dvh-7.5rem)] lg:sticky lg:top-4" aria-label="Chat della diretta">
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">

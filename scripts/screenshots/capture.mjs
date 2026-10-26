@@ -323,6 +323,28 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
     await context.close();
 }
 
+// Diretta video condotta da Giulia: palco, controlli e pannello OBS/Prism.
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
+    await page.route(/live\.invalid/, (route) => route.abort());
+    await mockAppwrite(page, { loggedIn: true, overrides: { live_rooms: { r2: { hostId: ME, speakers: [ME] } } } });
+    try {
+        await page.goto(BASE + '/live', { waitUntil: 'load', timeout: 30_000 });
+        await page.getByText('Trasmetti con un programma').waitFor({ timeout: 10_000 });
+        await page.waitForTimeout(1500);
+        await page.screenshot({ path: `${OUT}/${vpName}-live-studio.png`, fullPage: true });
+        await shot(page, vpName, 'live-studio', touch);
+        console.log(`✓ ${vpName}-live-studio`);
+    } catch (e) {
+        console.log(`✗ ${vpName}-live-studio: ${e.message}`);
+    }
+    await context.close();
+}
+
 // Piani per ogni tipo di profilo e prezzi nel pannello amministratori.
 const enthusiastStatus = { premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'enthusiast', prices: { month: 199, year: 1900 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null };
 const structureStatus = { ...enthusiastStatus, audience: 'structure', prices: { month: 1900, year: 17900 } };
