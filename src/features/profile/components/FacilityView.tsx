@@ -266,14 +266,14 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     };
 
     /** Cambi turno da mostrare: da accettare (per me o aperti a tutti) e i miei in attesa. */
-    const swapItems: SwapItem[] = swaps.flatMap((w) => {
+    const swapItems: SwapItem[] = swaps.flatMap((w): SwapItem[] => {
         const shift = shifts.find((x) => x.$id === w.shiftId);
         if (!shift || shift.date < todayISO()) return [];
         const nameOf = (id: string) => { const m = staff.find((x) => x.userId === id); return m ? `${m.firstName} ${m.lastName}`.trim() : 'Un collega'; };
         const when = `${formatDate(shift.date, 'weekday')}, ${shift.shiftTime}`;
-        if (w.fromUserId === user?.$id) return [{ id: w.$id, kind: 'mine' as const, title: w.toUserId ? `In attesa di ${nameOf(w.toUserId)}` : 'Offerto a tutto lo staff', detail: when, message: w.message }];
-        if (w.toUserId === user?.$id) return [{ id: w.$id, kind: 'incoming' as const, title: `${nameOf(w.fromUserId)} ti chiede di coprire un turno`, detail: when, message: w.message }];
-        if (!w.toUserId && isStaff) return [{ id: w.$id, kind: 'open' as const, title: `Turno disponibile: ${nameOf(w.fromUserId)} cerca un sostituto`, detail: when, message: w.message }];
+        if (w.fromUserId === user?.$id) return [{ id: w.$id, kind: 'mine', title: w.toUserId ? `In attesa di ${nameOf(w.toUserId)}` : 'Offerto a tutto lo staff', detail: when, message: w.message }];
+        if (w.toUserId === user?.$id) return [{ id: w.$id, kind: 'incoming', title: `${nameOf(w.fromUserId)} ti chiede di coprire un turno`, detail: when, message: w.message }];
+        if (!w.toUserId && isStaff) return [{ id: w.$id, kind: 'open', title: `Turno disponibile: ${nameOf(w.fromUserId)} cerca un sostituto`, detail: when, message: w.message }];
         return [];
     });
 
