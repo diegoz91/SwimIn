@@ -306,7 +306,7 @@ export const apiResponses = {
     adminGetPlans: () => {
         const plan = (audience, period, amount, defaultAmount, subscribers) => ({ key: `${audience}_${period}`, audience, period, amount, defaultAmount, updatedAt: amount !== defaultAmount ? new Date(now - 3 * 86400000).toISOString() : null, subscribers, stripe: true, paypal: true });
         return {
-            plans: [plan('person', 'month', 499, 499, 41), plan('person', 'year', 4790, 4790, 18), plan('enthusiast', 'month', 199, 199, 23), plan('enthusiast', 'year', 1900, 1900, 7), plan('structure', 'month', 1490, 1900, 12), plan('structure', 'year', 17900, 17900, 9)],
+            plans: [plan('person', 'month', 499, 499, 41), plan('person', 'year', 4790, 4790, 18), plan('enthusiast', 'month', 199, 199, 23), plan('enthusiast', 'year', 1900, 1900, 7), plan('structure', 'month', 1490, 1900, 12), plan('structure', 'year', 14900, 17900, 9)],
             providers: { stripe: true, paypal: true },
             limits: { min: 99, max: 99900 },
         };
