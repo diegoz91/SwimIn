@@ -256,6 +256,27 @@ const FLOWS = [
         await state.pushRealtime('posts', 'create', { $id: 'p_new', authorId: 'u_marco', content: 'Nuovo post', groupId: null });
         await page.getByRole('button', { name: '1 nuovo post' }).waitFor({ timeout: 6000 });
     }],
+    ['accesso con Google', 'mobile', { loggedIn: false }, async (page, state) => {
+        await open(page, '/login');
+        await page.getByRole('button', { name: 'Continua con Google' }).click();
+        await page.waitForURL((u) => !u.pathname.startsWith('/login') && !u.pathname.startsWith('/accesso'), { timeout: 10000 });
+        assert.ok(state.accountCalls.includes('POST /account/sessions/token'), 'il token di Google deve aprire la sessione');
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+    }],
+    ['primo accesso con Google: si completa l’iscrizione', 'desktop', { loggedIn: false, missing: { profiles: ['u_giulia'] } }, async (page, state) => {
+        await open(page, '/register?tipo=struttura');
+        await page.getByRole('button', { name: 'Iscriviti con Google' }).click();
+        await page.getByRole('heading', { name: 'Completa l’iscrizione' }).waitFor({ timeout: 10000 });
+        assert.equal(await page.getByRole('radio', { name: /Struttura/ }).getAttribute('aria-checked'), 'true', 'il tipo scelto prima di Google resta selezionato');
+        await page.locator('#structureName').fill('Piscina Comunale di Segrate');
+        await page.getByRole('button', { name: 'Crea il mio profilo' }).click();
+        await page.getByText('Per creare l’account devi accettare').waitFor({ timeout: 3000 });
+        assert.ok(!state.calls.some((c) => c.action === 'initProfile'), 'senza termini accettati non si crea il profilo');
+        await page.locator('label[for="accept-terms"]').click();
+        await page.getByRole('button', { name: 'Crea il mio profilo' }).click();
+        const c = await called(state, 'initProfile');
+        assert.deepEqual([c.params.userType, c.params.structureName], ['structure', 'Piscina Comunale di Segrate']);
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

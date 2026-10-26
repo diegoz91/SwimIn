@@ -1,6 +1,6 @@
 import type { IconType } from '@/components/ui/Icon';
 import type { EventType, SwimMeet } from '@/types/types';
-import { downloadIcs } from '@/utils/ics';
+import { downloadIcs, type IcsEvent } from '@/utils/ics';
 
 /** Tipi di evento (allineati a EVENT_TYPES in functions/api/src/events.js). */
 export const EVENT_TYPES: { value: EventType; label: string; icon: IconType }[] = [
@@ -33,13 +33,13 @@ export function dateTile(date: string) {
 export const seatsLeft = (e: Pick<SwimMeet, 'maxParticipants' | 'participants'>) =>
     e.maxParticipants ? Math.max(0, e.maxParticipants - (e.participants || []).length) : null;
 
-/** Aggiunge l'evento al calendario (.ics, ora italiana); senza ora di fine dura 1 ora e mezza. */
-export function downloadEventIcs(e: SwimMeet) {
+/** L'evento come appuntamento di calendario (ora italiana); senza ora di fine dura 1 ora e mezza. */
+export function eventIcs(e: SwimMeet): IcsEvent {
     const [h, m] = e.time.split(':').map(Number);
     const t = Math.min(h * 60 + m + 90, 23 * 60 + 59);
     const end = e.endTime || `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
     const url = `${window.location.origin}/eventi/${e.$id}`;
-    downloadIcs(e.title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase() || 'evento', [{
+    return {
         uid: `evento-${e.$id}`,
         title: e.title,
         date: e.date,
@@ -47,5 +47,12 @@ export function downloadEventIcs(e: SwimMeet) {
         end,
         location: e.isOnline ? e.onlineUrl || 'Online' : [e.address, e.city].filter(Boolean).join(', '),
         description: `${e.description}\n\n${url}`,
-    }]);
+    };
+}
+
+export const eventIcsFilename = (e: SwimMeet) => e.title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase() || 'evento';
+
+/** Scarica l'evento come file .ics. */
+export function downloadEventIcs(e: SwimMeet) {
+    downloadIcs(eventIcsFilename(e), [eventIcs(e)]);
 }

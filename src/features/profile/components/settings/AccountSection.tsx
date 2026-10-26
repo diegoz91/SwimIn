@@ -96,6 +96,12 @@ export const AccountSection: React.FC<{ user: AuthenticatedUser; onEditProfile: 
                     >
                         {emailOpen && (
                             <RowPanel withIcon>
+                                {!(user as { passwordUpdate?: string }).passwordUpdate ? (
+                                    <div className="max-w-md space-y-3">
+                                        <p className="text-sm text-slate-600">Accedi con Google: per cambiare email imposta prima una password in <span className="font-semibold text-abisso">Accesso e sicurezza</span>, così possiamo confermare che sei tu.</p>
+                                        <button type="button" onClick={() => setEmailOpen(false)} className={btn.quiet}>Chiudi</button>
+                                    </div>
+                                ) : (
                                 <form onSubmit={changeEmail} className="space-y-4 max-w-md" noValidate>
                                     <Field id="new-email" label="Nuova email" error={emailError}>
                                         <input type="email" autoComplete="email" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailError(undefined); }} required />
@@ -108,6 +114,7 @@ export const AccountSection: React.FC<{ user: AuthenticatedUser; onEditProfile: 
                                         <button type="button" onClick={() => { setEmailOpen(false); setNewEmail(''); setPassword(''); setEmailError(undefined); }} className={btn.quiet}>Annulla</button>
                                     </div>
                                 </form>
+                                )}
                             </RowPanel>
                         )}
                     </Row>

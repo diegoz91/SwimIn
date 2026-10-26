@@ -11,7 +11,8 @@ import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { ShiftWeek, type ShiftItem } from '@/features/profile/components/ShiftWeek';
 import { todayISO, weekStartISO } from '@/utils/dates';
-import { downloadIcs, type IcsEvent } from '@/utils/ics';
+import { type IcsEvent } from '@/utils/ics';
+import { AddToCalendar } from '@/components/common/AddToCalendar';
 
 const toEvent = (s: ShiftItem): IcsEvent => {
     const [start, end] = s.shiftTime.split('–');
@@ -89,13 +90,7 @@ const MyShifts: React.FC = () => {
                     </p>
                 </div>
                 {upcoming.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => downloadIcs('turni-swimin', upcoming.filter((s) => s.status !== 'declined').map(toEvent))}
-                        className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 inline-flex items-center gap-2"
-                    >
-                        <Icon type="calendar" className="w-4 h-4" /> Aggiungi al calendario
-                    </button>
+                    <AddToCalendar events={() => upcoming.filter((s) => s.status !== 'declined').map(toEvent)} filename="turni-swimin" label="Aggiungi i turni al calendario" />
                 )}
             </div>
 
@@ -163,9 +158,7 @@ const MyShifts: React.FC = () => {
                                     {s.status !== 'confirmed' && <button type="button" onClick={() => respond(s, 'confirmed')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-corsia-600 text-white hover:bg-corsia-700">Confermo</button>}
                                     {s.status !== 'declined' && <button type="button" onClick={() => respond(s, 'declined')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>}
                                     {s.status !== 'declined' && (
-                                        <button type="button" onClick={() => downloadIcs(`turno-${s.date}`, [toEvent(s)])} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50" aria-label={`Aggiungi al calendario il turno del ${s.date}`}>
-                                            Calendario
-                                        </button>
+                                        <AddToCalendar events={[toEvent(s)]} filename={`turno-${s.date}`} label="Calendario" ariaLabel={`Aggiungi al calendario il turno del ${s.date}`} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50 inline-flex items-center gap-1" iconClassName="w-3.5 h-3.5" />
                                     )}
                                 </>
                             )

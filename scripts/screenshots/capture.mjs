@@ -111,6 +111,7 @@ const PRIVATE_INTERACTIONS = [
         await p.keyboard.press('Control+A');
         await p.keyboard.type('se');
     }],
+    ['menu-calendario', '/turni', (p) => p.getByRole('button', { name: 'Aggiungi i turni al calendario' }).click()],
     ['calendario', '/profile', async (p) => {
         await p.locator('section[aria-labelledby="certs-title"] button').first().click();
         await p.waitForTimeout(400);
@@ -299,6 +300,26 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
         }
         await context.close();
     }
+}
+
+// Primo accesso con Google: account senza profilo, si completa l'iscrizione.
+for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
+    if (ONLY.length && !ONLY.includes(vpName)) continue;
+    const touch = !!viewport.hasTouch;
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
+    await mockAppwrite(page, { loggedIn: true, missing: { profiles: [ME] } });
+    try {
+        await page.goto(BASE + '/completa-account', { waitUntil: 'load', timeout: 30_000 });
+        await page.getByRole('heading', { name: 'Completa l’iscrizione' }).waitFor({ timeout: 8000 });
+        await page.screenshot({ path: `${OUT}/${vpName}-completa-account.png` });
+        await shot(page, vpName, 'completa-account', touch);
+        console.log(`✓ ${vpName}-completa-account`);
+    } catch (e) {
+        console.log(`✗ ${vpName}-completa-account: ${e.message}`);
+    }
+    await context.close();
 }
 
 // Le stesse pagine con un profilo Premium: statistiche complete e riquadro "Analisi" sbloccato.

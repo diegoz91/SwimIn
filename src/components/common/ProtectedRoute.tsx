@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authenticated, isInitializing } = useAuth();
+  const { authenticated, isInitializing, incompleteAccount } = useAuth();
   const location = useLocation();
 
   if (isInitializing) {
@@ -16,6 +16,9 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
       </div>
     );
   }
+
+  // Primo accesso con Google a metà: prima si completa l'iscrizione.
+  if (incompleteAccount) return <Navigate to="/completa-account" state={{ returnTo: location.pathname + location.search }} replace />;
 
   if (!authenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;

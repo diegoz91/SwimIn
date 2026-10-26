@@ -5,6 +5,7 @@ import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { account } from '@/services/appwrite';
 import { authErrorMessage } from '@/utils/authErrors';
+import { AuthDivider, GoogleButton } from './GoogleButton';
 
 export const LoginForm: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -15,13 +16,14 @@ export const LoginForm: React.FC = () => {
     const [isRecovering, setIsRecovering] = useState(false);
 
     const { login, completeMfa, isLoading } = useAuth();
+    const location = useLocation();
     // Verifica in due passaggi: dopo la password chiediamo il codice dell'app (o un codice di recupero).
-    const [mfaStep, setMfaStep] = useState(false);
+    // Dopo l'accesso con Google un account con la verifica attiva arriva qui direttamente al codice.
+    const [mfaStep, setMfaStep] = useState(() => !!(location.state as { mfa?: boolean } | null)?.mfa);
     const [mfaCode, setMfaCode] = useState('');
     const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const { showToast } = useToast();
     const navigate = useNavigate();
-    const location = useLocation();
 
     const from = (location.state?.from?.pathname || '/') + (location.state?.from?.search || '');
 
@@ -129,6 +131,8 @@ export const LoginForm: React.FC = () => {
                 </form>
             ) : !showRecovery ? (
                 <>
+                    <GoogleButton intent="login" returnTo={from} disabled={isLoading} />
+                    <AuthDivider className="my-5" />
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="email">Email</label>

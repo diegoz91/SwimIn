@@ -71,6 +71,22 @@ export async function mockAppwrite(page, state) {
         const method = route.request().method();
 
         if (path.startsWith('/account')) state.accountCalls.push(`${method} ${path}`);
+        // Accesso con Google: Appwrite rimanda subito all'indirizzo di ritorno con un token.
+        if (/^\/account\/tokens\/oauth2\/\w+$/.test(path)) {
+            const to = new URL(url.searchParams.get('success') || '/');
+            to.searchParams.set('userId', account.$id);
+            to.searchParams.set('secret', 'oauth-secret');
+            if (url.searchParams.get('state')) to.searchParams.set('state', url.searchParams.get('state'));
+            return route.fulfill({ status: 302, headers: { location: to.toString() } });
+        }
+        if (path === '/account/sessions/token' && method === 'POST') {
+            state.loggedIn = true;
+            return json(route, { $id: 'sess-google', userId: account.$id, provider: 'oauth2', current: true });
+        }
+        if (path === '/account/identities' && method === 'GET') {
+            const identities = state.googleLinked ? [{ $id: 'ident1', userId: account.$id, provider: 'google', providerUid: 'g1', providerEmail: account.email, providerAccessToken: '', providerAccessTokenExpiry: '', providerRefreshToken: '' }] : [];
+            return json(route, { total: identities.length, identities });
+        }
         if (path === '/account' && method === 'GET') {
             if (state.loggedIn && (!state.mfaRequired || state.mfaDone)) return json(route, { ...account, mfa: !!state.mfaRequired });
             if (state.loggedIn && state.mfaRequired) return json(route, { message: 'More factors are required', code: 401, type: 'user_more_factors_required' }, 401);
@@ -110,6 +126,7 @@ export async function mockAppwrite(page, state) {
 
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
         if (one) {
+            if (state.missing?.[one[1]]?.includes(one[2])) return json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
             const row = withOverrides(one[1], state).find((r) => r.$id === one[2]);
             return row ? json(route, row) : json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
         }

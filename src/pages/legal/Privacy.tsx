@@ -33,6 +33,7 @@ const Privacy: React.FC = () => (
                         <li><strong>Dati del profilo</strong> che scegli di pubblicare: foto, qualifica, città, biografia, esperienze, brevetti e certificazioni con relative scadenze, competenze, disponibilità per sostituzioni urgenti.</li>
                         <li><strong>Contenuti</strong>: post, foto e video, commenti, consigli (“like”), annunci di lavoro, candidature e lettere di presentazione, partecipazione a eventi.</li>
                         <li><strong>Messaggi privati</strong> scambiati con altri utenti, visibili solo a mittente e destinatario.</li>
+                        <li><strong>Accesso con Google</strong> (facoltativo): nome, email e foto dell'account Google, solo per creare l'account o farti entrare. Se colleghi Google Calendar, SwimIn usa il permesso del calendario solo per aggiungere o aggiornare i turni e gli eventi che scegli di salvare: non legge né cancella gli altri appuntamenti. Puoi scollegare Google da <em>Impostazioni › Accesso e sicurezza</em> o da myaccount.google.com. L'uso dei dati ricevuti dalle API di Google rispetta le Google API Services User Data Policy, inclusi i requisiti di uso limitato.</li>
                         <li><strong>Dati tecnici</strong>: indirizzo IP, tipo di dispositivo e browser, data e ora di accesso, stato online, registri tecnici necessari alla sicurezza.</li>
                     </ul>
                 ),
@@ -60,6 +61,7 @@ const Privacy: React.FC = () => (
                         <ul>
                             <li><strong>Appwrite</strong> (autenticazione, database, archiviazione file, funzioni server).</li>
                             <li><strong>Vercel</strong> (pubblicazione dell'applicazione web).</li>
+                            <li><strong>Google</strong> (solo se scegli l'accesso con Google o Google Calendar: autenticazione e salvataggio degli appuntamenti nel tuo calendario).</li>
                             <li><strong>Stripe</strong> e <strong>PayPal</strong> (pagamenti degli abbonamenti Premium, solo per chi si abbona: trattano i dati di pagamento come titolari autonomi; SwimIn conserva solo lo stato dell'abbonamento).</li>
                         </ul>
                         <p>Non vendiamo i tuoi dati e non li usiamo per pubblicità profilata.</p>

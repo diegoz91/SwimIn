@@ -129,6 +129,21 @@ Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorn
 
 **Cosa include il piano Base** (limiti verificati dalla Function, costanti in `billing.js`): strutture fino a 2 annunci attivi (gli SOS non contano) e area staff fino a 5 persone; avvisi di lavoro fino a 2 (10 con Premium); SOS solo nella provincia della struttura (con Premium anche nelle altre province della regione). Premium aggiunge inoltre candidature in cima, precedenza nelle liste d'attesa degli eventi, messaggi diretti a chi non è un collegamento (15 al mese per i professionisti, 5 per gli appassionati, 40 per le strutture), tutte le visite, statistiche e visite anonime.
 
+## 11. Google (accesso con Gmail e Google Calendar)
+
+Nell'app: **Continua con Google** su accesso e iscrizione; nelle impostazioni, in *Accesso e sicurezza*, **Collega Google**. Turni ed eventi si possono salvare in **Google Calendar**: con Google collegato vanno direttamente nel calendario della persona, altrimenti si apre Google Calendar con l'evento già compilato. Nessuna chiave sta nel codice: l'accesso passa da Appwrite.
+
+1. **Google Cloud Console** (console.cloud.google.com), con un progetto dedicato a SwimIn:
+   - *API e servizi → Libreria*: attiva **Google Calendar API**.
+   - *Schermata consenso OAuth*: tipo *Esterno*, nome "SwimIn", logo, email di assistenza, dominio dell'app, link a `/privacy` e `/termini`. Ambiti: `openid`, `email`, `profile` e `.../auth/calendar.events`.
+   - *Credenziali → Crea credenziali → ID client OAuth*, tipo *Applicazione web*. In **URI di reindirizzamento autorizzati** incolla l'indirizzo mostrato da Appwrite al passo 2 (simile a `https://fra.cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/<ID progetto>`). Copia *ID client* e *Client secret*.
+2. **Console Appwrite → Auth → Settings → OAuth2 Providers → Google**: attivalo e incolla *App ID* (l'ID client) e *App secret*. Da qui copi anche l'URI di reindirizzamento del passo 1.
+3. **Console Appwrite → Overview → Platforms**: la piattaforma Web deve avere il dominio di produzione (es. `swimin.it`) e quello di Vercel. Google rimanda solo a domini registrati qui.
+4. **Verifica dell'app su Google** (prima del lancio): l'accesso con nome ed email è disponibile subito dopo la verifica del brand. Il permesso del calendario (`calendar.events`) invece è un ambito *sensibile*: finché Google non approva l'app, chi lo concede vede l'avviso "app non verificata" e lo possono usare al massimo 100 persone. Avvia la verifica da *Schermata consenso OAuth → Pubblica app*; servono il video che mostra l'uso del calendario e la privacy policy che lo cita. Nel frattempo puoi impostare su Vercel `VITE_GOOGLE_CALENDAR_API=off`: Google Calendar resta disponibile con il link già compilato, senza chiedere il permesso.
+5. Se al lancio Google non è ancora configurato, imposta su Vercel `VITE_GOOGLE_AUTH=off`: i pulsanti Google spariscono finché non lo togli.
+
+Come funziona: il flusso è quello a token di Appwrite (`createOAuth2Token` → `/accesso/google` → `createSession`), quindi funziona anche se Appwrite e l'app stanno su domini diversi e con i browser che bloccano i cookie di terze parti. Al primo accesso con Google l'account esiste già (email verificata da Google) ma manca il profilo: la pagina `/completa-account` chiede il tipo di account e i termini. Se l'email è la stessa di un account già registrato con password, Appwrite collega Google a quell'account. Chi si è iscritto solo con Google può impostare una password da *Accesso e sicurezza*. Gli eventi in Google Calendar hanno un id fisso (turno o evento SwimIn): salvarli di nuovo li aggiorna, senza doppioni.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

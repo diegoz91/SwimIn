@@ -3,13 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
+import { AddToCalendar } from '@/components/common/AddToCalendar';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { DateTile } from '@/features/events/EventCard';
 import { EventFormModal } from '@/features/events/EventFormModal';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
-import { downloadEventIcs, eventTypeOf, priceLabel, seatsLeft, timeRange } from '@/data/events';
+import { eventIcs, eventIcsFilename, eventTypeOf, priceLabel, seatsLeft, timeRange } from '@/data/events';
 import { provinceName } from '@/data/italy';
 import { formatDate } from '@/utils/dates';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
@@ -185,9 +186,7 @@ const EventPage: React.FC = () => {
                         </button>
                     )}
                     {open && (going || isOrganizer || waitPos >= 0) && (
-                        <button onClick={() => downloadEventIcs(event)} className="px-5 py-2.5 rounded-full font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                            <Icon type="calendar" className="w-5 h-5" /> Aggiungi al calendario
-                        </button>
+                        <AddToCalendar events={() => [eventIcs({ ...event, onlineUrl: link || event.onlineUrl })]} filename={eventIcsFilename(event)} className="px-5 py-2.5 rounded-full font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-60" iconClassName="w-5 h-5" />
                     )}
                     <button onClick={share} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-2">
                         <Icon type="share" className="w-5 h-5" /> Condividi

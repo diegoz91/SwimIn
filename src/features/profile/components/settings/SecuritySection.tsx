@@ -9,6 +9,10 @@ import { PasswordMeter } from '@/components/form/PasswordMeter';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import type { AuthenticatedUser } from '@/types/types';
 import { TwoFactorSetup } from '../TwoFactorSetup';
+import { useAuth } from '@/hooks/useAuth';
+import { useConfirm } from '@/context/ConfirmContext';
+import googleG from '@/assets/google-g.svg';
+import { googleAuthEnabled, googleIdentity, startGoogle, unlinkGoogle } from '@/services/google';
 import { Badge, Group, Row, RowPanel, RowSkeleton, SectionHeader, btn, whenOf } from './ui';
 
 const isMobileSession = (s: Pick<Models.Session, 'deviceName' | 'osName'>) =>
@@ -40,6 +44,7 @@ export const SecuritySection: React.FC<{ user: AuthenticatedUser }> = ({ user })
         <div className="space-y-5">
             <Group title="Come accedi">
                 <PasswordRow user={user} />
+                {googleAuthEnabled && <GoogleRow hasPassword={!!(user as { passwordUpdate?: string }).passwordUpdate} />}
                 <Row icon="shield" title="Verifica in due passaggi" description="Oltre alla password, all’accesso ti chiediamo un codice dall’app di autenticazione: chi scopre la password non può entrare.">
                     <div className="mt-4 sm:ml-14">
                         <TwoFactorSetup />
@@ -63,6 +68,9 @@ const PasswordRow: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
     const [saving, setSaving] = useState(false);
     const personal = [user.email.split('@')[0], user.name].filter(Boolean) as string[];
     const changedAt = (user as { passwordUpdate?: string }).passwordUpdate;
+    // Chi si è iscritto con Google non ha una password: la può impostare senza quella attuale.
+    const hasPassword = !!changedAt;
+    const { refreshProfile } = useAuth();
 
     const reset = () => {
         setOpen(false);
@@ -78,15 +86,17 @@ const PasswordRow: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
         const strength = passwordStrength(next, personal);
         const errs: typeof errors = {};
         if (strength.score < 1) errs.next = strength.hint || 'Scegli una password più robusta.';
-        else if (next === current) errs.next = 'La nuova password deve essere diversa da quella attuale.';
+        else if (hasPassword && next === current) errs.next = 'La nuova password deve essere diversa da quella attuale.';
         if (confirm !== next) errs.confirm = 'Le due password non coincidono.';
         setErrors(errs);
         if (errs.next || errs.confirm) return;
         setSaving(true);
         try {
-            await account.updatePassword(next, current);
+            if (hasPassword) await account.updatePassword(next, current);
+            else await account.updatePassword({ password: next });
             reset();
-            showToast('Password aggiornata. Gli altri dispositivi restano collegati: puoi disconnetterli qui sotto.', 'success');
+            showToast(hasPassword ? 'Password aggiornata. Gli altri dispositivi restano collegati: puoi disconnetterli qui sotto.' : 'Password impostata: ora puoi accedere anche con email e password.', 'success');
+            refreshProfile().catch((err) => console.warn('Profilo:', err));
         } catch (err) {
             showToast(authErrorMessage(err, 'Password attuale non corretta.'), 'error');
         } finally {
@@ -104,15 +114,17 @@ const PasswordRow: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
         <Row
             icon="lock-closed"
             title="Password"
-            description={changedAt ? `Ultima modifica ${whenOf(changedAt)}.` : 'Usane una che non usi su altri siti.'}
-            aside={!open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>Cambia</button>}
+            description={changedAt ? `Ultima modifica ${whenOf(changedAt)}.` : 'Accedi con Google: imposta una password per entrare anche con la tua email.'}
+            aside={!open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>{hasPassword ? 'Cambia' : 'Imposta'}</button>}
         >
             {open && (
                 <RowPanel withIcon>
                     <form onSubmit={submit} className="space-y-4 max-w-md" noValidate>
-                        <Field id="pw-current" label="Password attuale" trailing={toggle}>
-                            <input type={show ? 'text' : 'password'} autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={fieldClass(undefined, 'pr-20')} required />
-                        </Field>
+                        {hasPassword && (
+                            <Field id="pw-current" label="Password attuale" trailing={toggle}>
+                                <input type={show ? 'text' : 'password'} autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={fieldClass(undefined, 'pr-20')} required />
+                            </Field>
+                        )}
                         <div>
                             <Field id="pw-new" label="Nuova password" hint="Almeno 8 caratteri. Una frase di più parole è facile da ricordare e difficile da indovinare." error={errors.next}>
                                 <input type={show ? 'text' : 'password'} autoComplete="new-password" value={next} onChange={(e) => { setNext(e.target.value); setErrors((x) => ({ ...x, next: undefined })); }} minLength={8} required />
@@ -123,13 +135,61 @@ const PasswordRow: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
                             <input type={show ? 'text' : 'password'} autoComplete="new-password" value={confirm} onChange={(e) => { setConfirm(e.target.value); setErrors((x) => ({ ...x, confirm: undefined })); }} required />
                         </Field>
                         <div className="flex flex-wrap gap-2">
-                            <button type="submit" disabled={saving || !current || !next || !confirm} className={btn.primary}>{saving ? 'Salvataggio…' : 'Aggiorna la password'}</button>
+                            <button type="submit" disabled={saving || (hasPassword && !current) || !next || !confirm} className={btn.primary}>{saving ? 'Salvataggio…' : hasPassword ? 'Aggiorna la password' : 'Imposta la password'}</button>
                             <button type="button" onClick={reset} className={btn.quiet}>Annulla</button>
                         </div>
                     </form>
                 </RowPanel>
             )}
         </Row>
+    );
+};
+
+/** Accesso con Google: collegare o scollegare l'account Google (serve anche per Google Calendar). */
+const GoogleRow: React.FC<{ hasPassword: boolean }> = ({ hasPassword }) => {
+    const { showToast } = useToast();
+    const confirm = useConfirm();
+    const [identity, setIdentity] = useState<Models.Identity | null | undefined>(undefined);
+    const [busy, setBusy] = useState(false);
+    useEffect(() => { void googleIdentity().then(setIdentity); }, []);
+
+    const unlink = async () => {
+        if (!identity) return;
+        if (!hasPassword) {
+            showToast('Prima imposta una password: altrimenti non potresti più accedere.', 'info');
+            return;
+        }
+        const ok = await confirm({ title: 'Scollegare Google?', message: 'Non potrai più accedere con Google né salvare direttamente nel tuo Google Calendar. Potrai ricollegarlo quando vuoi.', confirmLabel: 'Scollega', tone: 'danger' });
+        if (!ok) return;
+        setBusy(true);
+        try {
+            await unlinkGoogle(identity.$id);
+            setIdentity(null);
+            showToast('Account Google scollegato.', 'success');
+        } catch (err) {
+            showToast(authErrorMessage(err, 'Non è stato possibile scollegare Google.'), 'error');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <Row
+            leading={<span className="w-10 h-10 rounded-xl bg-piastrella grid place-items-center flex-shrink-0" aria-hidden="true"><img src={googleG} alt="" className="w-5 h-5" /></span>}
+            title="Google"
+            description={
+                identity === undefined ? 'Controllo in corso…'
+                : identity ? <>Collegato come <span className="font-semibold text-abisso break-all">{identity.providerEmail}</span>: accedi con Google e salva turni ed eventi nel tuo Google Calendar.</>
+                : 'Collega il tuo account Google per accedere in un clic e salvare turni ed eventi nel tuo calendario.'
+            }
+            aside={
+                identity === undefined ? null : identity ? (
+                    <button type="button" onClick={unlink} disabled={busy} className={btn.secondary}>{busy ? 'Attendi…' : 'Scollega'}</button>
+                ) : (
+                    <button type="button" onClick={() => startGoogle({ intent: 'link', returnTo: window.location.pathname + window.location.search })} className={btn.secondary}>Collega</button>
+                )
+            }
+        />
     );
 };
 

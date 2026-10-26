@@ -61,12 +61,15 @@ const MyShifts = lazy(() => import('@/pages/MyShifts'));
 const Admin = lazy(() => import('@/pages/Admin'));
 const Terms = lazy(() => import('@/pages/legal/Terms'));
 const Cookies = lazy(() => import('@/pages/legal/Cookies'));
+const GoogleCallback = lazy(() => import('@/pages/GoogleCallback'));
+const CompleteAccount = lazy(() => import('@/pages/CompleteAccount'));
 
 /** Login e registrazione non hanno senso da loggati: si torna alla pagina richiesta o al feed. */
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authenticated, isInitializing } = useAuth();
+  const { authenticated, isInitializing, incompleteAccount } = useAuth();
   const location = useLocation();
   if (isInitializing) return <PageLoader />;
+  if (incompleteAccount) return <Navigate to="/completa-account" replace />;
   if (authenticated) {
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
     return <Navigate to={from && from !== '/login' ? from : '/'} replace />;
@@ -76,13 +79,14 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 /** La home: feed per chi ha effettuato l'accesso, pagina di presentazione per gli altri. */
 const HomeGate: React.FC = () => {
-  const { authenticated, isInitializing } = useAuth();
+  const { authenticated, isInitializing, incompleteAccount } = useAuth();
   if (isInitializing) return <PageLoader />;
+  if (incompleteAccount) return <Navigate to="/completa-account" replace />;
   return authenticated ? <Home /> : <Landing />;
 };
 
 /** Pagine a schermo intero, senza header e navigazione (es. onboarding). */
-const CHROMELESS = ['/benvenuto'];
+const CHROMELESS = ['/benvenuto', '/accesso/google'];
 const FULL_HEIGHT = ['/messages'];
 
 /** L'area che scorre tra intestazione e menu in basso; a ogni cambio di pagina riparte dall'alto. */
@@ -138,6 +142,8 @@ const AppContent: React.FC = () => {
               {/* Rotte pubbliche */}
               <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
               <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+              <Route path="/accesso/google" element={<GoogleCallback />} />
+              <Route path="/completa-account" element={<CompleteAccount />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/verifica-email" element={<VerifyEmail />} />
               <Route path="/privacy" element={<Privacy />} />
