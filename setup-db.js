@@ -202,8 +202,17 @@ const schema = [
             bool('priority', { default: false }), // candidato Premium: in cima all'elenco della struttura
             // Copia del CV inviata con la candidatura (bucket resumes, leggibile da candidato e selezionatori).
             str('resumeFileId', 36), str('resumeName', 120),
+            // Colloquio proposto dalla struttura (il candidato lo vede e risponde).
+            str('interviewDate', 10), str('interviewTime', 5), str('interviewMode', 20), str('interviewPlace', 300),
+            str('interviewMessage', 500), str('interviewStatus', 20), str('interviewReply', 500),
         ],
         indexes: [idx('by_job', ['jobId']), idx('by_applicant', ['applicantId'])],
+    },
+    {
+        // Note e valutazioni interne di chi gestisce l'annuncio (id = candidatura): mai visibili al candidato.
+        id: 'application_reviews', name: 'Application reviews', permissions: SERVER_ONLY,
+        attributes: [str('jobId', 36, { required: true }), str('applicationId', 36, { required: true }), int('rating'), str('note', 2000), str('updatedBy', 36)],
+        indexes: [idx('by_job', ['jobId'])],
     },
     {
         id: 'connections', name: 'Connections', permissions: SERVER_ONLY,

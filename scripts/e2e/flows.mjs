@@ -200,6 +200,36 @@ const FLOWS = [
             await page.waitForTimeout(100);
         }
     }],
+    ['la struttura valuta in privato e propone un colloquio', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } }, jobs: { j1: { structureId: 'u_giulia' } } } }, async (page, state) => {
+        await open(page, '/jobs/j1?candidati=nuove');
+        await page.getByRole('heading', { name: 'Candidati' }).waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: /^Valuta/ }).first().click();
+        await page.getByText('Visibile solo a chi gestisce l’annuncio').waitFor({ timeout: 4000 });
+        await page.getByRole('radio', { name: '4 stelle' }).click();
+        await page.getByLabel('Nota interna').fill('Brevetto rinnovato, disponibile la sera.');
+        await page.getByRole('button', { name: 'Salva la valutazione' }).click();
+        const rv = await called(state, 'saveApplicationReview');
+        assert.equal(rv.params.rating, 4);
+        await page.getByRole('button', { name: 'Proponi un colloquio' }).click();
+        const dialog = page.getByRole('dialog');
+        await dialog.locator('#iv-place').fill('Reception della piscina');
+        await dialog.getByRole('button', { name: 'Invia la proposta' }).click();
+        const iv = await called(state, 'proposeInterview');
+        assert.equal(iv.params.time, '10:00');
+        assert.equal(iv.params.mode, 'presenza');
+        assert.match(iv.params.date, /^\d{4}-\d{2}-\d{2}$/);
+        await page.getByText('Colloquio proposto').first().waitFor({ timeout: 4000 });
+    }],
+    ['chi si candida conferma il colloquio', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/jobs/j2');
+        await page.getByRole('region', { name: 'Colloquio' }).waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Chiedo un altro orario' }).click();
+        await page.getByLabel('Quando saresti disponibile?').fill('Giovedì dopo le 15');
+        await page.getByRole('button', { name: 'Invia', exact: true }).click();
+        const r = await called(state, 'respondInterview');
+        assert.equal(r.params.accept, false);
+        assert.equal(r.params.reply, 'Giovedì dopo le 15');
+    }],
     ['chi si candida vede il percorso della candidatura', 'desktop', { loggedIn: true }, async (page) => {
         await open(page, '/jobs/j2');
         await page.getByRole('heading', { name: 'La tua candidatura' }).waitFor({ timeout: 8000 });

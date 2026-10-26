@@ -16,6 +16,7 @@ import { moderationActions } from './moderation.js';
 import { certificateActions, CERT_BUCKET } from './certificates.js';
 import { teamActions } from './team.js';
 import { resumeActions } from './resume.js';
+import { interviewActions } from './interviews.js';
 import { socialActions } from './social.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { groupActions } from './groups.js';
@@ -67,6 +68,7 @@ const C = {
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
   staffInvites: 'staff_invites',
+  applicationReviews: 'application_reviews',
   signals: 'signals',
   pushSubscriptions: 'push_subscriptions',
   plans: 'plans',
@@ -391,6 +393,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     applyForJob: { after: (me, p) => [[`job:${p.jobId}`]] },
     withdrawApplication: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`, [me]]] : []) },
     updateApplicationStatus: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`]] : []) },
+    proposeInterview: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`]] : []) },
+    respondInterview: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`]] : []) },
     hireCandidate: {
       before: async (me, p) => { const a = await find(C.applications, p.applicationId); return a ? { a, job: await find(C.jobs, a.jobId) } : null; },
       after: (me, p, r, c) => (c ? [[`job:${c.a.jobId}`], ...(c.job ? [[`team:${c.job.structureId}`]] : [])] : []),
@@ -450,6 +454,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...billingApi,
     ...publicActions({ find, listAll, list, fail, C, Query }),
     ...push,
+    ...interviewActions({ find, get, create, update, listAll, fail, notify, C, Query, jobManagers, displayName, assertClean }),
     getMyResume: resume.getMyResume,
     setMyResume: resume.setMyResume,
     deleteMyResume: resume.deleteMyResume,

@@ -280,7 +280,19 @@ export interface Application extends AppwriteDocument {
   /** Copia del CV inviata con la candidatura (bucket privato resumes, scritta solo dalla Function). */
   resumeFileId?: string | null;
   resumeName?: string | null;
+  /** Colloquio proposto dalla struttura: data (ISO), ora (HH:MM), modalità, luogo o link. */
+  interviewDate?: string | null;
+  interviewTime?: string | null;
+  interviewMode?: 'presenza' | 'video' | 'telefono' | null;
+  interviewPlace?: string | null;
+  interviewMessage?: string | null;
+  /** proposed = da confermare, accepted = confermato, reschedule = il candidato chiede un altro orario. */
+  interviewStatus?: 'proposed' | 'accepted' | 'reschedule' | null;
+  interviewReply?: string | null;
 }
+
+/** Nota e valutazione interne di una candidatura (solo per chi gestisce l'annuncio). */
+export interface ApplicationReview { rating: number; note: string; updatedBy: string; updatedAt: string }
 
 /** Il mio CV (dati in private_info, visibili solo a me). */
 export interface ResumeInfo {

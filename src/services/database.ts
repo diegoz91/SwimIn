@@ -13,6 +13,7 @@ import type {
     Job, 
     Application,
     ResumeInfo, 
+    ApplicationReview,
     Connection,
     Review,
     Certification,
@@ -972,6 +973,20 @@ export const databaseService = {
             coverLetter: applicationData.coverLetter || '',
             attachResume: !!applicationData.attachResume,
         });
+    },
+
+    // Selezione: note interne (mai visibili al candidato) e colloqui.
+    async getApplicationReviews(jobId: string) {
+        return await callApi<Record<string, ApplicationReview>>('getApplicationReviews', { jobId });
+    },
+    async saveApplicationReview(applicationId: string, rating: number, note: string) {
+        return await callApi<ApplicationReview>('saveApplicationReview', { applicationId, rating, note });
+    },
+    async proposeInterview(data: { applicationId: string; date: string; time: string; mode: 'presenza' | 'video' | 'telefono'; place: string; message: string }) {
+        return await callApi<Application>('proposeInterview', data);
+    },
+    async respondInterview(applicationId: string, accept: boolean, reply = '') {
+        return await callApi<Application>('respondInterview', { applicationId, accept, reply });
     },
 
     // CV personale: i dati stanno in private_info e li legge solo la persona (Function resume.js).
