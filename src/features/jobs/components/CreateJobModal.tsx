@@ -12,18 +12,27 @@ import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { check, comuneOf, integerBetween, maxLength, minLength, noContactInfo, province, required } from '@/utils/validation';
 import { addDaysISO, formatDate, todayISO } from '@/utils/dates';
+import type { Job } from '@/types/types';
+import { jobDisplayTitle } from '@/utils/jobs';
 
 interface CreateJobModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onJobCreated: () => void;
+    /** Dopo la pubblicazione o il salvataggio, con l'annuncio restituito dal server. */
+    onJobCreated: (job?: Job) => void;
     structureId: string;
+    /** Modifica di un annuncio esistente. */
+    job?: Job | null;
+    /** Nuovo annuncio a partire da uno precedente (ripubblica). */
+    template?: Job | null;
 }
 
 const ROLES = JOB_ROLES;
 const CONTRACTS = JOB_CONTRACTS;
 
 const EXPIRY_OPTIONS = [7, 14, 30, 60, 90];
+/** In modifica: lasciare la scadenza com'è. */
+const KEEP_EXPIRY = 'keep';
 const DESCRIPTION_MAX = 4000;
 
 type Values = {
@@ -68,6 +77,21 @@ export const validateJob = (v: Values, comuni: string[] = []): FormErrors<Values
     };
 };
 
+const fromJob = (job: Job, expiry: string): Values => ({
+    title: jobDisplayTitle(job),
+    role: job.role || 'istruttore',
+    contractType: job.contractType || 'part-time',
+    city: job.city || '',
+    province: (job.province || '').toUpperCase(),
+    description: job.description || '',
+    salaryMin: job.salaryMin ? String(job.salaryMin) : '',
+    salaryMax: job.salaryMax ? String(job.salaryMax) : '',
+    workingHours: job.workingHours || '',
+    requirements: (job.requirements || []).join('\n'),
+    qualifications: (job.qualificationsRequired || []).join('\n'),
+    expiryDays: expiry,
+});
+
 const initial = (city = '', prov = ''): Values => ({
     title: '',
     role: 'istruttore',
@@ -83,7 +107,8 @@ const initial = (city = '', prov = ''): Values => ({
     expiryDays: '30',
 });
 
-export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose, onJobCreated, structureId }) => {
+export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose, onJobCreated, structureId, job = null, template = null }) => {
+    const editing = !!job;
     const { showToast } = useToast();
     const { user } = useAuth();
     const [saving, setSaving] = useState(false);
@@ -93,29 +118,43 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
     useComuniSync(values.province, setComuni);
 
     useEffect(() => {
-        if (isOpen) form.reset(initial(user?.city, user?.province));
+        if (!isOpen) return;
+        if (job) form.reset(fromJob(job, KEEP_EXPIRY));
+        else if (template) form.reset(fromJob(template, '30'));
+        else form.reset(initial(user?.city, user?.province));
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submit = form.handleSubmit(async (v) => {
         setSaving(true);
+        const payload = {
+            title: v.title.trim(),
+            description: v.description.trim(),
+            role: v.role,
+            contractType: v.contractType,
+            city: v.city.trim(),
+            province: v.province,
+            salaryMin: v.salaryMin ? Number(v.salaryMin) : undefined,
+            salaryMax: v.salaryMax ? Number(v.salaryMax) : undefined,
+            workingHours: v.workingHours.trim(),
+            requirements: lines(v.requirements),
+            qualificationsRequired: lines(v.qualifications),
+        };
         try {
-            await databaseService.createJob({
-                structureId,
-                title: v.title.trim(),
-                description: v.description.trim(),
-                role: v.role,
-                contractType: v.contractType,
-                city: v.city.trim(),
-                province: v.province,
-                salaryMin: v.salaryMin ? Number(v.salaryMin) : undefined,
-                salaryMax: v.salaryMax ? Number(v.salaryMax) : undefined,
-                workingHours: v.workingHours.trim(),
-                requirements: lines(v.requirements),
-                qualificationsRequired: lines(v.qualifications),
-                ...({ expiryDays: Number(v.expiryDays) } as Record<string, unknown>),
-            });
-            showToast('Annuncio pubblicato.', 'success');
-            onJobCreated();
+            if (job) {
+                const saved = await databaseService.updateJob(job.$id, {
+                    ...payload,
+                    // Un campo svuotato va cancellato: undefined non arriverebbe al server.
+                    salaryMin: payload.salaryMin ?? (null as unknown as undefined),
+                    salaryMax: payload.salaryMax ?? (null as unknown as undefined),
+                    ...(v.expiryDays !== KEEP_EXPIRY ? { expiryDays: Number(v.expiryDays) } : {}),
+                });
+                showToast('Annuncio aggiornato.', 'success');
+                onJobCreated(saved);
+            } else {
+                const created = await databaseService.createJob({ structureId, ...payload, ...({ expiryDays: Number(v.expiryDays) } as Record<string, unknown>) });
+                showToast('Annuncio pubblicato.', 'success');
+                onJobCreated(created);
+            }
             onClose();
         } catch (error) {
             console.error('Pubblicazione annuncio:', error);
@@ -129,12 +168,12 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
         <FormModal
             open={isOpen}
             size="lg"
-            title="Pubblica un annuncio"
+            title={editing ? 'Modifica l’annuncio' : template ? 'Ripubblica l’annuncio' : 'Pubblica un annuncio'}
             icon="briefcase"
             dirty={form.isDirty}
             busy={saving}
-            submitLabel="Pubblica"
-            busyLabel="Pubblicazione…"
+            submitLabel={editing ? 'Salva modifiche' : 'Pubblica'}
+            busyLabel={editing ? 'Salvataggio…' : 'Pubblicazione…'}
             onClose={onClose}
             onSubmit={submit}
             formRef={form.formRef}
@@ -196,8 +235,24 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
                 </div>
             </FormSection>
 
-            <Field id="job-expiry" className="sm:max-w-xs" label="Resta visibile per" hint={`Fino al ${formatDate(addDaysISO(todayISO(), Number(values.expiryDays)))}, poi sparisce dalla bacheca.`}>
-                <Select {...form.field('expiryDays')} label="Resta visibile per" options={EXPIRY_OPTIONS.map((d) => ({ value: String(d), label: `${d} giorni` }))} />
+            <Field
+                id="job-expiry"
+                className="sm:max-w-xs"
+                label={editing ? 'Scadenza' : 'Resta visibile per'}
+                hint={
+                    values.expiryDays === KEEP_EXPIRY
+                        ? job?.expiresAt ? `Resta fino al ${formatDate(job.expiresAt)}.` : 'Nessuna scadenza impostata.'
+                        : `Fino al ${formatDate(addDaysISO(todayISO(), Number(values.expiryDays)))}, poi sparisce dalla bacheca.`
+                }
+            >
+                <Select
+                    {...form.field('expiryDays')}
+                    label={editing ? 'Scadenza' : 'Resta visibile per'}
+                    options={[
+                        ...(editing ? [{ value: KEEP_EXPIRY, label: 'Non cambiare' }] : []),
+                        ...EXPIRY_OPTIONS.map((d) => ({ value: String(d), label: editing ? `${d} giorni da oggi` : `${d} giorni` })),
+                    ]}
+                />
             </Field>
         </FormModal>
     );

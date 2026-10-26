@@ -122,12 +122,12 @@ const PublicJob: React.FC = () => {
 
                             <div className="flex flex-wrap gap-2 mt-6">
                                 <button
-                                    onClick={() => navigate(authenticated ? `/jobs?annuncio=${encodeURIComponent(job.id)}` : `/register?offerta=${encodeURIComponent(job.id)}`)}
+                                    onClick={() => navigate(authenticated ? `/jobs/${encodeURIComponent(job.id)}` : `/register?offerta=${encodeURIComponent(job.id)}`)}
                                     className="px-6 py-3 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700 flex items-center gap-2"
                                 >
                                     <Icon type="send" className="w-5 h-5" /> {authenticated ? 'Candidati' : 'Iscriviti e candidati'}
                                 </button>
-                                {!authenticated && <Link to="/login" state={{ from: { pathname: '/jobs', search: `?annuncio=${encodeURIComponent(job.id)}` } }} className="px-6 py-3 rounded-full font-semibold border border-slate-300 text-abisso hover:bg-white">Ho già un account</Link>}
+                                {!authenticated && <Link to="/login" state={{ from: { pathname: `/jobs/${encodeURIComponent(job.id)}` } }} className="px-6 py-3 rounded-full font-semibold border border-slate-300 text-abisso hover:bg-white">Ho già un account</Link>}
                                 <button onClick={share} className="px-5 py-3 rounded-full font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-2">
                                     <Icon type="share" className="w-5 h-5" /> Condividi
                                 </button>

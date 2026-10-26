@@ -72,14 +72,17 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     
     // Da una notifica della chat staff (?area=chat-staff) si apre direttamente la chat.
     const location = useLocation();
-    const openChat = new URLSearchParams(location.search).get('area') === 'chat-staff';
-    const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>(openChat ? 'staff' : 'info');
+    const area = new URLSearchParams(location.search).get('area');
+    const openChat = area === 'chat-staff';
+    // ?area=staff (da "Vai all'area staff" dopo un'assunzione) apre l'area staff.
+    const openStaff = openChat || area === 'staff';
+    const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'staff' | 'analytics'>(openStaff ? 'staff' : 'info');
     const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'radar'>(openChat ? 'chat' : 'bacheca');
     const [chatUnread, setChatUnread] = useState(0);
     const staffAreaRef = React.useRef<HTMLDivElement>(null);
     useEffect(() => {
-        if (openChat) window.setTimeout(() => staffAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
-    }, [openChat]);
+        if (openStaff) window.setTimeout(() => staffAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }, [openStaff]);
 
     const [localJobs, setLocalJobs] = useState<Job[]>(openJobs);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -488,7 +491,10 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     <div className="space-y-4">
                         
                         {isAdmin && (
-                            <div className="flex justify-end mb-4">
+                            <div className="flex flex-wrap justify-end gap-2 mb-4">
+                                <Link to={`/jobs/annunci?struttura=${encodeURIComponent(facilityId)}`} className="px-5 py-2.5 rounded-xl font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-2">
+                                    <Icon type="briefcase" className="w-5 h-5" /> Gestisci annunci e candidati
+                                </Link>
                                 <button 
                                     onClick={() => setIsCreateModalOpen(true)}
                                     className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"

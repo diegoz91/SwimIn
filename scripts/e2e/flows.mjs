@@ -180,6 +180,29 @@ const FLOWS = [
         const c = await called(state, 'adminUpdatePlans');
         assert.deepEqual(c.params.prices, { person_month: 549 });
     }],
+    ['la struttura valuta e seleziona un candidato', 'mobile', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } }, jobs: { j1: { structureId: 'u_giulia' } } } }, async (page, state) => {
+        await open(page, '/jobs/j1?candidati=nuove');
+        await page.getByRole('heading', { name: 'Candidati' }).waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: /^Valuta/ }).first().click();
+        const seen = await called(state, 'updateApplicationStatus');
+        assert.equal(seen.params.status, 'reviewed', 'aprire una candidatura nuova la segna come vista');
+        await page.getByRole('button', { name: 'Seleziona per un colloquio' }).click();
+        const start = Date.now();
+        while (!state.calls.some((c) => c.action === 'updateApplicationStatus' && c.params.status === 'accepted')) {
+            if (Date.now() - start > 6000) throw new Error('selezione non inviata');
+            await page.waitForTimeout(100);
+        }
+    }],
+    ['chi si candida vede il percorso della candidatura', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/jobs/j2');
+        await page.getByRole('heading', { name: 'La tua candidatura' }).waitFor({ timeout: 8000 });
+        await page.getByText('Selezionata per un colloquio').first().waitFor();
+    }],
+    ['i link vecchi delle offerte aprono l’annuncio', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/jobs?annuncio=j1');
+        await page.waitForURL((u) => u.pathname === '/jobs/j1', { timeout: 8000 });
+        await page.getByRole('heading', { name: /Assistente bagnanti/ }).first().waitFor();
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

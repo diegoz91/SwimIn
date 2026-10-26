@@ -354,7 +354,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'application_update' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published';
   content: string;
   relatedId?: string;
   isRead: boolean;

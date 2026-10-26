@@ -157,6 +157,9 @@ export class ApiOutdatedError extends Error {
 }
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
+export interface ApplicationCounts { total: number; pending: number; reviewed: number; accepted: number; hired: number; rejected: number }
+export type ManagedJob = Job & { applications: ApplicationCounts };
+export type MyApplication = Application & { job: Job | null };
 export interface AdminPlan {
     key: string;
     audience: Audience;
@@ -1488,6 +1491,31 @@ export const databaseService = {
     /** Link dell'evento online (solo organizzatore e iscritti). */
     async getEventLink(meetId: string) {
         return await callApi<{ onlineUrl: string | null }>('getEventLink', { meetId });
+    },
+    /** Modifica di un annuncio (solo chi lo gestisce; per gli SOS solo descrizione e compenso). */
+    async updateJob(jobId: string, patch: Partial<Pick<Job, 'title' | 'description' | 'role' | 'contractType' | 'city' | 'province' | 'salaryMin' | 'salaryMax' | 'workingHours' | 'requirements' | 'qualificationsRequired'>> & { expiryDays?: number }) {
+        return await callApi<Job>('updateJob', { jobId, ...patch });
+    },
+    /** Annunci della struttura (attivi, chiusi, scaduti) con le candidature per fase. */
+    async listStructureJobs(structureId: string) {
+        return await callApi<ManagedJob[]>('listStructureJobs', { structureId });
+    },
+    /** Un annuncio (null se non esiste più). */
+    async getJob(jobId: string) {
+        try {
+            return await databases.getDocument<Job>(databaseId, collections.jobs, jobId);
+        } catch (err) {
+            if ((err as { code?: number })?.code === 404) return null;
+            throw err;
+        }
+    },
+    /** Le mie candidature, dalla più recente, con l'annuncio (anche se chiuso). */
+    async getMyApplications(userId: string): Promise<MyApplication[]> {
+        const res = await databases.listDocuments<Application>(databaseId, collections.applications, [Query.equal('applicantId', userId), Query.orderDesc('$createdAt'), Query.limit(100)]);
+        const ids = [...new Set(res.documents.map((a) => a.jobId))];
+        const jobs = ids.length ? (await databases.listDocuments<Job>(databaseId, collections.jobs, [Query.equal('$id', ids), Query.limit(100)])).documents : [];
+        const byId = new Map(jobs.map((j) => [j.$id, j]));
+        return res.documents.map((a) => ({ ...a, job: byId.get(a.jobId) || null }));
     },
     async closeJob(jobId: string) {
         return await callApi<Job>('closeJob', { jobId });

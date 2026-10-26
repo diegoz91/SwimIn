@@ -214,6 +214,21 @@ const jobs = [
         description: 'Sostituzione per malattia.', contractType: 'collaborazione', city: 'Sesto San Giovanni', province: 'MI',
         salaryMin: 90, salaryMax: 90, isActive: true, isSOS: true, sosDate: 'Domani', sosShift: '14:00 – 20:00', requirements: [], qualificationsRequired: ['Brevetto Salvamento'], candidates: [],
     }, 30),
+    // Annuncio chiuso (candidatura di Giulia non selezionata).
+    doc('jobs', 'j4', {
+        structureId: 'u_lido', structureName: 'Piscina Lido di Milano', title: 'Istruttrice acquagym mattino', role: 'acquafitness',
+        description: 'Corsi di acquagym il martedì e giovedì mattina.', contractType: 'part-time', city: 'Milano', province: 'MI',
+        isActive: false, isSOS: false, requirements: [], qualificationsRequired: [], candidates: [ME],
+    }, 60 * 24 * 20),
+];
+
+/** Candidature: di Giulia (percorso a tappe) e quelle ricevute da j1 (vista della struttura). */
+const applications = [
+    doc('applications', 'a1', { jobId: 'j2', applicantId: ME, status: 'accepted', coverLetter: 'Insegno ai bambini da sei anni, anche corsi di acquaticità 3-5 anni.' }, 60 * 24 * 2),
+    doc('applications', 'a2', { jobId: 'j4', applicantId: ME, status: 'rejected' }, 60 * 24 * 18),
+    doc('applications', 'a3', { jobId: 'j1', applicantId: 'u_marco', status: 'pending', priority: true, coverLetter: 'Brevetto FIN di salvamento rinnovato a settembre, disponibile tutte le sere.' }, 60 * 3),
+    doc('applications', 'a4', { jobId: 'j1', applicantId: 'u_sara', status: 'pending' }, 60 * 26),
+    doc('applications', 'a5', { jobId: 'j1', applicantId: 'u_luca', status: 'reviewed' }, 60 * 50),
 ];
 
 const notifications = [
@@ -252,7 +267,7 @@ export const collections = {
         doc('comments', 'c2', { postId: 'p1', authorId: 'u_sara', content: 'Io la faccio con le pinne corte: ottima per la gambata.', likesCount: 1 }, 12),
         doc('comments', 'c3', { postId: 'p1', authorId: 'u_marco', content: 'Ottima idea, la proviamo giovedì.', parentCommentId: 'c2' }, 8),
     ],
-    applications: [],
+    applications,
     facilities: [],
     live_rooms: [
         doc('live_rooms', 'r1', { title: 'Didattica in vasca piccola: giochi per i 4-5 anni', hostId: 'u_elena', status: 'active', speakers: ['u_elena', 'u_sara'], listeners: ['u_marco', 'u_luca'], startedAt: iso(15) }, 15),
@@ -315,6 +330,11 @@ export const apiResponses = {
         const d = apiResponses.adminGetPlans();
         return { ...d, plans: d.plans.map((p) => (p.key in prices ? { ...p, amount: prices[p.key], updatedAt: new Date().toISOString() } : p)), changed: Object.keys(prices), warnings: [] };
     },
+    listStructureJobs: () => collections.jobs.filter((j) => ['j1', 'j4'].includes(j.$id)).map((j) => ({
+        ...j,
+        applications: j.$id === 'j1' ? { total: 3, pending: 2, reviewed: 1, accepted: 0, hired: 0, rejected: 0 } : { total: 4, pending: 0, reviewed: 1, accepted: 0, hired: 1, rejected: 2 },
+    })),
+    updateApplicationStatus: ({ applicationId, status } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status }),
     getMyStats: () => ({
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),

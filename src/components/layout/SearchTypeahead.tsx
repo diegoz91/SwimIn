@@ -104,7 +104,7 @@ export const SearchTypeahead: React.FC = () => {
                 for (const s of structures.slice(0, 3)) out.push({ ...s, id: `s-${s.id}`, group: 'Strutture', square: true, to: `/profile/${s.id}`, recent: term });
             }
             if (jobs.status === 'fulfilled') {
-                for (const j of jobs.value) out.push({ id: `j-${j.$id}`, group: 'Offerte di lavoro', title: jobDisplayTitle(j), subtitle: [j.structureName, j.city].filter(Boolean).join(' · '), icon: 'briefcase', to: `/jobs?annuncio=${encodeURIComponent(j.$id)}`, recent: term });
+                for (const j of jobs.value) out.push({ id: `j-${j.$id}`, group: 'Offerte di lavoro', title: jobDisplayTitle(j), subtitle: [j.structureName, j.city].filter(Boolean).join(' · '), icon: 'briefcase', to: `/jobs/${encodeURIComponent(j.$id)}`, recent: term });
             }
             if (groups.status === 'fulfilled') {
                 for (const g of groups.value) out.push({ id: `g-${g.$id}`, group: 'Gruppi', title: g.name, subtitle: `${g.membersCount || 0} ${g.membersCount === 1 ? 'membro' : 'membri'}`, icon: 'users', to: `/gruppi/${g.$id}`, recent: term });

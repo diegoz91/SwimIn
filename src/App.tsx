@@ -29,6 +29,9 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const Jobs = lazy(() => import('@/pages/Jobs'));
+const JobPage = lazy(() => import('@/pages/JobPage'));
+const MyJobs = lazy(() => import('@/pages/MyJobs'));
+const MyApplications = lazy(() => import('@/pages/MyApplications'));
 const Network = lazy(() => import('@/pages/Network'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const Chat = lazy(() => import('@/pages/Chat'));
@@ -145,6 +148,9 @@ const AppContent: React.FC = () => {
               {/* Rotte protette */}
               <Route path="/" element={<HomeGate />} />
               <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+              <Route path="/jobs/annunci" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
+              <Route path="/jobs/candidature" element={<ProtectedRoute><MyApplications /></ProtectedRoute>} />
+              <Route path="/jobs/:id" element={<ProtectedRoute><JobPage /></ProtectedRoute>} />
               <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
               <Route path="/profile/:id?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/messages" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
