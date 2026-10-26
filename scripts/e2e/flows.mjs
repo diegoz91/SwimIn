@@ -139,6 +139,27 @@ const FLOWS = [
         assert.equal(Math.round(after.nav.y), Math.round(before.nav.y));
         assert.ok(after.header && after.header.y <= 1 && after.header.y >= -1, `intestazione spostata: ${JSON.stringify(after.header)}`);
     }],
+    ['la ricerca propone risultati mentre si scrive', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/');
+        await page.locator('#global-search').click();
+        await page.keyboard.type('mar');
+        const option = page.getByRole('option', { name: /Marco Bellini/ });
+        await option.waitFor({ timeout: 5000 });
+        await page.keyboard.press('ArrowDown');
+        await option.click();
+        await page.waitForURL((u) => u.pathname.startsWith('/profile/'), { timeout: 8000 });
+    }],
+    ['la chat resta dentro il riquadro: menu del messaggio leggibile', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/messages');
+        await page.getByText('Marco Bellini').first().click();
+        const trigger = page.getByRole('button', { name: 'Azioni sul messaggio' }).last();
+        await trigger.click();
+        const menu = page.getByRole('menu');
+        await menu.waitFor({ timeout: 4000 });
+        const box = await menu.boundingBox();
+        const vw = page.viewportSize().width;
+        assert.ok(box && box.x >= 0 && box.x + box.width <= vw, `menu fuori dallo schermo: ${JSON.stringify(box)}`);
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

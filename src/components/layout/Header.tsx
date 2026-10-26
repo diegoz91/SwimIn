@@ -13,6 +13,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import type { AppNotification } from '@/types/types';
 import { isEnthusiast } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
+import { SearchTypeahead } from '@/components/layout/SearchTypeahead';
 import { ThemeSegmented } from '@/components/common/ThemePicker';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
@@ -61,7 +62,6 @@ const Header: React.FC = () => {
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [openMenu, setOpenMenu] = useState<'notifications' | 'account' | null>(null);
-  const [query, setQuery] = useState('');
   const unreadMessages = useUnreadMessages(user?.$id);
 
   const close = React.useCallback(() => setOpenMenu(null), []);
@@ -103,12 +103,6 @@ const Header: React.FC = () => {
     navigate(notificationMeta(notif).href);
   };
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (q) navigate(`/cerca?q=${encodeURIComponent(q)}`);
-  };
-
   return (
     <header className="relative flex-shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 sm:gap-6">
@@ -117,20 +111,9 @@ const Header: React.FC = () => {
           <span className="hidden sm:inline-flex"><Brand size="md" /></span>
         </Link>
 
-        <form onSubmit={submitSearch} role="search" className="flex-1 max-w-sm hidden lg:block">
-          <label htmlFor="global-search" className="sr-only">Cerca su SwimIn</label>
-          <div className="relative">
-            <Icon type="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              id="global-search"
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Persone, piscine, offerte…"
-              className="w-full h-10 pl-10 pr-4 rounded-full bg-piastrella border border-transparent text-sm text-abisso placeholder-slate-400 focus:bg-white focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-none transition"
-            />
-          </div>
-        </form>
+        <div className="flex-1 max-w-sm hidden lg:block">
+          <SearchTypeahead />
+        </div>
 
         <nav className="hidden md:flex items-stretch h-full ml-auto" aria-label="Navigazione principale">
           {navFor(user).map((item) => (
