@@ -11,7 +11,7 @@ export type IconType =
   | 'arrow-left' | 'check-circle' | 'trash' | 'pencil'
   | 'lock-closed' | 'alert-triangle' | 'shield' | 'user-minus' | 'chevron-right' | 'edit'
   | 'play' | 'chart' | 'hashtag' | 'user-plus' | 'paperclip' | 'reply' | 'face-smile' | 'download'
-  | 'computer' | 'device-phone' | 'credit-card' | 'key' | 'sun' | 'moon' | 'arrow-path' | 'eye';
+  | 'computer' | 'device-phone' | 'credit-card' | 'key' | 'sun' | 'moon' | 'arrow-path' | 'eye' | 'arrow-up';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   type: IconType;
@@ -180,6 +180,9 @@ const ICON_MAP: Record<IconType, React.ReactNode> = {
   ),
   'paper-plane': (
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+  ),
+  'arrow-up': (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
   ),
   'arrow-left': (
     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />

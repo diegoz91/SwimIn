@@ -3,7 +3,8 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
-import { client, databases } from '@/services/appwrite';
+import { databases } from '@/services/appwrite';
+import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { Query } from 'appwrite';
 import { PostCreator } from '@/features/feed/components/PostCreator';
@@ -32,6 +33,7 @@ const Home: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [newPosts, setNewPosts] = useState(0);
     
     const [latestJobs, setLatestJobs] = useState<Job[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
@@ -105,9 +107,44 @@ const Home: React.FC = () => {
         }
     }, [user, showToast, feedMode, POSTS_PER_PAGE]);
 
+    // Si ricarica solo se cambiano persona, collegamenti o ordine, non a ogni aggiornamento del profilo.
+    const feedKey = user ? `${user.$id}|${(user.connections || []).join(',')}|${feedMode}` : '';
+    const loadFeedRef = React.useRef(loadFeed);
+    loadFeedRef.current = loadFeed;
     useEffect(() => {
-        if (authenticated && user) loadFeed();
-    }, [authenticated, user, loadFeed]);
+        if (authenticated && feedKey) { setNewPosts(0); void loadFeedRef.current(); }
+    }, [authenticated, feedKey]);
+
+    // Tempo reale: reazioni, commenti e modifiche aggiornano i post visibili; i post nuovi di
+    // altre persone non spostano il feed mentre leggi, ma compaiono come avviso in alto.
+    useLiveCollection('posts', (changes) => {
+        const patch = new Map<string, Record<string, unknown>>();
+        const removed = new Set<string>();
+        let fresh = 0;
+        for (const c of changes) {
+            if (c.type === 'delete') removed.add(c.id);
+            else if (c.type === 'update') patch.set(c.id, c.payload);
+            else if (c.payload.authorId !== user?.$id && !c.payload.groupId && !blocks.isMutedOrHidden(String(c.payload.authorId))) fresh += 1;
+        }
+        if (patch.size || removed.size) {
+            setPosts((prev) =>
+                prev
+                    .filter((p) => !removed.has(p.$id))
+                    .map((p) => {
+                        const u = patch.get(p.$id);
+                        if (!u) return p;
+                        const { likesCount, commentsCount, reactionCounts, repostsCount, pollCounts, content, media, editedAt } = u as Partial<EnrichedPost>;
+                        return { ...p, likesCount: likesCount ?? p.likesCount, commentsCount: commentsCount ?? p.commentsCount, reactionCounts: reactionCounts ?? p.reactionCounts, repostsCount: repostsCount ?? p.repostsCount, pollCounts: pollCounts ?? p.pollCounts, content: content ?? p.content, media: media ?? p.media, editedAt: editedAt ?? p.editedAt };
+                    })
+            );
+        }
+        if (fresh) setNewPosts((n) => n + fresh);
+    });
+    const showNewPosts = () => {
+        setNewPosts(0);
+        scrollPageTo(0, true);
+        void loadFeed(0, false);
+    };
 
     useEffect(() => {
         const loadJobs = async () => {
@@ -163,7 +200,7 @@ const Home: React.FC = () => {
                     </div>
                 )}
 
-                <PostCreator onPostCreated={() => loadFeed(0, false)} />
+                <PostCreator onPostCreated={() => { setNewPosts(0); void loadFeed(0, false); }} />
 
                 <div className="flex items-center gap-3" role="group" aria-label="Ordine del feed">
                     <span className="h-px flex-1 bg-slate-200" aria-hidden="true" />
@@ -180,6 +217,18 @@ const Home: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-4 relative">
+                    {newPosts > 0 && !isLoading && (
+                        <div className="sticky top-4 z-10 flex justify-center pointer-events-none -mb-2">
+                            <button
+                                type="button"
+                                onClick={showNewPosts}
+                                className="pointer-events-auto inline-flex items-center gap-2 bg-corsia-600 text-white text-sm font-semibold rounded-full pl-3 pr-4 py-2 shadow-lg hover:bg-corsia-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-corsia-500 outline-none"
+                            >
+                                <Icon type="arrow-up" className="w-4 h-4" />
+                                {newPosts === 1 ? '1 nuovo post' : `${newPosts} nuovi post`}
+                            </button>
+                        </div>
+                    )}
                     {isLoading ? (
                         <div className="flex flex-col gap-4" aria-busy="true" aria-label="Caricamento del feed">
                             {[0, 1, 2].map((i) => (

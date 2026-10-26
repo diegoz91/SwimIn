@@ -66,6 +66,7 @@ const C = {
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
   staffInvites: 'staff_invites',
+  signals: 'signals',
   pushSubscriptions: 'push_subscriptions',
   plans: 'plans',
 };
@@ -317,9 +318,116 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const assertNotBlocked = moderation._assertNotBlocked;
 
   // -------------------------------------------------------------------------
+  // Tempo reale: segnali per aggiornare le pagine aperte senza ricaricare
+  // -------------------------------------------------------------------------
+  /**
+   * Chi deve ricevere il segnale di un argomento: "team:<struttura>" amministratori e staff,
+   * "job:<annuncio>" chi gestisce l'annuncio e chi si è candidato, "event:<evento>" organizzatore
+   * e iscritti, "group:<gruppo>" amministratori. Altri argomenti: solo i destinatari indicati.
+   */
+  const recipientsOf = async (topic) => {
+    const [kind, id] = topic.split(':');
+    if (!id) return [];
+    if (kind === 'team' || kind === 'staffchat') {
+      const t = await team._teamOf(id).catch(() => null);
+      return t ? [...t.admins, ...t.staff] : [];
+    }
+    if (kind === 'job') {
+      const job = await find(C.jobs, id);
+      if (!job) return [];
+      const apps = await listAll(C.applications, [Query.equal('jobId', id)]);
+      return [...(await jobManagers(job)), ...apps.map((a) => a.applicantId)];
+    }
+    if (kind === 'event') {
+      const m = await find(C.swimMeets, id);
+      return m ? [m.creatorId, ...(m.participants || []), ...(m.waitlist || [])] : [];
+    }
+    if (kind === 'group') {
+      const g = await find(C.groups, id);
+      return g ? g.admins || [] : [];
+    }
+    return [];
+  };
+
+  /**
+   * Una riga per destinatario nella tabella `signals`, leggibile solo da lui: il client la riceve
+   * con Realtime e ricarica la parte di pagina interessata. Non fa mai fallire l'azione.
+   */
+  const signal = async (topic, extra = [], kind = '') => {
+    try {
+      const ids = [...new Set([...(await recipientsOf(topic)), ...extra])].filter(Boolean).slice(0, 200);
+      for (let i = 0; i < ids.length; i += 20) {
+        await Promise.all(ids.slice(i, i + 20).map((uid) => create(C.signals, { userId: uid, topic: topic.slice(0, 80), kind: String(kind).slice(0, 40) }, [Permission.read(Role.user(uid))])));
+      }
+    } catch (e) {
+      log(`segnale ${topic}: ${e?.message || e}`);
+    }
+  };
+
+  /** Dopo le azioni che cambiano dati visti da altri: argomenti e destinatari dei segnali. */
+  const SIGNALS = {
+    createAnnouncement: { after: (me, p) => [[`team:${p.structureId}`]] },
+    deleteAnnouncement: { before: (me, p) => find(C.announcements, p.announcementId), after: (me, p, r, a) => (a ? [[`team:${a.structureId}`]] : []) },
+    markAnnouncementsRead: { after: (me, p) => [[`team:${p.structureId}`]] },
+    createShift: { after: (me, p) => [[`team:${p.structureId}`]] },
+    updateShift: { after: (me, p, r) => [[`team:${r.structureId}`]] },
+    respondShift: { after: (me, p, r) => [[`team:${r.structureId}`]] },
+    deleteShift: { before: (me, p) => find(C.shifts, p.shiftId), after: (me, p, r, s) => (s ? [[`team:${s.structureId}`, [s.userId]]] : []) },
+    removeStaffMember: { after: (me, p) => [[`team:${p.structureId}`, [p.staffId]]] },
+    inviteStaff: { after: (me, p) => [[`team:${p.structureId}`, [p.userId]]] },
+    cancelStaffInvite: { after: (me, p) => [[`team:${p.structureId}`, [p.userId]]] },
+    respondStaffInvite: { after: (me, p) => [[`team:${p.structureId}`, [me]]] },
+    sendStaffMessage: { after: (me, p) => [[`staffchat:${p.structureId}`]] },
+    deleteStaffMessage: { before: (me, p) => find(C.staffMessages, p.messageId), after: (me, p, r, m) => (m ? [[`staffchat:${m.structureId}`]] : []) },
+    applyForJob: { after: (me, p) => [[`job:${p.jobId}`]] },
+    withdrawApplication: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`, [me]]] : []) },
+    updateApplicationStatus: { before: (me, p) => find(C.applications, p.applicationId), after: (me, p, r, a) => (a ? [[`job:${a.jobId}`]] : []) },
+    hireCandidate: {
+      before: async (me, p) => { const a = await find(C.applications, p.applicationId); return a ? { a, job: await find(C.jobs, a.jobId) } : null; },
+      after: (me, p, r, c) => (c ? [[`job:${c.a.jobId}`], ...(c.job ? [[`team:${c.job.structureId}`]] : [])] : []),
+    },
+    updateJob: { after: (me, p) => [[`job:${p.jobId}`]] },
+    closeJob: { after: (me, p) => [[`job:${p.jobId}`]] },
+    reopenJob: { after: (me, p) => [[`job:${p.jobId}`]] },
+    joinSwimMeet: { after: (me, p) => [[`event:${p.meetId}`]] },
+    leaveSwimMeet: { before: (me, p) => find(C.swimMeets, p.meetId), after: (me, p, r, m) => [[`event:${p.meetId}`, m ? [m.creatorId, me] : [me]]] },
+    updateSwimMeet: { after: (me, p) => [[`event:${p.meetId}`]] },
+    cancelSwimMeet: { before: (me, p) => find(C.swimMeets, p.meetId), after: (me, p, r, m) => [[`event:${p.meetId}`, m ? [...(m.participants || []), ...(m.waitlist || [])] : []]] },
+    joinGroup: { after: (me, p) => [[`group:${p.groupId}`, [me]]] },
+    leaveGroup: { after: (me, p) => [[`group:${p.groupId}`, [me]]] },
+    moderateMember: { after: (me, p) => [[`group:${p.groupId}`, [p.userId, me]]] },
+    sendConnectionRequest: { after: (me, p) => [[`network:${me}`, [me, p.receiverId]]] },
+    respondConnectionRequest: { before: (me, p) => find(C.connections, p.connectionId), after: (me, p, r, c) => (c ? [[`network:${c.senderId}`, [c.senderId, c.receiverId]]] : []) },
+    removeConnection: { after: (me, p) => [[`network:${me}`, [me, p.userId]]] },
+    writeRecommendation: { after: (me, p) => [[`recs:${p.profileId}`, [me, p.profileId]]] },
+    respondRecommendation: { before: (me, p) => find(C.recommendations, p.recommendationId), after: (me, p, r, rec) => (rec ? [[`recs:${rec.profileId}`, [rec.authorId, rec.profileId]]] : []) },
+    deleteRecommendation: { before: (me, p) => find(C.recommendations, p.recommendationId), after: (me, p, r, rec) => (rec ? [[`recs:${rec.profileId}`, [rec.authorId, rec.profileId]]] : []) },
+    requestRecommendation: { after: (me, p) => [[`recs:${me}`, [me, p.profileId || p.userId]]] },
+  };
+
+  /** Avvolge le azioni elencate in SIGNALS: dopo il successo manda i segnali (mai bloccanti). */
+  const withSignals = (actions) => {
+    for (const [name, hook] of Object.entries(SIGNALS)) {
+      const original = actions[name];
+      if (typeof original !== 'function') continue;
+      actions[name] = async (me, params = {}) => {
+        const ctx = hook.before ? await Promise.resolve(hook.before(me, params)).catch(() => null) : null;
+        const result = await original(me, params);
+        try {
+          for (const [topic, extra = []] of await hook.after(me, params, result, ctx)) await signal(topic, extra, name);
+        } catch (e) {
+          log(`segnali ${name}: ${e?.message || e}`);
+        }
+        return result;
+      };
+    }
+    return actions;
+  };
+
+  // -------------------------------------------------------------------------
   // Azioni
   // -------------------------------------------------------------------------
-  return {
+  const actions = {
     ...moderation,
     ...team,
     ...social,
@@ -1094,7 +1202,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         listeners: removeFromArray(room.listeners, me),
       });
     },
+    /** Pulizia dei segnali di tempo reale più vecchi di un giorno (esecuzione programmata). */
+    async _pruneSignals() {
+      const old = new Date(Date.now() - 86_400_000).toISOString();
+      return removeAll(C.signals, [Query.lessThan('$createdAt', old)]);
+    },
   };
+  return withSignals(actions);
 };
 
 // ---------------------------------------------------------------------------
@@ -1149,6 +1263,7 @@ export default async ({ req, res, log, error }) => {
       log: (m) => log(m),
     });
     try {
+      await api._pruneSignals().catch((e) => log(`pulizia segnali: ${e?.message || e}`));
       const result = await api._weeklyDigest();
       log(`riepilogo settimanale: ${JSON.stringify(result)}`);
       return res.json({ ok: true, data: result });

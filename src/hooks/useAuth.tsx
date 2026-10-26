@@ -3,6 +3,7 @@ import { ID } from 'appwrite';
 import { account, client } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { emitNetworkChange } from '@/utils/networkEvents';
+import { useSignal } from '@/hooks/useSignal';
 import { databaseService } from '@/services/database';
 import type { AuthenticatedUser, UserProfile, StructureProfile } from '@/types/types';
 import { completeLoginChallenge, createLoginChallenge, isMfaRequired } from '@/services/mfa';
@@ -99,6 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
     return () => unsubscribe();
   }, [userId]);
+
+  // Richieste di collegamento ricevute, rifiutate o ritirate: arrivano con i segnali della Function.
+  useSignal(userId ? 'network:*' : null, () => emitNetworkChange({ type: 'remote' }));
 
   const mfaChallenge = useRef<{ id: string; recovery: boolean } | null>(null);
 

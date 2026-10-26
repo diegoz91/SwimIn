@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { ChoiceChips } from '@/components/form/Field';
@@ -33,6 +34,11 @@ const Events: React.FC = () => {
         databaseService.getActiveSwimMeets(200).then((e) => alive && setEvents(e));
         return () => { alive = false; };
     }, []);
+
+    // Tempo reale: eventi nuovi, posti occupati e annullamenti si aggiornano da soli.
+    useLiveCollection('swim_meets', () => {
+        databaseService.getActiveSwimMeets(200).then(setEvents).catch((err) => console.warn('Eventi (aggiornamento):', err));
+    }, 800);
 
     const me = user?.$id || '';
     const shown = useMemo(() => {

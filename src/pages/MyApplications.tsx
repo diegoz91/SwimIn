@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type MyApplication } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
@@ -27,6 +28,8 @@ const MyApplications: React.FC = () => {
     const apply = useApplyFlow();
     const [chosen, setFilter] = useState<Filter | null>(null);
     const list = apply.applications;
+    // Tempo reale: quando la struttura vede, seleziona o assume, la tappa si aggiorna da sola.
+    useSignal('job:*', () => void apply.reload(), 400);
     const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, (list || []).filter(f.match).length])) as Record<Filter, number>, [list]);
 
     if (list === null) return <PageLoader />;

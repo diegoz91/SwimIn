@@ -38,6 +38,7 @@ export interface AppwriteConfig {
         groups: string;
         group_members: string;
         typing: string;
+        signals: string;
     };
     buckets: {
         avatars: string;
@@ -78,6 +79,7 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         groups: 'groups',
         group_members: 'group_members',
         typing: 'typing',
+        signals: 'signals',
     },
     buckets: {
         avatars: 'avatars',

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useSaved } from '@/context/SavedContext';
@@ -54,6 +55,9 @@ const JobPage: React.FC = () => {
         setJob(undefined);
         void load();
     }, [load]);
+
+    // Tempo reale: modifiche all'annuncio e cambi di stato della candidatura.
+    useSignal(`job:${id}`, () => { void load(); void apply.reload(); });
 
     const isManager = !!job && (managed || []).some((s) => s.id === job.structureId);
     const application = job ? apply.applicationFor(job.$id) : null;

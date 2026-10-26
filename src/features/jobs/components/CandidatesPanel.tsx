@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useContactInfo } from '@/hooks/useContactInfo';
+import { useSignal } from '@/hooks/useSignal';
 import { Icon } from '@/components/ui/Icon';
 import { FormModal } from '@/components/form/FormModal';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
@@ -55,6 +56,9 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
     useEffect(() => {
         void load();
     }, [load]);
+
+    // Tempo reale: nuove candidature e ritiri compaiono senza ricaricare la pagina.
+    useSignal(`job:${job.$id}`, () => void load());
 
     // Una candidatura nuova aperta ora diventa "vista", ma resta nell'elenco finché non si cambia scheda.
     const [sticky, setSticky] = useState<Set<string>>(new Set());

@@ -8,6 +8,7 @@ import { Select } from '@/components/form/Pickers';
 import { JOB_ROLES, contractLabel } from '@/data/swimming';
 import { databaseService } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
+import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { useToast } from '@/context/ToastContext';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { formatDate } from '@/utils/dates';
@@ -50,6 +51,9 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ apply, isManager }) => {
     useEffect(() => {
         void load();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Tempo reale: offerte nuove, chiuse o modificate compaiono senza ricaricare.
+    useLiveCollection('jobs', () => void load(), 800);
 
     const contracts = useMemo(() => [...new Set((jobs || []).map((j) => j.contractType).filter((c): c is string => !!c))].sort(), [jobs]);
     const myCity = norm(user?.city || '');

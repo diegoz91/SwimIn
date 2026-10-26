@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type ManagedJob } from '@/services/database';
@@ -50,7 +51,6 @@ const MyJobs: React.FC = () => {
 
     const load = useCallback(async () => {
         if (!structureId) return;
-        setJobs(null);
         try {
             setJobs(await databaseService.listStructureJobs(structureId));
         } catch (err) {
@@ -61,8 +61,12 @@ const MyJobs: React.FC = () => {
     }, [structureId, showToast]);
 
     useEffect(() => {
+        setJobs(null);
         void load();
     }, [load]);
+
+    // Tempo reale: nuove candidature, ritiri e modifiche agli annunci aggiornano i conteggi.
+    useSignal(structureId ? 'job:*' : null, () => void load(), 400);
 
     const active = useMemo(() => (jobs || []).filter((j) => isJobOpen(j)), [jobs]);
     const ended = useMemo(() => (jobs || []).filter((j) => !isJobOpen(j)), [jobs]);

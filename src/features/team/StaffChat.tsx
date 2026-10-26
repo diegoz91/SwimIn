@@ -5,8 +5,10 @@ import { Icon } from '@/components/ui/Icon';
 import { RichText } from '@/utils/richText';
 import { initialsAvatar } from '@/utils/avatar';
 import { useConfirm } from '@/context/ConfirmContext';
+import { useSignal } from '@/hooks/useSignal';
 
-const POLL_MS = 5000;
+/** Controllo di riserva: i nuovi messaggi arrivano subito con i segnali di tempo reale. */
+const POLL_MS = 30000;
 
 const dayLabel = (iso: string) => {
     const d = new Date(iso);
@@ -20,7 +22,8 @@ const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('it-IT', { hour
 /**
  * Chat dello staff di una struttura. I messaggi non hanno permessi per i client:
  * passano dalla Function, che a ogni lettura verifica che tu sia amministratore o staff.
- * Mentre la chat è aperta e la pagina visibile, chiede i nuovi messaggi ogni 5 secondi.
+ * I nuovi messaggi (e le eliminazioni) arrivano in tempo reale con i segnali della Function;
+ * un controllo di riserva ogni 30 secondi copre le connessioni Realtime interrotte.
  */
 export const StaffChat: React.FC<{ structureId: string; structureName: string; currentUserId: string; isAdmin: boolean; onRead?: () => void }> = ({ structureId, structureName, currentUserId, isAdmin, onRead }) => {
     const confirm = useConfirm();
@@ -39,9 +42,10 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
 
     const scrollDown = () => window.setTimeout(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, 30);
 
+    const [version, setVersion] = useState(0);
     useEffect(() => {
         let alive = true;
-        setMessages(null);
+        if (version === 0) setMessages(null);
         databaseService
             .listStaffMessages(structureId)
             .then((r) => {
@@ -58,7 +62,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
                 if (alive) { setMessages([]); showToast(err instanceof Error ? err.message : 'Chat non disponibile.', 'error'); }
             });
         return () => { alive = false; };
-    }, [structureId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [structureId, version]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const poll = useCallback(async () => {
         if (!lastRef.current || document.visibilityState !== 'visible') return;
@@ -76,6 +80,9 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
             console.warn('Chat staff (aggiornamento):', err);
         }
     }, [structureId]);
+
+    // Tempo reale: un messaggio nuovo si aggiunge, un messaggio eliminato fa ricaricare l'elenco.
+    useSignal(`staffchat:${structureId}`, (_t, kind) => (kind === 'deleteStaffMessage' ? setVersion((v) => v + 1) : void poll()), 100);
 
     useEffect(() => {
         const t = window.setInterval(poll, POLL_MS);

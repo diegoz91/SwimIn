@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSignal } from '@/hooks/useSignal';
+import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { useToast } from '@/context/ToastContext';
 import { useBlocks } from '@/context/BlocksContext';
 import { databaseService } from '@/services/database';
@@ -80,6 +82,13 @@ const GroupPage: React.FC = () => {
         databaseService.getGroupEvents(id).then((e) => alive && setEvents(e)).catch((err) => { console.warn('Eventi del gruppo:', err); if (alive) setEvents([]); });
         return () => { alive = false; };
     }, [id, loadMembers, loadPosts]);
+
+    // Tempo reale: richieste di ingresso, membri approvati o rimossi.
+    useSignal(`group:${id}`, () => {
+        databaseService.getGroup(id).then(setGroup).catch((err) => console.warn('Gruppo (aggiornamento):', err));
+        loadMembers().catch((err) => console.error('Membri del gruppo:', err));
+    });
+    useLiveCollection('posts', (changes) => { if (changes.some((c) => c.payload.groupId === id)) void loadPosts(); }, 600);
 
     const me = user ? members.find((m) => m.userId === user.$id) : undefined;
     const isAdmin = !!user && !!group?.admins?.includes(user.$id);
