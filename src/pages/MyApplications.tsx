@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
+import { InterviewCard } from '@/features/jobs/components/Interview';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type MyApplication } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
@@ -102,6 +103,11 @@ const MyApplications: React.FC = () => {
                                         <span key={st.label} className={`h-1.5 flex-1 rounded-full ${st.state === 'done' ? 'bg-cloro-600' : st.state === 'current' ? 'bg-corsia-600' : st.state === 'stopped' ? 'bg-slate-400' : 'bg-slate-200'}`} />
                                     ))}
                                 </div>
+                                {a.interviewStatus && job && (
+                                    <div className="mt-4">
+                                        <InterviewCard application={a} jobTitle={jobDisplayTitle(job)} structureName={job.structureName} onChanged={() => void apply.reload()} />
+                                    </div>
+                                )}
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                                     {job && <Link to={`/jobs/${job.$id}`} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">Vedi il percorso</Link>}
                                     {a.status === 'hired' && job && <Link to={`/profile/${job.structureId}?area=staff`} className="py-1 -my-1 font-semibold text-cloro-800 hover:underline">Area staff</Link>}

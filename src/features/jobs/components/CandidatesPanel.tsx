@@ -13,7 +13,8 @@ import { isPremium } from '@/utils/premium';
 import { swimMatchScore } from '@/utils/swimMatch';
 import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
-import type { Application, Certification, Job, UserProfile } from '@/types/types';
+import type { Application, ApplicationReview, Certification, Job, UserProfile } from '@/types/types';
+import { InterviewModal, MODE_LABEL, StarRating, interviewChip } from './Interview';
 import { PIPELINE, STATUS, type ApplicationStatus, type PipelineId } from '../applicationStatus';
 
 type Row = Application & { profile?: UserProfile };
@@ -41,6 +42,8 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
     const [open, setOpen] = useState<string | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [hiring, setHiring] = useState<Row | null>(null);
+    const [interviewing, setInterviewing] = useState<Row | null>(null);
+    const [reviews, setReviews] = useState<Record<string, ApplicationReview>>({});
 
     const load = useCallback(async () => {
         try {
@@ -48,6 +51,8 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
             const profiles = await databaseService.getConnectionsProfiles(apps.map((a) => a.applicantId));
             const byId = new Map(profiles.map((p) => [p.$id, p as UserProfile]));
             setRows(apps.map((a) => ({ ...a, profile: byId.get(a.applicantId) })));
+            // Note e valutazioni interne: se non arrivano, l'elenco resta comunque usabile.
+            databaseService.getApplicationReviews(job.$id).then(setReviews, (err) => console.error('Valutazioni interne:', err));
         } catch (err) {
             console.error('Candidati:', err);
             setRows([]);
@@ -169,10 +174,20 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
                             onToggle={() => toggle(row)}
                             onStatus={(s) => setStatus(row, s)}
                             onHire={() => setHiring(row)}
+                            onInterview={() => setInterviewing(row)}
+                            review={reviews[row.$id]}
+                            onReview={(rv) => setReviews((prev) => ({ ...prev, [row.$id]: rv }))}
                         />
                     ))}
                 </ul>
             )}
+
+            <InterviewModal
+                application={interviewing}
+                candidateName={displayNameOf(interviewing?.profile)}
+                onClose={() => setInterviewing(null)}
+                onSaved={(a) => setRows((prev) => (prev || []).map((r) => (r.$id === a.$id ? { ...r, ...a, profile: r.profile } : r)))}
+            />
 
             <FormModal
                 open={!!hiring}
@@ -205,7 +220,10 @@ const CandidateRow: React.FC<{
     onToggle: () => void;
     onStatus: (s: Exclude<ApplicationStatus, 'hired'>) => void;
     onHire: () => void;
-}> = ({ row, job, expanded, busy, onToggle, onStatus, onHire }) => {
+    onInterview: () => void;
+    review?: ApplicationReview;
+    onReview: (r: ApplicationReview) => void;
+}> = ({ row, job, expanded, busy, onToggle, onStatus, onHire, onInterview, review, onReview }) => {
     const { showToast } = useToast();
     const p = row.profile;
     const name = displayNameOf(p);
@@ -214,6 +232,8 @@ const CandidateRow: React.FC<{
     const contact = useContactInfo(row.applicantId, expanded);
     const panelId = `cand-${row.$id}`;
     const status = STATUS[row.status];
+    const chip = interviewChip(row);
+    const closed = row.status === 'hired' || row.status === 'rejected';
 
     return (
         <li className={expanded ? 'bg-piastrella/60' : ''}>
@@ -226,6 +246,12 @@ const CandidateRow: React.FC<{
                         {row.priority && <span className="text-xs font-semibold text-oro-700">In evidenza</span>}
                     </div>
                     <p className="text-sm text-slate-600 truncate">{headlineOf(p)}</p>
+                    {(!!review?.rating || chip) && (
+                        <p className="mt-1 flex flex-wrap items-center gap-2">
+                            {!!review?.rating && <StarRating value={review.rating} size="sm" label="Valutazione interna" />}
+                            {chip && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${chip.cls}`}>{chip.text}{row.interviewDate ? ` · ${formatDate(row.interviewDate, 'short')} ${row.interviewTime || ''}` : ''}</span>}
+                        </p>
+                    )}
                     <p className="text-xs text-slate-500 mt-0.5">
                         {[p?.city && `${p.city}${p.province ? ` (${p.province})` : ''}`, `candidatura ${formatRelativeTime(row.$createdAt)}`].filter(Boolean).join(' · ')}
                     </p>
@@ -285,6 +311,32 @@ const CandidateRow: React.FC<{
                             )}
                         </div>
                     </div>
+                    {(row.interviewStatus || !closed) && (
+                        <div className="rounded-2xl bg-white border border-slate-200 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-sm font-semibold text-abisso">Colloquio</h3>
+                                {!closed && (
+                                    <button type="button" disabled={busy} onClick={onInterview} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline inline-flex items-center gap-1.5 disabled:opacity-60">
+                                        <Icon type="calendar" className="w-4 h-4" />
+                                        {row.interviewStatus ? 'Proponi un altro orario' : 'Proponi un colloquio'}
+                                    </button>
+                                )}
+                            </div>
+                            {row.interviewStatus && row.interviewDate ? (
+                                <div className="mt-2 text-sm text-slate-700 space-y-1">
+                                    <p className="flex flex-wrap items-center gap-2">
+                                        <span className="font-semibold text-abisso first-letter:uppercase">{formatDate(row.interviewDate, 'weekday')}, ore {row.interviewTime}</span>
+                                        {chip && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${chip.cls}`}>{chip.text}</span>}
+                                    </p>
+                                    <p className="break-words">{row.interviewMode ? MODE_LABEL[row.interviewMode] : ''}{row.interviewPlace ? ` · ${row.interviewPlace}` : ''}</p>
+                                    {row.interviewStatus === 'reschedule' && row.interviewReply && <p className="text-amber-900">Risposta: «{row.interviewReply}»</p>}
+                                </div>
+                            ) : (
+                                <p className="mt-1 text-sm text-slate-500">Scegli data, ora e luogo: {name} riceve una notifica e conferma con un tocco.</p>
+                            )}
+                        </div>
+                    )}
+                    <InternalReview applicationId={row.$id} review={review} onSaved={onReview} />
                     {contact?.allowed && (contact.phone || contact.email) && (
                         <p className="text-sm flex flex-wrap gap-x-4 gap-y-1">
                             {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`} className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline"><Icon type="phone" className="w-4 h-4" />{contact.phone}</a>}
@@ -315,5 +367,59 @@ const CandidateRow: React.FC<{
                 </div>
             )}
         </li>
+    );
+};
+
+/** Valutazione e nota interne: le vede solo chi gestisce l'annuncio, mai il candidato. */
+const InternalReview: React.FC<{ applicationId: string; review?: ApplicationReview; onSaved: (r: ApplicationReview) => void }> = ({ applicationId, review, onSaved }) => {
+    const { showToast } = useToast();
+    const [rating, setRating] = useState(review?.rating || 0);
+    const [note, setNote] = useState(review?.note || '');
+    const [saving, setSaving] = useState(false);
+    useEffect(() => {
+        setRating(review?.rating || 0);
+        setNote(review?.note || '');
+    }, [review?.rating, review?.note]);
+    const dirty = rating !== (review?.rating || 0) || note.trim() !== (review?.note || '');
+
+    const save = async (nextRating = rating) => {
+        setSaving(true);
+        try {
+            const saved = await databaseService.saveApplicationReview(applicationId, nextRating, note.trim());
+            onSaved(saved);
+            showToast('Valutazione salvata.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Valutazione non salvata.', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="rounded-2xl bg-white border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-abisso">Valutazione interna</h3>
+                <span className="text-xs text-slate-500 inline-flex items-center gap-1"><Icon type="lock-closed" className="w-3.5 h-3.5" />Visibile solo a chi gestisce l’annuncio</span>
+            </div>
+            <div className="mt-2">
+                <StarRating value={rating} onChange={setRating} label="Valutazione interna" />
+            </div>
+            <label htmlFor={`note-${applicationId}`} className="sr-only">Nota interna</label>
+            <textarea
+                id={`note-${applicationId}`}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="Es. Ottima prova in acqua, disponibile solo nei weekend."
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-abisso placeholder:text-slate-400 outline-none focus:border-corsia-500 focus:ring-4 focus:ring-corsia-100 resize-y"
+            />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-slate-500">{review?.updatedAt ? `Aggiornata ${formatRelativeTime(review.updatedAt)}` : 'Nessuna valutazione ancora.'}</p>
+                <button type="button" disabled={!dirty || saving} onClick={() => void save()} className="px-4 py-2 rounded-full text-sm font-semibold bg-corsia-600 text-white hover:bg-corsia-700 disabled:opacity-50">
+                    {saving ? 'Salvataggio…' : 'Salva la valutazione'}
+                </button>
+            </div>
+        </div>
     );
 };

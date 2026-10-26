@@ -225,7 +225,7 @@ const jobs = [
 
 /** Candidature: di Giulia (percorso a tappe) e quelle ricevute da j1 (vista della struttura). */
 const applications = [
-    doc('applications', 'a1', { jobId: 'j2', applicantId: ME, status: 'accepted', coverLetter: 'Insegno ai bambini da sei anni, anche corsi di acquaticità 3-5 anni.' }, 60 * 24 * 2),
+    doc('applications', 'a1', { jobId: 'j2', applicantId: ME, status: 'accepted', coverLetter: 'Insegno ai bambini da sei anni, anche corsi di acquaticità 3-5 anni.', interviewDate: new Date(now + 3 * 86400000).toISOString().slice(0, 10), interviewTime: '17:30', interviewMode: 'presenza', interviewPlace: 'Reception della piscina, via Lido 1', interviewMessage: 'Porta il brevetto originale: faremo una breve prova in acqua.', interviewStatus: 'proposed', interviewReply: '' }, 60 * 24 * 2),
     doc('applications', 'a2', { jobId: 'j4', applicantId: ME, status: 'rejected' }, 60 * 24 * 18),
     doc('applications', 'a3', { jobId: 'j1', applicantId: 'u_marco', status: 'pending', priority: true, coverLetter: 'Brevetto FIN di salvamento rinnovato a settembre, disponibile tutte le sere.' }, 60 * 3),
     doc('applications', 'a4', { jobId: 'j1', applicantId: 'u_sara', status: 'pending' }, 60 * 26),
@@ -335,6 +335,10 @@ export const apiResponses = {
         ...j,
         applications: j.$id === 'j1' ? { total: 3, pending: 2, reviewed: 1, accepted: 0, hired: 0, rejected: 0 } : { total: 4, pending: 0, reviewed: 1, accepted: 0, hired: 1, rejected: 2 },
     })),
+    getApplicationReviews: () => ({ a5: { rating: 4, note: 'Buona esperienza con i corsi adulti, chiedere disponibilità al sabato.', updatedBy: ME, updatedAt: iso(60 * 5) } }),
+    saveApplicationReview: ({ rating = 0, note = '' } = {}) => ({ rating, note, updatedBy: ME, updatedAt: new Date().toISOString() }),
+    proposeInterview: ({ applicationId, date, time, mode, place, message } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status: 'accepted', interviewDate: date, interviewTime: time, interviewMode: mode, interviewPlace: place, interviewMessage: message, interviewStatus: 'proposed', interviewReply: '' }),
+    respondInterview: ({ applicationId, accept, reply = '' } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), interviewStatus: accept ? 'accepted' : 'reschedule', interviewReply: reply }),
     updateApplicationStatus: ({ applicationId, status } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status }),
     listMyStaffInvites: () => [{ structureId: 'u_aquae', name: 'Aquae Sport Center', logo: '', city: 'Sesto San Giovanni', invitedAt: new Date(now - 3 * 3600000).toISOString() }],
     getMyResume: () => null,

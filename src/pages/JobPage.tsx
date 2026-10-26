@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
+import { InterviewCard } from '@/features/jobs/components/Interview';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useSaved } from '@/context/SavedContext';
@@ -245,6 +246,11 @@ const JobPage: React.FC = () => {
                         ))}
                     </ol>
                     <p className="mt-4 text-sm text-slate-700">{candidateHint[application.status]}</p>
+                    {application.interviewStatus && (
+                        <div className="mt-4">
+                            <InterviewCard application={application} jobTitle={jobDisplayTitle(job)} structureName={job.structureName} onChanged={() => void apply.reload()} />
+                        </div>
+                    )}
                     <div className="mt-4 flex flex-wrap gap-2">
                         {application.status === 'hired' && (
                             <Link to={`/profile/${job.structureId}?area=staff`} className="px-4 py-2 rounded-full text-sm font-semibold bg-cloro-100 text-cloro-800 hover:bg-cloro-200">Vai all’area staff</Link>
