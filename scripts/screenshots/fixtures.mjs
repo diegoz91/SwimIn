@@ -391,6 +391,12 @@ export const apiResponses = {
             { $id: 'sm4', $createdAt: iso(12), structureId: 'u_lido', authorId: 'u_lido', content: 'Grazie Giulia!' },
         ],
     }),
+    listMySwaps: () => [
+        { $id: 'sw1', $createdAt: iso(90), structureId: 'u_lido', shiftId: 'shx', fromUserId: 'u_sara', toUserId: '', status: 'pending', message: 'Ho l’esame di brevetto, chi mi copre?', structureName: 'Piscina Lido di Milano', fromName: 'Sara Colombo', shift: { date: new Date(now + 2 * 86400000).toISOString().slice(0, 10), shiftTime: '14:00–20:00', role: 'Assistente bagnanti' } },
+    ],
+    respondShiftSwap: () => ({ accepted: true }),
+    applyShiftTemplate: () => ({ created: [], skipped: 2 }),
+    listShiftTemplates: () => [{ $id: 'tpl1', structureId: ME, name: 'Settimana estiva', slots: [{ weekday: 0, shiftTime: '07:00–13:00', userId: 'u_sara' }, { weekday: 2, shiftTime: '14:00–20:00', userId: 'u_sara' }] }],
     listMyShifts: () => {
         const day = (n) => new Date(now + n * 86400000).toISOString().slice(0, 10);
         return [

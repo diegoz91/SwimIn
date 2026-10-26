@@ -3,10 +3,13 @@ import { lazyPage } from '@/utils/lazyPage';
 import type { StructureProfile, Job, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
-import { databaseService, type PendingStaffInvite, type TeamMember } from '@/services/database';
+import { databaseService, type PendingStaffInvite, type ShiftSwap, type TeamMember } from '@/services/database';
 import { TeamMembers } from '@/features/team/TeamMembers';
 import { useSignal } from '@/hooks/useSignal';
 import { ShiftEditModal } from '@/features/team/ShiftEditModal';
+import { ShiftCreateModal } from '@/features/team/ShiftCreateModal';
+import { ShiftTemplatesModal } from '@/features/team/ShiftTemplatesModal';
+import { ShiftSwapModal, SwapRequests, type SwapItem } from '@/features/team/ShiftSwap';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
@@ -23,9 +26,8 @@ import { StructureInfo, openStatusOf } from './StructureInfo';
 import { ReviewsSection } from '@/features/reviews/ReviewsSection';
 import { Stars } from '@/features/reviews/Stars';
 import { ratingOf } from '@/utils/profile';
-import { Checkbox, Field } from '@/components/form/Field';
-import { DatePicker, Select, TimePicker } from '@/components/form/Pickers';
-import { addDaysISO, formatDate, isValidISODate, todayISO, weekStartISO } from '@/utils/dates';
+import { Checkbox } from '@/components/form/Field';
+import { addDaysISO, formatDate, todayISO, weekStartISO } from '@/utils/dates';
 import { ShiftWeek } from './ShiftWeek';
 import { StatsDashboard } from '@/features/premium/StatsDashboard';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
@@ -119,8 +121,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [isImportant, setIsImportant] = useState(false);
     const [showAddShift, setShowAddShift] = useState(false);
-    const [newShift, setNewShift] = useState({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
-    const [shiftErrors, setShiftErrors] = useState<Partial<Record<'userId' | 'date' | 'start' | 'end', string>>>({});
+    const [showTemplates, setShowTemplates] = useState(false);
+    const [swaps, setSwaps] = useState<ShiftSwap[]>([]);
+    const [swapShift, setSwapShift] = useState<SquadShift | null>(null);
     
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
@@ -175,6 +178,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 setInvites(board.invites || []);
                 setAnnouncements(board.announcements || []);
                 setShifts(board.shifts || []);
+                setSwaps(board.swaps || []);
                 setChatUnread(board.chatUnread || 0);
                 if (board.role === 'staff' && (board.announcements || []).some((a) => !(a.readBy || []).includes(user?.$id || ''))) {
                     databaseService.markAnnouncementsRead(facilityId).catch((err) => console.error('Bacheca letta:', err));
@@ -254,41 +258,32 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         setAnnouncementToDelete(null);
     };
 
-    const handleConfirmShift = async () => {
-        const today = todayISO();
-        const errors: typeof shiftErrors = {};
-        if (!newShift.userId) errors.userId = 'Scegli chi coprirà il turno.';
-        if (!newShift.date) errors.date = 'Indica la data.';
-        else if (!isValidISODate(newShift.date)) errors.date = 'Data non valida: usa il formato gg/mm/aaaa.';
-        else if (newShift.date < today) errors.date = 'La data è già passata.';
-        else if (newShift.date > addDaysISO(today, 180)) errors.date = 'Massimo 6 mesi in anticipo.';
-        const validTime = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
-        if (!newShift.start) errors.start = 'Indica l’inizio.';
-        else if (!validTime(newShift.start)) errors.start = 'Orario non valido.';
-        if (!newShift.end) errors.end = 'Indica la fine.';
-        else if (!validTime(newShift.end)) errors.end = 'Orario non valido.';
-        else if (newShift.start && newShift.end <= newShift.start) errors.end = 'La fine deve essere dopo l’inizio.';
-        setShiftErrors(errors);
-        if (Object.keys(errors).length) return;
-        try {
-            const result = await databaseService.createSquadShift({
-                structureId: facilityId, userId: newShift.userId, date: newShift.date, shiftTime: `${newShift.start}–${newShift.end}`, role: newShift.role,
-            });
-            setShifts([...shifts, result].sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime)));
-            setShowAddShift(false);
-            setShiftWeek(weekStartISO(result.date));
-            setNewShift({ userId: '', userName: '', date: '', start: '', end: '', role: '' });
-            showToast('Turno assegnato: abbiamo avvisato la persona.', 'success');
-        } catch (err) {
-            showToast(err instanceof Error ? err.message : 'Non è stato possibile salvare il turno.', 'error');
-        }
+    const sortShifts = (list: SquadShift[]) => [...list].sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime));
+    const addShifts = (created: SquadShift[]) => {
+        if (!created.length) return;
+        setShifts((prev) => sortShifts([...prev.filter((p) => !created.some((c) => c.$id === p.$id)), ...created]));
+        setShiftWeek(weekStartISO(created[0].date));
     };
 
-    const handleDeleteShift = async (shiftId: string) => {
+    /** Cambi turno da mostrare: da accettare (per me o aperti a tutti) e i miei in attesa. */
+    const swapItems: SwapItem[] = swaps.flatMap((w) => {
+        const shift = shifts.find((x) => x.$id === w.shiftId);
+        if (!shift || shift.date < todayISO()) return [];
+        const nameOf = (id: string) => { const m = staff.find((x) => x.userId === id); return m ? `${m.firstName} ${m.lastName}`.trim() : 'Un collega'; };
+        const when = `${formatDate(shift.date, 'weekday')}, ${shift.shiftTime}`;
+        if (w.fromUserId === user?.$id) return [{ id: w.$id, kind: 'mine' as const, title: w.toUserId ? `In attesa di ${nameOf(w.toUserId)}` : 'Offerto a tutto lo staff', detail: when, message: w.message }];
+        if (w.toUserId === user?.$id) return [{ id: w.$id, kind: 'incoming' as const, title: `${nameOf(w.fromUserId)} ti chiede di coprire un turno`, detail: when, message: w.message }];
+        if (!w.toUserId && isStaff) return [{ id: w.$id, kind: 'open' as const, title: `Turno disponibile: ${nameOf(w.fromUserId)} cerca un sostituto`, detail: when, message: w.message }];
+        return [];
+    });
+
+    const handleDeleteShift = async (shiftId: string, scope: 'one' | 'series' = 'one') => {
+        const target = shifts.find((s) => s.$id === shiftId);
+        if (scope === 'series' && !(await confirm({ title: 'Annullare tutta la serie?', message: 'Questo turno e i successivi della stessa serie spariscono; la persona riceve un solo avviso.', confirmLabel: 'Annulla la serie', tone: 'danger' }))) return;
         try {
-            await databaseService.deleteSquadShift(shiftId);
-            setShifts(shifts.filter((s) => s.$id !== shiftId));
-            showToast('Turno annullato.', 'info');
+            const res = await databaseService.deleteSquadShift(shiftId, scope);
+            setShifts(shifts.filter((s) => !(s.$id === shiftId || (scope === 'series' && target?.seriesId && s.seriesId === target.seriesId && s.date >= target.date))));
+            showToast(res.deleted > 1 ? `${res.deleted} turni annullati.` : 'Turno annullato.', 'info');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
         }
@@ -596,43 +591,19 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                         <p className="text-sm text-slate-500 font-medium">{isAdmin ? 'Assegna i turni allo staff: ognuno riceve un avviso e può confermare.' : 'I turni della squadra. Conferma i tuoi o segnala se non puoi coprirli.'}</p>
                                     </div>
                                     {isAdmin && (
-                                        <button onClick={()=>setShowAddShift(!showAddShift)} className="w-full sm:w-auto bg-blue-50 text-blue-700 font-bold px-5 py-2.5 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                                            <Icon type={showAddShift ? "x" : "plus"} className="w-4 h-4"/> {showAddShift ? 'Annulla' : 'Assegna turno'}
-                                        </button>
+                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                            <button onClick={() => setShowTemplates(true)} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-slate-300 text-abisso text-sm font-semibold hover:bg-slate-50">
+                                                <Icon type="calendar" className="w-4 h-4" /> Modelli
+                                            </button>
+                                            <button onClick={() => setShowAddShift(true)} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-corsia-600 text-white text-sm font-semibold hover:bg-corsia-700">
+                                                <Icon type="plus" className="w-4 h-4" /> Assegna turni
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                                 
-                                {isAdmin && showAddShift && (
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-4 items-start animate-in slide-in-from-top-4">
-                                        {staff.length === 0 ? (
-                                            <p className="sm:col-span-2 lg:col-span-5 text-sm text-amber-800 bg-amber-50 p-3 rounded-lg border border-amber-200">Non ci sono ancora membri dello staff in questa pagina: assumi un candidato da un annuncio per assegnargli dei turni.</p>
-                                        ) : (
-                                            <>
-                                                <Field id="shift-user" label="Membro dello staff" error={shiftErrors.userId}>
-                                                    <Select
-                                                        label="Membro dello staff"
-                                                        value={newShift.userId}
-                                                        onChange={(id) => { const s = staff.find(st => st.userId === id); setNewShift(s ? {...newShift, userId: s.userId, userName: `${s.firstName} ${s.lastName}`.trim(), role: s.title || 'Staff'} : {...newShift, userId: ''}); }}
-                                                        options={staff.map((s) => ({ value: s.userId, label: `${s.firstName} ${s.lastName}`.trim() || 'Membro dello staff', hint: s.title }))}
-                                                    />
-                                                </Field>
-                                                <Field id="shift-date" label="Data" error={shiftErrors.date}>
-                                                    <DatePicker label="Data del turno" min={todayISO()} max={addDaysISO(todayISO(), 180)} value={newShift.date} onChange={(v) => setNewShift({...newShift, date: v})} />
-                                                </Field>
-                                                <Field id="shift-start" label="Inizio" error={shiftErrors.start}>
-                                                    <TimePicker label="Inizio del turno" value={newShift.start} onChange={(v) => setNewShift({...newShift, start: v})} />
-                                                </Field>
-                                                <Field id="shift-end" label="Fine" error={shiftErrors.end}>
-                                                    <TimePicker label="Fine del turno" after={newShift.start} value={newShift.end} onChange={(v) => setNewShift({...newShift, end: v})} />
-                                                </Field>
-                                                <button onClick={handleConfirmShift} className="lg:mt-7 bg-corsia-600 text-white font-semibold py-3 px-5 rounded-xl hover:bg-corsia-700 transition-colors">
-                                                    Assegna
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                                
+                                <SwapRequests items={swapItems} onChanged={() => setBoardVersion((v) => v + 1)} />
+
                                 <ShiftWeek
                                     shifts={shifts}
                                     weekStart={shiftWeek}
@@ -652,9 +623,19 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                     Modifica
                                                 </button>
                                             )}
+                                            {shift.userId === user?.$id && shift.date >= todayISO() && !swaps.some((w) => w.shiftId === shift.$id) && (
+                                                <button onClick={() => setSwapShift(shift)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50" aria-label={`Cedi o scambia il turno del ${shift.date}`}>
+                                                    Cedi
+                                                </button>
+                                            )}
                                             {isAdmin && (
                                                 <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-700 hover:bg-red-50" aria-label={`Annulla il turno di ${shift.userName} del ${shift.date}`}>
                                                     Annulla
+                                                </button>
+                                            )}
+                                            {isAdmin && shift.seriesId && shift.date >= todayISO() && (
+                                                <button onClick={() => handleDeleteShift(shift.$id, 'series')} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-700 hover:bg-red-50" aria-label={`Annulla la serie di turni di ${shift.userName} dal ${shift.date}`}>
+                                                    Annulla serie
                                                 </button>
                                             )}
                                         </>
@@ -731,8 +712,21 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
             </div>
 
+            {isAdmin && <ShiftCreateModal open={showAddShift} structureId={facilityId} staff={staff} defaultDate={shiftWeek > todayISO() ? shiftWeek : undefined} onClose={() => setShowAddShift(false)} onCreated={addShifts} />}
             {isAdmin && (
-                <ShiftEditModal
+                <ShiftTemplatesModal
+                    open={showTemplates}
+                    structureId={facilityId}
+                    weekStart={shiftWeek}
+                    weekShifts={shifts.filter((x) => x.date >= shiftWeek && x.date <= addDaysISO(shiftWeek, 6))}
+                    staff={staff}
+                    onClose={() => setShowTemplates(false)}
+                    onApplied={addShifts}
+                />
+            )}
+            {user && <ShiftSwapModal shift={swapShift} colleagues={staff} currentUserId={user.$id} onClose={() => setSwapShift(null)} onSent={() => setBoardVersion((v) => v + 1)} />}
+            {isAdmin && (
+            <ShiftEditModal
                     shift={editingShift}
                     staff={staff}
                     onClose={() => setEditingShift(null)}

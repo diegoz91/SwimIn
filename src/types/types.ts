@@ -354,6 +354,8 @@ export interface SquadShift extends AppwriteDocument {
   role: string;
   /** Assegnato, confermato da chi lo copre, oppure rifiutato (non può coprirlo). */
   status: 'scheduled' | 'confirmed' | 'declined';
+  /** Turni ricorrenti creati insieme. */
+  seriesId?: string | null;
 }
 
 // ----------------------------------------------------

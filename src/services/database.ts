@@ -273,9 +273,26 @@ export interface TeamBoard {
     members: TeamMember[];
     announcements: SquadAnnouncement[];
     shifts: SquadShift[];
+    /** Richieste di cambio turno in sospeso visibili a chi chiede. */
+    swaps?: ShiftSwap[];
     /** Messaggi della chat staff non ancora letti. */
     chatUnread?: number;
 }
+/** Un turno tipo di un modello di settimana (giorno: lunedì = 0). */
+export interface TemplateSlot { weekday: number; shiftTime: string; userId: string; role?: string }
+export interface ShiftTemplate { $id: string; structureId: string; name: string; slots: TemplateSlot[]; $updatedAt?: string }
+/** Richiesta di cambio turno: `toUserId` vuoto = aperta a tutto lo staff. */
+export interface ShiftSwap {
+    $id: string;
+    $createdAt: string;
+    structureId: string;
+    shiftId: string;
+    fromUserId: string;
+    toUserId: string;
+    status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+    message?: string;
+}
+export interface MyShiftSwap extends ShiftSwap { structureName: string; fromName: string; shift: { date: string; shiftTime: string; role: string } }
 export interface StaffMessage { $id: string; $createdAt: string; structureId: string; authorId: string; content: string }
 export interface StaffChatMember { $id: string; name: string; avatar: string; role: 'admin' | 'staff' }
 export type NotifyCategory = 'messages' | 'connections' | 'social' | 'jobs' | 'sos' | 'general' | 'digest';
@@ -1329,8 +1346,36 @@ export const databaseService = {
     async createSquadShift(data: { structureId: string; userId: string; date: string; shiftTime: string; role?: string }) {
         return await callApi<SquadShift>('createShift', data);
     },
-    async deleteSquadShift(shiftId: string) {
-        return await callApi<{ deleted: boolean }>('deleteShift', { shiftId });
+    async deleteSquadShift(shiftId: string, scope: 'one' | 'series' = 'one') {
+        return await callApi<{ deleted: number }>('deleteShift', { shiftId, scope });
+    },
+    /** Turni ricorrenti: stesso orario nei giorni scelti (lunedì = 0) tra due date. */
+    async createShiftSeries(data: { structureId: string; userId: string; startDate: string; endDate: string; weekdays: number[]; shiftTime: string; role?: string }) {
+        return await callApi<{ created: SquadShift[]; seriesId: string }>('createShiftSeries', data);
+    },
+    async listShiftTemplates(structureId: string) {
+        return await callApi<ShiftTemplate[]>('listShiftTemplates', { structureId });
+    },
+    async saveShiftTemplate(data: { structureId: string; templateId?: string; name: string; slots: TemplateSlot[] }) {
+        return await callApi<ShiftTemplate>('saveShiftTemplate', data);
+    },
+    async deleteShiftTemplate(templateId: string) {
+        return await callApi<{ deleted: boolean }>('deleteShiftTemplate', { templateId });
+    },
+    async applyShiftTemplate(templateId: string, weekStart: string) {
+        return await callApi<{ created: SquadShift[]; skipped: number }>('applyShiftTemplate', { templateId, weekStart });
+    },
+    async proposeShiftSwap(shiftId: string, toUserId: string | null, message: string) {
+        return await callApi<ShiftSwap>('proposeShiftSwap', { shiftId, toUserId, message });
+    },
+    async respondShiftSwap(swapId: string, accept: boolean) {
+        return await callApi<{ accepted?: boolean; declined?: boolean }>('respondShiftSwap', { swapId, accept });
+    },
+    async cancelShiftSwap(swapId: string) {
+        return await callApi<{ cancelled: boolean }>('cancelShiftSwap', { swapId });
+    },
+    async listMySwaps() {
+        return await callApi<MyShiftSwap[]>('listMySwaps');
     },
     /** I miei turni in tutte le strutture di cui faccio parte. */
     async listMyShifts() {

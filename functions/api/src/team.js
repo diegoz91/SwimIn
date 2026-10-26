@@ -13,6 +13,14 @@ const SHIFT_TIME = /^([01]\d|2[0-3]):[0-5]\d–([01]\d|2[0-3]):[0-5]\d$/;
 const SHIFT_STATUSES = ['scheduled', 'confirmed', 'declined'];
 
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+/** Giorno della settimana di una data ISO: lunedì = 0 … domenica = 6. */
+const weekdayOf = (iso) => (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
+const addDays = (iso, n) => isoDay(new Date(`${iso}T12:00:00Z`).getTime() + n * 86_400_000);
+const DAY_SHORT = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const MAX_SERIES = 90;
+const MAX_TEMPLATES = 20;
+const MAX_SLOTS = 60;
 
 export function teamActions({ find, get, list, listAll, create, update, remove, removeAll, count = async () => 0, fail, notify, deliver = async () => null, C, Query, displayName }) {
   /** Amministratori e staff della struttura (pagina Facility o profilo Struttura). */
@@ -76,7 +84,24 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
   const inviteKey = (structureId, userId) => createHash('sha256').update(`invite:${structureId}:${userId}`).digest('hex').slice(0, 32);
   const logoOf = (team) => team.row.logo || '';
 
-  return {
+  const checkTime = (shiftTime) => {
+    if (!SHIFT_TIME.test(shiftTime || '')) fail(400, 'Orario non valido.');
+    const [start, end] = shiftTime.split('–');
+    if (end <= start) fail(400, 'La fine del turno deve essere dopo l’inizio.');
+  };
+  const templateOut = (t) => {
+    let slots = [];
+    try { slots = JSON.parse(t.slots || '[]'); } catch { slots = []; }
+    return { $id: t.$id, structureId: t.structureId, name: t.name, slots, $updatedAt: t.$updatedAt };
+  };
+  /** Turno annullato o spostato: le richieste di cambio in sospeso non valgono più. */
+  const cancelSwapsFor = async (shiftId) => {
+    const open = await listAll(C.shiftSwaps, [Query.equal('shiftId', shiftId), Query.equal('status', 'pending')]).catch(() => []);
+    for (const w of open) await update(C.shiftSwaps, w.$id, { status: 'cancelled' });
+  };
+  let this_listMyTeams = async (_me) => [];
+
+  const api = {
     /** Tutto ciò che serve all'area staff, solo per chi ne fa parte. */
     async getTeamBoard(me, { structureId } = {}) {
       const { team, role } = await requireRole(me, structureId, 'staff');
@@ -107,6 +132,9 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         announcements: announcements.documents,
         // Lo staff vede tutti i turni della squadra (serve per gli scambi), non solo i propri.
         shifts: shifts.documents,
+        // Scambi in sospeso: quelli aperti a tutto lo staff e quelli che mi riguardano (agli amministratori tutti).
+        swaps: (await listAll(C.shiftSwaps, [Query.equal('structureId', structureId), Query.equal('status', 'pending')]).catch(() => []))
+          .filter((w) => role === 'admin' || !w.toUserId || w.toUserId === me || w.fromUserId === me),
         chatUnread,
       };
     },
@@ -190,6 +218,34 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       return { updated: unread.length };
     },
 
+    /**
+     * Turni ricorrenti: lo stesso orario nei giorni della settimana scelti, da una data a un'altra
+     * (al massimo 6 mesi avanti e 90 turni). Tutti con lo stesso `seriesId`, annullabili insieme.
+     */
+    async createShiftSeries(me, { structureId, userId, startDate, endDate, weekdays = [], shiftTime, role = '' } = {}) {
+      const { team } = await requireRole(me, structureId, 'admin');
+      if (!team.staff.includes(userId)) fail(400, 'Puoi assegnare turni solo ai membri dello staff.');
+      if (!ISO_DATE.test(startDate || '') || !ISO_DATE.test(endDate || '')) fail(400, 'Date non valide.');
+      if (startDate < isoDay(Date.now() - 86_400_000)) fail(400, 'La prima data è già passata.');
+      if (endDate > isoDay(Date.now() + 180 * 86_400_000)) fail(400, 'La serie può arrivare al massimo a 6 mesi da oggi.');
+      if (endDate < startDate) fail(400, 'La data di fine deve essere dopo quella di inizio.');
+      const days = [...new Set((Array.isArray(weekdays) ? weekdays : []).map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+      if (!days.length) fail(400, 'Scegli almeno un giorno della settimana.');
+      checkTime(shiftTime);
+      const dates = [];
+      for (let d = startDate; d <= endDate; d = addDays(d, 1)) if (days.includes(weekdayOf(d))) dates.push(d);
+      if (!dates.length) fail(400, 'Nel periodo scelto non c’è nessuno dei giorni indicati.');
+      if (dates.length > MAX_SERIES) fail(400, `Al massimo ${MAX_SERIES} turni per volta: accorcia il periodo.`);
+      const person = await get(C.profiles, userId);
+      const seriesId = createHash('sha256').update(`${structureId}:${userId}:${Date.now()}:${Math.random()}`).digest('hex').slice(0, 24);
+      const base = { structureId, userId, userName: displayName(person).slice(0, 255), shiftTime, role: String(role || person.title || 'Staff').trim().slice(0, 100), status: 'scheduled', seriesId };
+      const created = [];
+      for (const date of dates) created.push(await create(C.shifts, { ...base, date }, []));
+      const which = days.sort().map((d) => DAY_SHORT[d]).join(', ');
+      await notify(userId, 'shift', `${team.name} ti ha assegnato ${created.length} turni (${which}) dal ${ddmm(dates[0])} al ${ddmm(dates[dates.length - 1])}, ${shiftTime}.`, structureId);
+      return { created, seriesId };
+    },
+
     async createShift(me, { structureId, userId, date, shiftTime, role = '' } = {}) {
       const { team } = await requireRole(me, structureId, 'admin');
       if (!team.staff.includes(userId)) fail(400, 'Puoi assegnare turni solo ai membri dello staff.');
@@ -216,12 +272,169 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       return row;
     },
 
-    async deleteShift(me, { shiftId } = {}) {
+    /** Annulla un turno; con `scope: 'series'` anche i successivi della stessa serie. */
+    async deleteShift(me, { shiftId, scope = 'one' } = {}) {
       const shift = await get(C.shifts, shiftId);
       await requireRole(me, shift.structureId, 'admin');
-      await remove(C.shifts, shift.$id);
-      if (shift.userId !== me) await notify(shift.userId, 'shift', `Il turno del ${shift.date.slice(8, 10)}/${shift.date.slice(5, 7)} (${shift.shiftTime}) è stato annullato.`, shift.structureId);
+      const targets = scope === 'series' && shift.seriesId
+        ? (await listAll(C.shifts, [Query.equal('structureId', shift.structureId), Query.equal('seriesId', shift.seriesId)])).filter((x) => x.date >= shift.date)
+        : [shift];
+      for (const t of targets) {
+        await remove(C.shifts, t.$id);
+        await cancelSwapsFor(t.$id);
+      }
+      if (shift.userId !== me) {
+        await notify(shift.userId, 'shift', targets.length > 1
+          ? `${targets.length} turni dal ${ddmm(shift.date)} (${shift.shiftTime}) sono stati annullati.`
+          : `Il turno del ${ddmm(shift.date)} (${shift.shiftTime}) è stato annullato.`, shift.structureId);
+      }
+      return { deleted: targets.length };
+    },
+
+    // ---------------- MODELLI SETTIMANALI ----------------
+    /** Modelli di settimana della struttura (solo amministratori). */
+    async listShiftTemplates(me, { structureId } = {}) {
+      await requireRole(me, structureId, 'admin');
+      const rows = await listAll(C.shiftTemplates, [Query.equal('structureId', structureId)]);
+      return rows.map(templateOut);
+    },
+
+    async saveShiftTemplate(me, { structureId, templateId = null, name, slots = [] } = {}) {
+      const { team } = await requireRole(me, structureId, 'admin');
+      const title = String(name || '').trim();
+      if (title.length < 2 || title.length > 60) fail(400, 'Dai al modello un nome tra 2 e 60 caratteri.');
+      if (!Array.isArray(slots) || !slots.length) fail(400, 'Il modello è vuoto: aggiungi almeno un turno.');
+      if (slots.length > MAX_SLOTS) fail(400, `Al massimo ${MAX_SLOTS} turni per modello.`);
+      const clean = slots.map((x) => {
+        const weekday = Number(x?.weekday);
+        if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) fail(400, 'Giorno della settimana non valido.');
+        checkTime(x?.shiftTime);
+        if (!team.staff.includes(x?.userId)) fail(400, 'Nel modello ci sono persone che non fanno parte dello staff.');
+        return { weekday, shiftTime: x.shiftTime, userId: x.userId, role: String(x.role || '').trim().slice(0, 100) };
+      });
+      const data = { structureId, name: title, slots: JSON.stringify(clean), createdBy: me };
+      if (templateId) {
+        const existing = await get(C.shiftTemplates, templateId);
+        if (existing.structureId !== structureId) fail(404, 'Modello non trovato.');
+        return templateOut(await update(C.shiftTemplates, templateId, data));
+      }
+      if ((await count(C.shiftTemplates, [Query.equal('structureId', structureId)])) >= MAX_TEMPLATES) fail(409, `Al massimo ${MAX_TEMPLATES} modelli: eliminane uno che non usi più.`);
+      return templateOut(await create(C.shiftTemplates, data, []));
+    },
+
+    async deleteShiftTemplate(me, { templateId } = {}) {
+      const t = await get(C.shiftTemplates, templateId);
+      await requireRole(me, t.structureId, 'admin');
+      await remove(C.shiftTemplates, t.$id);
       return { deleted: true };
+    },
+
+    /**
+     * Applica un modello alla settimana che inizia il lunedì `weekStart`: crea i turni (senza
+     * doppioni) per chi è ancora nello staff; ognuno riceve un solo avviso con il numero di turni.
+     */
+    async applyShiftTemplate(me, { templateId, weekStart } = {}) {
+      const t = await get(C.shiftTemplates, templateId);
+      const { team } = await requireRole(me, t.structureId, 'admin');
+      if (!ISO_DATE.test(weekStart || '') || weekdayOf(weekStart) !== 0) fail(400, 'Scegli il lunedì della settimana.');
+      if (addDays(weekStart, 6) < isoDay(Date.now())) fail(400, 'Questa settimana è già passata.');
+      if (weekStart > isoDay(Date.now() + 180 * 86_400_000)) fail(400, 'Al massimo 6 mesi in anticipo.');
+      const slots = templateOut(t).slots;
+      const existing = await listAll(C.shifts, [Query.equal('structureId', t.structureId), Query.greaterThanEqual('date', weekStart), Query.lessThanEqual('date', addDays(weekStart, 6))]);
+      const has = new Set(existing.map((x) => `${x.userId}|${x.date}|${x.shiftTime}`));
+      const people = {};
+      const created = [];
+      let skipped = 0;
+      for (const slot of slots) {
+        const date = addDays(weekStart, slot.weekday);
+        if (!team.staff.includes(slot.userId) || date < isoDay(Date.now()) || has.has(`${slot.userId}|${date}|${slot.shiftTime}`)) { skipped += 1; continue; }
+        people[slot.userId] ??= await find(C.profiles, slot.userId);
+        const person = people[slot.userId];
+        if (!person) { skipped += 1; continue; }
+        created.push(await create(C.shifts, { structureId: t.structureId, userId: slot.userId, userName: displayName(person).slice(0, 255), date, shiftTime: slot.shiftTime, role: (slot.role || person.title || 'Staff').slice(0, 100), status: 'scheduled' }, []));
+        has.add(`${slot.userId}|${date}|${slot.shiftTime}`);
+      }
+      const perPerson = {};
+      for (const c of created) perPerson[c.userId] = (perPerson[c.userId] || 0) + 1;
+      for (const [uid, n] of Object.entries(perPerson)) {
+        await notify(uid, 'shift', `${team.name} ti ha assegnato ${n === 1 ? 'un turno' : `${n} turni`} nella settimana del ${ddmm(weekStart)}. Confermali nell’area staff.`, t.structureId);
+      }
+      return { created, skipped };
+    },
+
+    // ---------------- SCAMBI TRA COLLEGHI ----------------
+    /**
+     * Chi ha un turno lo propone a un collega (`toUserId`) o a tutto lo staff (senza destinatario):
+     * il primo che accetta lo prende ed è già confermato; gli amministratori vengono avvisati.
+     */
+    async proposeShiftSwap(me, { shiftId, toUserId = null, message = '' } = {}) {
+      const shift = await get(C.shifts, shiftId);
+      if (shift.userId !== me) fail(403, 'Puoi cedere solo i tuoi turni.');
+      const { team } = await requireRole(me, shift.structureId, 'staff');
+      if (shift.date < isoDay(Date.now())) fail(400, 'Il turno è già passato.');
+      if (toUserId && (toUserId === me || !team.staff.includes(toUserId))) fail(400, 'Puoi chiedere solo a un collega dello staff.');
+      const open = await listAll(C.shiftSwaps, [Query.equal('shiftId', shiftId), Query.equal('status', 'pending')]);
+      if (open.length) fail(409, 'Hai già chiesto un cambio per questo turno: annullalo per farne un altro.');
+      const note = String(message || '').trim().slice(0, 300);
+      const row = await create(C.shiftSwaps, { structureId: shift.structureId, shiftId, fromUserId: me, toUserId: toUserId || '', status: 'pending', message: note }, []);
+      const who = displayName(await get(C.profiles, me));
+      const text = `${who} cerca qualcuno per il turno del ${ddmm(shift.date)}, ${shift.shiftTime}${note ? `: «${note}»` : '.'}`;
+      const recipients = toUserId ? [toUserId] : team.staff.filter((id) => id !== me).slice(0, 50);
+      for (const id of recipients) await notify(id, 'shift', toUserId ? `${who} ti chiede di coprire il turno del ${ddmm(shift.date)}, ${shift.shiftTime}${note ? `: «${note}»` : '.'}` : text, shift.structureId);
+      return row;
+    },
+
+    async respondShiftSwap(me, { swapId, accept } = {}) {
+      const swap = await get(C.shiftSwaps, swapId);
+      if (swap.status !== 'pending') fail(409, 'Questa richiesta non è più valida.');
+      const { team } = await requireRole(me, swap.structureId, 'staff');
+      if (swap.fromUserId === me) fail(400, 'È una tua richiesta: puoi annullarla.');
+      if (swap.toUserId && swap.toUserId !== me) fail(403, 'Questa richiesta è per un altro collega.');
+      const from = displayName(await get(C.profiles, swap.fromUserId));
+      if (!accept) {
+        // Una richiesta aperta a tutti resta aperta per gli altri.
+        if (!swap.toUserId) return { declined: true };
+        await update(C.shiftSwaps, swapId, { status: 'declined' });
+        await notify(swap.fromUserId, 'shift', `${displayName(await get(C.profiles, me))} non può coprire il tuo turno.`, swap.structureId);
+        return { declined: true };
+      }
+      const shift = await find(C.shifts, swap.shiftId);
+      if (!shift || shift.userId !== swap.fromUserId || shift.date < isoDay(Date.now())) {
+        await update(C.shiftSwaps, swapId, { status: 'cancelled' });
+        fail(409, 'Il turno è cambiato nel frattempo: la richiesta non è più valida.');
+      }
+      const meProfile = await get(C.profiles, me);
+      const row = await update(C.shifts, shift.$id, { userId: me, userName: displayName(meProfile).slice(0, 255), status: 'confirmed' });
+      await update(C.shiftSwaps, swapId, { status: 'accepted', takenBy: me });
+      const who = displayName(meProfile);
+      await notify(swap.fromUserId, 'shift', `${who} coprirà il tuo turno del ${ddmm(shift.date)}, ${shift.shiftTime}.`, swap.structureId);
+      for (const id of team.admins) if (id !== me) await notify(id, 'shift', `Cambio turno: ${who} copre il turno di ${from} del ${ddmm(shift.date)}, ${shift.shiftTime}.`, swap.structureId);
+      return { accepted: true, shift: row };
+    },
+
+    async cancelShiftSwap(me, { swapId } = {}) {
+      const swap = await get(C.shiftSwaps, swapId);
+      if (swap.fromUserId !== me) fail(403, 'Puoi annullare solo le tue richieste.');
+      if (swap.status !== 'pending') fail(409, 'La richiesta è già stata gestita.');
+      await update(C.shiftSwaps, swapId, { status: 'cancelled' });
+      return { cancelled: true };
+    },
+
+    /** Richieste di cambio che mi riguardano in tutte le strutture: per me, aperte a tutti, mie. */
+    async listMySwaps(me) {
+      const teams = await this_listMyTeams(me);
+      const out = [];
+      for (const t of teams) {
+        const rows = await listAll(C.shiftSwaps, [Query.equal('structureId', t.structureId), Query.equal('status', 'pending')]).catch(() => []);
+        for (const w of rows) {
+          if (!(w.fromUserId === me || w.toUserId === me || (!w.toUserId && w.fromUserId !== me))) continue;
+          const shift = await find(C.shifts, w.shiftId);
+          if (!shift || shift.date < isoDay(Date.now())) continue;
+          const from = await find(C.profiles, w.fromUserId);
+          out.push({ ...w, structureName: t.name, fromName: from ? displayName(from) : 'Un collega', shift: { date: shift.date, shiftTime: shift.shiftTime, role: shift.role } });
+        }
+      }
+      return out;
     },
 
     /** Chi ha il turno lo conferma o segnala che non può coprirlo. */
@@ -345,6 +558,7 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       if (end <= start) fail(400, 'La fine del turno deve essere dopo l’inizio.');
       const changedPerson = next.userId !== shift.userId;
       const person = changedPerson ? await get(C.profiles, next.userId) : null;
+      await cancelSwapsFor(shift.$id);
       const row = await update(C.shifts, shift.$id, {
         ...next,
         ...(person ? { userName: displayName(person).slice(0, 255), role: String(person.title || shift.role || 'Staff').slice(0, 100) } : {}),
@@ -379,4 +593,6 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       return team;
     },
   };
+  this_listMyTeams = (me) => api.listMyTeams(me);
+  return api;
 }
