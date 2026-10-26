@@ -44,7 +44,11 @@ export const RecommendationsSection: React.FC<{
     const { showToast } = useToast();
     const profileId = profile.userId || profile.$id;
     const firstName = profile.firstName || 'questa persona';
-    const { items, reload, pending, published, hidden } = recs;
+    const { items, reload, published } = recs;
+    // Da approvare e non pubblicate: solo il proprietario del profilo le gestisce. Chi ha scritto una
+    // referenza in attesa la vede (la riga è leggibile anche a lui) ma solo come stato, più sotto.
+    const pending = isOwnProfile ? recs.pending : [];
+    const hidden = isOwnProfile ? recs.hidden : [];
     const [writing, setWriting] = useState(false);
     const [saving, setSaving] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
@@ -68,7 +72,7 @@ export const RecommendationsSection: React.FC<{
         setSaving(true);
         try {
             await databaseService.writeRecommendation(profileId, v.relationship, v.content.trim());
-            showToast(`Referenza inviata: comparirà sul profilo quando ${firstName} la pubblicherà.`, 'success');
+            showToast(mine ? `Referenza aggiornata: ${firstName} la rivedrà prima di pubblicarla.` : `Referenza inviata a ${firstName}. Comparirà sul suo profilo quando deciderà di pubblicarla.`, 'success');
             setWriting(false);
             reload();
         } catch (err) {
@@ -177,7 +181,7 @@ export const RecommendationsSection: React.FC<{
                         <button onClick={onAsk} className={`${pill.primary} mt-4`}>Chiedi una referenza</button>
                     </div>
                 ) : (
-                    <p className="text-slate-500">Nessuna referenza pubblicata. Hai lavorato con {firstName}? Scrivine una.</p>
+                    !(mine && mine.status !== 'published') && <p className="text-slate-500">{canWrite ? `Nessuna referenza pubblicata. Hai lavorato con ${firstName}? Scrivine una.` : 'Nessuna referenza pubblicata.'}</p>
                 )
             ) : (
                 <ul className="divide-y divide-slate-100">
@@ -190,11 +194,24 @@ export const RecommendationsSection: React.FC<{
             )}
 
             {!isOwnProfile && mine && mine.status !== 'published' && (
-                <p className="mt-4 text-sm text-slate-600 rounded-xl bg-piastrella p-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <Icon type="clock" className="w-4 h-4 text-slate-500" />
-                    {mine.status === 'pending' ? `La tua referenza aspetta che ${firstName} la pubblichi.` : `${firstName} ha scelto di non pubblicare la tua referenza.`}
-                    <button onClick={() => withdraw(mine)} className="py-1 -my-1 font-semibold text-galleggiante-700 hover:underline">Ritirala</button>
-                </p>
+                <div className={`${published.length ? 'mt-5' : ''} rounded-2xl border border-slate-200 bg-piastrella/60 p-4 sm:p-5`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <p className="font-semibold text-abisso">La tua referenza</p>
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${mine.status === 'pending' ? 'bg-corsia-50 text-corsia-800 border-corsia-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                            <Icon type="clock" className="w-3.5 h-3.5" /> {mine.status === 'pending' ? 'In attesa di approvazione' : 'Non pubblicata'}
+                        </span>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-3">
+                        {mine.status === 'pending'
+                            ? `Inviata a ${firstName}: la vedete solo voi due finché non decide di pubblicarla sul suo profilo.`
+                            : `${firstName} ha scelto di non pubblicarla sul profilo. Resta visibile solo a voi due.`}
+                    </p>
+                    <p className="text-slate-700 whitespace-pre-line break-words rounded-xl bg-white border border-slate-100 p-3">{mine.content}</p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                        <button onClick={() => setWriting(true)} className={pill.secondary}>Modifica</button>
+                        <button onClick={() => withdraw(mine)} className={pill.danger}>Ritira</button>
+                    </div>
+                </div>
             )}
 
             {hidden.length > 0 && (
