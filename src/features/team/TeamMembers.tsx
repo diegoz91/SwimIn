@@ -117,7 +117,7 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <div className="relative flex-shrink-0">
                                         <img src={m.avatar || avatarOf(m as unknown as Partial<UserProfile>)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
-                                        {m.isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-cloro-500 border-2 border-white" aria-label="Online" />}
+                                        {m.isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-cloro-500 border-2 border-white"><span className="sr-only">Online</span></span>}
                                     </div>
                                     <div className="min-w-0">
                                         <Link to={`/profile/${m.userId}`} className="font-semibold text-abisso hover:underline">{name}{m.userId === currentUserId && <span className="ml-1 text-xs font-normal text-slate-500">(tu)</span>}</Link>
