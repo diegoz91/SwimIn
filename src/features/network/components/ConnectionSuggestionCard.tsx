@@ -110,7 +110,7 @@ export const ConnectionSuggestionCard: React.FC<ConnectionSuggestionCardProps> =
 
             <div className="flex gap-1 h-5 mb-3">
                 {getSwimBadges().map(b => (
-                    <span key={b.id} className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
+                    <span key={b.id} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
                 ))}
             </div>
             

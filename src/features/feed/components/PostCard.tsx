@@ -309,7 +309,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             </button>
                             {isPremium(author) && <PremiumBadge />}
                             {swimBadges.map((b) => (
-                                <span key={b.id} className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
+                                <span key={b.id} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
                             ))}
                         </div>
                         {authorSubtitle && <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">{authorSubtitle}</p>}
@@ -400,7 +400,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             <button onClick={openDetail} className="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent z-10 flex items-end p-4 text-left">
                                 <span className="bg-purple-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg border border-purple-400 shadow-lg flex items-center gap-2">
                                     <Icon type="camera" className="w-5 h-5" />
-                                    <span className="font-extrabold text-sm">Video-analisi tecnica</span>
+                                    <span className="font-bold text-sm">Video-analisi tecnica</span>
                                 </span>
                             </button>
                         )}
@@ -411,7 +411,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                                 <button key={idx} onClick={openDetail} className="relative block outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <img src={m.url} alt={m.alt || 'Foto del post'} className={`w-full object-cover border border-slate-100 ${media.length > 1 ? 'aspect-square' : 'max-h-[520px]'}`} loading="lazy" />
                                     {idx === 3 && media.length > 4 && (
-                                        <span className="absolute inset-0 bg-black/50 text-white text-2xl font-extrabold flex items-center justify-center">+{media.length - 4}</span>
+                                        <span className="absolute inset-0 bg-black/50 text-white text-2xl font-bold flex items-center justify-center">+{media.length - 4}</span>
                                     )}
                                 </button>
                             )

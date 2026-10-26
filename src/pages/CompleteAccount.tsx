@@ -62,7 +62,7 @@ const CompleteAccount: React.FC = () => {
         <AuthLayout aside={{ title: 'Ci sei quasi.', text: 'Dicci chi sei: ti mostreremo offerte, persone e strutture giuste per te.' }}>
             <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8">
                 <div className="text-center mb-6">
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Completa l’iscrizione</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Completa l’iscrizione</h1>
                     <p className="text-slate-500 mt-2 break-words">
                         Accesso con Google come <span className="font-semibold text-abisso">{incompleteAccount.email}</span>
                     </p>
@@ -101,7 +101,7 @@ const CompleteAccount: React.FC = () => {
                         {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante-700">{errors.acceptedTerms}</p>}
                     </div>
                     {error && <p role="alert" className="text-sm font-medium text-galleggiante-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
-                    <button type="submit" disabled={isLoading} className="w-full bg-corsia-600 hover:bg-corsia-700 text-white font-bold py-3.5 px-4 rounded-xl disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2">
+                    <button type="submit" disabled={isLoading} className="w-full bg-corsia-600 hover:bg-corsia-700 text-white font-bold py-3.5 px-4 rounded-full disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2">
                         {isLoading ? 'Creazione in corso…' : 'Crea il mio profilo'}
                     </button>
                 </form>

@@ -107,7 +107,7 @@ const Notifications: React.FC = () => {
     return (
         <div className="pt-4 max-w-2xl mx-auto w-full">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h1 className="text-2xl font-extrabold text-slate-900">Notifiche</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Notifiche</h1>
                 <button
                     onClick={markAll}
                     disabled={unreadCount === 0 || isMarking}

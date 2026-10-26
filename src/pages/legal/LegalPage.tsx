@@ -33,7 +33,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ title, intro, sections }) 
             </Link>
 
             <header className="mt-4 mb-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">{title}</h1>
                 <p className="text-sm text-slate-500 mt-2">Ultimo aggiornamento: {LEGAL.lastUpdated}</p>
                 {LEGAL.isDraft && (
                     <p className="mt-4 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">

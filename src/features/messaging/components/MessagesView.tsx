@@ -192,7 +192,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
       
       <div className={`w-full md:w-80 lg:w-[380px] flex-shrink-0 flex-col bg-slate-50 border-r border-slate-200 ${showList ? 'flex' : 'hidden md:flex'}`}>
         <div className="p-5 border-b border-slate-200 bg-white">
-          <h2 className="text-2xl font-extrabold text-slate-800">Messaggi</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Messaggi</h2>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar">

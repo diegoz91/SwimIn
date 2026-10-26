@@ -93,7 +93,7 @@ export const LoginForm: React.FC = () => {
     return (
         <div className="w-full bg-white lg:rounded-3xl lg:shadow-lift lg:border lg:border-slate-100 lg:p-8 animate-in fade-in duration-300">
             <div className="text-center mb-8">
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Bentornato in SwimIn</h1>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Bentornato in SwimIn</h1>
                 <p className="text-slate-500 mt-2">Accedi al tuo network professionale.</p>
             </div>
 
@@ -119,7 +119,7 @@ export const LoginForm: React.FC = () => {
                             disabled={isLoading}
                         />
                     </div>
-                    <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 disabled:opacity-60">
+                    <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-full hover:bg-blue-700 disabled:opacity-60">
                         {isLoading ? 'Verifica…' : 'Accedi'}
                     </button>
                     <div className="flex flex-wrap justify-between gap-2 text-sm">
@@ -175,7 +175,7 @@ export const LoginForm: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         >
                             {isLoading ? (
                                 <>
@@ -230,7 +230,7 @@ export const LoginForm: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isRecovering}
-                            className="w-full bg-abisso hover:bg-corsia-900 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                            className="w-full bg-abisso hover:bg-corsia-900 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
                         >
                             {isRecovering ? (
                                 <>

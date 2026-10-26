@@ -46,20 +46,20 @@ const VerifyEmail: React.FC = () => {
                 {status === 'verifying' && (
                     <>
                         <div className="w-10 h-10 mx-auto mb-4 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                        <h1 className="text-xl font-extrabold text-slate-900">Verifica in corso…</h1>
+                        <h1 className="text-xl font-bold text-abisso">Verifica in corso…</h1>
                     </>
                 )}
                 {status === 'success' && (
                     <>
                         <Icon type="check-circle" className="w-12 h-12 mx-auto mb-3 text-cloro-600" />
-                        <h1 className="text-xl font-extrabold text-slate-900 mb-2">Email verificata</h1>
+                        <h1 className="text-xl font-bold text-abisso mb-2">Email verificata</h1>
                         <p className="text-slate-600 mb-6">Grazie! Il tuo indirizzo è confermato.</p>
                     </>
                 )}
                 {status === 'error' && (
                     <>
                         <Icon type="alert-triangle" className="w-12 h-12 mx-auto mb-3 text-amber-500" />
-                        <h1 className="text-xl font-extrabold text-slate-900 mb-2">Verifica non riuscita</h1>
+                        <h1 className="text-xl font-bold text-abisso mb-2">Verifica non riuscita</h1>
                         <p className="text-slate-600 mb-6">{message} Puoi richiedere un nuovo link dalle Impostazioni.</p>
                     </>
                 )}

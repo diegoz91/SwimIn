@@ -62,7 +62,7 @@ const Landing: React.FC = () => {
 
             <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-16 sm:pt-12 sm:pb-24 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
                 <div>
-                    <h1 className="text-[2.75rem] leading-[0.95] sm:text-6xl lg:text-7xl font-extrabold text-abisso">
+                    <h1 className="text-[2.75rem] leading-[0.95] sm:text-6xl lg:text-7xl font-bold text-abisso">
                         La community di chi vive il nuoto.
                     </h1>
                     <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-xl leading-relaxed">

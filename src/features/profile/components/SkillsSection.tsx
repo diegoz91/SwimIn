@@ -127,7 +127,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
     return (
         <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="skills-title">
             <div className="flex items-center justify-between mb-5">
-                <h2 id="skills-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 id="skills-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                     <Icon type="star" className="w-6 h-6 text-blue-600" />
                     Competenze
                 </h2>
@@ -135,7 +135,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
                     <button
                         onClick={() => setIsEditing((v) => !v)}
                         data-html2canvas-ignore="true"
-                        className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
                     >
                         <Icon type={isEditing ? 'check' : 'pencil'} className="w-4 h-4" /> {isEditing ? 'Fatto' : 'Gestisci'}
                     </button>

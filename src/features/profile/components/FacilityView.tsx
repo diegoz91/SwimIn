@@ -592,7 +592,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <div className="p-6 animate-in fade-in">
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                                     <div>
-                                        <h3 className="font-extrabold text-slate-800 text-lg">Turni</h3>
+                                        <h3 className="font-bold text-slate-800 text-lg">Turni</h3>
                                         <p className="text-sm text-slate-500 font-medium">{isAdmin ? 'Assegna i turni allo staff: ognuno riceve un avviso e può confermare.' : 'I turni della squadra. Conferma i tuoi o segnala se non puoi coprirli.'}</p>
                                     </div>
                                     {isAdmin && (
@@ -763,7 +763,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <div className="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon type="trash" className="w-8 h-8" />
                             </div>
-                            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Elimina l’annuncio</h3>
+                            <h3 className="text-xl font-bold text-abisso mb-2">Elimina l’annuncio</h3>
                             <p className="text-slate-500 text-sm mb-6">Sei sicuro di voler eliminare definitivamente questa comunicazione dalla bacheca del team?</p>
                             <div className="flex gap-3">
                                 <button 
