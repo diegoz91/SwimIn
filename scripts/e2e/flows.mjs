@@ -218,7 +218,10 @@ const FLOWS = [
         assert.equal(iv.params.time, '10:00');
         assert.equal(iv.params.mode, 'presenza');
         assert.match(iv.params.date, /^\d{4}-\d{2}-\d{2}$/);
-        await page.getByText('Colloquio proposto').first().waitFor({ timeout: 4000 });
+        await page.getByText(/Proposta inviata/).waitFor({ timeout: 4000 });
+        // La candidatura passa tra le selezionate, con il colloquio in evidenza.
+        await page.getByRole('tab', { name: /^Selezionat/ }).click();
+        await page.getByText(/Colloquio proposto/).first().waitFor({ timeout: 4000 });
     }],
     ['chi si candida conferma il colloquio', 'mobile', { loggedIn: true }, async (page, state) => {
         await open(page, '/jobs/j2');
