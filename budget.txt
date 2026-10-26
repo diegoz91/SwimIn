@@ -1,0 +1,3 @@
+✓ JS iniziale: 137.6 KB (budget 160 KB)
+✓ CSS iniziale: 19.1 KB (budget 20 KB)
+✓ Chunk più pesante (ApplicationsChart-CLnVd7QK.js): 103.4 KB (budget 130 KB)
