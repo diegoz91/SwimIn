@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import { lazyPage } from '@/utils/lazyPage';
 import type { StructureProfile, Job, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,7 +33,7 @@ import { isPremium } from '@/utils/premium';
 import { useConfirm } from '@/context/ConfirmContext';
 
 // Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
-const ApplicationsChart = lazy(() => import('./ApplicationsChart'));
+const ApplicationsChart = lazyPage(() => import('./ApplicationsChart'));
 
 type FacilityTab = 'info' | 'jobs' | 'staff' | 'analytics';
 const TAB_SLUG: Record<FacilityTab, string> = { info: 'informazioni', jobs: 'posizioni', staff: 'staff', analytics: 'statistiche' };

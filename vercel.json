@@ -17,7 +17,7 @@
       "destination": "/api/robots"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }
   ],

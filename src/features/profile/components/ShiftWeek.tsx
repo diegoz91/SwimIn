@@ -25,7 +25,11 @@ export const ShiftWeek: React.FC<{
     currentUserId?: string;
     show: 'person' | 'structure';
     actions?: (shift: ShiftItem) => React.ReactNode;
-}> = ({ shifts, weekStart, onWeekChange, currentUserId, show, actions }) => {
+    /** Classe del bordo sinistro colorato (es. colore della struttura nel calendario personale). */
+    accentOf?: (shift: ShiftItem) => string | undefined;
+    /** Turni che si sovrappongono ad altri dello stesso giorno. */
+    flagged?: Set<string>;
+}> = ({ shifts, weekStart, onWeekChange, currentUserId, show, actions, accentOf, flagged }) => {
     const today = todayISO();
     const days = DAY_NAMES.map((name, i) => ({ name, date: addDaysISO(weekStart, i) }));
     const inWeek = shifts.filter((s) => s.date >= weekStart && s.date <= addDaysISO(weekStart, 6));
@@ -58,11 +62,12 @@ export const ShiftWeek: React.FC<{
                                     const badge = shiftStatusBadge(s.status);
                                     const mine = s.userId === currentUserId;
                                     return (
-                                        <li key={s.$id} className={`rounded-lg border p-2 text-sm ${mine && show === 'person' ? 'border-corsia-300 bg-white' : 'border-slate-200 bg-white'}`}>
+                                        <li key={s.$id} className={`rounded-lg border p-2 text-sm ${mine && show === 'person' ? 'border-corsia-300 bg-white' : 'border-slate-200 bg-white'} ${accentOf?.(s) ? `border-l-4 ${accentOf(s)}` : ''}`}>
                                             <p className="font-semibold text-abisso">{s.shiftTime}</p>
                                             <p className="text-slate-700 truncate">{show === 'person' ? s.userName : s.structureName}</p>
                                             <p className="text-xs text-slate-500 truncate">{s.role}</p>
                                             <span className={`inline-block mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.text}</span>
+                                            {flagged?.has(s.$id) && <span className="inline-block mt-1.5 ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">Sovrapposto</span>}
                                             {actions && <div className="mt-2 flex flex-wrap gap-1.5">{actions(s)}</div>}
                                         </li>
                                     );

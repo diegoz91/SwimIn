@@ -12,6 +12,8 @@ export function reportClientError(error: unknown, extra = '') {
     if (!e.message || sent.has(key) || sent.size >= MAX_PER_SESSION) return;
     // Rumore del browser che non dipende dall'app.
     if (/ResizeObserver loop|Script error\.|Load failed|NetworkError|Failed to fetch/i.test(e.message)) return;
+    // Battito del Realtime di Appwrite su una connessione che si sta riaprendo: l'SDK riprova da solo, non tocca l'utente.
+    if (/Still in CONNECTING state/i.test(e.message)) return;
     sent.add(key);
     void databaseService.logClientError({ message: e.message, stack: `${e.stack || ''}${extra ? `\n${extra}` : ''}`, url: window.location.pathname });
 }

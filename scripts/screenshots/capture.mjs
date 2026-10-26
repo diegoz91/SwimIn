@@ -57,6 +57,7 @@ const PRIVATE_PAGES = [
     ['eventi', '/eventi'],
     ['evento', '/eventi/e1'],
     ['turni', '/turni'],
+    ['turni-mese', '/turni?vista=mese'],
 ];
 
 /** Schermate di form aperti: [nome, pagina, azione da eseguire prima dello scatto]. */

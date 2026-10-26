@@ -1,5 +1,6 @@
 import React from 'react';
 import { reportClientError } from './ErrorReporter';
+import { isChunkError } from '@/utils/lazyPage';
 
 interface ErrorBoundaryState {
     error: Error | null;
@@ -26,9 +27,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
         const { error } = this.state;
         if (!error) return this.props.children;
 
-        const isChunkError = /Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(
-            error.message
-        );
+        const chunkError = isChunkError(error);
 
         return (
             <div className="min-h-[60vh] flex items-center justify-center p-6">
@@ -37,10 +36,10 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
                         🌊
                     </div>
                     <h1 className="text-xl font-extrabold text-slate-900 mb-2">
-                        {isChunkError ? 'È disponibile una nuova versione' : 'Qualcosa è andato storto'}
+                        {chunkError ? 'È disponibile una nuova versione' : 'Qualcosa è andato storto'}
                     </h1>
                     <p className="text-slate-600 mb-6">
-                        {isChunkError
+                        {chunkError
                             ? 'Abbiamo aggiornato SwimIn mentre navigavi. Ricarica la pagina per continuare.'
                             : 'Si è verificato un errore imprevisto. Ricarica la pagina; se il problema continua, contattaci.'}
                     </p>
