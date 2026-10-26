@@ -32,6 +32,11 @@ const ensureSubscription = () => {
     }
 };
 
+/** Tornata la rete: i segnali persi intanto non arrivano più, quindi chi ascolta ricarica comunque. */
+if (typeof window !== 'undefined') {
+    window.addEventListener('swimin:reconnected', () => listeners.forEach((l) => l.fire('', 'reconnect')));
+}
+
 const release = () => {
     if (listeners.size || !unsubscribe) return;
     unsubscribe();

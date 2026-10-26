@@ -1,21 +1,53 @@
 import React from 'react';
+import { useTopProgress } from './TopProgress';
+
+type Variant = 'page' | 'list' | 'detail' | 'calendar';
+
+const Bar: React.FC<{ className?: string }> = ({ className = '' }) => <div className={`rounded-full bg-slate-200/80 ${className}`} />;
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+    <div className={`bg-white rounded-2xl border border-slate-200 p-5 ${className}`}>{children}</div>
+);
 
 /**
- * Caricamento: un nuotatore percorre la corsia avanti e indietro sopra il galleggiante.
- * Con "riduci movimento" resta fermo (regola globale in globals.css).
+ * Caricamento di una pagina: barra di avanzamento in cima e uno scheletro con la forma della
+ * pagina, così quando arrivano i dati il contenuto non "salta". Le forme: elenco (default),
+ * dettaglio (annuncio, evento) e calendario (turni).
  */
-export const PageLoader: React.FC<{ label?: string }> = ({ label = 'Caricamento…' }) => (
-    <div className="flex-1 flex items-center justify-center py-24" role="status" aria-live="polite">
-        <div className="flex flex-col items-center gap-4">
-            <div className="relative w-40 h-6" aria-hidden="true">
-                <span className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-px bg-corsia-100" />
-                <span className="absolute top-1/2 -translate-y-1/2 h-3 w-10 animate-lap">
-                    <span className="absolute inset-y-0 right-0 w-3 rounded-full bg-corsia-600" />
-                    <span className="absolute top-1/2 -translate-y-1/2 right-2 w-8 h-1.5 rounded-full bg-gradient-to-l from-cloro-400 to-transparent animate-wake" />
-                </span>
+export const PageLoader: React.FC<{ label?: string; variant?: Variant }> = ({ label = 'Caricamento…', variant = 'page' }) => {
+    useTopProgress();
+    return (
+        <div className="flex-1 w-full pt-4 motion-safe:animate-pulse" role="status" aria-live="polite" aria-busy="true">
+            <span className="sr-only">{label}</span>
+            <div className="max-w-5xl mx-auto w-full" aria-hidden="true">
+                <Bar className="h-9 w-56 mb-3" />
+                <Bar className="h-4 w-72 max-w-full mb-6" />
+                {variant === 'calendar' ? (
+                    <Card>
+                        <div className="flex justify-between mb-4"><Bar className="h-8 w-40" /><Bar className="h-5 w-32" /></div>
+                        <div className="grid grid-cols-7 gap-2">
+                            {Array.from({ length: 21 }, (_, i) => <div key={i} className="h-16 rounded-xl bg-slate-100" />)}
+                        </div>
+                    </Card>
+                ) : variant === 'detail' ? (
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                        <Card className="space-y-3">
+                            <Bar className="h-6 w-2/3" />
+                            <Bar className="h-4 w-1/3" />
+                            <div className="pt-3 space-y-2"><Bar className="h-3" /><Bar className="h-3" /><Bar className="h-3 w-5/6" /><Bar className="h-3 w-2/3" /></div>
+                        </Card>
+                        <Card className="space-y-3"><Bar className="h-10" /><Bar className="h-4 w-3/4" /><Bar className="h-4 w-1/2" /></Card>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {[0, 1, 2].map((i) => (
+                            <Card key={i} className="flex gap-4 items-center">
+                                <div className="w-12 h-12 rounded-xl bg-slate-200/80 flex-shrink-0" />
+                                <div className="flex-1 space-y-2"><Bar className="h-4 w-1/2" /><Bar className="h-3 w-1/3" /></div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
             </div>
-            <div className="lane-rope w-40 rounded-full opacity-80" aria-hidden="true" />
-            <span className="text-sm font-medium text-slate-500">{label}</span>
         </div>
-    </div>
-);
+    );
+};

@@ -335,6 +335,22 @@ const FLOWS = [
         await page.getByText('Sei in pari: nessuna notifica da leggere.').waitFor({ timeout: 3000 });
         assert.ok(page.url().endsWith('/'), 'si resta sulla pagina: non serve aprire le notifiche');
     }],
+    ['Live in arrivo: nel menu c’è Eventi', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/live');
+        await page.getByRole('heading', { name: 'Le dirette arrivano presto' }).waitFor({ timeout: 8000 });
+        const nav = page.getByRole('navigation', { name: 'Navigazione principale' });
+        await nav.getByRole('link', { name: 'Eventi' }).waitFor();
+        assert.equal(await nav.getByRole('link', { name: 'Live' }).count(), 0);
+    }],
+    ['ricerca: recenti e suggerimenti con il campo vuoto', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/cerca?q=Marco');
+        await page.getByRole('heading', { name: 'Persone' }).first().waitFor({ timeout: 8000 });
+        await open(page, '/cerca');
+        await page.getByRole('heading', { name: 'Ricerche recenti' }).waitFor({ timeout: 5000 });
+        await page.getByRole('button', { name: 'Marco' }).waitFor();
+        await page.getByRole('button', { name: 'Assistente bagnanti' }).click();
+        await page.waitForURL(/q=Assistente/);
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

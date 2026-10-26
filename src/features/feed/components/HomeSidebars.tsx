@@ -13,6 +13,7 @@ import { PARTS, currentPart, normalizeAvailability, remainingSlotsToday } from '
 import { TrendsCard } from './TrendsCard';
 import { UpcomingEventsCard } from '@/features/events/UpcomingEventsCard';
 import { useBlocks } from '@/context/BlocksContext';
+import { LIVE_ENABLED } from '@/config/features';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -193,7 +194,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
     }, [user.$id, (user.connections || []).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        databaseService.getActiveLiveRooms().then((r) => setRooms(r.slice(0, 2))).catch((e) => console.warn('Live non disponibili:', e));
+        if (LIVE_ENABLED) databaseService.getActiveLiveRooms().then((r) => setRooms(r.slice(0, 2))).catch((e) => console.warn('Live non disponibili:', e));
     }, []);
 
     // Collegamenti cambiati altrove: chi è appena diventato un collegamento esce subito dai suggerimenti.
@@ -219,7 +220,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
             {(user.userType === 'structure' || ((user as UserProfile).managedFacilities || []).length > 0) && <AvailableTodayPanel province={user.province} />}
             <UpcomingEventsCard province={user.province} userId={user.$id} />
             <TrendsCard />
-            {rooms.length > 0 && (
+            {LIVE_ENABLED && rooms.length > 0 && (
                 <Panel title="In diretta ora">
                     <ul className="pb-2">
                         {rooms.map((r) => (

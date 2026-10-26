@@ -7,6 +7,7 @@ import { databaseService } from '@/services/database';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { initialsAvatar } from '@/utils/avatar';
 import { jobDisplayTitle } from '@/utils/jobs';
+import { readRecentSearches, saveRecentSearch } from '@/utils/recentSearches';
 
 type Item = {
     id: string;
@@ -21,24 +22,8 @@ type Item = {
     recent?: string;
 };
 
-const RECENT_KEY = 'swimin-recent-searches';
-const readRecent = (): string[] => {
-    try {
-        const v = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-        return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 5) : [];
-    } catch (err) {
-        console.warn('Ricerche recenti non leggibili:', err);
-        return [];
-    }
-};
-const saveRecent = (q: string) => {
-    try {
-        const next = [q, ...readRecent().filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 5);
-        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-    } catch (err) {
-        console.warn('Ricerca recente non salvata:', err);
-    }
-};
+const readRecent = () => readRecentSearches().slice(0, 5);
+const saveRecent = saveRecentSearch;
 
 /** Il termine cercato in grassetto dentro il risultato, come su LinkedIn. */
 const Highlight: React.FC<{ text: string; term: string }> = ({ text, term }) => {

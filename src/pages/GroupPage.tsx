@@ -114,11 +114,16 @@ const GroupPage: React.FC = () => {
     };
 
     const leave = async () => {
-        if (me?.status === 'active' && !(await confirm({ title: `Lasciare «${group?.name}»?`, message: 'Non vedrai più i post del gruppo; potrai rientrare quando vuoi.', confirmLabel: 'Lascia il gruppo' }))) return;
+        // Gruppo aperto: si esce subito e si annulla dal toast. Con approvazione rientrare richiede una nuova richiesta, quindi prima si chiede conferma.
+        const needsApproval = group?.privacy === 'approval';
+        if (me?.status === 'active' && needsApproval && !(await confirm({ title: `Lasciare «${group?.name}»?`, message: 'Per rientrare dovrai chiedere di nuovo agli amministratori.', confirmLabel: 'Lascia il gruppo' }))) return;
         setBusy(true);
         try {
             await databaseService.leaveGroup(id);
-            showToast(me?.status === 'pending' ? 'Richiesta annullata.' : 'Hai lasciato il gruppo.', 'info');
+            const undo = me?.status === 'active' && !needsApproval
+                ? { action: { label: 'Annulla', onClick: () => { databaseService.joinGroup(id).then(() => Promise.all([loadMembers(), refreshGroup()])).catch((err) => showToast(err instanceof Error ? err.message : 'Non è stato possibile rientrare.', 'error')); } } }
+                : undefined;
+            showToast(me?.status === 'pending' ? 'Richiesta annullata.' : 'Hai lasciato il gruppo.', 'info', undo);
             await Promise.all([loadMembers(), refreshGroup()]);
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');

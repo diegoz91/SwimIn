@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -12,6 +12,7 @@ import { notificationMeta } from '@/features/notifications/notificationMeta';
 import { formatRelativeTime } from '@/utils/format';
 import type { AppNotification } from '@/types/types';
 import { PushPrompt } from '@/components/common/PushPrompt';
+import { SwipeAction } from '@/components/common/SwipeAction';
 
 type Filter = 'all' | 'unread';
 
@@ -55,6 +56,31 @@ const Notifications: React.FC = () => {
 
     const unreadCount = items.filter((n) => !n.isRead).length;
     const visible = filter === 'unread' ? items.filter((n) => !n.isRead) : items;
+
+    // Raggruppate per giorno: oggi, ieri, poi le date.
+    const groups = useMemo(() => {
+        const today = new Date();
+        const yesterday = new Date(Date.now() - 86_400_000);
+        const out: { key: string; label: string; items: AppNotification[] }[] = [];
+        for (const n of visible) {
+            const d = new Date(n.$createdAt);
+            const key = d.toDateString();
+            const label = key === today.toDateString() ? 'Oggi' : key === yesterday.toDateString() ? 'Ieri' : d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', ...(d.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}) });
+            const last = out[out.length - 1];
+            if (last?.label === label) last.items.push(n);
+            else out.push({ key: key.replace(/\s/g, '-'), label, items: [n] });
+        }
+        return out;
+    }, [visible]);
+
+    const markOne = async (n: AppNotification) => {
+        setItems((prev) => prev.map((x) => (x.$id === n.$id ? { ...x, isRead: true } : x)));
+        const ok = await databaseService.markNotificationAsRead(n.$id);
+        if (!ok) {
+            setItems((prev) => prev.map((x) => (x.$id === n.$id ? { ...x, isRead: false } : x)));
+            showToast('Non è stato possibile segnare la notifica come letta.', 'error');
+        }
+    };
 
     const open = async (n: AppNotification) => {
         if (!n.isRead) {
@@ -115,28 +141,50 @@ const Notifications: React.FC = () => {
                         <p className="text-sm text-slate-500 mt-1">Qui vedrai consigli, commenti, richieste di collegamento e aggiornamenti sulle candidature.</p>
                     </div>
                 ) : (
-                    <ul className="divide-y divide-slate-100">
-                        {visible.map((n) => {
-                            const meta = notificationMeta(n);
-                            return (
-                                <li key={n.$id}>
-                                    <button
-                                        onClick={() => open(n)}
-                                        className={`w-full text-left flex gap-3 p-4 hover:bg-slate-50 transition outline-none focus-visible:bg-slate-50 ${n.isRead ? '' : 'bg-blue-50/40'}`}
-                                    >
-                                        <span className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
-                                            <Icon type={meta.icon} className="w-5 h-5" />
-                                        </span>
-                                        <span className="flex-1 min-w-0">
-                                            <span className={`block text-sm ${n.isRead ? 'text-slate-700' : 'text-slate-900 font-semibold'}`}>{n.content}</span>
-                                            <span className="block text-xs text-slate-400 mt-1">{formatRelativeTime(n.$createdAt)}</span>
-                                        </span>
-                                        {!n.isRead && <span className="w-2.5 h-2.5 mt-2 rounded-full bg-blue-600 flex-shrink-0" aria-label="Non letta" />}
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                    <div>
+                        {groups.map((g) => (
+                            <section key={g.label} aria-labelledby={`notif-day-${g.key}`}>
+                                <h2 id={`notif-day-${g.key}`} className="px-4 pt-4 pb-2 text-xs font-semibold text-slate-500 first-letter:uppercase bg-white">{g.label}</h2>
+                                <ul className="divide-y divide-slate-100 border-b border-slate-100 last:border-b-0">
+                                    {g.items.map((n) => {
+                                        const meta = notificationMeta(n);
+                                        return (
+                                            <li key={n.$id}>
+                                                <SwipeAction enabled={!n.isRead} label="Letta" onAction={() => markOne(n)}>
+                                                    <div className={`group flex items-stretch ${n.isRead ? '' : 'bg-corsia-50/50'}`}>
+                                                        <button
+                                                            onClick={() => open(n)}
+                                                            className="flex-1 min-w-0 text-left flex gap-3 p-4 pr-2 hover:bg-slate-50 transition outline-none focus-visible:bg-slate-50"
+                                                        >
+                                                            <span className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
+                                                                <Icon type={meta.icon} className="w-5 h-5" />
+                                                            </span>
+                                                            <span className="flex-1 min-w-0">
+                                                                <span className={`block text-sm ${n.isRead ? 'text-slate-700' : 'text-abisso font-semibold'}`}>{n.content}</span>
+                                                                <span className="block text-xs text-slate-500 mt-1">{formatRelativeTime(n.$createdAt)}</span>
+                                                            </span>
+                                                        </button>
+                                                        {!n.isRead && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => markOne(n)}
+                                                                aria-label={`Segna come letta: ${n.content}`}
+                                                                title="Segna come letta"
+                                                                className="self-center mr-3 w-9 h-9 grid place-items-center rounded-full text-corsia-700 hover:bg-white outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                                            >
+                                                                <span className="w-2.5 h-2.5 rounded-full bg-corsia-600 group-hover:hidden" aria-hidden="true" />
+                                                                <Icon type="check" className="w-4 h-4 hidden group-hover:block" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </SwipeAction>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </section>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

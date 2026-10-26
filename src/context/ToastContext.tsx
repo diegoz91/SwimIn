@@ -4,14 +4,21 @@ import { isRecentPremiumMessage } from '@/services/premiumPrompt';
 
 export type ToastType = 'success' | 'error' | 'info';
 
-interface Toast {
+export interface ToastOptions {
+    /** Azione nel toast, di solito "Annulla" per le azioni leggere (invece di chiedere conferma prima). */
+    action?: { label: string; onClick: () => void };
+    /** Durata in millisecondi (con un'azione il toast resta più a lungo). */
+    duration?: number;
+}
+
+interface Toast extends ToastOptions {
     id: string;
     type: ToastType;
     message: string;
 }
 
 interface ToastContextType {
-    showToast: (message: string, type?: ToastType) => void;
+    showToast: (message: string, type?: ToastType, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -31,16 +38,16 @@ interface ToastProviderProps {
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    const showToast = useCallback((message: string, type: ToastType = 'info', options: ToastOptions = {}) => {
         // Già mostrato nell'invito a Premium: niente doppione.
         if (isRecentPremiumMessage(message)) return;
         const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
         
-        setToasts((prev) => [...prev, { id, type, message }]);
+        setToasts((prev) => [...prev, { id, type, message, ...options }]);
 
         setTimeout(() => {
             setToasts((prev) => prev.filter((toast) => toast.id !== id));
-        }, 4000);
+        }, options.duration ?? (options.action ? 7000 : 4000));
     }, []);
 
     const removeToast = useCallback((id: string) => {
@@ -79,6 +86,14 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
                         `}>
                             {toast.message}
                         </p>
+                        {toast.action && (
+                            <button
+                                onClick={() => { toast.action?.onClick(); removeToast(toast.id); }}
+                                className="self-center flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                            >
+                                {toast.action.label}
+                            </button>
+                        )}
                         
                         <button
                             onClick={() => removeToast(toast.id)}

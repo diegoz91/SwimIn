@@ -45,7 +45,7 @@ const PostPage: React.FC = () => {
             </div>
         );
     }
-    if (!post) return <PageLoader />;
+    if (!post) return <PageLoader variant="detail" />;
 
     return (
         <div className="pt-4 w-full">

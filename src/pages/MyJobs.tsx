@@ -17,7 +17,6 @@ import { isPremium } from '@/utils/premium';
 import { jobRoleLabel } from '@/data/swimming';
 import { formatDate } from '@/utils/dates';
 import { formatRelativeTime } from '@/utils/format';
-import { useConfirm } from '@/context/ConfirmContext';
 
 /** Annunci attivi contemporaneamente con il piano Base (verificato dal server: BASE_ACTIVE_JOBS). */
 const BASE_ACTIVE_JOBS = 2;
@@ -27,7 +26,6 @@ const BASE_ACTIVE_JOBS = 2;
  * Attivi e conclusi, candidature nuove da guardare, modifica, chiusura, ripubblicazione.
  */
 const MyJobs: React.FC = () => {
-    const confirm = useConfirm();
     usePageTitle('I miei annunci');
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -95,12 +93,13 @@ const MyJobs: React.FC = () => {
     const shown = tab === 'attivi' ? active : ended;
 
     const toggle = async (job: ManagedJob) => {
-        if (job.isActive && !(await confirm({ title: 'Chiudere l’annuncio?', message: 'Non riceverà più candidature; potrai riaprirlo finché non scade.', confirmLabel: 'Chiudi l’annuncio' }))) return;
+        // Chiudere si annulla dal toast: niente conferma prima.
         setBusy(job.$id);
         try {
             const saved = job.isActive ? await databaseService.closeJob(job.$id) : await databaseService.reopenJob(job.$id);
             setJobs((prev) => (prev || []).map((j) => (j.$id === job.$id ? { ...j, isActive: saved.isActive } : j)));
-            showToast(saved.isActive ? 'Annuncio riaperto.' : 'Annuncio chiuso: lo trovi tra i conclusi.', 'success');
+            if (saved.isActive) showToast('Annuncio riaperto.', 'success');
+            else showToast('Annuncio chiuso: lo trovi tra i conclusi.', 'success', { action: { label: 'Annulla', onClick: () => void toggle({ ...job, isActive: false }) } });
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
         } finally {
