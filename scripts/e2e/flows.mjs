@@ -203,6 +203,22 @@ const FLOWS = [
         await page.waitForURL((u) => u.pathname === '/jobs/j1', { timeout: 8000 });
         await page.getByRole('heading', { name: /Assistente bagnanti/ }).first().waitFor();
     }],
+    ['chi riceve un invito nello staff lo accetta', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/turni?inviti=1');
+        await page.getByRole('heading', { name: 'Inviti nello staff' }).waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Accetta' }).click();
+        const c = await called(state, 'respondStaffInvite');
+        assert.deepEqual([c.params.structureId, c.params.accept], ['u_aquae', true]);
+    }],
+    ['la struttura invita una persona nello staff', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } } }, async (page, state) => {
+        await open(page, '/profile?area=staff');
+        await page.getByRole('tab', { name: /^Squadra/ }).click();
+        await page.getByRole('button', { name: /Invita nello staff/ }).click();
+        await page.locator('#invite-search').fill('Marco');
+        await page.getByRole('button', { name: 'Invita', exact: true }).first().click();
+        const c = await called(state, 'inviteStaff');
+        assert.equal(c.params.structureId, 'u_giulia');
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

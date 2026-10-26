@@ -50,6 +50,8 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'user', tone: 'bg-cloro-100 text-cloro-700', href: n.relatedId ? `/profile/${n.relatedId}` : '/profile?visite=1' };
         case 'shift':
             return { icon: 'calendar', tone: 'bg-corsia-100 text-corsia-700', href: '/turni' };
+        case 'staff_invite':
+            return { icon: 'users', tone: 'bg-cloro-100 text-cloro-700', href: '/turni?inviti=1' };
         case 'sos':
             return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs' };
         case 'rejected':

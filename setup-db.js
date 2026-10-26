@@ -336,6 +336,15 @@ const schema = [
         indexes: [idx('by_user', ['userId'])],
     },
     {
+        // Inviti nello staff (chi lavora già nella struttura): id = hash di struttura e persona. Solo la Function.
+        id: 'staff_invites', name: 'Staff Invites', permissions: SERVER_ONLY,
+        attributes: [
+            str('structureId', 36, { required: true }), str('userId', 36, { required: true }),
+            str('invitedBy', 36, { required: true }), str('status', 20, { required: true }), // pending | accepted | declined
+        ],
+        indexes: [idx('by_user_status', ['userId', 'status']), idx('by_structure_status', ['structureId', 'status'])],
+    },
+    {
         // Abbonamenti Premium (Stripe, PayPal): solo la Function li legge e li scrive.
         id: 'subscriptions', name: 'Subscriptions', permissions: SERVER_ONLY,
         attributes: [

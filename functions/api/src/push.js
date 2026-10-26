@@ -39,6 +39,7 @@ const CATEGORY_OF = {
   job_alert: 'jobs',
   rejected: 'jobs',
   hired: 'jobs',
+  staff_invite: 'jobs',
   sos: 'sos',
 };
 
@@ -59,6 +60,7 @@ export function targetUrl(type, relatedId) {
     case 'hired': return relatedId ? `/profile/${relatedId}` : '/jobs';
     case 'endorsement': return '/profile';
     case 'shift': return '/turni';
+    case 'staff_invite': return '/turni?inviti=1';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
     case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
     case 'recommendation': return '/profile?referenze=approva';

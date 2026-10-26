@@ -70,6 +70,7 @@ const PRIVATE_INTERACTIONS = [
     ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).first().click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
+    ['squadra-staff', '/profile/u_lido?area=staff', async (p) => { await p.getByRole('tab', { name: /^Squadra/ }).click(); await p.getByText('Sara Colombo').first().waitFor(); }],
     ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); await p.waitForTimeout(900); }],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],
     ['form-referenza', '/profile/u_marco', (p) => p.getByRole('button', { name: /Scrivi una referenza|Modifica la tua referenza/ }).click()],
@@ -339,6 +340,8 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['annunci-candidati', '/jobs/j1?candidati=nuove', async (p) => { await p.getByRole('button', { name: /^Valuta/ }).first().click(); }],
         ['lavoro-struttura', '/jobs'],
         ['struttura-propria', '/profile'],
+        ['squadra-gestione', '/profile?area=staff', async (p) => { await p.getByRole('tab', { name: /^Squadra/ }).click(); await p.getByText('Sara Colombo').first().waitFor(); }],
+        ['invita-staff', '/profile?area=staff', async (p) => { await p.getByRole('tab', { name: /^Squadra/ }).click(); await p.getByRole('button', { name: /Invita nello staff/ }).click(); await p.locator('#invite-search').fill('ma'); await p.waitForTimeout(900); }],
         ['form-orari', '/profile', async (p) => { await p.getByRole('button', { name: /Modifica pagina/ }).first().click(); await p.getByText('Orari di apertura', { exact: true }).scrollIntoViewIfNeeded(); }],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });

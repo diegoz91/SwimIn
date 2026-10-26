@@ -1,8 +1,10 @@
 import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
-import type { StructureProfile, Job, Certification, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
+import type { StructureProfile, Job, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
-import { databaseService, type TeamMember } from '@/services/database';
+import { databaseService, type PendingStaffInvite, type TeamMember } from '@/services/database';
+import { TeamMembers } from '@/features/team/TeamMembers';
+import { ShiftEditModal } from '@/features/team/ShiftEditModal';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
@@ -89,7 +91,10 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         else next.set('scheda', TAB_SLUG[t]);
         setParams(next, { replace: true });
     };
-    const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'radar'>(openChat ? 'chat' : 'bacheca');
+    const [staffSubTab, setStaffSubTab] = useState<'bacheca' | 'chat' | 'turni' | 'squadra'>(openChat ? 'chat' : 'bacheca');
+    const [invites, setInvites] = useState<PendingStaffInvite[]>([]);
+    const [boardVersion, setBoardVersion] = useState(0);
+    const [editingShift, setEditingShift] = useState<SquadShift | null>(null);
     const [chatUnread, setChatUnread] = useState(0);
     const staffAreaRef = React.useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -160,6 +165,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 if (!alive) return;
                 setStaff(board.members || []);
                 setStaffLimit(board.staffLimit ?? null);
+                setInvites(board.invites || []);
                 setAnnouncements(board.announcements || []);
                 setShifts(board.shifts || []);
                 setChatUnread(board.chatUnread || 0);
@@ -176,7 +182,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             })
             .finally(() => alive && setIsLoadingStaff(false));
         return () => { alive = false; };
-    }, [activeTab, isAdmin, isStaff, facilityId, user?.$id, showToast]);
+    }, [activeTab, isAdmin, isStaff, facilityId, user?.$id, showToast, boardVersion]);
 
     /** Numeri reali della pagina: annunci, candidature ricevute per annuncio, follower. */
     const metrics = useMemo(() => {
@@ -308,11 +314,6 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         }
     };
 
-    const isCertExpiringOrExpired = (dateString?: string) => {
-        if (!dateString) return false;
-        const diffDays = Math.ceil((new Date(dateString).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
-        return diffDays <= 30; 
-    };
 
     const sosJobs = localJobs.filter((j) => j.isSOS && isJobOpen(j));
     const regularJobs = localJobs.filter((j) => !j.isSOS && isJobOpen(j));
@@ -499,24 +500,24 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 {activeTab === 'staff' && (isAdmin || isStaff) && (
                     <div ref={staffAreaRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden scroll-mt-20">
                         
-                        <div className="border-b border-slate-100 bg-slate-50/50 p-4">
-                            <div className="flex space-x-3 overflow-x-auto hide-scrollbar-mobile pb-1">
-                                <button onClick={() => setStaffSubTab('bacheca')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'bacheca' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                    Bacheca
+                        <div className="border-b border-slate-100 px-3 sm:px-4 flex gap-1 overflow-x-auto" role="tablist" aria-label="Area staff">
+                            {([
+                                { id: 'bacheca', label: 'Bacheca' },
+                                { id: 'chat', label: 'Chat staff', badge: staffSubTab !== 'chat' ? chatUnread : 0 },
+                                { id: 'turni', label: 'Turni' },
+                                { id: 'squadra', label: 'Squadra', badge: isAdmin ? invites.length : 0 },
+                            ] as const).map((t) => (
+                                <button
+                                    key={t.id}
+                                    role="tab"
+                                    aria-selected={staffSubTab === t.id}
+                                    onClick={() => setStaffSubTab(t.id)}
+                                    className={`flex-shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 ${staffSubTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
+                                >
+                                    {t.label}
+                                    {'badge' in t && t.badge > 0 && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-corsia-600 text-white text-xs grid place-items-center tabular-nums">{t.badge > 99 ? '99+' : t.badge}</span>}
                                 </button>
-                                <button onClick={() => setStaffSubTab('chat')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'chat' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                    Chat staff
-                                    {chatUnread > 0 && staffSubTab !== 'chat' && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-corsia-600 text-white text-xs grid place-items-center" aria-label={`${chatUnread} messaggi non letti`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
-                                </button>
-                                <button onClick={() => setStaffSubTab('turni')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${staffSubTab === 'turni' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                    Turni
-                                </button>
-                                {isAdmin && (
-                                    <button onClick={() => setStaffSubTab('radar')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${staffSubTab === 'radar' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-                                        <Icon type="shield" className="w-4 h-4"/> Scadenze brevetti
-                                    </button>
-                                )}
-                            </div>
+                            ))}
                         </div>
 
                         {staffSubTab === 'bacheca' && (
@@ -639,6 +640,11 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                             {shift.userId === user?.$id && shift.date >= todayISO() && shift.status !== 'declined' && (
                                                 <button onClick={() => handleRespondShift(shift.$id, 'declined')} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">Non posso</button>
                                             )}
+                                            {isAdmin && shift.date >= todayISO() && (
+                                                <button onClick={() => setEditingShift(shift)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-corsia-700 hover:bg-corsia-50" aria-label={`Modifica il turno di ${shift.userName} del ${shift.date}`}>
+                                                    Modifica
+                                                </button>
+                                            )}
                                             {isAdmin && (
                                                 <button onClick={() => handleDeleteShift(shift.$id)} className="text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-red-700 hover:bg-red-50" aria-label={`Annulla il turno di ${shift.userName} del ${shift.date}`}>
                                                     Annulla
@@ -666,92 +672,19 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             </div>
                         )}
 
-                        {isAdmin && staffSubTab === 'radar' && (
-                            <div className="animate-in fade-in">
-                                {isLoadingStaff ? (
-                                    <div className="p-10 text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-300 border-t-indigo-600 mx-auto mb-3"></div>
-                                        <p className="text-slate-500 font-medium">Caricamento dello staff…</p>
-                                    </div>
-                                ) : staff.length > 0 ? (
-                                    <div className="divide-y divide-slate-100">
-                                        {staffLimit !== null && (
-                                            <p className={`px-6 py-3 text-sm flex flex-wrap items-center gap-x-2 gap-y-1 ${staff.length >= staffLimit ? 'bg-oro-50 text-slate-800' : 'text-slate-600'}`}>
-                                                <span className="font-semibold tabular-nums">{staff.length} di {staffLimit} persone</span>
-                                                <span>con il piano Base.</span>
-                                                <Link to="/premium" className="font-semibold text-oro-700 hover:underline py-1 -my-1">Squadra senza limiti con Premium</Link>
-                                            </p>
-                                        )}
-                                        {staff.map(member => {
-                                            const name = `${member.firstName} ${member.lastName}`.trim();
-                                            const certs: Certification[] = (member.certificationsList || []).flatMap((c) => {
-                                                try { return [JSON.parse(c) as Certification]; } catch { return []; }
-                                            });
-                                            
-                                            const problems = certs.filter(c => isCertExpiringOrExpired(c.expiry));
-
-                                            return (
-                                                <div key={member.$id} className="p-6 flex flex-col sm:flex-row gap-6 items-start hover:bg-slate-50 transition-colors relative group">
-                                                    
-                                                    {isAdmin && (
-                                                        <button 
-                                                            onClick={() => handleRemoveStaff(member.userId)}
-                                                            className="absolute top-4 right-4 text-slate-300 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
-                                                            title="Rimuovi dallo staff" aria-label={`Rimuovi ${name} dallo staff`}
-                                                        >
-                                                            <Icon type="user-minus" className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-
-                                                    <div className="flex items-center gap-4 min-w-[200px]">
-                                                        <div className="relative">
-                                                            <img src={member.avatar || initialsAvatar(name)} alt={name} className="w-12 h-12 rounded-full border border-slate-200" />
-                                                            {member.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-slate-800">{name}</p>
-                                                            <p className="text-xs text-slate-500 font-medium">{member.title || 'Professionista'}</p>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex-1 w-full bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                                                        {certs.length === 0 ? (
-                                                            <p className="text-sm text-slate-500 flex items-center gap-2"><Icon type="info" className="w-4 h-4"/> Nessun brevetto registrato</p>
-                                                        ) : problems.length > 0 ? (
-                                                            <div className="space-y-2">
-                                                                <p className="text-sm font-bold text-red-700 flex items-center gap-2 mb-3">
-                                                                    <Icon type="alert-triangle" className="w-4 h-4" /> Brevetti in scadenza
-                                                                </p>
-                                                                {problems.map((p, idx) => (
-                                                                    <div key={idx} className="flex items-center justify-between text-xs bg-red-50 text-red-800 px-3 py-2 rounded-md border border-red-100">
-                                                                        <span className="font-bold truncate max-w-[150px]">{p.name}</span>
-                                                                        <span className="font-medium">Scade: {new Date(p.expiry!).toLocaleDateString('it-IT')}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-3 text-green-700 bg-green-50 px-4 py-3 rounded-lg border border-green-100">
-                                                                <Icon type="check-double" className="w-5 h-5" />
-                                                                <p className="text-sm font-bold">Tutti i brevetti ({certs.length}) sono in regola.</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
-                                            <Icon type="users" className="w-8 h-8 text-slate-300" />
-                                        </div>
-                                        <p className="text-slate-600 font-bold text-lg">Lo staff è ancora vuoto</p>
-                                        <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto">
-                                            Quando assumi qualcuno da un tuo annuncio entra nello staff: qui vedrai i suoi brevetti e potrai assegnargli turni.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
+                        {staffSubTab === 'squadra' && (
+                            <TeamMembers
+                                structureId={facilityId}
+                                structureName={structureName || 'la struttura'}
+                                isAdmin={!!isAdmin}
+                                currentUserId={user?.$id}
+                                members={staff}
+                                invites={invites}
+                                staffLimit={staffLimit}
+                                loading={isLoadingStaff}
+                                onRemove={handleRemoveStaff}
+                                onChanged={() => setBoardVersion((v) => v + 1)}
+                            />
                         )}
                     </div>
                 )}
@@ -791,6 +724,17 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
             </div>
 
+            {isAdmin && (
+                <ShiftEditModal
+                    shift={editingShift}
+                    staff={staff}
+                    onClose={() => setEditingShift(null)}
+                    onSaved={(saved) => {
+                        setShifts((list) => list.map((x) => (x.$id === saved.$id ? saved : x)).sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime)));
+                        setShiftWeek(weekStartISO(saved.date));
+                    }}
+                />
+            )}
             {isAdmin && isLegacyStructure && (
                 <ProfileEditModal open={isEditingProfile} profile={facility as StructureProfile} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p as StructureProfile)} />
             )}

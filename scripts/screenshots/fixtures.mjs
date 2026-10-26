@@ -336,6 +336,8 @@ export const apiResponses = {
         applications: j.$id === 'j1' ? { total: 3, pending: 2, reviewed: 1, accepted: 0, hired: 0, rejected: 0 } : { total: 4, pending: 0, reviewed: 1, accepted: 0, hired: 1, rejected: 2 },
     })),
     updateApplicationStatus: ({ applicationId, status } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status }),
+    listMyStaffInvites: () => [{ structureId: 'u_aquae', name: 'Aquae Sport Center', logo: '', city: 'Sesto San Giovanni', invitedAt: new Date(now - 3 * 3600000).toISOString() }],
+    listMyTeams: () => [{ structureId: 'u_lido', name: 'Piscina Lido di Milano', logo: '', city: 'Milano', role: 'staff' }],
     getMyStats: () => ({
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),
@@ -358,7 +360,13 @@ export const apiResponses = {
     }),
     listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: false }),
     getContactInfo: () => ({ phone: '+39 333 123 4567', email: 'giulia@example.com', allowed: true }),
-    getTeamBoard: () => ({ role: 'staff', members: [], announcements: [], shifts: [], chatUnread: 2 }),
+    getTeamBoard: () => ({
+        role: 'staff', announcements: [], shifts: [], chatUnread: 2,
+        members: [
+            { $id: ME, userId: ME, firstName: 'Giulia', lastName: 'Ferri', title: 'Istruttrice FIN di nuoto e acquaticità', avatar: '', city: 'Milano', isOnline: true, certificationsList: [JSON.stringify({ name: 'Istruttore di nuoto 1° livello', issuer: 'FIN', category: 'istruttore', expiry: '2027-09-30' })] },
+            { $id: 'u_sara', userId: 'u_sara', firstName: 'Sara', lastName: 'Colombo', title: 'Assistente bagnanti', avatar: '', city: 'Milano', isOnline: false, certificationsList: [JSON.stringify({ name: 'Brevetto assistente bagnanti', issuer: 'FIN', category: 'salvamento', expiry: new Date(now + 12 * 86400000).toISOString().slice(0, 10) })] },
+        ],
+    }),
     listStaffMessages: ({ after } = {}) => (after ? { messages: [], hasMore: false } : {
         hasMore: false,
         members: [
