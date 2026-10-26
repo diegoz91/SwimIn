@@ -8,6 +8,7 @@ import { useContactInfo } from '@/hooks/useContactInfo';
 import { useMyResume } from '@/hooks/useMyResume';
 import { openResume, resumeFileError } from '@/services/resume';
 import { formatFileSize } from '@/services/chatFiles';
+import { UploadProgress } from '@/components/common/UploadProgress';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { requirementsStatus } from '@/utils/swimMatch';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
@@ -44,7 +45,7 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
     const { showToast } = useToast();
     const open = !!job && flowState.step !== 'idle';
     const contact = useContactInfo(user.userId || user.$id, open);
-    const { resume, busy: uploading, upload } = useMyResume(open);
+    const { resume, busy: uploading, progress, upload } = useMyResume(open);
     const [attach, setAttach] = useState(true);
     const [letter, setLetter] = useState('');
     const [availability, setAvailability] = useState('');
@@ -141,6 +142,7 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
 
                 <section aria-labelledby="apply-cv">
                     <h3 id="apply-cv" className="text-sm font-semibold text-abisso mb-2">Curriculum vitae</h3>
+                    {progress !== null && <UploadProgress value={progress} label="Caricamento del CV" className="mb-3" />}
                     <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void handleFile(e.target.files?.[0]); e.target.value = ''; }} />
                     {resume === undefined ? (
                         <div className="h-16 rounded-2xl bg-slate-100 animate-pulse" />

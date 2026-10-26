@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { UserProfile, StructureProfile, Media } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
+import { UploadProgress } from '@/components/common/UploadProgress';
 import { PhotoUploader } from '@/features/profile/components/PhotoUploader';
 import { storageService } from '@/services/storage';
 import { useToast } from '@/context/ToastContext';
@@ -39,6 +40,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const [mediaType, setMediaType] = useState<'photo' | 'video' | 'video-analysis' | null>(initialMediaType || null);
     const [selectedCategory, setSelectedCategory] = useState('generale');
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState<number | null>(null);
     const [videoFile, setVideoFile] = useState<{ file: File; preview: string } | null>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const isVideoMode = mediaType === 'video' || mediaType === 'video-analysis';
@@ -88,18 +90,24 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             return;
         }
         setUploading(true);
+        setProgress(null);
         try {
             let uploadedMedia: Media[] = [];
             if (isVideoMode && videoFile) {
-                const url = await storageService.uploadPostMedia(videoFile.file);
+                setProgress(0);
+                const url = await storageService.uploadPostMedia(videoFile.file, setProgress);
                 uploadedMedia = [{ type: 'video', url }];
             } else if (mediaFiles.length > 0) {
-                const uploadPromises = mediaFiles.map(async (mediaFile) => {
-                    const uploadedUrl = await storageService.uploadPostMedia(mediaFile.file);
+                // Avanzamento complessivo: media delle foto in caricamento.
+                const parts = mediaFiles.map(() => 0);
+                setProgress(0);
+                const uploadPromises = mediaFiles.map(async (mediaFile, i) => {
+                    const uploadedUrl = await storageService.uploadPostMedia(mediaFile.file, (p) => { parts[i] = p; setProgress(Math.round(parts.reduce((a, b) => a + b, 0) / parts.length)); });
                     return { type: 'image' as const, url: uploadedUrl, alt: mediaFile.alt };
                 });
                 uploadedMedia = await Promise.all(uploadPromises);
             }
+            setProgress(null);
             const pollData = poll ? { options: poll.options.map((o) => o.trim()).filter(Boolean), days: poll.days } : null;
             await onCreatePost(fromEditable(content.trim(), mentions), uploadedMedia, selectedCategory, mediaType, pollData);
             setContent(''); setMentions({}); setPoll(null);
@@ -109,6 +117,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             showToast(error instanceof Error && error.message ? error.message : 'Errore durante la pubblicazione.', 'error');
         } finally {
             setUploading(false);
+            setProgress(null);
         }
     };
 
@@ -230,8 +239,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
                     {uploading && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 animate-in fade-in">
-                            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-3"></div>
-                            <p className="font-bold text-blue-800">Pubblicazione in corso...</p>
+                            {progress !== null ? (
+                                <UploadProgress value={progress} label={isVideoMode ? 'Caricamento del video' : 'Caricamento delle foto'} className="w-64 max-w-[80%]" />
+                            ) : (
+                                <>
+                                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-corsia-100 border-t-corsia-600 mb-3"></div>
+                                    <p className="font-semibold text-abisso">Pubblicazione in corso…</p>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

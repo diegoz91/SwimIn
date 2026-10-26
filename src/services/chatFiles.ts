@@ -1,5 +1,6 @@
-import { ID, Permission, Role } from 'appwrite';
-import { account, storage } from '@/services/appwrite';
+import { Permission, Role } from 'appwrite';
+import { storage } from '@/services/appwrite';
+import { sessionJwt, uploadFile, type ProgressFn } from '@/services/upload';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { compressImage } from '@/utils/image';
 import type { ChatAttachment } from '@/types/types';
@@ -42,14 +43,14 @@ export const formatFileSize = (bytes: number) =>
     bytes >= MB ? `${(bytes / MB).toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(bytes / 1024))} kB`;
 
 /** Carica un allegato (le foto vengono ridimensionate) e ne restituisce l'id. */
-export async function uploadChatFile(file: File, userId: string): Promise<string> {
+export async function uploadChatFile(file: File, userId: string, onProgress?: ProgressFn): Promise<string> {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     const isImage = IMAGE_TYPES.includes(file.type);
     if (!isImage && !DOC_TYPES[ext]) throw new Error('Puoi allegare foto (JPG, PNG, WebP), PDF, Word o Excel.');
     if (file.size > (isImage ? 25 : CHAT_MAX_MB) * MB) throw new Error(`Il file supera i ${CHAT_MAX_MB} MB.`);
     const toUpload = isImage ? await compressImage(file, { maxSize: 2000 }) : file;
     if (toUpload.size > CHAT_MAX_MB * MB) throw new Error(`Il file supera i ${CHAT_MAX_MB} MB.`);
-    const uploaded = await storage.createFile(bucket, ID.unique(), toUpload, [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))]);
+    const uploaded = await uploadFile(bucket, toUpload, [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))], onProgress);
     return uploaded.$id;
 }
 
@@ -60,14 +61,6 @@ export async function discardChatFile(fileId: string) {
     } catch (err) {
         console.warn('Allegato non eliminato:', err);
     }
-}
-
-let jwt: { token: string; until: number } | null = null;
-async function sessionJwt() {
-    if (jwt && jwt.until > Date.now()) return jwt.token;
-    const { jwt: token } = await account.createJWT();
-    jwt = { token, until: Date.now() + 10 * 60_000 }; // il JWT vale 15 minuti
-    return token;
 }
 
 const blobCache = new Map<string, Promise<string>>();

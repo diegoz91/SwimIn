@@ -6,13 +6,14 @@ import { useMyResume } from '@/hooks/useMyResume';
 import { downloadResume, openResume, resumeFileError, RESUME_MAX_MB } from '@/services/resume';
 import { formatFileSize } from '@/services/chatFiles';
 import { formatRelativeTime } from '@/utils/format';
+import { UploadProgress } from '@/components/common/UploadProgress';
 
 /**
  * Il tuo CV (solo sul tuo profilo): un PDF che vedi solo tu e che alleghi alle candidature.
  * Si carica con il pulsante o trascinando il file; sostituirlo non cambia i CV già inviati.
  */
 export const ResumeSection: React.FC = () => {
-    const { resume, busy, upload, remove } = useMyResume();
+    const { resume, busy, progress, upload, remove } = useMyResume();
     const { showToast } = useToast();
     const confirm = useConfirm();
     const inputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +79,8 @@ export const ResumeSection: React.FC = () => {
                 className="hidden"
                 onChange={(e) => { void handleFile(e.target.files?.[0]); e.target.value = ''; }}
             />
+
+            {progress !== null && <UploadProgress value={progress} label="Caricamento del CV" className="mb-4" />}
 
             {resume === undefined ? (
                 <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" aria-label="Caricamento del CV" />

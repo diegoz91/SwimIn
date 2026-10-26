@@ -232,7 +232,7 @@ for (const [vpName, viewport, opts = {}] of VIEWPORTS) {
     if (ONLY.length && !ONLY.includes(vpName)) continue;
     const touch = !!viewport.hasTouch;
     for (const loggedIn of [false, true]) {
-        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
         await mockAppwrite(page, { loggedIn });
@@ -285,7 +285,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
     if (ONLY.length && !ONLY.includes(vpName)) continue;
     const touch = !!viewport.hasTouch;
     for (const loggedIn of [false, true]) {
-        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', colorScheme: 'dark' });
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: 'dark' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName} scuro] ${e.message}`));
         await mockAppwrite(page, { loggedIn });
@@ -309,7 +309,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
     if (ONLY.length && !ONLY.includes(vpName)) continue;
     const touch = !!viewport.hasTouch;
-    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce' });
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
     await mockAppwrite(page, { loggedIn: true, missing: { profiles: [ME] } });
@@ -329,7 +329,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile'].includes(n))) {
     if (ONLY.length && !ONLY.includes(vpName)) continue;
     const touch = !!viewport.hasTouch;
-    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce' });
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
     await mockAppwrite(page, { loggedIn: true, overrides: { profiles: { [ME]: { premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } } });
@@ -369,7 +369,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['invita-staff', '/profile?area=staff', async (p) => { await p.getByRole('tab', { name: /^Squadra/ }).click(); await p.getByRole('button', { name: /Invita nello staff/ }).click(); await p.locator('#invite-search').fill('ma'); await p.waitForTimeout(900); }],
         ['form-orari', '/profile', async (p) => { await p.getByRole('button', { name: /Modifica pagina/ }).first().click(); await p.getByText('Orari di apertura', { exact: true }).scrollIntoViewIfNeeded(); }],
     ]) {
-        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
         await mockAppwrite(page, { loggedIn: true, overrides: asStructure });
@@ -400,7 +400,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
         ['admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }],
         ['scuro-admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }, true],
     ]) {
-        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', colorScheme: dark ? 'dark' : 'light' });
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
         await mockAppwrite(page, { loggedIn: true, responses });
