@@ -79,6 +79,7 @@ const HomeGate: React.FC = () => {
 
 /** Pagine a schermo intero, senza header e navigazione (es. onboarding). */
 const CHROMELESS = ['/benvenuto'];
+const FULL_HEIGHT = ['/messages'];
 
 /** L'area che scorre tra intestazione e menu in basso; a ogni cambio di pagina riparte dall'alto. */
 const ScrollRoot: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({ enabled, children }) => {
@@ -172,7 +173,8 @@ const AppContent: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
       </main>
-      {showChrome && <AppFooter />}
+      {/* Le pagine a tutta altezza (la chat) non hanno il piè di pagina: occupano lo spazio tra le due barre. */}
+      {showChrome && !FULL_HEIGHT.some((p) => pathname.startsWith(p)) && <AppFooter />}
       </ScrollRoot>
 
       {showChrome && <BottomNav />}
