@@ -38,7 +38,7 @@ const withOverrides = (collection, state) => {
 };
 
 /**
- * state: { loggedIn: boolean, mfaRequired?: boolean, calls?: {action, params}[], responses?: {[action]: fn} }
+ * state: { loggedIn: boolean, mfaRequired?: boolean, calls?: {action, params}[], responses?: {[action]: fn}, appStatus?: {mode, message, until} }
  * Con `loggedIn: false` il login (POST /account/sessions/email) apre la sessione;
  * con `mfaRequired` serve anche la sfida della verifica in due passaggi.
  */
@@ -55,6 +55,9 @@ export async function mockAppwrite(page, state) {
     };
     if (page.routeWebSocket) {
         await page.routeWebSocket(/\/v1\/realtime/, (ws) => {
+            // La pagina può chiudersi mentre il socket risponde (fine del test): niente errori non gestiti.
+            const send = ws.send.bind(ws);
+            ws.send = (data) => { try { const r = send(data); if (r && typeof r.catch === 'function') r.catch(() => undefined); } catch { /* pagina chiusa */ } };
             sockets.add(ws);
             ws.onClose(() => sockets.delete(ws));
             ws.onMessage((raw) => {
@@ -137,6 +140,8 @@ export async function mockAppwrite(page, state) {
 
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
         if (one) {
+            // Stato del servizio (manutenzione, rallentamenti): `state.appStatus` = { mode, message, until }.
+            if (one[1] === 'app_status' && state.appStatus) return json(route, { $id: 'main', $updatedAt: new Date().toISOString(), ...state.appStatus });
             if (state.missing?.[one[1]]?.includes(one[2])) return json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
             const row = withOverrides(one[1], state).find((r) => r.$id === one[2]);
             return row ? json(route, row) : json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);

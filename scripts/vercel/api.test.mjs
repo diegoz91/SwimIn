@@ -63,3 +63,14 @@ test('offerta chiusa: non indicizzare', () => {
 test('sitemap con le offerte', () => {
     assert.match(renderSitemap('https://swimin.it', [], [{ id: 'j1', updatedAt: '2026-10-21T00:00:00Z' }]), /<loc>https:\/\/swimin.it\/offerte\/j1<\/loc><lastmod>2026-10-21<\/lastmod>/);
 });
+
+test('controllo di salute: 200 con la Function, 503 senza', async () => {
+    const { checkHealth } = await import('../../api/health.js');
+    let t = 1000;
+    const up = await checkHealth(async (action) => { assert.equal(action, 'health'); t += 120; return { version: 'abc', status: { mode: 'maintenance', message: 'Lavori' } }; }, () => t);
+    assert.deepEqual(up, { ok: true, appwrite: 'ok', latencyMs: 120, version: 'abc', mode: 'maintenance', message: 'Lavori' });
+    const down = await checkHealth(async () => { throw new Error('Appwrite 503'); }, () => 5);
+    assert.equal(down.ok, false);
+    assert.equal(down.appwrite, 'down');
+    assert.match(down.error, /503/);
+});

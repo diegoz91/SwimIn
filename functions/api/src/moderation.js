@@ -131,22 +131,7 @@ export function moderationActions({ find, get, create, update, remove, list, lis
       };
     },
 
-    // ---------------- ERRORI DEL CLIENT ----------------
-    async logClientError(me, { message, stack = '', url = '', userAgent = '' } = {}) {
-      const msg = String(message || '').trim();
-      if (!msg) return { ok: true };
-      const since = new Date(Date.now() - 60_000).toISOString();
-      const recent = await count(C.clientErrors, [Query.equal('userId', me), Query.greaterThan('$createdAt', since)]).catch(() => 0);
-      if (recent >= 10) return { ok: true, throttled: true };
-      await create(C.clientErrors, {
-        userId: me,
-        message: msg.slice(0, 500),
-        stack: String(stack).slice(0, 4000),
-        url: String(url).slice(0, 500),
-        userAgent: String(userAgent).slice(0, 300),
-      }, []);
-      return { ok: true };
-    },
+    // Errori dell'app: logClientError è in ops.js (registro unico con avvisi).
 
     // ---------------- AMMINISTRAZIONE ----------------
     async adminOverview(me) {

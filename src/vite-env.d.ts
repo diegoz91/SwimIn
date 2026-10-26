@@ -10,6 +10,10 @@ interface ImportMetaEnv {
   readonly VITE_LIVE?: string;
   /** "off" disattiva il salvataggio diretto in Google Calendar (resta il link precompilato). */
   readonly VITE_GOOGLE_CALENDAR_API?: string;
+  /** "on" mostra a tutti la pagina di manutenzione (quando Appwrite non risponde e non si può usare il pannello admin). */
+  readonly VITE_MAINTENANCE?: string;
+  /** Testo della pagina di manutenzione decisa al rilascio. */
+  readonly VITE_MAINTENANCE_MESSAGE?: string;
 }
 
 interface ImportMeta {

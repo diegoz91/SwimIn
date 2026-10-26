@@ -63,6 +63,7 @@ export function targetUrl(type, relatedId) {
     case 'staff_invite': return '/turni?inviti=1';
     case 'group': return relatedId ? `/gruppi/${relatedId}` : '/gruppi';
     case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
+    case 'system_alert': return '/admin?tab=errori';
     case 'recommendation': return '/profile?referenze=approva';
     case 'recommendation_published': return relatedId ? `/profile/${relatedId}?sezione=referenze` : '/profile';
     case 'recommendation_request': return relatedId ? `/profile/${relatedId}?referenza=scrivi` : '/profile';

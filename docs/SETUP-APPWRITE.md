@@ -144,6 +144,36 @@ Nell'app: **Continua con Google** su accesso e iscrizione; nelle impostazioni, i
 
 Come funziona: il flusso è quello a token di Appwrite (`createOAuth2Token` → `/accesso/google` → `createSession`), quindi funziona anche se Appwrite e l'app stanno su domini diversi e con i browser che bloccano i cookie di terze parti. Al primo accesso con Google l'account esiste già (email verificata da Google) ma manca il profilo: la pagina `/completa-account` chiede il tipo di account e i termini. Se l'email è la stessa di un account già registrato con password, Appwrite collega Google a quell'account. Chi si è iscritto solo con Google può impostare una password da *Accesso e sicurezza*. Gli eventi in Google Calendar hanno un id fisso (turno o evento SwimIn): salvarli di nuovo li aggiorna, senza doppioni.
 
+## 12. Monitoraggio, prova reale e manutenzione
+
+**Avvisi di errore.** Ogni errore del server (Function) e dell'app viene registrato in *Admin › Errori*,
+raggruppato per tipo. Al primo errore di un tipo nuovo (al massimo uno all'ora per tipo) gli utenti con
+l'etichetta `admin` ricevono una notifica `system_alert` (anche push ed email, secondo le loro preferenze).
+Facoltativo: un canale esterno.
+- Slack o Discord: crea un webhook in arrivo e salvalo nel secret GitHub `ALERT_WEBHOOK_URL`.
+- Altri destinatari oltre agli admin: id utente separati da virgola nella variabile GitHub `ALERT_USER_IDS`.
+Al deploy successivo (`Deploy Appwrite`) finiscono tra le variabili della Function.
+
+**Monitor ogni 10 minuti** (workflow `Monitor`): sito, `/api/health`, Function su Appwrite e picco di
+errori del server (variabile `MONITOR_ERROR_THRESHOLD`, predefinita 20 in 15 minuti). Se fallisce, GitHub
+manda un'email: controlla in GitHub → Settings → Notifications → Actions che le email per i workflow
+falliti siano attive. Per un secondo controllo indipendente da GitHub, aggiungi `https://<dominio>/api/health`
+a un servizio gratuito come UptimeRobot o Better Stack (risponde 200 se tutto va, 503 se Appwrite non risponde).
+
+**Prova reale** (workflow `Prova reale`): dopo ogni deploy della Function, ogni notte e a mano crea quattro
+account temporanei (`swimin-e2e+…@example.com`) e percorre iscrizione, CV, candidatura, colloquio,
+assunzione, staff, turni, cambio turno e chat con allegato, controllando anche gli accessi vietati.
+Poi elimina gli account e ripulisce. Gli annunci di questi account non mandano avvisi alle persone vere.
+Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
+
+**Manutenzione.**
+- *Admin › Stato del servizio*: "Rallentamenti" mostra una striscia gialla con il tuo messaggio;
+  "Manutenzione" mostra a tutti la pagina di manutenzione (gli amministratori continuano a usare l'app).
+  Vale subito, senza rilasci. La pagina pubblica `/stato` mostra il messaggio e controlla i servizi dal vivo.
+- *Se Appwrite non risponde* (il pannello non funziona): su Vercel imposta `VITE_MAINTENANCE=on` e,
+  se vuoi, `VITE_MAINTENANCE_MESSAGE`, poi rilancia il deploy. Per tornare online togli la variabile e
+  rilancia. Se il server non risponde l'app mostra comunque da sola "SwimIn non risponde" e riprova.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

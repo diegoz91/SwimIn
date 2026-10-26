@@ -196,7 +196,15 @@ export interface AdminReport {
     note?: string;
     target: { exists: boolean; authorId?: string; authorName?: string; suspended?: boolean; text?: string; status?: string };
 }
-export interface ClientErrorRow { $id: string; $createdAt: string; userId: string; message: string; stack?: string; url?: string; userAgent?: string }
+export interface ClientErrorRow { $id: string; $createdAt: string; userId: string; message: string; stack?: string; url?: string; userAgent?: string; source?: 'client' | 'server' | null; action?: string | null; fingerprint?: string | null }
+export type AppStatusMode = 'ok' | 'degraded' | 'maintenance';
+/** Stato del servizio deciso dagli amministratori (riga `main` di `app_status`, leggibile da tutti). */
+export interface AppStatus { mode: AppStatusMode; message: string; until: string; updatedAt: string | null }
+export const APP_STATUS_OK: AppStatus = { mode: 'ok', message: '', until: '', updatedAt: null };
+const toAppStatus = (row: { mode?: string; message?: string | null; until?: string | null; $updatedAt?: string } | null): AppStatus =>
+    row && (row.mode === 'degraded' || row.mode === 'maintenance')
+        ? { mode: row.mode, message: row.message || '', until: row.until || '', updatedAt: row.$updatedAt || null }
+        : { ...APP_STATUS_OK, updatedAt: row?.$updatedAt || null };
 export interface AdminUserRow { $id: string; name: string; email: string; userType: string; personType?: string; city?: string; suspended: boolean }
 
 
@@ -448,6 +456,22 @@ export const databaseService = {
     },
     async adminListErrors() {
         return await callApi<ClientErrorRow[]>('adminListErrors');
+    },
+    /** Stato del servizio: lettura diretta (anche senza accesso). Se la riga non c'è ancora, tutto ok. */
+    async getAppStatus(): Promise<AppStatus> {
+        try {
+            return toAppStatus(await databases.getDocument(databaseId, collections.appStatus, 'main'));
+        } catch (err) {
+            if ((err as { code?: number })?.code === 404) return APP_STATUS_OK;
+            throw err;
+        }
+    },
+    /** Controllo di salute della Function (azione pubblica `health`): versione e stato del servizio. */
+    async serviceHealth() {
+        return await callApi<{ version: string; actions: number; status: AppStatus }>('health');
+    },
+    async adminSetAppStatus(mode: AppStatusMode, message: string, until: string) {
+        return await callApi<AppStatus>('adminSetAppStatus', { mode, message, until });
     },
     async adminSearchUsers(query: string) {
         return await callApi<AdminUserRow[]>('adminSearchUsers', { query });

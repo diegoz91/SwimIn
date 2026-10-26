@@ -6,7 +6,9 @@ import { ToastProvider } from '@/context/ToastContext';
 import { ConfirmProvider } from '@/context/ConfirmContext';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { SavedProvider } from '@/context/SavedContext';
-import { BlocksProvider } from '@/context/BlocksContext';
+import { BlocksProvider, useBlocks } from '@/context/BlocksContext';
+import { AppStatusProvider, useAppStatus } from '@/hooks/useAppStatus';
+import { MAINTENANCE_OPEN_PATHS, MaintenanceScreen, OutageScreen, StatusBanner } from '@/components/common/ServiceStatus';
 import { ErrorReporter } from '@/components/common/ErrorReporter';
 import { PushBridge } from '@/components/common/PushBridge';
 import { PremiumPrompt } from '@/features/premium/PremiumPrompt';
@@ -67,6 +69,7 @@ const Terms = lazyPage(() => import('@/pages/legal/Terms'));
 const Cookies = lazyPage(() => import('@/pages/legal/Cookies'));
 const GoogleCallback = lazyPage(() => import('@/pages/GoogleCallback'));
 const CompleteAccount = lazyPage(() => import('@/pages/CompleteAccount'));
+const Status = lazyPage(() => import('@/pages/Status'));
 
 /** Login e registrazione non hanno senso da loggati: si torna alla pagina richiesta o al feed. */
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -113,6 +116,13 @@ const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
   const { pathname } = useLocation();
   const showChrome = authenticated && !CHROMELESS.includes(pathname);
+  const { status, reachable } = useAppStatus();
+  const { isAdmin } = useBlocks();
+  // Manutenzione (decisa dal pannello admin) o server che non risponde: una pagina chiara invece dell'app
+  // a metà. Restano aperte la pagina di stato, quelle legali e l'accesso (per gli amministratori).
+  const alwaysOpen = MAINTENANCE_OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (!alwaysOpen && status.mode === 'maintenance' && !isAdmin) return <MaintenanceScreen />;
+  if (!alwaysOpen && !reachable) return <OutageScreen />;
 
   return (
     // Con l'intestazione e il menu in basso la pagina è un "guscio": intestazione in alto, menu in basso e
@@ -133,6 +143,7 @@ const AppContent: React.FC = () => {
       <ConnectionStatus />
       <PushBridge />
       <PremiumPrompt />
+      <StatusBanner isAdmin={isAdmin} />
       {showChrome && <Header />}
 
       <ScrollRoot enabled={showChrome}>
@@ -155,6 +166,7 @@ const AppContent: React.FC = () => {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/termini" element={<Terms />} />
               <Route path="/cookie" element={<Cookies />} />
+              <Route path="/stato" element={<Status />} />
               <Route path="/u/:id" element={<PublicProfile />} />
               <Route path="/offerte/:id" element={<PublicJob />} />
 
@@ -212,12 +224,14 @@ export const App: React.FC = () => {
       <ToastProvider>
       <ConfirmProvider>
         <AuthProvider>
+          <AppStatusProvider>
           <SavedProvider>
             <BlocksProvider>
               <ErrorReporter />
               <AppContent />
             </BlocksProvider>
           </SavedProvider>
+          </AppStatusProvider>
         </AuthProvider>
       </ConfirmProvider>
       </ToastProvider>
