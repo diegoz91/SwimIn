@@ -123,7 +123,7 @@ export const AdminStatus: React.FC = () => {
                 {error && <p role="alert" className="text-sm font-medium text-galleggiante-700">{error}</p>}
                 <div className="flex flex-wrap items-center gap-3">
                     <Button type="submit" busy={saving} variant={mode === 'maintenance' ? 'dark' : 'primary'}>
-                        {mode === 'ok' ? 'Togli gli avvisi' : mode === 'maintenance' ? 'Attiva la manutenzione' : 'Pubblica l’avviso'}
+                        {mode === 'ok' ? 'Togli gli avvisi' : mode === status.mode ? 'Aggiorna l’avviso' : mode === 'maintenance' ? 'Attiva la manutenzione' : 'Pubblica l’avviso'}
                     </Button>
                     <Link to="/stato" className="text-sm font-semibold text-corsia-700 hover:underline py-1 -my-1">Apri la pagina di stato</Link>
                 </div>
