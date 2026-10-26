@@ -2,9 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useBlocks } from '@/context/BlocksContext';
 import { ReportModal } from './ReportModal';
+import { useConfirm } from '@/context/ConfirmContext';
 
 /** Menu "…" sul profilo di un'altra persona o struttura: silenzia, blocca, segnala. */
 export const ProfileActionsMenu: React.FC<{ userId: string; name: string; targetType?: 'profile' | 'facility'; extraItems?: { label: string; icon: IconType; onClick: () => void }[] }> = ({ userId, name, targetType = 'profile', extraItems = [] }) => {
+    const confirm = useConfirm();
     const { blocked, muted, block, unblock } = useBlocks();
     const [open, setOpen] = useState(false);
     const [reporting, setReporting] = useState(false);
@@ -57,7 +59,7 @@ export const ProfileActionsMenu: React.FC<{ userId: string; name: string; target
                             onClick={async () => {
                                 setOpen(false);
                                 if (isBlocked) await unblock(userId);
-                                else if (window.confirm(`Bloccare ${name}? Non potrà più scriverti, collegarsi con te o commentare i tuoi post, e il collegamento verrà rimosso.`)) await block(userId);
+                                else if (await confirm({ title: `Bloccare ${name}?`, message: 'Non potrà più scriverti, collegarsi con te o commentare i tuoi post, e il collegamento verrà rimosso.', confirmLabel: 'Blocca', tone: 'danger' })) await block(userId);
                             }}
                         >
                             <Icon type="user-minus" className="w-5 h-5" /> {isBlocked ? 'Sblocca' : 'Blocca'}

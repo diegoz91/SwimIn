@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import { EMPLOYMENT_TYPES, PROFESSIONAL_ROLES } from '@/data/swimming';
 import { check, maxLength, minLength, month, notAfter, notBefore, required } from '@/utils/validation';
 import { currentMonth, formatDuration, monthsBetween } from '@/utils/dates';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface ExperienceModalProps {
     isOpen: boolean;
@@ -67,6 +68,7 @@ export const validateExperience = (v: Values, now: Date = new Date()): FormError
 };
 
 export const ExperienceModal: React.FC<ExperienceModalProps> = ({ isOpen, onClose, onSave, onDelete, experience, mode }) => {
+    const confirm = useConfirm();
     const { showToast } = useToast();
     const [saving, setSaving] = useState(false);
     const validate = useCallback((v: Values) => validateExperience(v), []);
@@ -102,7 +104,7 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({ isOpen, onClos
     });
 
     const remove = async () => {
-        if (!onDelete || !window.confirm('Eliminare questa esperienza dal profilo?')) return;
+        if (!onDelete || !(await confirm({ title: 'Eliminare questa esperienza?', message: 'Sparisce dal tuo percorso professionale.', confirmLabel: 'Elimina', tone: 'danger' }))) return;
         setSaving(true);
         try {
             await onDelete();

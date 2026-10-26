@@ -7,6 +7,7 @@ import { databaseService } from '@/services/database';
 import { avatarOf } from '@/utils/profile';
 import { Comment, type EnrichedComment } from './Comment';
 import { MentionTextarea, fromEditable, type MentionMap } from '@/components/form/MentionTextarea';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const PAGE = 3;
 
@@ -20,6 +21,7 @@ export const CommentsThread: React.FC<{
     autoFocus?: boolean;
     onCountChange?: (delta: number) => void;
 }> = ({ postId, postAuthorId, autoFocus, onCountChange }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const { showToast } = useToast();
     const blocks = useBlocks();
@@ -69,7 +71,7 @@ export const CommentsThread: React.FC<{
     const canDelete = (c: EnrichedComment) =>
         user && (c.authorId === user.$id || postAuthorId === user.$id)
             ? async () => {
-                  if (!window.confirm('Eliminare il commento?')) return;
+                  if (!(await confirm({ title: 'Eliminare il commento?', confirmLabel: 'Elimina', tone: 'danger' }))) return;
                   try {
                       await databaseService.deleteComment(c.$id);
                       onCountChange?.(-1 - (c.replies?.length || 0));

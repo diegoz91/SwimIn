@@ -10,10 +10,12 @@ import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
 import type { UserProfile, StructureProfile, Facility } from '@/types/types';
 import type { EnrichedConnectionRequest } from '@/features/network/components/ConnectionRequestCard';
 import { useBlocks } from '@/context/BlocksContext';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Profile = UserProfile | StructureProfile;
 
 const Network: React.FC = () => {
+    const confirm = useConfirm();
     usePageTitle('Il mio network');
     const { user: currentUser, refreshProfile } = useAuth();
     const blocks = useBlocks();
@@ -130,7 +132,7 @@ const Network: React.FC = () => {
 
     const handleRemoveConnection = async (targetUserId: string) => {
         if (!currentUser) return;
-        if (window.confirm('Sei sicuro di voler rimuovere questo collegamento?')) {
+        if (await confirm({ title: 'Rimuovere il collegamento?', message: 'Non vedrete più i rispettivi contatti riservati; potrete ricollegarvi in seguito.', confirmLabel: 'Rimuovi', tone: 'danger' })) {
             const success = await databaseService.removeConnection(currentUser.$id, targetUserId);
             if (success) {
                 showToast('Collegamento rimosso.', 'info');

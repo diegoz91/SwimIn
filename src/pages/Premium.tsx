@@ -9,6 +9,7 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { PLAN_FEATURES, PLAN_NAME, euro, type Audience } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const HERO: Record<Audience, { title: string; text: string }> = {
     person: {
@@ -29,6 +30,7 @@ const SOURCE: Record<string, string> = { trial: 'prova gratuita', stripe: 'carta
 
 /** SwimIn Premium: confronto dei piani, prova gratuita, abbonamento e gestione. */
 const Premium: React.FC = () => {
+    const confirm = useConfirm();
     usePageTitle('SwimIn Premium');
     const { refreshProfile } = useAuth();
     const { showToast } = useToast();
@@ -116,7 +118,7 @@ const Premium: React.FC = () => {
     };
 
     const manage = async (cancel = false) => {
-        if (cancel && !window.confirm('Disdire il rinnovo? Premium resta attivo fino alla fine del periodo già pagato.')) return;
+        if (cancel && !(await confirm({ title: 'Disdire il rinnovo?', message: 'Premium resta attivo fino alla fine del periodo già pagato, poi torni al piano Base.', confirmLabel: 'Disdici il rinnovo', cancelLabel: 'Mantieni Premium', tone: 'danger' }))) return;
         setBusy('manage');
         try {
             const res = await databaseService.manageSubscription(cancel);

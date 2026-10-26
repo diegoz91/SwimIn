@@ -14,6 +14,7 @@ import { formatDate } from '@/utils/dates';
 import type { UserProfile } from '@/types/types';
 import { RELATIONSHIPS, relationLabel } from './recommendations/labels';
 import type { useRecommendations } from './recommendations/useRecommendations';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Values = { relationship: RecommendationRelationship; content: string };
 const validate = (v: Values): FormErrors<Values> => ({
@@ -40,6 +41,7 @@ export const RecommendationsSection: React.FC<{
     onReview: (startId?: string) => void;
     onAsk: () => void;
 }> = ({ profile, isOwnProfile, canWrite, recs, onReview, onAsk }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const { showToast } = useToast();
     const profileId = profile.userId || profile.$id;
@@ -96,7 +98,7 @@ export const RecommendationsSection: React.FC<{
     };
 
     const withdraw = async (r: Recommendation) => {
-        if (!window.confirm('Ritirare la tua referenza?')) return;
+        if (!(await confirm({ title: 'Ritirare la tua referenza?', message: 'Non sarà più visibile e dovrai riscriverla da capo.', confirmLabel: 'Ritira', tone: 'danger' }))) return;
         try {
             await databaseService.deleteRecommendation(r.$id);
             showToast('Referenza ritirata.', 'info');
@@ -223,7 +225,7 @@ export const RecommendationsSection: React.FC<{
                         {hidden.map((r) => card(r, (
                             <>
                                 <button onClick={() => respond(r, 'publish')} disabled={busyId === r.$id} className={pill.secondary}>Pubblica</button>
-                                <button onClick={() => { if (window.confirm('Eliminare definitivamente questa referenza?')) void respond(r, 'delete'); }} disabled={busyId === r.$id} className={pill.danger}>Elimina</button>
+                                <button onClick={async () => { if (await confirm({ title: 'Eliminare la referenza?', message: 'La elimini definitivamente: non si può recuperare.', confirmLabel: 'Elimina', tone: 'danger' })) void respond(r, 'delete'); }} disabled={busyId === r.$id} className={pill.danger}>Elimina</button>
                             </>
                         )))}
                     </ul>

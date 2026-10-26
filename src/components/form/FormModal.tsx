@@ -85,7 +85,7 @@ export const FormModal: React.FC<FormModalProps> = ({
 
     if (!open) return null;
 
-    const primary = tone === 'danger' ? 'bg-galleggiante hover:bg-red-700 focus-visible:ring-red-200' : 'bg-corsia-600 hover:bg-corsia-700 focus-visible:ring-corsia-200';
+    const primary = tone === 'danger' ? 'bg-galleggiante-700 hover:bg-red-800 focus-visible:ring-red-200' : 'bg-corsia-600 hover:bg-corsia-700 focus-visible:ring-corsia-200';
 
     return createPortal(
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4" onKeyDown={onKeyDown}>

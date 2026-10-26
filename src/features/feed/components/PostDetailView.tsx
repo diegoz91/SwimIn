@@ -11,6 +11,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import { displayNameOf } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
 import { scrollPageTo } from '@/utils/scroll';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface PostDetailViewProps {
     post: EnrichedPost;
@@ -22,6 +23,7 @@ interface PostDetailViewProps {
 }
 
 export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPost, onBack, onSelectProfile, backLabel = 'Torna al feed', onDeleted, onUpdated }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const [post, setPost] = useState(initialPost);
     useEffect(() => setPost(initialPost), [initialPost]);
@@ -94,7 +96,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
     const canDeleteComment = (comment: EnrichedComment) =>
         !!user && (comment.authorId === user.$id || post.authorId === user.$id)
             ? async () => {
-                if (!window.confirm('Eliminare questo commento?')) return;
+                if (!(await confirm({ title: 'Eliminare il commento?', confirmLabel: 'Elimina', tone: 'danger' }))) return;
                 try {
                     await databaseService.deleteComment(comment.$id);
                     showToast('Commento eliminato.', 'info');

@@ -4,6 +4,7 @@ import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { RichText } from '@/utils/richText';
 import { initialsAvatar } from '@/utils/avatar';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const POLL_MS = 5000;
 
@@ -22,6 +23,7 @@ const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('it-IT', { hour
  * Mentre la chat è aperta e la pagina visibile, chiede i nuovi messaggi ogni 5 secondi.
  */
 export const StaffChat: React.FC<{ structureId: string; structureName: string; currentUserId: string; isAdmin: boolean; onRead?: () => void }> = ({ structureId, structureName, currentUserId, isAdmin, onRead }) => {
+    const confirm = useConfirm();
     const { showToast } = useToast();
     const [messages, setMessages] = useState<StaffMessage[] | null>(null);
     const [members, setMembers] = useState<Map<string, StaffChatMember>>(new Map());
@@ -118,7 +120,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
     };
 
     const remove = async (m: StaffMessage) => {
-        if (!window.confirm('Eliminare il messaggio per tutto lo staff?')) return;
+        if (!await confirm({ title: 'Eliminare il messaggio?', message: 'Sparisce per tutto lo staff.', confirmLabel: 'Elimina', tone: 'danger' })) return;
         try {
             await databaseService.deleteStaffMessage(m.$id);
             setMessages((prev) => (prev || []).filter((x) => x.$id !== m.$id));

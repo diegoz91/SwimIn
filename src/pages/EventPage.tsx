@@ -15,11 +15,13 @@ import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { isPremium } from '@/utils/premium';
 import { RichText } from '@/utils/richText';
 import type { Group, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Profile = UserProfile | StructureProfile;
 
 /** Pagina di un evento: dettagli, iscrizione o lista d'attesa, calendario, partecipanti. */
 const EventPage: React.FC = () => {
+    const confirm = useConfirm();
     const { id = '' } = useParams();
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -95,12 +97,12 @@ const EventPage: React.FC = () => {
         }
     };
     const join = () => run(() => databaseService.joinSwimMeet(event.$id), (s) => (s.myStatus === 'waitlist' ? 'Posti esauriti: sei in lista d’attesa, ti avvisiamo se si libera un posto.' : 'Sei iscritto. Aggiungilo al calendario per non dimenticarlo.'));
-    const leave = () => {
-        if (!window.confirm(waitPos >= 0 ? 'Uscire dalla lista d’attesa?' : 'Annullare la tua partecipazione?')) return;
+    const leave = async () => {
+        if (!(await confirm({ title: waitPos >= 0 ? 'Uscire dalla lista d’attesa?' : 'Annullare la tua partecipazione?', message: waitPos >= 0 ? undefined : 'Il tuo posto passa al primo in lista d’attesa.', confirmLabel: waitPos >= 0 ? 'Esci dalla lista' : 'Annulla partecipazione', cancelLabel: 'Resta' }))) return;
         run(() => databaseService.leaveSwimMeet(event.$id), () => (waitPos >= 0 ? 'Sei uscito dalla lista d’attesa.' : 'Partecipazione annullata.'));
     };
-    const cancel = () => {
-        if (!window.confirm('Annullare l’evento? Iscritti e lista d’attesa riceveranno una notifica. Non si può tornare indietro.')) return;
+    const cancel = async () => {
+        if (!(await confirm({ title: 'Annullare l’evento?', message: 'Iscritti e lista d’attesa riceveranno una notifica. Non si può tornare indietro.', confirmLabel: 'Annulla l’evento', cancelLabel: 'Non annullare', tone: 'danger' }))) return;
         run(() => databaseService.cancelSwimMeet(event.$id), () => 'Evento annullato: abbiamo avvisato gli iscritti.');
     };
     const share = async () => {

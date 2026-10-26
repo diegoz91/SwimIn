@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
 import type { Endorsement, UserProfile, StructureProfile } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
+import { useConfirm } from '@/context/ConfirmContext';
 
 const MAX_SKILLS = 20;
 const MAX_SKILL_LENGTH = 60;
@@ -29,6 +30,7 @@ interface SkillsSectionProps {
  * endorsement di LinkedIn: i colleghi possono confermare ciò che sai fare.
  */
 export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProfile, onProfileUpdated }) => {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
@@ -100,7 +102,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
     };
 
     const removeSkill = async (skill: string) => {
-        if ((bySkill.get(skill)?.length || 0) > 0 && !window.confirm(`Rimuovere "${skill}"? Perderai anche le conferme ricevute.`)) return;
+        if ((bySkill.get(skill)?.length || 0) > 0 && !(await confirm({ title: `Rimuovere "${skill}"?`, message: 'Perderai anche le conferme ricevute.', confirmLabel: 'Rimuovi', tone: 'danger' }))) return;
         await saveSkills(skills.filter((s) => s !== skill));
     };
 

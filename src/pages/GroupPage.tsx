@@ -18,6 +18,7 @@ import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { isPremium } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
 import type { EnrichedPost, Group, GroupMember, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Profile = UserProfile | StructureProfile;
 
@@ -32,6 +33,7 @@ async function profilesFor(ids: string[]) {
 
 /** Pagina di un gruppo: discussione, membri (con richieste e moderazione) e informazioni. */
 const GroupPage: React.FC = () => {
+    const confirm = useConfirm();
     const { id = '' } = useParams();
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -103,7 +105,7 @@ const GroupPage: React.FC = () => {
     };
 
     const leave = async () => {
-        if (me?.status === 'active' && !window.confirm(`Lasciare il gruppo "${group?.name}"?`)) return;
+        if (me?.status === 'active' && !(await confirm({ title: `Lasciare «${group?.name}»?`, message: 'Non vedrai più i post del gruppo; potrai rientrare quando vuoi.', confirmLabel: 'Lascia il gruppo' }))) return;
         setBusy(true);
         try {
             await databaseService.leaveGroup(id);
@@ -118,8 +120,8 @@ const GroupPage: React.FC = () => {
 
     const moderate = async (userId: string, action: Moderation) => {
         const name = profiles.get(userId) ? displayNameOf(profiles.get(userId)!) : 'questa persona';
-        if (action === 'ban' && !window.confirm(`Bloccare ${name}? Non potrà più rientrare nel gruppo.`)) return;
-        if (action === 'remove' && !window.confirm(`Rimuovere ${name} dal gruppo?`)) return;
+        if (action === 'ban' && !(await confirm({ title: `Bloccare ${name}?`, message: 'Non potrà più rientrare nel gruppo.', confirmLabel: 'Blocca', tone: 'danger' }))) return;
+        if (action === 'remove' && !(await confirm({ title: `Rimuovere ${name} dal gruppo?`, confirmLabel: 'Rimuovi', tone: 'danger' }))) return;
         try {
             await databaseService.moderateGroupMember(id, userId, action);
             const done: Record<Moderation, string> = {
@@ -134,7 +136,7 @@ const GroupPage: React.FC = () => {
     };
 
     const remove = async () => {
-        if (!group || !window.confirm(`Eliminare definitivamente "${group.name}" con tutti i suoi post?`)) return;
+        if (!group || !(await confirm({ title: `Eliminare «${group.name}»?`, message: 'Il gruppo e tutti i suoi post spariscono definitivamente.', confirmLabel: 'Elimina il gruppo', tone: 'danger' }))) return;
         try {
             await databaseService.deleteGroup(id);
             showToast('Gruppo eliminato.', 'info');

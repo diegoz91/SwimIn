@@ -15,6 +15,7 @@ import { formatRelativeTime } from '@/utils/format';
 import { Icon } from '@/components/ui/Icon';
 import { Stars, StarInput } from './Stars';
 import { useBlocks } from '@/context/BlocksContext';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type Values = { rating: number; content: string; visitedAt: string };
 const MAX = 2000;
@@ -27,6 +28,7 @@ const validate = (v: Values): FormErrors<Values> => ({
 const ReviewModal: React.FC<{ open: boolean; structureName: string; existing?: Review; onClose: () => void; onSubmit: (v: Values) => Promise<void>; onDelete?: () => Promise<void> }> = ({
     open, structureName, existing, onClose, onSubmit, onDelete,
 }) => {
+    const confirm = useConfirm();
     const [saving, setSaving] = useState(false);
     const form = useForm<Values>({ rating: 0, content: '', visitedAt: '' }, useCallback(validate, []));
     useEffect(() => {
@@ -58,7 +60,7 @@ const ReviewModal: React.FC<{ open: boolean; structureName: string; existing?: R
             formRef={form.formRef}
             secondaryAction={
                 existing && onDelete ? (
-                    <button type="button" className="text-sm font-semibold text-galleggiante-700 hover:underline" onClick={async () => { if (window.confirm('Eliminare la tua recensione?')) { await onDelete(); onClose(); } }}>
+                    <button type="button" className="text-sm font-semibold text-galleggiante-700 hover:underline" onClick={async () => { if (await confirm({ title: 'Eliminare la tua recensione?', message: 'Il voto viene tolto dalla media della struttura.', confirmLabel: 'Elimina', tone: 'danger' })) { await onDelete(); onClose(); } }}>
                         Elimina
                     </button>
                 ) : null

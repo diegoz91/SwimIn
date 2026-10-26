@@ -6,6 +6,7 @@ import { storageService } from '@/services/storage';
 import { useToast } from '@/context/ToastContext';
 import { initialsAvatar } from '@/utils/avatar';
 import { MentionTextarea, fromEditable, type MentionMap } from '@/components/form/MentionTextarea';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface CreatePostModalProps {
     isOpen: boolean;
@@ -28,6 +29,7 @@ const CATEGORIES = [
 export const CreatePostModal: React.FC<CreatePostModalProps> = ({ 
     isOpen, onClose, onCreatePost, user, initialMediaType 
 }) => {
+    const confirm = useConfirm();
     const [content, setContent] = useState('');
     const [mentions, setMentions] = useState<MentionMap>({});
     // Sondaggio: domanda nel testo del post, da 2 a 4 opzioni, durata in giorni.
@@ -68,7 +70,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
     const handleSafeClose = () => {
         if (content.trim() !== '' || mediaFiles.length > 0 || videoFile || poll) {
-            if (window.confirm("Hai un post in sospeso. Sei sicuro di voler annullare?")) onClose();
+            void confirm({ title: 'Scartare il post?', message: 'Testo, foto e sondaggio non ancora pubblicati andranno persi.', confirmLabel: 'Scarta', cancelLabel: 'Continua a scrivere', tone: 'danger' }).then((ok) => ok && onClose());
         } else {
             onClose();
         }

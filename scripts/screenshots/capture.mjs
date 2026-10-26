@@ -84,6 +84,7 @@ const PRIVATE_INTERACTIONS = [
     ['cerca-tutto', '/cerca?q=master', async () => undefined],
     ['impostazioni-password', '/profile?tab=impostazioni&sezione=sicurezza', (p) => p.getByRole('button', { name: 'Cambia', exact: true }).first().click()],
     ['impostazioni-elimina', '/profile?tab=impostazioni&sezione=account', (p) => p.getByRole('button', { name: 'Elimina', exact: true }).click()],
+    ['conferma', '/jobs/candidature', async (p) => { await p.getByRole('button', { name: 'Ritira' }).first().click(); await p.getByRole('alertdialog').waitFor(); }],
     ['avvisi-lavoro', '/jobs', (p) => p.getByRole('button', { name: /^Avvisi$/ }).click()],
     ['form-evento', '/eventi', (p) => p.getByRole('button', { name: 'Crea un evento' }).first().click()],
     ['form-gruppo', '/gruppi', (p) => p.getByRole('button', { name: 'Crea un gruppo' }).first().click()],
