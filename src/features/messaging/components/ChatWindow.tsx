@@ -10,6 +10,7 @@ import { initialsAvatar } from '@/utils/avatar';
 import { RichText } from '@/utils/richText';
 import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { REACTIONS, reactionOf } from '@/data/reactions';
+import { useKeepInside } from '@/hooks/useKeepInside';
 import {
   CHAT_ACCEPT, chatFileUrl, discardChatFile, downloadChatFile, formatFileSize, isImageAttachment, parseAttachments, uploadChatFile,
 } from '@/services/chatFiles';
@@ -93,6 +94,13 @@ const FileChip: React.FC<{ a: ChatAttachment; mine: boolean }> = ({ a, mine }) =
       <Icon type="download" className="w-5 h-5 flex-shrink-0 opacity-80" />
     </button>
   );
+};
+
+/** Contenitore di un menu che resta dentro il riquadro della chat (anche nel widget stretto). */
+const KeepInside: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ children, ...rest }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  useKeepInside(ref, true);
+  return <div ref={ref} {...rest}>{children}</div>;
 };
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -464,7 +472,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           <Icon type="ellipsis" className="w-4 h-4" />
                         </button>
                         {actionsOpen && (
-                          <div role="menu" className={`absolute bottom-full mb-1 z-20 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-1 ${isMe ? 'right-0' : 'left-0'}`}>
+                          <KeepInside role="menu" className={`absolute bottom-full mb-1 z-20 w-48 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl py-1 ${isMe ? 'left-0' : 'right-0'}`}>
                             <button role="menuitem" onClick={() => startReply(msg)} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"><Icon type="reply" className="w-4 h-4 text-slate-400" /> Rispondi</button>
                             <button role="menuitem" onClick={() => { setActiveId(null); setPickerFor(msg.$id); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"><Icon type="face-smile" className="w-4 h-4 text-slate-400" /> Reagisci</button>
                             {msg.content && (
@@ -473,16 +481,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             {isMe && (
                               <button role="menuitem" onClick={() => remove(msg)} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-galleggiante-700 hover:bg-red-50"><Icon type="trash" className="w-4 h-4" /> Elimina per tutti</button>
                             )}
-                          </div>
+                          </KeepInside>
                         )}
                         {pickerFor === msg.$id && (
-                          <div role="group" aria-label="Scegli una reazione" className={`absolute bottom-full mb-1 z-20 flex gap-0.5 bg-white border border-slate-200 rounded-full shadow-xl px-1.5 py-1 ${isMe ? 'right-0' : 'left-0'}`}>
+                          <KeepInside role="group" aria-label="Scegli una reazione" className={`absolute bottom-full mb-1 z-20 flex gap-0.5 bg-white border border-slate-200 rounded-full shadow-xl px-1.5 py-1 ${isMe ? 'left-0' : 'right-0'}`}>
                             {MESSAGE_REACTIONS.map((r) => (
                               <button key={r.key} type="button" onClick={() => react(msg, r.key)} aria-label={r.label} title={r.label} className="w-9 h-9 grid place-items-center rounded-full text-xl hover:bg-slate-100 hover:scale-110 transition-transform">
                                 <span aria-hidden="true">{r.emoji}</span>
                               </button>
                             ))}
-                          </div>
+                          </KeepInside>
                         )}
                       </div>
                     )}

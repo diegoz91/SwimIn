@@ -72,6 +72,17 @@ const Search: React.FC = () => {
 
     useEffect(() => setInput(q), [q]);
 
+    // Risultati mentre si scrive (da 2 lettere), senza dover premere Invio.
+    useEffect(() => {
+        const next = input.trim();
+        if (next === q || (next.length > 0 && next.length < 2)) return;
+        const t = window.setTimeout(() => {
+            setTab('tutti');
+            setParams(next ? { q: next } : {}, { replace: true });
+        }, 300);
+        return () => window.clearTimeout(t);
+    }, [input]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         if (!user || q.length < 2) {
             setResults(EMPTY);
