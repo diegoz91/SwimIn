@@ -9,6 +9,7 @@ import { useForm, type FormErrors } from '@/hooks/useForm';
 import { useContactInfo } from '@/hooks/useContactInfo';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
+import { OpeningHoursEditor, dayError } from './OpeningHoursEditor';
 import { LANGUAGES, provinceName } from '@/data/italy';
 import { POOL_SERVICES, POOL_SETTINGS, PROFESSIONAL_ROLES, STRUCTURE_TYPES, SWIM_ACTIVITIES } from '@/data/swimming';
 import {
@@ -38,6 +39,7 @@ type Values = {
     lanes: string;
     poolSetting: string;
     services: string[];
+    openingHours: string[];
 };
 
 const toValues = (p: UserProfile | StructureProfile): Values => {
@@ -64,6 +66,7 @@ const toValues = (p: UserProfile | StructureProfile): Values => {
         lanes: s.lanes ? String(s.lanes) : '',
         poolSetting: s.poolSetting || '',
         services: s.services || [],
+        openingHours: s.openingHours?.length === 7 ? s.openingHours : ['', '', '', '', '', '', ''],
     };
 };
 
@@ -92,6 +95,7 @@ export const validateProfile = (v: Values, isProfessional: boolean, comuni: stri
         vatNumber: check(v.vatNumber, vatNumber),
         poolLength: check(v.poolLength, integerBetween(10, 100, 'Indica una lunghezza tra 10 e 100 metri.')),
         lanes: check(v.lanes, integerBetween(1, 20, 'Indica un numero di corsie tra 1 e 20.')),
+        openingHours: v.openingHours.some((d) => dayError(d)) ? 'Controlla gli orari di apertura.' : undefined,
     };
 };
 
@@ -148,6 +152,7 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                   lanes: v.lanes ? Number(v.lanes) : null,
                   poolSetting: (v.poolSetting || null) as StructureProfile['poolSetting'],
                   services: v.services.slice(0, POOL_SERVICES.length),
+                  openingHours: v.openingHours.every((d) => !d) ? [] : v.openingHours,
               };
         // Telefono non ancora arrivato dal server: non lo tocchiamo (eviteremmo di cancellarlo).
         if (isProfessional && !contact) delete (data as { phone?: string }).phone;
@@ -282,6 +287,13 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                         <p className="text-sm font-semibold text-abisso mb-2">Attività proposte</p>
                         <ChoiceChips label="Attività proposte" multiple options={POOL_SERVICES.map((s) => ({ value: s, label: s }))} value={values.services} onChange={(next) => set('services', next)} />
                     </div>
+                </FormSection>
+            )}
+
+            {!isProfessional && (
+                <FormSection title="Orari di apertura" description="Compaiono sulla pagina con lo stato «aperto ora». Lascia «Non indicato» se variano.">
+                    <OpeningHoursEditor value={values.openingHours} onChange={(next) => set('openingHours', next)} />
+                    {errors.openingHours && <p className="text-sm text-galleggiante-700" role="alert">{errors.openingHours}</p>}
                 </FormSection>
             )}
 

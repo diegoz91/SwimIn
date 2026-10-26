@@ -328,7 +328,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
 
 // Vista della struttura: Giulia diventa la piscina, l'annuncio j1 è suo (gestionale annunci e candidati).
 const asStructure = {
-    profiles: { [ME]: { userType: 'structure', structureName: 'Piscina Lido di Milano', structureType: 'Piscina comunale', firstName: '', lastName: '', title: '' } },
+    profiles: { [ME]: { userType: 'structure', structureName: 'Piscina Lido di Milano', structureType: 'Piscina comunale', firstName: '', lastName: '', title: '', openingHours: ['07:00-22:00', '07:00-13:00,15:00-21:00', '', '', '', '', 'chiuso'] } },
     jobs: { j1: { structureId: ME } },
 };
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile', 'mobile-piccolo'].includes(n))) {
@@ -338,6 +338,8 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['annunci', '/jobs/annunci'],
         ['annunci-candidati', '/jobs/j1?candidati=nuove', async (p) => { await p.getByRole('button', { name: /^Valuta/ }).first().click(); }],
         ['lavoro-struttura', '/jobs'],
+        ['struttura-propria', '/profile'],
+        ['form-orari', '/profile', async (p) => { await p.getByRole('button', { name: /Modifica pagina/ }).first().click(); await p.getByText('Orari di apertura', { exact: true }).scrollIntoViewIfNeeded(); }],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome' });
         const page = await context.newPage();
