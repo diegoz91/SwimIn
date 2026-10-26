@@ -32,6 +32,12 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile | StructureProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Account senza profilo (es. primo accesso con Google): va completato scegliendo il tipo di account. */
+  incompleteAccount: { $id: string; email: string; name: string } | null;
+  /** Ricontrolla la sessione (dopo l'accesso con Google). Restituisce 'ok', 'incomplete', 'mfa' o 'none'. */
+  reloadSession: () => Promise<'ok' | 'incomplete' | 'mfa' | 'none'>;
+  /** Crea il profilo per un account già esistente (accesso con Google). */
+  completeAccount: (data: RegistrationData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -52,6 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [incompleteAccount, setIncompleteAccount] = useState<AuthContextType['incompleteAccount']>(null);
   
   const isActionPending = useRef<boolean>(false);
 
@@ -61,18 +68,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // L'email viene dall'account (sul profilo pubblico non c'è più).
       return { ...accountData, ...profile, email: accountData.email } as AuthenticatedUser;
     } catch (error) {
-      console.warn('Profilo non trovato nel database, ma account Auth esistente.');
+      // Solo "non trovato" vuol dire account senza profilo; gli altri errori (rete) non vanno confusi.
+      if ((error as { code?: number })?.code !== 404) throw error;
+      console.warn('Account senza profilo: va completato.');
       return null;
     }
   };
 
-  const checkAuth = async () => {
+  const checkAuth = async (): Promise<'ok' | 'incomplete' | 'mfa' | 'none'> => {
     try {
       const accountData = await account.get();
       const fullProfile = await loadUserProfile(accountData);
       setUser(fullProfile);
+      setIncompleteAccount(fullProfile ? null : { $id: accountData.$id, email: accountData.email, name: accountData.name || '' });
+      return fullProfile ? 'ok' : 'incomplete';
     } catch (error) {
       setUser(null);
+      setIncompleteAccount(null);
+      return isMfaRequired(error) ? 'mfa' : 'none';
     } finally {
       setIsInitializing(false);
     }
@@ -153,6 +166,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const reloadSession = () => checkAuth();
+
+  const completeAccount = async (data: RegistrationData) => {
+    if (!incompleteAccount) throw new Error('Nessun account da completare.');
+    setIsLoading(true);
+    try {
+      await databaseService.initializeProfile(incompleteAccount.$id, incompleteAccount.email, data);
+      await checkAuth();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (email: string, password: string, data: RegistrationData) => {
     if (isActionPending.current) return;
     isActionPending.current = true;
@@ -191,6 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      setIncompleteAccount(null);
       setIsLoading(false);
     }
   };
@@ -214,7 +241,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(updatedProfile);
     } catch (error) {
       console.error('refreshProfile error:', error);
-      setUser(null);
+      // Sessione scaduta: si esce; un errore di rete invece lascia l'utente dov'è.
+      if ((error as { code?: number })?.code === 401) setUser(null);
       throw error;
     }
   };
@@ -229,7 +257,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     updateProfile,
-    refreshProfile
+    refreshProfile,
+    incompleteAccount,
+    reloadSession,
+    completeAccount,
   };
 
   return (

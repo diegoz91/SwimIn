@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { rememberPendingJob } from '@/utils/pendingJob';
 import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
-import { Icon } from '@/components/ui/Icon';
+import { AccountTypePicker, initialChoice, registrationOf, type AccountChoice } from './AccountTypePicker';
+import { AuthDivider, GoogleButton } from './GoogleButton';
 import { authErrorMessage } from '@/utils/authErrors';
 import { Checkbox, Field, fieldClass } from '@/components/form/Field';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
@@ -30,18 +31,10 @@ const makeValidator = (userType: AccountType) => (v: Values): FormErrors<Values>
     acceptedTerms: v.acceptedTerms ? undefined : 'Per creare l’account devi accettare Termini e Privacy Policy.',
 });
 
-type Choice = 'lavoro' | 'passione' | 'struttura';
-const ACCOUNT_TYPES: { id: Choice; title: string; description: string; icon: 'briefcase' | 'heart' | 'building' }[] = [
-    { id: 'lavoro', title: 'Lavoro nel nuoto', description: 'Istruttore, assistente bagnanti, allenatore…', icon: 'briefcase' },
-    { id: 'passione', title: 'Nuoto per passione', description: 'Corsi, master, nuoto libero, community', icon: 'heart' },
-    { id: 'struttura', title: 'Struttura', description: 'Piscina, centro sportivo, società', icon: 'building' },
-];
-const initialChoice = (tipo: string | null): Choice => (tipo === 'struttura' ? 'struttura' : tipo === 'passione' ? 'passione' : 'lavoro');
-
 export const RegisterForm: React.FC = () => {
     const [params] = useSearchParams();
     useEffect(() => rememberPendingJob(params.get('offerta')), [params]);
-    const [choice, setChoice] = useState<Choice>(initialChoice(params.get('tipo')));
+    const [choice, setChoice] = useState<AccountChoice>(initialChoice(params.get('tipo')));
     const userType: AccountType = choice === 'struttura' ? 'structure' : 'professional';
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -56,13 +49,7 @@ export const RegisterForm: React.FC = () => {
     const handleSubmit = form.handleSubmit(async (v) => {
         setError(null);
         try {
-            await register(v.email.trim().toLowerCase(), v.password, {
-                userType,
-                personType: choice === 'passione' ? 'enthusiast' : choice === 'lavoro' ? 'professional' : undefined,
-                firstName: v.firstName.trim().replace(/\s+/g, ' '),
-                lastName: v.lastName.trim().replace(/\s+/g, ' '),
-                structureName: v.structureName.trim().replace(/\s+/g, ' '),
-            });
+            await register(v.email.trim().toLowerCase(), v.password, registrationOf(choice, v));
             showToast('Account creato. Benvenuto in SwimIn!', 'success');
             navigate('/benvenuto', { replace: true });
         } catch (err) {
@@ -78,33 +65,10 @@ export const RegisterForm: React.FC = () => {
             </div>
 
             <form ref={form.formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
-                <fieldset>
-                    <legend className="block text-sm font-semibold text-slate-700 mb-2">Mi iscrivo come</legend>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="radiogroup">
-                        {ACCOUNT_TYPES.map((t) => {
-                            const selected = choice === t.id;
-                            return (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={selected}
-                                    onClick={() => setChoice(t.id)}
-                                    disabled={isLoading}
-                                    className={`text-left p-3 rounded-2xl border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 flex sm:block items-center gap-3 ${
-                                        selected ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300 bg-white'
-                                    }`}
-                                >
-                                    <Icon type={t.icon} className={`w-6 h-6 sm:mb-1 flex-shrink-0 ${selected ? 'text-corsia-600' : 'text-slate-400'}`} />
-                                    <span>
-                                        <span className={`block font-bold text-sm ${selected ? 'text-corsia-800' : 'text-slate-800'}`}>{t.title}</span>
-                                        <span className="block text-[11px] leading-tight text-slate-500 mt-0.5">{t.description}</span>
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </fieldset>
+                <AccountTypePicker value={choice} onChange={setChoice} disabled={isLoading} />
+
+                <GoogleButton intent="register" choice={choice} disabled={isLoading} />
+                <AuthDivider />
 
                 {userType === 'professional' ? (
                     <div className="grid grid-cols-2 gap-3">
