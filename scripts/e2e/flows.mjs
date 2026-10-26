@@ -160,6 +160,13 @@ const FLOWS = [
         const vw = page.viewportSize().width;
         assert.ok(box && box.x >= 0 && box.x + box.width <= vw, `menu fuori dallo schermo: ${JSON.stringify(box)}`);
     }],
+    ['chi scrive una referenza la vede in attesa, senza poterla pubblicare', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/profile/u_marco');
+        await page.locator('#recs-title').scrollIntoViewIfNeeded();
+        await page.getByText('In attesa di approvazione').waitFor({ timeout: 6000 });
+        assert.equal(await page.getByRole('button', { name: 'Pubblica', exact: true }).count(), 0, 'chi ha scritto la referenza non deve vedere "Pubblica"');
+        assert.equal(await page.getByRole('button', { name: 'Non pubblicare', exact: true }).count(), 0);
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

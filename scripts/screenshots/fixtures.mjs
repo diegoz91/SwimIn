@@ -291,7 +291,10 @@ export const apiResponses = {
             content: 'Abbiamo lavorato insieme due stagioni al Lido: sempre puntuale, attentissima alla sicurezza in vasca e capace di tenere un gruppo di bambini di cinque anni come pochi. Quando c’è da coprire un turno all’ultimo momento è la prima a rispondere.' };
         const pending = { $id: 'rc2', $createdAt: new Date(now - 86400000).toISOString(), profileId, authorId: 'u_lido', relationship: 'struttura', status: 'pending', author: lido,
             content: 'Giulia ha seguito i corsi di acquaticità del sabato per tutto l’anno: genitori soddisfatti, iscrizioni in crescita e zero problemi di organizzazione.' };
-        return profileId === ME ? [pending, published] : [published];
+        // Sul profilo di Marco: la referenza scritta da Giulia, in attesa (la vede solo come stato, senza Pubblica).
+        const mine = { $id: 'rc3', $createdAt: new Date(now - 3600000).toISOString(), profileId, authorId: ME, relationship: 'collega', status: 'pending', author: { $id: ME, name: 'Giulia Ferri', avatar: '', headline: 'Istruttrice FIN di nuoto e acquaticità' },
+            content: 'Marco prepara gli allenamenti master con una cura rara: serie chiare, obiettivi per ognuno e sempre un occhio alla tecnica.' };
+        return profileId === ME ? [pending, published] : profileId === 'u_marco' ? [published, mine] : [published];
     },
     listJobAlerts: () => [
         { $id: 'al1', $createdAt: new Date(now - 3 * 86400000).toISOString(), userId: ME, query: 'istruttore', province: 'MI', contractType: '', sosOnly: false },
