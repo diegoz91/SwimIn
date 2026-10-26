@@ -65,6 +65,7 @@ const C = {
   recommendations: 'recommendations',
   eventPrivate: 'event_private',
   staffChatReads: 'staff_chat_reads',
+  staffInvites: 'staff_invites',
   pushSubscriptions: 'push_subscriptions',
   plans: 'plans',
 };
@@ -743,6 +744,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         await update(C.liveRooms, room.$id, { status: 'ended', speakers: [], listeners: [] });
       }
       await removeAll(C.shifts, [Query.equal('userId', me)]);
+      await removeAll(C.staffInvites, [Query.equal('userId', me)]);
+      await removeAll(C.staffInvites, [Query.equal('structureId', me)]);
       await removeAll(C.shifts, [Query.equal('structureId', me)]);
       await removeAll(C.announcements, [Query.equal('structureId', me)]);
       await removeAll(C.notifications, [Query.equal('userId', me)]);

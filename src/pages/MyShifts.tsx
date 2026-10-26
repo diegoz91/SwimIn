@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
-import { databaseService } from '@/services/database';
+import { databaseService, type MyTeam, type StaffInvite } from '@/services/database';
+import { initialsAvatar } from '@/utils/avatar';
+import { formatRelativeTime } from '@/utils/format';
 import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { ShiftWeek, type ShiftItem } from '@/features/profile/components/ShiftWeek';
@@ -22,6 +24,29 @@ const MyShifts: React.FC = () => {
     const { showToast } = useToast();
     const [shifts, setShifts] = useState<ShiftItem[] | null>(null);
     const [weekStart, setWeekStart] = useState(() => weekStartISO(todayISO()));
+    const [invites, setInvites] = useState<StaffInvite[]>([]);
+    const [teams, setTeams] = useState<MyTeam[]>([]);
+
+    // Inviti nello staff da accettare e strutture di cui faccio parte.
+    const loadTeams = useCallback(async () => {
+        const [inv, tm] = await Promise.all([
+            databaseService.listMyStaffInvites().catch((err) => { console.error('Inviti:', err); return [] as StaffInvite[]; }),
+            databaseService.listMyTeams().catch((err) => { console.error('Strutture:', err); return [] as MyTeam[]; }),
+        ]);
+        setInvites(inv);
+        setTeams(tm);
+    }, []);
+    useEffect(() => { void loadTeams(); }, [loadTeams]);
+
+    const answer = async (inv: StaffInvite, accept: boolean) => {
+        try {
+            await databaseService.respondStaffInvite(inv.structureId, accept);
+            showToast(accept ? `Benvenuto nello staff di ${inv.name}.` : 'Invito rifiutato.', accept ? 'success' : 'info');
+            await Promise.all([loadTeams(), load()]);
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        }
+    };
 
     const load = useCallback(async () => {
         try {
@@ -70,11 +95,54 @@ const MyShifts: React.FC = () => {
                 )}
             </div>
 
+            {invites.length > 0 && (
+                <section className="mb-5 rounded-3xl border border-cloro-200 bg-cloro-50 p-5" aria-labelledby="invites-title">
+                    <h2 id="invites-title" className="text-xl font-bold text-abisso">Inviti nello staff</h2>
+                    <ul className="mt-3 space-y-3">
+                        {invites.map((inv) => (
+                            <li key={inv.structureId} className="bg-white rounded-2xl border border-cloro-200 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <img src={inv.logo || initialsAvatar(inv.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-abisso truncate">{inv.name}</p>
+                                        <p className="text-sm text-slate-600">Ti invita nel suo staff: bacheca, turni e chat della squadra · {formatRelativeTime(inv.invitedAt)}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => answer(inv, true)} className="px-4 py-2 rounded-full text-sm font-semibold bg-cloro-700 text-white hover:bg-cloro-800">Accetta</button>
+                                    <button onClick={() => answer(inv, false)} className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:border-slate-300">Rifiuta</button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {teams.length > 0 && (
+                <section className="mb-5" aria-labelledby="teams-title">
+                    <h2 id="teams-title" className="text-xl font-bold text-abisso mb-3">Le mie strutture</h2>
+                    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {teams.map((t) => (
+                            <li key={t.structureId}>
+                                <Link to={`/profile/${t.structureId}?area=staff`} className="bg-white rounded-2xl border border-slate-200 shadow-card p-4 flex items-center gap-3 hover:border-corsia-300 transition-colors">
+                                    <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block font-semibold text-abisso truncate">{t.name}</span>
+                                        <span className="block text-sm text-slate-500 truncate">{t.role === 'admin' ? 'Amministratore' : 'Staff'}{t.city ? ` · ${t.city}` : ''}</span>
+                                    </span>
+                                    <Icon type="chevron-right" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
             {shifts.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 px-4">
                     <Icon type="calendar" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
                     <p className="font-semibold text-abisso">Qui vedrai i turni che ti assegnano le strutture.</p>
-                    <p className="text-sm text-slate-500 mt-1">Quando una struttura ti assume da un annuncio entri nel suo staff e può assegnarti i turni.</p>
+                    <p className="text-sm text-slate-500 mt-1">Entri nello staff di una struttura quando ti assume da un annuncio o accetti un suo invito: da lì può assegnarti i turni.</p>
                     <Link to="/jobs" className="inline-block mt-4 text-sm font-semibold text-corsia-700 hover:underline">Cerca lavoro</Link>
                 </div>
             ) : (

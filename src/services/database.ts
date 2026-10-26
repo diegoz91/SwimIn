@@ -259,8 +259,13 @@ export interface TeamMember {
     $id: string; userId: string; firstName: string; lastName: string; title: string; avatar: string; city: string;
     isOnline: boolean; certificationsList: string[];
 }
+export interface StaffInvite { structureId: string; name: string; logo: string; city: string; invitedAt: string }
+export interface MyTeam { structureId: string; name: string; logo: string; city: string; role: 'admin' | 'staff' }
+export interface PendingStaffInvite { userId: string; name: string; avatar: string; title: string; invitedAt: string }
 export interface TeamBoard {
     role: 'admin' | 'staff';
+    /** Solo per gli amministratori: inviti nello staff in attesa di risposta. */
+    invites?: PendingStaffInvite[];
     /** Solo per gli amministratori: persone massime nello staff con il piano Base (null = senza limiti). */
     staffLimit?: number | null;
     members: TeamMember[];
@@ -1309,6 +1314,27 @@ export const databaseService = {
     /** Un amministratore toglie un membro, oppure il membro stesso lascia lo staff. */
     async removeStaffMember(structureId: string, staffId: string) {
         return await callApi<{ removed: boolean }>('removeStaffMember', { structureId, staffId });
+    },
+    /** Invito nello staff per chi lavora già nella struttura (entra solo se accetta). */
+    async inviteStaff(structureId: string, userId: string) {
+        return await callApi<{ invited: boolean; already?: boolean }>('inviteStaff', { structureId, userId });
+    },
+    async cancelStaffInvite(structureId: string, userId: string) {
+        return await callApi<{ cancelled: boolean }>('cancelStaffInvite', { structureId, userId });
+    },
+    async listMyStaffInvites() {
+        return await callApi<StaffInvite[]>('listMyStaffInvites');
+    },
+    async respondStaffInvite(structureId: string, accept: boolean) {
+        return await callApi<{ joined: boolean }>('respondStaffInvite', { structureId, accept });
+    },
+    /** Strutture di cui faccio parte (staff o amministratore). */
+    async listMyTeams() {
+        return await callApi<MyTeam[]>('listMyTeams');
+    },
+    /** Un amministratore sposta o riassegna un turno. */
+    async updateSquadShift(shiftId: string, data: { userId?: string; date?: string; shiftTime?: string }) {
+        return await callApi<SquadShift>('updateShift', { shiftId, ...data });
     },
 
     // ==========================================

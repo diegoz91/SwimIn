@@ -67,6 +67,15 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
     certificationsList: p.certificationsList || [],
   });
 
+  /** Piano Base: staff (più inviti in sospeso) fino a BASE_STAFF persone, salvo un amministratore Premium. */
+  const staffLimit = async (team) => {
+    const admins = await Promise.all(team.admins.slice(0, 10).map((id) => find(C.profiles, id)));
+    return admins.some((p) => isPremium(p)) ? null : BASE_STAFF;
+  };
+  const pendingInvites = async (structureId) => listAll(C.staffInvites, [Query.equal('structureId', structureId), Query.equal('status', 'pending')]);
+  const inviteKey = (structureId, userId) => createHash('sha256').update(`invite:${structureId}:${userId}`).digest('hex').slice(0, 32);
+  const logoOf = (team) => team.row.logo || '';
+
   return {
     /** Tutto ciò che serve all'area staff, solo per chi ne fa parte. */
     async getTeamBoard(me, { structureId } = {}) {
@@ -78,15 +87,22 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         list(C.shifts, [Query.equal('structureId', structureId), Query.greaterThanEqual('date', isoDay(Date.now() - 7 * 86_400_000)), Query.orderAsc('date'), Query.limit(200)]),
         unreadChat(structureId, me).catch(() => 0),
       ]);
-      // Piano Base: area staff fino a BASE_STAFF persone (basta un amministratore Premium per toglierlo).
-      let staffLimit = null;
+      // Solo per gli amministratori: limite del piano Base e inviti in attesa di risposta.
+      let limit = null;
+      let invites = [];
       if (role === 'admin') {
-        const admins = await Promise.all(team.admins.slice(0, 10).map((id) => find(C.profiles, id)));
-        staffLimit = admins.some((p) => isPremium(p)) ? null : BASE_STAFF;
+        limit = await staffLimit(team);
+        const pending = await pendingInvites(structureId);
+        const people = pending.length ? await listAll(C.profiles, [Query.equal('$id', pending.map((i) => i.userId).slice(0, 100))]) : [];
+        invites = pending.map((i) => {
+          const p = people.find((x) => x.$id === i.userId);
+          return { userId: i.userId, name: p ? displayName(p) : 'Utente', avatar: p?.avatar || '', title: p?.title || '', invitedAt: i.$createdAt };
+        });
       }
       return {
         role,
-        staffLimit,
+        staffLimit: limit,
+        invites,
         members: members.map(memberCard),
         announcements: announcements.documents,
         // Lo staff vede tutti i turni della squadra (serve per gli scambi), non solo i propri.
@@ -233,6 +249,115 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       await removeAll(C.shifts, [Query.equal('structureId', structureId), Query.equal('userId', staffId), Query.greaterThanEqual('date', isoDay(Date.now()))]);
       if (staffId !== me) await notify(staffId, 'general', `Non fai più parte dello staff di ${team.name}.`, structureId);
       return { removed: true };
+    },
+
+    /**
+     * Un amministratore invita nello staff chi lavora già nella struttura (senza passare da un annuncio).
+     * La persona entra solo se accetta; fino ad allora l'invito conta per il limite del piano Base.
+     */
+    async inviteStaff(me, { structureId, userId } = {}) {
+      const { team } = await requireRole(me, structureId, 'admin');
+      if (typeof userId !== 'string' || !userId) fail(400, 'Scegli chi invitare.');
+      if (team.staff.includes(userId)) fail(409, 'Fa già parte dello staff.');
+      if (team.admins.includes(userId)) fail(409, 'È già amministratore della struttura.');
+      const person = await find(C.profiles, userId);
+      if (!person || person.userType !== 'professional' || person.suspended) fail(404, 'Persona non trovata.');
+      const id = inviteKey(structureId, userId);
+      const existing = await find(C.staffInvites, id);
+      if (existing?.status === 'pending') return { invited: true, already: true };
+      const pending = await pendingInvites(structureId);
+      if (pending.length >= 30) fail(429, 'Hai già 30 inviti in attesa: aspetta che qualcuno risponda.');
+      const limit = await staffLimit(team);
+      if (limit !== null && team.staff.length + pending.length >= limit) {
+        fail(402, `Con il piano Base l'area staff arriva a ${limit} persone (inviti compresi). Passa a Premium per una squadra senza limiti.`, 'premium_required');
+      }
+      const row = { structureId, userId, invitedBy: me, status: 'pending' };
+      if (existing) await update(C.staffInvites, id, row);
+      else await create(C.staffInvites, row, [], id);
+      await notify(userId, 'staff_invite', `${team.name} ti invita nel suo staff su SwimIn: bacheca, turni e chat della squadra.`, structureId);
+      return { invited: true };
+    },
+
+    /** L'amministratore ritira un invito non ancora accettato. */
+    async cancelStaffInvite(me, { structureId, userId } = {}) {
+      await requireRole(me, structureId, 'admin');
+      const id = inviteKey(structureId, userId);
+      const invite = await find(C.staffInvites, id);
+      if (!invite || invite.status !== 'pending') fail(404, 'Invito non trovato.');
+      await remove(C.staffInvites, id);
+      return { cancelled: true };
+    },
+
+    /** Inviti nello staff ricevuti e non ancora risposti. */
+    async listMyStaffInvites(me) {
+      const rows = await listAll(C.staffInvites, [Query.equal('userId', me), Query.equal('status', 'pending')]);
+      const out = [];
+      for (const i of rows) {
+        const team = await teamOf(i.structureId).catch(() => null);
+        if (team) out.push({ structureId: i.structureId, name: team.name, logo: logoOf(team), city: team.row.city || '', invitedAt: i.$createdAt });
+      }
+      return out;
+    },
+
+    /** La persona invitata accetta (entra nello staff) o rifiuta. */
+    async respondStaffInvite(me, { structureId, accept } = {}) {
+      const id = inviteKey(structureId, me);
+      const invite = await find(C.staffInvites, id);
+      if (!invite || invite.status !== 'pending') fail(404, 'Invito non trovato o già gestito.');
+      const team = await teamOf(structureId);
+      const who = displayName(await get(C.profiles, me));
+      if (!accept) {
+        await update(C.staffInvites, id, { status: 'declined' });
+        await notify(invite.invitedBy, 'general', `${who} ha rifiutato l’invito nello staff di ${team.name}.`, structureId);
+        return { joined: false };
+      }
+      if (!team.staff.includes(me)) await setStaff(team, [...team.staff, me]);
+      await update(C.staffInvites, id, { status: 'accepted' });
+      for (const admin of team.admins) await notify(admin, 'general', `${who} è entrato nello staff di ${team.name}.`, structureId);
+      return { joined: true, structureId };
+    },
+
+    /** Strutture di cui faccio parte (staff o amministratore), per "Le mie strutture". */
+    async listMyTeams(me) {
+      const [profiles, facilities] = await Promise.all([
+        listAll(C.profiles, [Query.contains('staff', [me])]),
+        listAll(C.facilities, [Query.contains('staff', [me])]),
+      ]);
+      const admin = await listAll(C.facilities, [Query.contains('admins', [me])]);
+      const rows = [
+        ...profiles.filter((p) => p.userType === 'structure').map((p) => ({ structureId: p.$id, name: p.structureName || 'Struttura', logo: p.logo || '', city: p.city || '', role: 'staff' })),
+        ...facilities.map((f) => ({ structureId: f.$id, name: f.name, logo: f.logo || '', city: f.city || '', role: (f.admins || []).includes(me) ? 'admin' : 'staff' })),
+        ...admin.filter((f) => !(f.staff || []).includes(me)).map((f) => ({ structureId: f.$id, name: f.name, logo: f.logo || '', city: f.city || '', role: 'admin' })),
+      ];
+      return rows;
+    },
+
+    /** Un amministratore sposta o riassegna un turno: chi lo aveva e chi lo riceve vengono avvisati. */
+    async updateShift(me, { shiftId, userId, date, shiftTime } = {}) {
+      const shift = await get(C.shifts, shiftId);
+      const { team } = await requireRole(me, shift.structureId, 'admin');
+      const next = { userId: userId || shift.userId, date: date || shift.date, shiftTime: shiftTime || shift.shiftTime };
+      if (!team.staff.includes(next.userId)) fail(400, 'Puoi assegnare turni solo ai membri dello staff.');
+      if (!ISO_DATE.test(next.date)) fail(400, 'Data non valida.');
+      if (next.date < isoDay(Date.now() - 86_400_000) || next.date > isoDay(Date.now() + 180 * 86_400_000)) fail(400, 'La data deve essere entro i prossimi 6 mesi.');
+      if (!SHIFT_TIME.test(next.shiftTime)) fail(400, 'Orario non valido.');
+      const [start, end] = next.shiftTime.split('–');
+      if (end <= start) fail(400, 'La fine del turno deve essere dopo l’inizio.');
+      const changedPerson = next.userId !== shift.userId;
+      const person = changedPerson ? await get(C.profiles, next.userId) : null;
+      const row = await update(C.shifts, shift.$id, {
+        ...next,
+        ...(person ? { userName: displayName(person).slice(0, 255), role: String(person.title || shift.role || 'Staff').slice(0, 100) } : {}),
+        status: 'scheduled',
+      });
+      const when = `${next.date.slice(8, 10)}/${next.date.slice(5, 7)}, ${next.shiftTime}`;
+      if (changedPerson) {
+        await notify(shift.userId, 'shift', `Il turno del ${shift.date.slice(8, 10)}/${shift.date.slice(5, 7)} (${shift.shiftTime}) è stato assegnato a un collega.`, shift.structureId);
+        await notify(next.userId, 'shift', `${team.name} ti ha assegnato un turno il ${when}.`, shift.structureId);
+      } else {
+        await notify(next.userId, 'shift', `${team.name} ha modificato il tuo turno: ora è il ${when}. Confermalo nell’area staff.`, shift.structureId);
+      }
+      return row;
     },
 
     /** I miei turni in tutte le strutture (dalla settimana scorsa in avanti). */
