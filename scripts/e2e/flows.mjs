@@ -211,7 +211,9 @@ async function measureLcp(browser) {
 const browser = await chromium.launch();
 const results = [];
 for (const [name, vp, initial, run] of FLOWS) {
-    const state = structuredClone(initial);
+    // Le risposte finte della Function sono funzioni: non si clonano.
+    const { responses, ...rest } = initial;
+    const state = { ...structuredClone(rest), responses };
     const context = await browser.newContext({ ...VIEWPORTS[vp], locale: 'it-IT', timezoneId: 'Europe/Rome' });
     const page = await context.newPage();
     const jsErrors = [];
