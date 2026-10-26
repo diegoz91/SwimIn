@@ -10,6 +10,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { mockAppwrite } from '../screenshots/mock.mjs';
 
+// A fine test il contesto si chiude mentre l'app può avere richieste o socket in corso:
+// gli errori "Target page, context or browser has been closed" non sono fallimenti.
+process.on('unhandledRejection', (e) => {
+    if (e?.name === 'TargetClosedError' || /has been closed/.test(String(e?.message || e))) return;
+    console.error('Errore non gestito:', e);
+    process.exitCode = 1;
+});
+
+
 const BASE = process.argv[2] || 'http://localhost:4173';
 const OUT = process.argv[3] || 'e2e';
 mkdirSync(OUT, { recursive: true });

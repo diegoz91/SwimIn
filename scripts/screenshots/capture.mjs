@@ -10,6 +10,15 @@ import { createRequire } from 'node:module';
 import { ME } from './fixtures.mjs';
 import { mockAppwrite } from './mock.mjs';
 
+// A fine test il contesto si chiude mentre l'app può avere richieste o socket in corso:
+// gli errori "Target page, context or browser has been closed" non sono fallimenti.
+process.on('unhandledRejection', (e) => {
+    if (e?.name === 'TargetClosedError' || /has been closed/.test(String(e?.message || e))) return;
+    console.error('Errore non gestito:', e);
+    process.exitCode = 1;
+});
+
+
 const BASE = process.argv[2] || 'http://localhost:4173';
 const OUT = process.argv[3] || 'screenshots';
 mkdirSync(OUT, { recursive: true });

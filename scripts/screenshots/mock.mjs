@@ -55,6 +55,9 @@ export async function mockAppwrite(page, state) {
     };
     if (page.routeWebSocket) {
         await page.routeWebSocket(/\/v1\/realtime/, (ws) => {
+            // La pagina può chiudersi mentre il socket risponde (fine del test): niente errori non gestiti.
+            const send = ws.send.bind(ws);
+            ws.send = (data) => { try { const r = send(data); if (r && typeof r.catch === 'function') r.catch(() => undefined); } catch { /* pagina chiusa */ } };
             sockets.add(ws);
             ws.onClose(() => sockets.delete(ws));
             ws.onMessage((raw) => {
