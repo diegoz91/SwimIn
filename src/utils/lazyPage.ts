@@ -1,4 +1,6 @@
-import { lazy, type ComponentType } from 'react';
+import { lazy } from 'react';
+
+type Factory = Parameters<typeof lazy>[0];
 
 const RELOAD_KEY = 'swimin:chunk-reload';
 
@@ -14,8 +16,8 @@ export const isChunkError = (err: unknown) =>
  * invece di mostrare un errore. Se anche dopo il ricaricamento fallisce, l'errore arriva
  * all'ErrorBoundary, che propone di ricaricare.
  */
-export function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentType<P> }>) {
-    return lazy(() =>
+export function lazyPage<F extends Factory>(factory: F) {
+    return lazy(((() =>
         factory().catch((err: unknown) => {
             if (!isChunkError(err)) throw err;
             let last = 0;
@@ -23,7 +25,7 @@ export function lazyPage<P extends object>(factory: () => Promise<{ default: Com
             if (Date.now() - last < 30_000) throw err;
             try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch (e) { console.warn('sessionStorage non disponibile:', e); }
             window.location.reload();
-            return new Promise<{ default: ComponentType<P> }>(() => undefined);
-        })
+            return new Promise<never>(() => undefined);
+        })) as F)
     );
 }
