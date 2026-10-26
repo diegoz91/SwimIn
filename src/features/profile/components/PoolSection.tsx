@@ -17,7 +17,7 @@ export const PoolSection: React.FC<{ profile: StructureProfile; isOwnProfile: bo
     return (
         <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="pool-title">
             <div className="flex items-start justify-between gap-4 mb-5">
-                <h2 id="pool-title" className="text-xl font-extrabold text-slate-900">L’impianto</h2>
+                <h2 id="pool-title" className="text-xl font-bold text-abisso">L’impianto</h2>
                 {isOwnProfile && (
                     <button onClick={onEdit} className="text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 px-3 py-1.5 rounded-full inline-flex items-center gap-1">
                         <Icon type="edit" className="w-4 h-4" /> Modifica

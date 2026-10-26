@@ -61,7 +61,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                 aria-modal="true"
             >
                 <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/80">
-                    <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                         Reazioni ({likers.length})
                     </h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-500">

@@ -135,7 +135,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
             {/* PLAYER VIDEO-ANALISI */}
             {isVideoAnalysis && videoMedia && (
                 <div className="palette-fixed bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden mt-4 mb-6 relative animate-in slide-in-from-top-4">
-                    <div className="absolute top-4 left-4 z-10 bg-purple-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-2 shadow-lg border border-purple-400">
+                    <div className="absolute top-4 left-4 z-10 bg-purple-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg border border-purple-400">
                         <Icon type="camera" className="w-4 h-4 animate-pulse" />
                         MODALITÀ ANALISI TECNICA
                     </div>
@@ -151,7 +151,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-4">
                 <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
-                    <h2 className="text-xl font-extrabold text-slate-800">
+                    <h2 className="text-xl font-bold text-abisso">
                         Commenti <span className="text-slate-500 font-medium text-base ml-1">({comments.length})</span>
                     </h2>
                 </div>
@@ -169,7 +169,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                             setSelectedTimestamp(videoRef.current.currentTime);
                                         }
                                     }}
-                                    className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center gap-1.5 border border-purple-200 outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                    className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 border border-purple-200 outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                                 >
                                     <Icon type="camera" className="w-4 h-4" /> Cattura Frame dal Video
                                 </button>
@@ -240,7 +240,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                                             scrollPageTo(0, true);
                                                         }
                                                     }}
-                                                    className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-extrabold transition-all shadow-sm flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-purple-500 group-hover:scale-105"
+                                                    className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-purple-500 group-hover:scale-105"
                                                 >
                                                     <Icon type="play" className="w-3 h-3 sm:w-4 sm:h-4" /> 
                                                     Vai al sec. {formatTime(timeVal)}

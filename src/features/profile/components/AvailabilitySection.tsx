@@ -107,7 +107,7 @@ export const AvailabilitySection: React.FC<{ profile: UserProfile; isOwnProfile:
         <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="availability-title">
             <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                    <h2 id="availability-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                    <h2 id="availability-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                         <Icon type="calendar" className="w-5 h-5 text-corsia-600" />
                         Disponibilità
                     </h2>

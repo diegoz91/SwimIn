@@ -128,7 +128,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         <div className="fixed inset-0 bg-abisso/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200" onClick={handleSafeClose}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                    <h2 className="text-xl font-extrabold text-slate-800">Crea un post</h2>
+                    <h2 className="text-xl font-bold text-abisso">Crea un post</h2>
                     <button onClick={handleSafeClose} disabled={uploading} className="text-slate-400 hover:text-slate-700 hover:bg-slate-200 p-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
                         <Icon type="x" className="w-6 h-6" />
                     </button>

@@ -33,7 +33,7 @@ export const ProfileAnalyticsCard: React.FC<{ premium: boolean; onOpenViews: () 
         <section aria-labelledby="analytics-title" className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
-                    <h2 id="analytics-title" className="text-xl font-extrabold text-slate-900">Analisi</h2>
+                    <h2 id="analytics-title" className="text-xl font-bold text-abisso">Analisi</h2>
                     <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5"><Icon type="lock-closed" className="w-4 h-4" /> Solo per te · ultimi 30 giorni</p>
                 </div>
                 <Link to="/statistiche" className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Tutte le statistiche</Link>

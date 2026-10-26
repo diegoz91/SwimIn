@@ -28,8 +28,11 @@ import { ProfileAnalyticsCard } from '@/features/premium/ProfileAnalyticsCard';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { ResumeSection } from './ResumeSection';
+import { Button, buttonClass } from '@/components/ui/Button';
 import { FacilityFormModal } from './FacilityFormModal';
-import { CompletionRing } from './CompletionRing';
+import { CompletionChecklist } from './CompletionChecklist';
+import { ProfileSectionNav, goToSection, type ProfileSection } from './ProfileSectionNav';
+import { useMyResume } from '@/hooks/useMyResume';
 import { PoolSection } from './PoolSection';
 import { certCategoryLabel, employmentLabel } from '@/data/swimming';
 import { experiencePeriod, formatDate, formatDuration, sortExperiences, totalExperienceMonths } from '@/utils/dates';
@@ -46,6 +49,17 @@ interface ProfileViewProps {
   isOwnProfile?: boolean;
   onUpdateProfile?: (profile: UserProfile | StructureProfile) => void;
 }
+
+/** Indice fisso del profilo: i titoli delle sezioni hanno questi id. */
+const PROFILE_SECTIONS: ProfileSection[] = [
+    { id: 'about-title', label: 'Chi sono' },
+    { id: 'resume-title', label: 'CV' },
+    { id: 'availability-title', label: 'Disponibilità' },
+    { id: 'skills-title', label: 'Competenze' },
+    { id: 'recs-title', label: 'Referenze' },
+    { id: 'career-title', label: 'Esperienze' },
+    { id: 'certs-title', label: 'Brevetti' },
+];
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ 
   user, 
@@ -107,6 +121,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const certifications = profUser ? safeParse<Certification>(profUser.certificationsList) : [];
     const verifiedCerts = certifications.filter((c) => c.verified).length;
 
+    const { resume: myResume } = useMyResume(isOwnProfile && isWorker);
     /** Passi per completare il profilo: punteggio e cosa manca ancora. */
     const completionSteps = useMemo(() => {
         if (!isProfessional || !profUser) return [];
@@ -117,20 +132,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             { label: 'Presentazione', done: !!profUser.bio, weight: 20 },
             { label: 'Attività praticate', done: (profUser.sports || []).length > 0, weight: 20 },
         ];
+        const edit = () => setIsEditingProfile(true);
+        const photo = () => document.querySelector<HTMLButtonElement>('button[aria-label="Cambia foto profilo"]')?.click();
         return [
-            { label: 'Nome e cognome', done: !!(profUser.firstName && profUser.lastName), weight: 10 },
-            { label: 'Foto profilo', done: !!profUser.avatar, weight: 10 },
-            { label: 'Qualifica', done: !!profUser.title, weight: 10 },
-            { label: 'Città', done: !!profUser.city, weight: 10 },
-            { label: 'Presentazione', done: !!profUser.bio, weight: 10 },
-            { label: 'Esperienze', done: experiences.length > 0, weight: 20 },
-            { label: 'Brevetti', done: certifications.length > 0, weight: 20 },
-            { label: 'Competenze', done: (profUser.skills || []).length > 0, weight: 5 },
-            { label: 'Disponibilità', done: (profUser.availability || []).length > 0, weight: 5 },
+            { label: 'Aggiungi un brevetto', done: certifications.length > 0, weight: 20, hint: 'Le strutture filtrano per brevetti e scadenze', onClick: () => setCertificationModal({ isOpen: true, mode: 'add' }) },
+            { label: 'Aggiungi un’esperienza', done: experiences.length > 0, weight: 15, hint: 'Dove hai insegnato o lavorato in vasca', onClick: () => setExperienceModal({ isOpen: true, mode: 'add' }) },
+            ...(isWorker ? [{ label: 'Carica il CV', done: !!myResume, weight: 10, hint: 'Per candidarti in un tocco', onClick: () => goToSection('resume-title') }] : []),
+            { label: 'Aggiungi una foto', done: !!profUser.avatar, weight: 10, hint: 'Un volto riconoscibile ispira fiducia', onClick: photo },
+            { label: 'Scrivi la qualifica', done: !!profUser.title, weight: 10, hint: 'Compare sotto il tuo nome', onClick: edit },
+            { label: 'Scrivi una presentazione', done: !!profUser.bio, weight: 10, hint: 'Due righe su di te', onClick: edit },
+            { label: 'Indica nome e cognome', done: !!(profUser.firstName && profUser.lastName), weight: 10, onClick: edit },
+            { label: 'Indica la città', done: !!profUser.city, weight: 5, hint: 'Per le offerte vicine', onClick: edit },
+            { label: 'Scegli le competenze', done: (profUser.skills || []).length > 0, weight: 5, onClick: () => goToSection('skills-title') },
+            { label: 'Indica la disponibilità', done: (profUser.availability || []).length > 0, weight: 5, onClick: () => goToSection('availability-title') },
         ];
-    }, [profUser, experiences, certifications, isProfessional, isFan]);
+    }, [profUser, experiences, certifications, isProfessional, isFan, isWorker, myResume]);
     const completionScore = completionSteps.reduce((sum, s) => sum + (s.done ? s.weight : 0), 0);
-    const missingSteps = completionSteps.filter((s) => !s.done);
 
     // Collegamenti e visite al profilo (elenchi in finestra).
     const [connectionsOpen, setConnectionsOpen] = useState(false);
@@ -311,7 +328,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     Torna indietro
                 </button>
             ) : (
-                <div className="text-xl font-extrabold text-slate-800 hidden sm:block">Il tuo profilo</div>
+                <div className="text-xl font-bold text-abisso hidden sm:block">Il tuo profilo</div>
             )}
         </div>
 
@@ -327,23 +344,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         else { await navigator.clipboard.writeText(url); showToast('Link del profilo copiato.', 'success'); }
                     } catch { /* condivisione annullata */ }
                 }}
-                className="bg-white border border-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className={buttonClass('secondary')}
                 aria-label="Condividi profilo"
             >
                 <Icon type="share" className="w-4 h-4" /> <span className="hidden sm:inline">Condividi</span>
             </button>
             {isOwnProfile && (
-                <button 
-                    onClick={() => setIsEditingProfile(true)}
-                    className="bg-corsia-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-corsia-700 transition-all flex items-center gap-2 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2"
-                >
-                    <Icon type="edit" className="w-4 h-4" /> <span className="hidden sm:inline">Modifica profilo</span><span className="sm:hidden">Modifica</span>
-                </button>
+                <Button icon="edit" onClick={() => setIsEditingProfile(true)}>
+                    <span className="hidden sm:inline">Modifica profilo</span><span className="sm:hidden">Modifica</span>
+                </Button>
             )}
         </div>
       </div>
 
-      <div id="passaporto-natatorio" className="bg-slate-50">
+      <div>
           
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative mb-6">
             <div className="h-32 sm:h-48 relative bg-gradient-to-br from-blue-800 via-blue-600 to-cyan-500">
@@ -394,7 +408,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div className="mt-4 sm:mt-6">
                   <div className="flex items-center gap-3 mb-1">
-                      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                      <h1 className="text-2xl sm:text-3xl font-bold text-abisso flex items-center gap-2">
                         {displayName}
                         {verifiedCerts > 0 && (
                           <span title={verifiedCerts === 1 ? '1 brevetto verificato da SwimIn' : `${verifiedCerts} brevetti verificati da SwimIn`} className="inline-flex text-corsia-600">
@@ -525,32 +539,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {isOwnProfile && <ProfileAnalyticsCard premium={isPremium(user)} onOpenViews={() => setViewsOpen(true)} />}
 
-      {isProfessional && isOwnProfile && completionScore < 100 && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 flex items-center gap-5 sm:gap-6" data-html2canvas-ignore="true">
-            <CompletionRing value={completionScore} />
-            <div className="min-w-0">
-                <h2 className="text-xl font-extrabold text-slate-800">Completa il profilo</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Un profilo completo compare prima nelle ricerche delle strutture.</p>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                    {missingSteps.map((s) => (
-                        <span key={s.label} className="text-xs font-semibold text-corsia-700 bg-corsia-50 border border-corsia-100 px-2.5 py-1 rounded-full">+ {s.label}</span>
-                    ))}
-                </div>
-            </div>
-        </div>
-      )}
+      {isProfessional && isOwnProfile && completionScore < 100 && <CompletionChecklist score={completionScore} steps={completionSteps} />}
 
       {/* PAGINE AZIENDALI GESTITE (LINKEDIN MODEL) */}
       {isWorker && isOwnProfile && (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-abisso flex items-center gap-2">
                     <Icon type="building" className="w-6 h-6 text-blue-600" />
                     Le mie strutture
                 </h2>
                 <button
                     onClick={() => setIsFacilityModalOpen(true)}
-                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
                 >
                     <Icon type="plus" className="w-4 h-4" /> Crea pagina
                 </button>
@@ -595,8 +596,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           </div>
 
+          {isProfessional && <ProfileSectionNav sections={PROFILE_SECTIONS} />}
+
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
-            <h2 className="text-xl font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+            <h2 id="about-title" className="text-xl font-bold text-abisso mb-4 flex items-center gap-2">
                 <Icon type="info" className="w-5 h-5 text-blue-600" />
                 {isProfessional ? 'Chi sono' : 'Chi siamo'}
             </h2>
@@ -613,7 +616,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {isProfessional && profUser && (profUser.sports || []).length > 0 && (
             <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="sports-title">
-              <h2 id="sports-title" className="text-xl font-extrabold text-slate-900 mb-4">{isFan ? 'In vasca' : 'Discipline praticate'}</h2>
+              <h2 id="sports-title" className="text-xl font-bold text-abisso mb-4">{isFan ? 'In vasca' : 'Discipline praticate'}</h2>
               <ul className="flex flex-wrap gap-2">
                 {(profUser.sports || []).map((sp) => (
                   <li key={sp} className="text-sm font-semibold text-corsia-800 bg-corsia-50 border border-corsia-100 px-3 py-1.5 rounded-full">{sp}</li>
@@ -654,14 +657,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="career-title">
                     <div className="flex items-center justify-between gap-4 mb-6">
                         <div>
-                            <h2 id="career-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <h2 id="career-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                                 <Icon type="briefcase" className="w-6 h-6 text-blue-600" />
                                 Esperienze
                             </h2>
                             {experienceMonths > 0 && <p className="text-sm text-slate-500 mt-0.5">{formatDuration(experienceMonths)} in totale</p>}
                         </div>
                         {isOwnProfile && (
-                            <button onClick={() => setExperienceModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+                            <button onClick={() => setExperienceModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi
                             </button>
                         )}
@@ -674,7 +677,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                 <span className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow-sm ${exp.current ? 'bg-cloro-500' : 'bg-corsia-400'}`} aria-hidden="true" />
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <h3 className="font-extrabold text-lg text-slate-900 leading-tight">{exp.role}</h3>
+                                        <h3 className="font-bold text-lg text-abisso leading-tight">{exp.role}</h3>
                                         <p className="text-slate-800 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
                                             <Icon type="building" className="w-4 h-4 text-slate-400" /> {exp.facility}
                                             {(exp.employmentType || exp.city) && (
@@ -708,12 +711,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
                 <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8" aria-labelledby="certs-title">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 id="certs-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                        <h2 id="certs-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                             <Icon type="certificate" className="w-6 h-6 text-blue-600" />
                             Brevetti e certificazioni
                         </h2>
                         {isOwnProfile && (
-                            <button onClick={() => setCertificationModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+                            <button onClick={() => setCertificationModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi
                             </button>
                         )}

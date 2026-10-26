@@ -139,7 +139,7 @@ export const RecommendationsSection: React.FC<{
     return (
         <section ref={sectionRef} id="referenze" className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 scroll-mt-20" aria-labelledby="recs-title">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h2 id="recs-title" className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 id="recs-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                     <Icon type="star" className="w-6 h-6 text-blue-600" /> Referenze
                     {published.length > 0 && <span className="text-sm font-semibold text-slate-500">· {published.length}</span>}
                 </h2>

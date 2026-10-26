@@ -59,7 +59,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
                 aria-labelledby="report-title"
             >
                 <div className="flex justify-between items-center p-5 border-b border-slate-100">
-                    <h2 id="report-title" className="text-lg font-extrabold text-slate-900">Segnala {TARGET_LABEL[targetType]}</h2>
+                    <h2 id="report-title" className="text-lg font-bold text-slate-900">Segnala {TARGET_LABEL[targetType]}</h2>
                     <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 rounded-full" aria-label="Chiudi">
                         <Icon type="x" className="w-5 h-5" />
                     </button>

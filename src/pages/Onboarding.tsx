@@ -19,6 +19,8 @@ import { provinceName } from '@/data/italy';
 import { check, comuneOf, isoDate, maxLength, minLength, province as provinceRule, required, notBefore, notAfter } from '@/utils/validation';
 import { addDaysISO, todayISO } from '@/utils/dates';
 import { takePendingJobPath } from '@/utils/pendingJob';
+import { useMyResume } from '@/hooks/useMyResume';
+import { resumeFileError } from '@/services/resume';
 
 const inputClass =
     'w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none';
@@ -61,7 +63,7 @@ const Onboarding: React.FC = () => {
     const stepErrors = step === 0 ? Object.values(step0Errors).filter(Boolean) : step === 1 && isProfessional && !isFan ? certErrors.filter(Boolean) : [];
 
     const steps = useMemo(
-        () => (isFan ? ['Chi sei', 'Cosa pratichi'] : isProfessional ? ['Chi sei', 'Brevetti', 'Competenze', 'Disponibilità'] : ['La struttura', 'Presentazione']),
+        () => (isFan ? ['Chi sei', 'Cosa pratichi'] : isProfessional ? ['Chi sei', 'Brevetti', 'Competenze', 'CV', 'Disponibilità'] : ['La struttura', 'Presentazione']),
         [isProfessional, isFan]
     );
 
@@ -131,11 +133,18 @@ const Onboarding: React.FC = () => {
 
             <div className="max-w-2xl mx-auto px-4 pb-16">
                 {/* avanzamento come corsie da percorrere */}
+                <p className="text-sm text-slate-600 mb-2" aria-live="polite">
+                    Passo <span className="font-semibold text-abisso">{step + 1} di {steps.length}</span> · {steps[step]}
+                    <span className="float-right font-semibold text-corsia-700">{Math.round((step / steps.length) * 100)}%</span>
+                </p>
                 <ol className="flex gap-2 mb-8" aria-label="Avanzamento">
                     {steps.map((label, i) => (
-                        <li key={label} className="flex-1">
-                            <div className={`h-1.5 rounded-full ${i <= step ? 'bg-corsia-600' : 'bg-slate-200'}`} />
-                            <span className={`block mt-2 text-xs font-semibold ${i === step ? 'text-abisso' : 'text-slate-400'}`}>{label}</span>
+                        <li key={label} className="flex-1" aria-current={i === step ? 'step' : undefined}>
+                            <div className={`h-1.5 rounded-full transition-colors duration-300 ${i < step ? 'bg-corsia-600' : i === step ? 'bg-gradient-to-r from-corsia-600 to-cloro-500' : 'bg-slate-200'}`} />
+                            <span className={`hidden sm:flex items-center gap-1 mt-2 text-xs font-semibold ${i === step ? 'text-abisso' : i < step ? 'text-corsia-700' : 'text-slate-500'}`}>
+                                {i < step && <Icon type="check" className="w-3 h-3" />}{label}
+                            </span>
+                            <span className="sr-only sm:hidden">{label}{i < step ? ', fatto' : ''}</span>
                         </li>
                     ))}
                 </ol>
@@ -249,7 +258,9 @@ const Onboarding: React.FC = () => {
                         </div>
                     )}
 
-                    {step === 3 && isProfessional && (
+                    {step === 3 && isProfessional && !isFan && <OnboardingResume />}
+
+                    {step === 4 && isProfessional && (
                         <div className="space-y-5">
                             <h1 className="text-4xl font-bold text-abisso leading-none">Disponibile per sostituzioni?</h1>
                             <p className="text-slate-600">
@@ -297,6 +308,56 @@ const Onboarding: React.FC = () => {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+};
+
+/** Passo facoltativo: il CV in PDF, usato poi per le candidature rapide. */
+const OnboardingResume: React.FC = () => {
+    const { resume, busy, upload } = useMyResume();
+    const { showToast } = useToast();
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    const [dragging, setDragging] = useState(false);
+    const handle = async (file?: File | null) => {
+        if (!file) return;
+        const error = resumeFileError(file);
+        if (error) return showToast(error, 'error');
+        try {
+            await upload(file);
+            showToast('CV caricato: le candidature ora partono in un tocco.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error && err.message ? err.message : 'Il CV non è stato caricato. Riprova.', 'error');
+        }
+    };
+    return (
+        <div className="space-y-5">
+            <h1 className="text-4xl font-bold text-abisso leading-none">Hai un CV pronto?</h1>
+            <p className="text-slate-600">Caricalo una volta: lo alleghi alle candidature con un tocco. Lo vedi solo tu e le strutture a cui ti candidi. Puoi saltare questo passo e aggiungerlo dal profilo.</p>
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void handle(e.target.files?.[0]); e.target.value = ''; }} />
+            {resume ? (
+                <div className="flex items-center gap-3 p-4 rounded-2xl border-2 border-cloro-300 bg-cloro-50">
+                    <Icon type="check-circle" className="w-6 h-6 text-cloro-700 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-abisso break-all">{resume.name}</p>
+                        <p className="text-sm text-slate-600">Pronto per le candidature</p>
+                    </div>
+                    <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Cambia</button>
+                </div>
+            ) : (
+                <div
+                    onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={(e) => { e.preventDefault(); setDragging(false); void handle(e.dataTransfer.files?.[0]); }}
+                    className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${dragging ? 'border-corsia-500 bg-corsia-50' : 'border-slate-300 bg-white'}`}
+                >
+                    <Icon type="document" className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                    <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700 disabled:opacity-60">
+                        {busy ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" /> : <Icon type="plus" className="w-4 h-4" />}
+                        {busy ? 'Caricamento…' : 'Carica il CV in PDF'}
+                    </button>
+                    <p className="text-xs text-slate-500 mt-2">Fino a 5 MB<span className="hidden sm:inline"> · oppure trascinalo qui</span></p>
+                </div>
+            )}
         </div>
     );
 };

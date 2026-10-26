@@ -10,8 +10,8 @@ const NotFound: React.FC = () => {
     return (
         <div className="min-h-[60vh] flex items-center justify-center p-6">
             <div className="text-center max-w-md">
-                <p className="text-7xl font-black text-blue-600/20 tracking-tight select-none" aria-hidden="true">404</p>
-                <h1 className="text-2xl font-extrabold text-slate-900 mt-2">Questa corsia è vuota</h1>
+                <p className="text-7xl font-bold text-blue-600/20 tracking-tight select-none" aria-hidden="true">404</p>
+                <h1 className="text-2xl font-bold text-slate-900 mt-2">Questa corsia è vuota</h1>
                 <p className="text-slate-600 mt-2 mb-8">
                     La pagina che cerchi non esiste o è stata spostata.
                 </p>

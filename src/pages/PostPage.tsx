@@ -37,7 +37,7 @@ const PostPage: React.FC = () => {
     if (notFound) {
         return (
             <div className="max-w-xl mx-auto text-center py-20">
-                <h1 className="text-xl font-extrabold text-slate-900">Post non disponibile</h1>
+                <h1 className="text-xl font-bold text-abisso">Post non disponibile</h1>
                 <p className="text-slate-600 mt-2 mb-6">Potrebbe essere stato eliminato dal suo autore.</p>
                 <button onClick={() => navigate('/')} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700">
                     Torna al feed

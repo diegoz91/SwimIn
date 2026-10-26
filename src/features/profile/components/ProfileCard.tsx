@@ -65,7 +65,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSelectProfile 
             </div>
             
             <div className="pt-14">
-                <h3 className="font-extrabold text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors truncate px-2" title={name}>
+                <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors truncate px-2" title={name}>
                     {name}
                 </h3>
             </div>

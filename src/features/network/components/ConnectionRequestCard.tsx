@@ -98,7 +98,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
                         </h3>
                         {/* Rendering dei Badge Nuoto */}
                         {getSwimBadges().map(b => (
-                            <span key={b.id} className={`hidden sm:inline-block text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
+                            <span key={b.id} className={`hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
                         ))}
                     </div>
                     <p className="text-xs sm:text-sm text-slate-500 truncate mt-1">{displayTitle}</p>

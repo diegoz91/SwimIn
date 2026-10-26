@@ -89,7 +89,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                 <div className="lg:col-span-1">
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
                         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                            <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" /> I tuoi collegamenti
                             </h2>
                             <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">{activeConnections.length}</span>
@@ -149,7 +149,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     {/* 1. RISULTATI RICERCA */}
                     {searchQuery.trim().length >= 2 && (
                         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 animate-in slide-in-from-top-4">
-                            <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <Icon type="search" className="w-5 h-5 text-blue-600" />
                                 Risultati per "{searchQuery}"
                             </h2>
@@ -202,7 +202,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     {/* 2. RICHIESTE IN SOSPESO (Nascoste se c'è una ricerca attiva) */}
                     {!searchQuery && pendingRequests.length > 0 && (
                         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-                            <h2 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" />
                                 Richieste in sospeso ({pendingRequests.length})
                             </h2>
@@ -224,7 +224,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     {/* 3. SUGGERIMENTI INTELLIGENTI (Nascosti se c'è una ricerca attiva) */}
                     {!searchQuery && (
                         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-                            <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <Icon type="sparkles" className="w-5 h-5 text-amber-500" />
                                 Potresti conoscere...
                             </h2>

@@ -17,7 +17,7 @@ export const GoogleButton: React.FC<{ intent: 'login' | 'register'; returnTo?: s
                 setGoing(true);
                 startGoogle({ intent, returnTo, choice });
             }}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-800 font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2"
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-800 font-semibold py-3 px-4 rounded-full transition-colors disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2"
         >
             {going ? <span className="w-5 h-5 border-2 border-slate-300 border-t-corsia-600 rounded-full animate-spin" aria-hidden="true" /> : <img src={googleG} alt="" className="w-5 h-5" />}
             {going ? 'Apertura di Google…' : intent === 'register' ? 'Iscriviti con Google' : 'Continua con Google'}

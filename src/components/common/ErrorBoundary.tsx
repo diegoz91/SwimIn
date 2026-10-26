@@ -35,7 +35,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
                     <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl" aria-hidden="true">
                         🌊
                     </div>
-                    <h1 className="text-xl font-extrabold text-slate-900 mb-2">
+                    <h1 className="text-xl font-bold text-abisso mb-2">
                         {chunkError ? 'È disponibile una nuova versione' : 'Qualcosa è andato storto'}
                     </h1>
                     <p className="text-slate-600 mb-6">
