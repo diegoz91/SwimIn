@@ -5,6 +5,7 @@ import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
 import { FormModal } from '@/components/form/FormModal';
 import { avatarOf, displayNameOf } from '@/utils/profile';
+import { initialsAvatar } from '@/utils/avatar';
 import { formatRelativeTime } from '@/utils/format';
 import { formatDate } from '@/utils/dates';
 import type { Certification, UserProfile } from '@/types/types';
@@ -83,7 +84,7 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                     <ul className="mt-2 divide-y divide-slate-100 rounded-2xl border border-slate-200">
                         {invites.map((i) => (
                             <li key={i.userId} className="flex items-center gap-3 px-4 py-3">
-                                <img src={i.avatar || avatarOf({ firstName: i.name } as Partial<UserProfile>)} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100" />
+                                <img src={i.avatar || initialsAvatar(i.name)} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100" />
                                 <div className="min-w-0 flex-1">
                                     <Link to={`/profile/${i.userId}`} className="font-semibold text-abisso hover:underline">{i.name}</Link>
                                     <p className="text-xs text-slate-500 truncate">{[i.title, `invitato ${formatRelativeTime(i.invitedAt)}`].filter(Boolean).join(' · ')}</p>
@@ -116,7 +117,7 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                             <li key={m.userId} className="px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <div className="relative flex-shrink-0">
-                                        <img src={m.avatar || avatarOf(m as unknown as Partial<UserProfile>)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
+                                        <img src={m.avatar || initialsAvatar(name)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                                         {m.isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-cloro-500 border-2 border-white"><span className="sr-only">Online</span></span>}
                                     </div>
                                     <div className="min-w-0">
