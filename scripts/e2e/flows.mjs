@@ -277,6 +277,27 @@ const FLOWS = [
         const c = await called(state, 'initProfile');
         assert.deepEqual([c.params.userType, c.params.structureName], ['structure', 'Piscina Comunale di Segrate']);
     }],
+    ['l’avviso di assunzione compare una volta sola', 'mobile', { loggedIn: true, overrides: { applications: { a1: { status: 'hired', $updatedAt: new Date().toISOString() } } } }, async (page) => {
+        await open(page, '/');
+        const banner = page.getByRole('heading', { name: 'Sei stato assunto' });
+        await banner.waitFor({ timeout: 8000 });
+        await page.getByRole('link', { name: 'Entra nell’area staff' }).waitFor();
+        await open(page, '/');
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+        await page.waitForTimeout(1500);
+        assert.equal(await banner.count(), 0, 'alla seconda visita l’avviso non deve più comparire');
+        // La scorciatoia alle strutture resta sopra il feed.
+        await page.getByRole('navigation', { name: 'Le strutture in cui lavori' }).getByRole('link', { name: /Piscina Lido di Milano/ }).waitFor();
+    }],
+    ['il calendario dei turni riunisce più strutture e segnala le sovrapposizioni', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/turni?vista=mese');
+        await page.getByRole('group', { name: 'Filtra per struttura' }).waitFor({ timeout: 8000 });
+        await page.getByText(/turni si sovrappongono/).waitFor();
+        await page.getByRole('button', { name: 'Mostra il giorno' }).click();
+        await page.getByText('Sovrapposto').first().waitFor();
+        await page.getByRole('group', { name: 'Filtra per struttura' }).getByRole('button', { name: /Centro Nuoto Rozzano/ }).click();
+        assert.ok(page.url().includes('struttura=u_rozzano'), 'il filtro resta nell’indirizzo');
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

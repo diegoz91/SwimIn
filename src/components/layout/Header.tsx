@@ -17,6 +17,7 @@ import { SearchTypeahead } from '@/components/layout/SearchTypeahead';
 import { ThemeSegmented } from '@/components/common/ThemePicker';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
+import { useMyTeams } from '@/hooks/useMyTeams';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -56,6 +57,7 @@ const Badge: React.FC<{ count: number }> = ({ count }) =>
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
+  const { teams } = useMyTeams();
   const { isAdmin } = useBlocks();
   const navigate = useNavigate();
   const location = useLocation();
@@ -204,7 +206,7 @@ const Header: React.FC = () => {
             </button>
 
             {openMenu === 'account' && (
-              <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-lift border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right" role="menu">
+              <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-lift border border-slate-100 overflow-x-hidden overflow-y-auto overscroll-contain max-h-[calc(100dvh-5.5rem)] animate-in fade-in zoom-in-95 duration-150 origin-top-right" role="menu">
                 <Link to="/profile" role="menuitem" className="flex items-center gap-3 p-4 hover:bg-piastrella">
                   <img src={displayAvatar} alt="" className="w-12 h-12 rounded-full object-cover" />
                   <span className="min-w-0">
@@ -218,6 +220,20 @@ const Header: React.FC = () => {
                 <div className="px-3 pb-2">
                   <ThemeSegmented />
                 </div>
+                {teams && teams.length > 0 && (
+                  <div className="border-t border-slate-100 py-1" role="group" aria-labelledby="menu-teams">
+                    <p id="menu-teams" className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-500">Lavori presso</p>
+                    {teams.slice(0, 5).map((t) => (
+                      <Link key={t.structureId} to={`/profile/${t.structureId}?area=staff`} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-piastrella">
+                        <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-100 flex-shrink-0" />
+                        <span className="min-w-0 flex-1 truncate font-medium text-abisso">{t.name}</span>
+                      </Link>
+                    ))}
+                    <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                      <Icon type="calendar" className="w-5 h-5 text-slate-400" /> Calendario dei turni
+                    </Link>
+                  </div>
+                )}
                 <div className="border-t border-slate-100 py-1">
                   <Link to="/statistiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="chart" className="w-5 h-5 text-slate-400" /> Statistiche
@@ -230,9 +246,11 @@ const Header: React.FC = () => {
                       <Link to="/jobs/candidature" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                         <Icon type="send" className="w-5 h-5 text-slate-400" /> Le mie candidature
                       </Link>
-                      <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                        <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
-                      </Link>
+                      {!(teams && teams.length > 0) && (
+                        <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                          <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
+                        </Link>
+                      )}
                     </>
                   )}
                   {(user?.userType === 'structure' || ((user as { managedFacilities?: string[] } | null)?.managedFacilities || []).length > 0) && (

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Providers
@@ -18,51 +18,52 @@ import { AppFooter } from '@/components/layout/AppFooter';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { PageLoader } from '@/components/common/PageLoader';
+import { lazyPage } from '@/utils/lazyPage';
 
 // Widget Chat (sempre presente da loggati, caricato a parte)
-const GlobalChatWidget = lazy(() =>
+const GlobalChatWidget = lazyPage(() =>
   import('@/features/messaging/components/GlobalChatWidget').then((m) => ({ default: m.GlobalChatWidget }))
 );
 
 // Pagine: ognuna è un chunk separato, scaricato solo quando serve.
-const Home = lazy(() => import('@/pages/Home'));
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const Jobs = lazy(() => import('@/pages/Jobs'));
-const JobPage = lazy(() => import('@/pages/JobPage'));
-const MyJobs = lazy(() => import('@/pages/MyJobs'));
-const MyApplications = lazy(() => import('@/pages/MyApplications'));
-const Network = lazy(() => import('@/pages/Network'));
-const Profile = lazy(() => import('@/pages/Profile'));
-const Chat = lazy(() => import('@/pages/Chat'));
-const Live = lazy(() => import('@/pages/Live'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
-const Landing = lazy(() => import('@/pages/Landing'));
-const Onboarding = lazy(() => import('@/pages/Onboarding'));
-const PostPage = lazy(() => import('@/pages/PostPage'));
-const Notifications = lazy(() => import('@/pages/Notifications'));
-const Search = lazy(() => import('@/pages/Search'));
-const Saved = lazy(() => import('@/pages/Saved'));
-const Stats = lazy(() => import('@/pages/Stats'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
-const Privacy = lazy(() => import('@/pages/legal/Privacy'));
-const Structures = lazy(() => import('@/pages/Structures'));
-const Talent = lazy(() => import('@/pages/Talent'));
-const Premium = lazy(() => import('@/pages/Premium'));
-const Hashtag = lazy(() => import('@/pages/Hashtag'));
-const Groups = lazy(() => import('@/pages/Groups'));
-const GroupPage = lazy(() => import('@/pages/GroupPage'));
-const Events = lazy(() => import('@/pages/Events'));
-const EventPage = lazy(() => import('@/pages/EventPage'));
-const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
-const PublicJob = lazy(() => import('@/pages/PublicJob'));
-const MyShifts = lazy(() => import('@/pages/MyShifts'));
-const Admin = lazy(() => import('@/pages/Admin'));
-const Terms = lazy(() => import('@/pages/legal/Terms'));
-const Cookies = lazy(() => import('@/pages/legal/Cookies'));
-const GoogleCallback = lazy(() => import('@/pages/GoogleCallback'));
-const CompleteAccount = lazy(() => import('@/pages/CompleteAccount'));
+const Home = lazyPage(() => import('@/pages/Home'));
+const Login = lazyPage(() => import('@/pages/Login'));
+const Register = lazyPage(() => import('@/pages/Register'));
+const ResetPassword = lazyPage(() => import('@/pages/ResetPassword'));
+const Jobs = lazyPage(() => import('@/pages/Jobs'));
+const JobPage = lazyPage(() => import('@/pages/JobPage'));
+const MyJobs = lazyPage(() => import('@/pages/MyJobs'));
+const MyApplications = lazyPage(() => import('@/pages/MyApplications'));
+const Network = lazyPage(() => import('@/pages/Network'));
+const Profile = lazyPage(() => import('@/pages/Profile'));
+const Chat = lazyPage(() => import('@/pages/Chat'));
+const Live = lazyPage(() => import('@/pages/Live'));
+const NotFound = lazyPage(() => import('@/pages/NotFound'));
+const Landing = lazyPage(() => import('@/pages/Landing'));
+const Onboarding = lazyPage(() => import('@/pages/Onboarding'));
+const PostPage = lazyPage(() => import('@/pages/PostPage'));
+const Notifications = lazyPage(() => import('@/pages/Notifications'));
+const Search = lazyPage(() => import('@/pages/Search'));
+const Saved = lazyPage(() => import('@/pages/Saved'));
+const Stats = lazyPage(() => import('@/pages/Stats'));
+const VerifyEmail = lazyPage(() => import('@/pages/VerifyEmail'));
+const Privacy = lazyPage(() => import('@/pages/legal/Privacy'));
+const Structures = lazyPage(() => import('@/pages/Structures'));
+const Talent = lazyPage(() => import('@/pages/Talent'));
+const Premium = lazyPage(() => import('@/pages/Premium'));
+const Hashtag = lazyPage(() => import('@/pages/Hashtag'));
+const Groups = lazyPage(() => import('@/pages/Groups'));
+const GroupPage = lazyPage(() => import('@/pages/GroupPage'));
+const Events = lazyPage(() => import('@/pages/Events'));
+const EventPage = lazyPage(() => import('@/pages/EventPage'));
+const PublicProfile = lazyPage(() => import('@/pages/PublicProfile'));
+const PublicJob = lazyPage(() => import('@/pages/PublicJob'));
+const MyShifts = lazyPage(() => import('@/pages/MyShifts'));
+const Admin = lazyPage(() => import('@/pages/Admin'));
+const Terms = lazyPage(() => import('@/pages/legal/Terms'));
+const Cookies = lazyPage(() => import('@/pages/legal/Cookies'));
+const GoogleCallback = lazyPage(() => import('@/pages/GoogleCallback'));
+const CompleteAccount = lazyPage(() => import('@/pages/CompleteAccount'));
 
 /** Login e registrazione non hanno senso da loggati: si torna alla pagina richiesta o al feed. */
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

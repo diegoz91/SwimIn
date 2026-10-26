@@ -3,24 +3,18 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
-import { databases } from '@/services/appwrite';
 import { useLiveCollection } from '@/hooks/useLiveCollection';
-import { APPWRITE_CONFIG } from '@/config/constants';
-import { Query } from 'appwrite';
 import { PostCreator } from '@/features/feed/components/PostCreator';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import { CertificationAlert, HomeProfileCard, HomeRightRail } from '@/features/feed/components/HomeSidebars';
-import type { EnrichedPost, Job, Application } from '@/types/types';
-import { initialsAvatar } from '@/utils/avatar';
+import type { EnrichedPost, Job } from '@/types/types';
+import { HiredBanner } from '@/features/jobs/components/HiredBanner';
+import { MyWorkplaces } from '@/features/team/MyWorkplaces';
 import { useBlocks } from '@/context/BlocksContext';
 import { rankForYou, saveFeedMode, savedFeedMode, type FeedMode } from '@/utils/feedRank';
 import { scrollPageTo } from '@/utils/scroll';
-
-interface EnrichedHiredApp extends Application {
-    job?: Job;
-}
 
 const Home: React.FC = () => {
     usePageTitle('Feed');
@@ -38,49 +32,9 @@ const Home: React.FC = () => {
     const [latestJobs, setLatestJobs] = useState<Job[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
 
-    // 💡 STATO DEL GOLDEN TICKET (ONBOARDING)
-    const [hiredApps, setHiredApps] = useState<EnrichedHiredApp[]>([]);
-
     // "Per te" ordina per rilevanza una finestra più ampia di post; "Più recenti" è cronologico.
     const [feedMode, setFeedMode] = useState<FeedMode>(savedFeedMode);
     const POSTS_PER_PAGE = feedMode === 'perte' ? 30 : 10;
-
-    // Controllo Assunzioni
-    useEffect(() => {
-        if (!user || user.userType === 'structure') return;
-        
-        const fetchHiredStatus = async () => {
-            try {
-                const res = await databases.listDocuments<Application>(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections.applications, [
-                    Query.equal('applicantId', user.$id),
-                    Query.equal('status', 'hired'),
-                    Query.orderDesc('$createdAt')
-                ]);
-                
-                const dismissedIds = JSON.parse(localStorage.getItem('dismissed_hired_banners') || '[]');
-                const newApps = res.documents.filter(app => !dismissedIds.includes(app.$id));
-
-                if (newApps.length > 0) {
-                    const enriched = await Promise.all(newApps.map(async app => {
-                        try {
-                            const job = await databases.getDocument<Job>(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections.jobs, app.jobId);
-                            return { ...app, job };
-                        } catch { return app; }
-                    }));
-                    setHiredApps(enriched);
-                }
-            } catch (e) {
-                console.warn('Stato assunzioni non disponibile:', e);
-            }
-        };
-        fetchHiredStatus();
-    }, [user]);
-
-    const dismissGoldenTicket = (appId: string) => {
-        const dismissedIds = JSON.parse(localStorage.getItem('dismissed_hired_banners') || '[]');
-        localStorage.setItem('dismissed_hired_banners', JSON.stringify([...dismissedIds, appId]));
-        setHiredApps(prev => prev.filter(app => app.$id !== appId));
-    };
 
     const loadFeed = useCallback(async (offset = 0, append = false) => {
         if (!user) return;
@@ -165,40 +119,19 @@ const Home: React.FC = () => {
             <aside className="hidden lg:block" aria-label="Il tuo profilo">
                 <div className="sticky top-6">
                     <HomeProfileCard user={user} />
+                    <div className="mt-4">
+                        <MyWorkplaces variant="card" />
+                    </div>
                 </div>
             </aside>
 
             <div className="flex flex-col gap-4 min-w-0">
                 <CertificationAlert user={user} />
                 
-                {/* 💡 IL GOLDEN TICKET! */}
-                {hiredApps.length > 0 && (
-                    <div className="flex flex-col gap-4">
-                        {hiredApps.map(app => (
-                            <div key={app.$id} className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-6 sm:p-8 shadow-lg text-white relative overflow-hidden animate-in zoom-in-95 duration-500">
-                                <div className="absolute -right-10 -top-10 opacity-10">
-                                    <Icon type="sparkles" className="w-40 h-40" />
-                                </div>
-                                <button onClick={() => dismissGoldenTicket(app.$id)} className="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/20 p-2 rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-white">
-                                    <Icon type="x" className="w-5 h-5" />
-                                </button>
-                                
-                                <div className="relative z-10">
-                                    <div className="bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/30">
-                                        <Icon type="check-double" className="w-6 h-6 text-white" />
-                                    </div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Sei stato assunto</h2>
-                                    <p className="text-green-50 font-medium text-lg max-w-xl mb-6">
-                                        Congratulazioni! <strong>{app.job?.structureName}</strong> ti ha scelto per il ruolo di <em>{app.job?.title}</em>.
-                                    </p>
-                                    <button onClick={() => navigate(`/profile/${app.job?.structureId}`)} className="bg-white text-green-700 font-extrabold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2 outline-none focus-visible:ring-4 focus-visible:ring-green-300">
-                                        <Icon type="building" className="w-5 h-5" /> Entra nell’area staff
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <HiredBanner user={user} />
+                <div className="lg:hidden">
+                    <MyWorkplaces variant="strip" />
+                </div>
 
                 <PostCreator onPostCreated={() => { setNewPosts(0); void loadFeed(0, false); }} />
 

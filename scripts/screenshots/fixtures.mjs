@@ -337,7 +337,10 @@ export const apiResponses = {
     })),
     updateApplicationStatus: ({ applicationId, status } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status }),
     listMyStaffInvites: () => [{ structureId: 'u_aquae', name: 'Aquae Sport Center', logo: '', city: 'Sesto San Giovanni', invitedAt: new Date(now - 3 * 3600000).toISOString() }],
-    listMyTeams: () => [{ structureId: 'u_lido', name: 'Piscina Lido di Milano', logo: '', city: 'Milano', role: 'staff' }],
+    listMyTeams: () => [
+        { structureId: 'u_lido', name: 'Piscina Lido di Milano', logo: '', city: 'Milano', role: 'staff' },
+        { structureId: 'u_rozzano', name: 'Centro Nuoto Rozzano', logo: '', city: 'Rozzano', role: 'staff' },
+    ],
     getMyStats: () => ({
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),
@@ -386,6 +389,8 @@ export const apiResponses = {
         return [
             { $id: 'sh1', structureId: 'u_lido', structureName: 'Piscina Lido di Milano', userId: ME, userName: 'Giulia Ferri', date: day(1), shiftTime: '07:00–13:00', role: 'Assistente bagnante', status: 'scheduled' },
             { $id: 'sh2', structureId: 'u_lido', structureName: 'Piscina Lido di Milano', userId: ME, userName: 'Giulia Ferri', date: day(3), shiftTime: '16:00–20:00', role: 'Istruttrice', status: 'confirmed' },
+            { $id: 'sh3', structureId: 'u_rozzano', structureName: 'Centro Nuoto Rozzano', userId: ME, userName: 'Giulia Ferri', date: day(1), shiftTime: '12:30–15:00', role: 'Istruttrice', status: 'confirmed' },
+            { $id: 'sh4', structureId: 'u_rozzano', structureName: 'Centro Nuoto Rozzano', userId: ME, userName: 'Giulia Ferri', date: day(5), shiftTime: '09:00–12:00', role: 'Assistente bagnante', status: 'scheduled' },
         ];
     },
     publicProfile: () => ({
