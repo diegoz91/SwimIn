@@ -46,8 +46,11 @@ const cspPlugin = (endpoint: string): Plugin => ({
   },
 });
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react(), cspPlugin(loadEnv(mode, process.cwd(), '').VITE_APPWRITE_ENDPOINT || '')],
+// Endpoint di Appwrite per la policy: variabile d'ambiente della build (Vercel, CI) o file .env.
+const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT || loadEnv('production', process.cwd(), 'VITE_').VITE_APPWRITE_ENDPOINT || '';
+
+export default defineConfig({
+  plugins: [react(), cspPlugin(appwriteEndpoint)],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -70,4 +73,4 @@ export default defineConfig(({ mode }) => ({
     port: 3000,
     host: true,
   },
-}));
+});
