@@ -276,7 +276,7 @@ const Search: React.FC = () => {
                                         to={`/profile/${s.$id}`}
                                         image={s.logo || initialsAvatar(nameOf(s))}
                                         title={nameOf(s)}
-                                        subtitle={['userType' in s ? s.structureType : s.type, s.city].filter(Boolean).join(' – ')}
+                                        subtitle={[s.structureType, s.city].filter(Boolean).join(' – ')}
                                         square
                                     />
                                 ))}
