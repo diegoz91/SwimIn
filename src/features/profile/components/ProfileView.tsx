@@ -466,7 +466,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
 
-          {/* Riquadri visibili solo a te: analisi, completamento, disponibilità, strutture. */}
+          {/* Riquadri visibili solo a te: analisi, completamento, disponibilità. */}
           <div data-html2canvas-ignore="true">
       {isOwnProfile && recs.pending.length > 0 && (
         <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
@@ -775,8 +775,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
       {isOwnProfile && (
         <ProfileEditModal open={isEditingProfile} profile={user} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p)} />
-      )}
-      {isProfessional && isOwnProfile && (
       )}
 
       {isReportOpen && <ReportModal targetType="profile" targetId={user.userId || user.$id} onClose={() => setIsReportOpen(false)} />}
