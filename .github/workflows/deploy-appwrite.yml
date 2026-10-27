@@ -64,7 +64,7 @@ jobs:
           EMAIL_NOTIFICATIONS: ${{ vars.EMAIL_NOTIFICATIONS }}
           FUNCTION_URL: ${{ vars.FUNCTION_URL }}
           # Residui fuori schema: apply (predefinito) li elimina, report li elenca soltanto, off salta.
-          PRUNE: ${{ vars.PRUNE || 'apply' }}
+          PRUNE: ${{ vars.PRUNE || 'report' }}
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
           ALERT_USER_IDS: ${{ vars.ALERT_USER_IDS }}
           # Pagamenti Premium (facoltativi): senza, si usano solo prova gratuita e omaggi.
