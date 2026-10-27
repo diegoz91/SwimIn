@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Review, UserProfile } from '@/types/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -161,7 +161,7 @@ export const ReviewsSection: React.FC<{
     };
 
     return (
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6" aria-labelledby="reviews-title">
+        <section className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6" aria-labelledby="reviews-title">
             <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
                 <div>
                     <h2 id="reviews-title" className="text-2xl font-bold text-abisso">Recensioni</h2>
@@ -208,7 +208,7 @@ export const ReviewsSection: React.FC<{
                         return (
                             <li key={r.$id} className="py-5 first:pt-0">
                                 <div className="flex items-start gap-3">
-                                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+                                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="shrink-0">
                                         <img src={avatarOf(a)} alt="" className="w-10 h-10 rounded-full object-cover" />
                                     </Link>
                                     <div className="min-w-0 flex-1">

@@ -107,7 +107,7 @@ export const ShiftTemplatesModal: React.FC<{
                                     <p className="text-sm text-slate-500">{summary(t)}</p>
                                     <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{[...new Set(t.slots.map((s) => nameOf(s.userId)))].join(', ')}</p>
                                 </div>
-                                <div className="flex gap-2 flex-shrink-0">
+                                <div className="flex gap-2 shrink-0">
                                     <button type="button" onClick={() => apply(t)} disabled={!!busy} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-corsia-600 text-white text-sm font-semibold hover:bg-corsia-700 disabled:opacity-60">
                                         {busy === t.$id ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" /> : <Icon type="check" className="w-4 h-4" />}
                                         Applica

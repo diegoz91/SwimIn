@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { dateTile, eventTypeOf, priceLabel, seatsLeft, timeRange } from '@/data/events';
 import type { SwimMeet } from '@/types/types';
@@ -8,7 +8,7 @@ import type { SwimMeet } from '@/types/types';
 export const DateTile: React.FC<{ date: string; size?: 'md' | 'lg' }> = ({ date, size = 'md' }) => {
     const t = dateTile(date);
     return (
-        <div className={`flex-shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-white text-center ${size === 'lg' ? 'w-20' : 'w-14'}`} aria-hidden="true">
+        <div className={`shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-white text-center ${size === 'lg' ? 'w-20' : 'w-14'}`} aria-hidden="true">
             <div className={`bg-corsia-600 text-white font-semibold ${size === 'lg' ? 'text-sm py-1' : 'text-[11px] py-0.5'}`}>{t.month}</div>
             <div className={`font-display font-bold text-abisso leading-none ${size === 'lg' ? 'text-4xl pt-2' : 'text-2xl pt-1'}`}>{t.day}</div>
             <div className={`text-slate-500 ${size === 'lg' ? 'text-sm pb-2' : 'text-[11px] pb-1'}`}>{t.weekday}</div>

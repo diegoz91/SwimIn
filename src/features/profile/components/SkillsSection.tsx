@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -125,7 +125,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
     const suggestions = SUGGESTED_SKILLS.filter((s) => !skills.includes(s)).slice(0, 10);
 
     return (
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="skills-title">
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="skills-title">
             <div className="flex items-center justify-between mb-5">
                 <h2 id="skills-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                     <Icon type="star" className="w-6 h-6 text-blue-600" />
@@ -135,7 +135,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
                     <button
                         onClick={() => setIsEditing((v) => !v)}
                         data-html2canvas-ignore="true"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                     >
                         <Icon type={isEditing ? 'check' : 'pencil'} className="w-4 h-4" /> {isEditing ? 'Fatto' : 'Gestisci'}
                     </button>
@@ -158,7 +158,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
                             onChange={(e) => setNewSkill(e.target.value)}
                             maxLength={MAX_SKILL_LENGTH}
                             placeholder="Es. Scuola nuoto bambini"
-                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-hidden bg-white"
                         />
                         <button type="submit" disabled={!newSkill.trim()} className="px-4 py-2.5 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50">
                             Aggiungi

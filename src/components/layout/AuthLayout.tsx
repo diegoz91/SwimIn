@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Brand } from '@/components/ui/Brand';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 

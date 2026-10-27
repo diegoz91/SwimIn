@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { databaseService, type FeedbackRow } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { ChoiceChips } from '@/components/form/Field';

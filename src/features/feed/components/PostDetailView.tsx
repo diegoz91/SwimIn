@@ -115,10 +115,10 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
 
     return (
         <div className="max-w-3xl mx-auto pb-20 md:pb-8 animate-in fade-in duration-500">
-            <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-sm pb-4 pt-2 mb-2">
+            <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xs pb-4 pt-2 mb-2">
                 <button 
                     onClick={onBack} 
-                    className="inline-flex items-center text-slate-600 hover:text-blue-600 font-bold bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="inline-flex items-center text-slate-600 hover:text-blue-600 font-bold bg-white px-4 py-2 rounded-full shadow-xs border border-slate-200 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                     <Icon type="arrow-left" className="w-5 h-5 mr-2" />
                     {backLabel}
@@ -149,7 +149,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-4">
+            <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden mt-4">
                 <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
                     <h2 className="text-xl font-bold text-abisso">
                         Commenti <span className="text-slate-500 font-medium text-base ml-1">({comments.length})</span>
@@ -169,14 +169,14 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                             setSelectedTimestamp(videoRef.current.currentTime);
                                         }
                                     }}
-                                    className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 border border-purple-200 outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                    className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 border border-purple-200 outline-hidden focus-visible:ring-2 focus-visible:ring-purple-500"
                                 >
                                     <Icon type="camera" className="w-4 h-4" /> Cattura Frame dal Video
                                 </button>
                                 {selectedTimestamp !== null && (
-                                    <div className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm animate-in zoom-in duration-200">
+                                    <div className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 shadow-xs animate-in zoom-in duration-200">
                                         ⏱ {formatTime(selectedTimestamp)}
-                                        <button onClick={() => setSelectedTimestamp(null)} className="hover:text-purple-200 outline-none ml-1">
+                                        <button onClick={() => setSelectedTimestamp(null)} className="hover:text-purple-200 outline-hidden ml-1">
                                             <Icon type="x" className="w-3 h-3" />
                                         </button>
                                     </div>
@@ -185,7 +185,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                         )}
 
                         <div className="flex items-start gap-3 sm:gap-4">
-                            <img src={currentUserAvatar} alt="Il tuo avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0" />
+                            <img src={currentUserAvatar} alt="Il tuo avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-200 shadow-xs shrink-0" />
                             <div className="flex-1">
                                 <label htmlFor="detail-comment" className="sr-only">Scrivi un commento</label>
                                 <textarea 
@@ -194,14 +194,14 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                     value={newCommentText}
                                     onChange={(e) => setNewCommentText(e.target.value)}
                                     disabled={isSubmitting}
-                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none text-[15px]"
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none text-[15px]"
                                     rows={3}
                                 />
                                 <div className="flex justify-end mt-3">
                                     <button 
                                         onClick={handlePublishComment}
                                         disabled={isSubmitting || (!newCommentText.trim() && selectedTimestamp === null)}
-                                        className="bg-blue-600 text-white font-bold px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                        className="bg-blue-600 text-white font-bold px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                                     >
                                         {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Pubblica'}
                                     </button>
@@ -240,7 +240,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post: initialPos
                                                             scrollPageTo(0, true);
                                                         }
                                                     }}
-                                                    className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-purple-500 group-hover:scale-105"
+                                                    className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 outline-hidden focus-visible:ring-2 focus-visible:ring-purple-500 group-hover:scale-105"
                                                 >
                                                     <Icon type="play" className="w-3 h-3 sm:w-4 sm:h-4" /> 
                                                     Vai al sec. {formatTime(timeVal)}

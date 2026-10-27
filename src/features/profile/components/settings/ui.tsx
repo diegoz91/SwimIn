@@ -23,7 +23,7 @@ export const SectionHeader: React.FC<{ title: string; description: string }> = (
 export const Group: React.FC<{ title: string; description?: string; children: React.ReactNode; tone?: 'default' | 'danger'; footer?: React.ReactNode; id?: string }> = ({
     title, description, children, tone = 'default', footer, id,
 }) => (
-    <section id={id} aria-labelledby={id ? `${id}-title` : undefined} className={`bg-white rounded-2xl border shadow-sm overflow-hidden scroll-mt-24 ${tone === 'danger' ? 'border-red-200' : 'border-slate-200'}`}>
+    <section id={id} aria-labelledby={id ? `${id}-title` : undefined} className={`bg-white rounded-2xl border shadow-xs overflow-hidden scroll-mt-24 ${tone === 'danger' ? 'border-red-200' : 'border-slate-200'}`}>
         <div className="px-5 sm:px-6 pt-5 pb-1">
             <h3 id={id ? `${id}-title` : undefined} className={`font-bold ${tone === 'danger' ? 'text-galleggiante-700' : 'text-abisso'}`}>{title}</h3>
             {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
@@ -51,7 +51,7 @@ export const Row: React.FC<{
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             {leading}
             {icon && !leading && (
-                <span className="w-10 h-10 rounded-xl bg-piastrella text-corsia-700 grid place-items-center flex-shrink-0" aria-hidden="true">
+                <span className="w-10 h-10 rounded-xl bg-piastrella text-corsia-700 grid place-items-center shrink-0" aria-hidden="true">
                     <Icon type={icon} className="w-5 h-5" />
                 </span>
             )}
@@ -59,7 +59,7 @@ export const Row: React.FC<{
                 <div className="font-semibold text-abisso">{title}</div>
                 {description && <div id={descriptionId} className="text-sm text-slate-500 mt-0.5 break-words">{description}</div>}
             </div>
-            {aside && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{aside}</div>}
+            {aside && <div className="flex flex-wrap items-center gap-2 shrink-0">{aside}</div>}
         </div>
         {children}
     </div>
@@ -87,8 +87,8 @@ export const RowSkeleton: React.FC<{ rows?: number }> = ({ rows = 2 }) => (
             <div key={i} className="px-5 sm:px-6 py-4 flex items-center gap-4" aria-hidden="true">
                 <span className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse" />
                 <span className="flex-1 space-y-2">
-                    <span className="block h-3.5 w-40 bg-slate-100 rounded animate-pulse" />
-                    <span className="block h-3 w-64 max-w-full bg-slate-100 rounded animate-pulse" />
+                    <span className="block h-3.5 w-40 bg-slate-100 rounded-sm animate-pulse" />
+                    <span className="block h-3 w-64 max-w-full bg-slate-100 rounded-sm animate-pulse" />
                 </span>
             </div>
         ))}

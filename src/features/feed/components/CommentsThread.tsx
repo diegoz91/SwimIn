@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useLiveCollection } from '@/hooks/useLiveCollection';
@@ -93,7 +93,7 @@ export const CommentsThread: React.FC<{
         <div className="px-4 sm:px-5 pb-4 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none">
             {user && (
                 <form onSubmit={submit} className="flex items-start gap-2 mb-4">
-                    <img src={avatarOf(user)} alt="" className="w-9 h-9 rounded-full object-cover border border-slate-100 flex-shrink-0" />
+                    <img src={avatarOf(user)} alt="" className="w-9 h-9 rounded-full object-cover border border-slate-100 shrink-0" />
                     <div className="flex-1 min-w-0">
                         {replyTo && (
                             <p className="text-xs text-slate-500 mb-1">
@@ -114,7 +114,7 @@ export const CommentsThread: React.FC<{
                                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); } }}
                                 rows={Math.min(5, Math.max(1, text.split('\n').length))}
                                 placeholder={replyTo ? 'Scrivi una risposta…' : 'Aggiungi un commento…'}
-                                className="w-full resize-none bg-transparent py-1 text-sm outline-none"
+                                className="w-full resize-none bg-transparent py-1 text-sm outline-hidden"
                             />
                             </div>
                             {text.trim() && (

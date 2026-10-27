@@ -52,7 +52,7 @@ const PersonPicker: React.FC<{ id: string; label: string; value: AdminUserRow | 
                 <ul className="mt-2 rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-56 overflow-y-auto">
                     {rows.map((u) => (
                         <li key={u.$id}>
-                            <button type="button" onClick={() => onChange(u)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 focus-visible:bg-slate-50 outline-none">
+                            <button type="button" onClick={() => onChange(u)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 focus-visible:bg-slate-50 outline-hidden">
                                 <span className="block font-semibold text-abisso">{u.name}</span>
                                 <span className="block text-xs text-slate-500 truncate">{u.email}</span>
                             </button>
@@ -250,14 +250,14 @@ export const AdminLegal: React.FC = () => {
     return (
         <div className="space-y-5">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start gap-4">
-                <span className="w-11 h-11 rounded-full bg-corsia-50 text-corsia-700 flex items-center justify-center flex-shrink-0"><Icon type="lock-closed" className="w-5 h-5" /></span>
+                <span className="w-11 h-11 rounded-full bg-corsia-50 text-corsia-700 flex items-center justify-center shrink-0"><Icon type="lock-closed" className="w-5 h-5" /></span>
                 <div className="min-w-0 flex-1">
                     <h2 className="text-2xl font-bold text-abisso leading-tight">Richieste delle autorità</h2>
                     <p className="text-sm text-slate-600 mt-1 max-w-2xl">
                         Quando arriva un ordine di conservazione o di consegna, registralo qui. SwimIn sigilla subito i dati esistenti (account, accessi, profilo, messaggi, post, commenti, candidature): nessuno li può leggere dal sistema, nemmeno gli amministratori. Alla scadenza le copie si cancellano da sole.
                     </p>
                 </div>
-                <Button icon="plus" onClick={() => setCreating(true)} className="flex-shrink-0">Registra un ordine</Button>
+                <Button icon="plus" onClick={() => setCreating(true)} className="shrink-0">Registra un ordine</Button>
             </div>
 
             {holds === null ? (

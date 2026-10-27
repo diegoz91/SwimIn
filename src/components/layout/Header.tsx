@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { client } from '@/services/appwrite';
@@ -131,9 +131,9 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="relative flex-shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="relative shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 sm:gap-6">
-        <Link to="/" className="flex-shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-corsia-500" aria-label="SwimIn, vai alla home">
+        <Link to="/" className="shrink-0 rounded-lg outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500" aria-label="SwimIn, vai alla home">
           <span className="sm:hidden"><Brand size="sm" markOnly /></span>
           <span className="hidden sm:inline-flex"><Brand size="md" /></span>
         </Link>
@@ -150,7 +150,7 @@ const Header: React.FC = () => {
               end={item.end}
               className={({ isActive }) =>
                 `relative flex flex-col items-center justify-center gap-0.5 w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-none focus-visible:bg-piastrella ${
-                  isActive ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t after:bg-corsia-600' : 'text-slate-500 hover:text-abisso'
+                  isActive ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t-sm after:bg-corsia-600' : 'text-slate-500 hover:text-abisso'
                 }`
               }
             >
@@ -176,7 +176,7 @@ const Header: React.FC = () => {
               onClick={() => setOpenMenu(openMenu === 'notifications' ? null : 'notifications')}
               aria-label={notifications.length ? `Notifiche, ${notifications.length} da leggere` : 'Notifiche'}
               aria-expanded={openMenu === 'notifications'}
-              className="relative p-2 text-slate-500 hover:text-abisso rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+              className="relative p-2 text-slate-500 hover:text-abisso rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
             >
               <Icon type="bell" className="w-6 h-6" />
               <Badge count={notifications.length} />
@@ -190,7 +190,7 @@ const Header: React.FC = () => {
                     {notifications.length > 0 && <p className="text-xs text-slate-500">{notifications.length === 1 ? '1 da leggere' : `${notifications.length} da leggere`}</p>}
                   </div>
                   {notifications.length > 0 && (
-                    <button type="button" onClick={markAllRead} className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-corsia-700 hover:bg-corsia-50 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                    <button type="button" onClick={markAllRead} className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-corsia-700 hover:bg-corsia-50 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500">
                       <Icon type="check-double" className="w-4 h-4" /> Segna tutte come lette
                     </button>
                   )}
@@ -204,8 +204,8 @@ const Header: React.FC = () => {
                         const meta = notificationMeta(n);
                         return (
                           <li key={n.$id} className="group relative flex items-stretch hover:bg-piastrella">
-                            <button onClick={() => openNotification(n)} className="flex-1 min-w-0 text-left pl-4 pr-2 py-3 flex gap-3 outline-none focus-visible:bg-piastrella">
-                              <span className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
+                            <button onClick={() => openNotification(n)} className="flex-1 min-w-0 text-left pl-4 pr-2 py-3 flex gap-3 outline-hidden focus-visible:bg-piastrella">
+                              <span className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${meta.tone}`}>
                                 <Icon type={meta.icon} className="w-4 h-4" />
                               </span>
                               <span className="min-w-0">
@@ -218,7 +218,7 @@ const Header: React.FC = () => {
                               onClick={() => markRead(n)}
                               aria-label={`Segna come letta: ${n.content}`}
                               title="Segna come letta"
-                              className="flex-shrink-0 self-center mr-2 w-9 h-9 grid place-items-center rounded-full text-slate-400 hover:text-corsia-700 hover:bg-white lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                              className="shrink-0 self-center mr-2 w-9 h-9 grid place-items-center rounded-full text-slate-400 hover:text-corsia-700 hover:bg-white lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                             >
                               <Icon type="check" className="w-4 h-4" />
                             </button>
@@ -240,7 +240,7 @@ const Header: React.FC = () => {
               onClick={() => setOpenMenu(openMenu === 'account' ? null : 'account')}
               aria-label="Menu account"
               aria-expanded={openMenu === 'account'}
-              className="flex items-center gap-2 p-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+              className="flex items-center gap-2 p-0.5 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
             >
               <img src={displayAvatar} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-card" />
               <Icon type="chevron-right" className="w-4 h-4 text-slate-400 rotate-90 hidden lg:block" />
@@ -266,7 +266,7 @@ const Header: React.FC = () => {
                     <p id="menu-teams" className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-500">Lavori presso</p>
                     {teams.slice(0, 5).map((t) => (
                       <Link key={t.structureId} to={`/profile/${t.structureId}?area=staff`} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-piastrella">
-                        <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-100 flex-shrink-0" />
+                        <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-100 shrink-0" />
                         <span className="min-w-0 flex-1 truncate font-medium text-abisso">{t.name}</span>
                       </Link>
                     ))}

@@ -1,0 +1,40 @@
+# Aggiornamenti automatici: quando la Verifica di una PR di aggiornamento è verde, la unisce e
+# fa partire il Rilascio (un merge fatto da un workflow non lo avvierebbe da solo).
+# Si uniscono da sole:
+#   - le PR mensili di Dependabot del gruppo "aggiornamenti" (versioni minori e correttive);
+#   - le PR mensili dell'anagrafica dei comuni (branch bot/anagrafica-…, Verifica avviata dal workflow Anagrafica).
+# Le versioni principali (gruppo "principali") restano aperte: possono richiedere modifiche al codice.
+name: Aggiornamenti
+
+on:
+  workflow_run:
+    workflows: [Verifica]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  unisci:
+    if: github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unisci e rilascia
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          case "$BRANCH" in
+            dependabot/*/aggiornamenti-*|dependabot/*/*/aggiornamenti-*|bot/anagrafica-*) ;;
+            *) echo "PR $BRANCH: non è un aggiornamento automatico."; exit 0 ;;
+          esac
+          pr=$(gh api "repos/$REPO/pulls?state=open&head=${REPO%%/*}:$BRANCH" --jq '.[0].number // empty')
+          [ -z "$pr" ] && { echo "Nessuna PR aperta per $BRANCH"; exit 0; }
+          head=$(gh api "repos/$REPO/pulls/$pr" --jq .head.sha)
+          [ "$head" != "$SHA" ] && { echo "La PR è cambiata dopo la verifica: aspetto la prossima."; exit 0; }
+          gh api -X PUT "repos/$REPO/pulls/$pr/merge" -f merge_method=squash -f sha="$SHA" --jq .message
+          gh workflow run rilascio.yml --repo "$REPO" --ref main

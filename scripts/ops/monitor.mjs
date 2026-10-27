@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Controllo periodico della produzione (workflow "Monitor", ogni 10 minuti):
+ * Controllo periodico della produzione (workflow "Controlli", ogni 10 minuti):
  * - il sito su Vercel risponde (APP_URL) e /api/health dice che Appwrite risponde;
  * - la Function `api` risponde anche chiamata direttamente su Appwrite;
  * - gli errori del server degli ultimi 15 minuti non superano la soglia (con la chiave API).
- * Se qualcosa non va esce con errore: GitHub manda un'email a chi gestisce il repository.
+ * Se qualcosa non va esce con errore: il workflow apre UNA issue "Servizio con problemi" (una email).
  * Nessuna dipendenza: solo fetch.
  */
 import { writeFileSync } from 'node:fs';

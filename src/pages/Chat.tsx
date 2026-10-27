@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { MessagesView } from '@/features/messaging/components/MessagesView';
 

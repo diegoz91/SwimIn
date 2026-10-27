@@ -153,7 +153,7 @@ export function Select<V extends string = string>({
                     {selected ? selected.label : placeholder}
                     {selected?.hint && <span className="text-slate-400 ml-1.5">{selected.hint}</span>}
                 </span>
-                <Icon type="chevron-right" className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-150 ${open ? '-rotate-90' : 'rotate-90'}`} />
+                <Icon type="chevron-right" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-150 ${open ? '-rotate-90' : 'rotate-90'}`} />
             </button>
 
             <Popover open={open} anchorRef={triggerRef} onClose={() => close(false)} title={label} id={`${listId}-panel`} minWidth={withSearch ? 260 : undefined} tallSheet={withSearch}>
@@ -170,7 +170,7 @@ export function Select<V extends string = string>({
                                 aria-label={`Cerca in ${label.toLowerCase()}`}
                                 aria-controls={listId}
                                 aria-activedescendant={filtered[active] ? `${listId}-${active}` : undefined}
-                                className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-piastrella text-sm text-abisso placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-corsia-100"
+                                className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-piastrella text-sm text-abisso placeholder:text-slate-400 outline-hidden focus:ring-2 focus:ring-corsia-100"
                                 autoComplete="off"
                                 spellCheck={false}
                             />
@@ -185,7 +185,7 @@ export function Select<V extends string = string>({
                     tabIndex={withSearch ? -1 : 0}
                     aria-activedescendant={!withSearch && filtered[active] ? `${listId}-${active}` : undefined}
                     onKeyDown={withSearch ? undefined : onListKey}
-                    className={`py-1.5 outline-none ${sheet ? 'px-2' : 'px-1.5'}`}
+                    className={`py-1.5 outline-hidden ${sheet ? 'px-2' : 'px-1.5'}`}
                 >
                     {filtered.length === 0 && <li className="px-3 py-6 text-sm text-center text-slate-500">Nessun risultato per “{query}”.</li>}
                     {filtered.map((o, i) => {
@@ -210,7 +210,7 @@ export function Select<V extends string = string>({
                                         <Highlight text={o.label} query={query} />
                                     </span>
                                     {o.hint && <span className="text-xs text-slate-400 tabular-nums">{o.hint}</span>}
-                                    {isSelected && <Icon type="check" className="w-4 h-4 text-corsia-600 flex-shrink-0" />}
+                                    {isSelected && <Icon type="check" className="w-4 h-4 text-corsia-600 shrink-0" />}
                                 </li>
                             </React.Fragment>
                         );

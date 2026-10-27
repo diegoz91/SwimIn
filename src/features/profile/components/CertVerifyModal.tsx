@@ -81,7 +81,7 @@ export const CertVerifyModal: React.FC<{ open: boolean; cert?: Certification; us
                 onClick={() => inputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0]); }}
-                className={`w-full rounded-2xl border-2 border-dashed p-6 text-center transition-colors outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 ${error ? 'border-galleggiante bg-red-50/40' : 'border-slate-300 hover:border-corsia-400 bg-piastrella'}`}
+                className={`w-full rounded-2xl border-2 border-dashed p-6 text-center transition-colors outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 ${error ? 'border-galleggiante bg-red-50/40' : 'border-slate-300 hover:border-corsia-400 bg-piastrella'}`}
             >
                 {preview ? (
                     <img src={preview} alt="Anteprima del brevetto" className="max-h-56 mx-auto rounded-lg shadow-card" />

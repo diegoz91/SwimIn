@@ -1,27 +1,47 @@
-# Aggiornamenti di sicurezza automatici: una PR quando una dipendenza ha una vulnerabilità nota
-# o una nuova versione (raggruppate per non intasare). La CI le verifica come le altre PR.
+# Aggiornamenti delle dipendenze: UNA volta al mese, raggruppati (poche PR, poche email).
+# - gruppo "aggiornamenti" (versioni minori e correttive): se la Verifica è verde li unisce da solo
+#   il workflow Aggiornamenti, che poi fa partire il Rilascio;
+# - gruppo "principali" (nuove versioni maggiori): PR da rivedere, possono richiedere modifiche al codice.
+# Le vulnerabilità note arrivano comunque subito (aggiornamenti di sicurezza di GitHub).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
       day: monday
-    open-pull-requests-limit: 5
+      time: "06:00"
+      timezone: Europe/Rome
+    open-pull-requests-limit: 2
     groups:
-      dipendenze:
+      aggiornamenti:
         update-types: [minor, patch]
+      principali:
+        update-types: [major]
     ignore:
-      # I tipi di Node seguono la versione usata in produzione e in CI (22, vedi "engines").
+      # Node 24 in produzione (Vercel e Appwrite): i tipi seguono quella versione.
       - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
+        versions: [">=25"]
   - package-ecosystem: npm
     directory: /functions/api
     schedule:
-      interval: weekly
+      interval: monthly
       day: monday
-    open-pull-requests-limit: 3
+      time: "06:00"
+      timezone: Europe/Rome
+    open-pull-requests-limit: 2
+    groups:
+      aggiornamenti:
+        update-types: [minor, patch]
+      principali:
+        update-types: [major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    groups:
+      aggiornamenti:
+        patterns: ["*"]

@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
 import { createHash } from 'node:crypto';
 
@@ -50,7 +51,7 @@ const cspPlugin = (endpoint: string): Plugin => ({
 const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT || loadEnv('production', process.cwd(), 'VITE_').VITE_APPWRITE_ENDPOINT || '';
 
 export default defineConfig({
-  plugins: [react(), cspPlugin(appwriteEndpoint)],
+  plugins: [react(), tailwindcss(), cspPlugin(appwriteEndpoint)],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -65,7 +66,7 @@ export default defineConfig({
         // Librerie che cambiano di rado in pezzi a parte: restano nella cache del browser tra un rilascio e l'altro.
         codeSplitting: {
           groups: [
-            { name: 'vendor', test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|@remix-run[\\/]router|scheduler)[\\/]/, priority: 20 },
+            { name: 'vendor', test: /[\\/]node_modules[\\/](react|react-dom|react-router|scheduler|cookie|set-cookie-parser)[\\/]/, priority: 20 },
             { name: 'appwrite', test: /[\\/]node_modules[\\/]appwrite[\\/]/, priority: 10 },
           ],
         },

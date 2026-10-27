@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { databaseService, type MyApplication } from '@/services/database';
 import { getPrefs, patchPrefs } from '@/services/prefs';
@@ -60,13 +60,13 @@ export const HiredBanner: React.FC<{ user: AuthenticatedUser; onVisibleChange?: 
     return (
         <div className="flex flex-col gap-3">
             {apps.map((app) => (
-                <section key={app.$id} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cloro-700 to-corsia-700 text-white p-5 shadow-card animate-in zoom-in-95 duration-300" aria-labelledby={`hired-${app.$id}`}>
+                <section key={app.$id} className="relative overflow-hidden rounded-2xl bg-linear-to-br from-cloro-700 to-corsia-700 text-white p-5 shadow-card animate-in zoom-in-95 duration-300" aria-labelledby={`hired-${app.$id}`}>
                     <Icon type="sparkles" className="absolute -right-6 -top-6 w-32 h-32 opacity-10" />
-                    <button type="button" onClick={() => setApps((list) => list.filter((a) => a.$id !== app.$id))} aria-label="Chiudi" className="absolute top-3 right-3 p-2 rounded-full text-white/80 hover:text-white hover:bg-white/15 outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    <button type="button" onClick={() => setApps((list) => list.filter((a) => a.$id !== app.$id))} aria-label="Chiudi" className="absolute top-3 right-3 p-2 rounded-full text-white/80 hover:text-white hover:bg-white/15 outline-hidden focus-visible:ring-2 focus-visible:ring-white">
                         <Icon type="x" className="w-5 h-5" />
                     </button>
                     <div className="relative flex items-start gap-4 pr-8">
-                        <span className="hidden sm:grid w-11 h-11 rounded-xl bg-white/15 border border-white/25 place-items-center flex-shrink-0" aria-hidden="true">
+                        <span className="hidden sm:grid w-11 h-11 rounded-xl bg-white/15 border border-white/25 place-items-center shrink-0" aria-hidden="true">
                             <Icon type="check-double" className="w-6 h-6" />
                         </span>
                         <div className="min-w-0">

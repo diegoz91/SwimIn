@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { useBlocks } from '@/context/BlocksContext';
@@ -170,7 +170,7 @@ const BlockedGroup: React.FC = () => {
                     return (
                         <Row
                             key={`${r.kind}-${r.id}`}
-                            leading={<img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100 flex-shrink-0" />}
+                            leading={<img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100 shrink-0" />}
                             title={<Link to={`/profile/${r.id}`} className="hover:underline">{name}</Link>}
                             description={r.kind === 'block' ? 'Bloccato' : 'Silenziato'}
                             aside={<button type="button" onClick={() => unblock(r.id, r.kind)} className={btn.secondary}>{r.kind === 'block' ? 'Sblocca' : 'Riattiva'}</button>}

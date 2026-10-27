@@ -1,13 +1,11 @@
-@layer components {
-  .glass-panel {
-    @apply bg-white/90 backdrop-blur-md border border-white/20 shadow-sm;
-  }
-  
-  .btn-primary {
-    @apply bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition-all shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+@utility glass-panel {
+  @apply bg-white/90 backdrop-blur-md border border-white/20 shadow-xs;
+}
 
-  .btn-secondary {
-    @apply bg-slate-100 text-slate-700 font-bold py-2.5 px-6 rounded-full hover:bg-slate-200 transition-all shadow-sm active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+@utility btn-primary {
+  @apply bg-blue-600 text-white font-bold py-2.5 px-6 rounded-full hover:bg-blue-700 transition-all shadow-xs active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility btn-secondary {
+  @apply bg-slate-100 text-slate-700 font-bold py-2.5 px-6 rounded-full hover:bg-slate-200 transition-all shadow-xs active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
 }

@@ -183,7 +183,7 @@ export const StarRating: React.FC<{ value: number; onChange?: (n: number) => voi
     return (
         <div role="radiogroup" aria-label={label} className="inline-flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} ${n === 1 ? 'stella' : 'stelle'}`} onClick={() => onChange(value === n ? 0 : n)} className="p-1 rounded-full hover:bg-amber-50 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} ${n === 1 ? 'stella' : 'stelle'}`} onClick={() => onChange(value === n ? 0 : n)} className="p-1 rounded-full hover:bg-amber-50 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500">
                     <Icon type="star" className={`${cls} ${n <= value ? 'text-amber-500' : 'text-slate-300'}`} />
                 </button>
             ))}

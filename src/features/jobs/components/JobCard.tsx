@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Job, UserProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
@@ -34,7 +34,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, canApply = false, applied
         <article className={`bg-white rounded-2xl border shadow-card flex flex-col h-full transition-colors ${job.featured ? 'border-oro-300 hover:border-oro-500' : 'border-slate-200 hover:border-corsia-300'}`}>
             <div className="p-5 flex-1">
                 <div className="flex items-start gap-3">
-                    <img src={logo} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-100 bg-white flex-shrink-0" />
+                    <img src={logo} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-100 bg-white shrink-0" />
                     <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-semibold text-abisso leading-snug line-clamp-2">
                             <Link to={`/jobs/${job.$id}`} className="hover:text-corsia-700 hover:underline">{jobDisplayTitle(job)}</Link>

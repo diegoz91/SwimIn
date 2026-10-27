@@ -39,7 +39,7 @@ export const FollowButton: React.FC<{ profileId: string; className?: string; onC
             onClick={toggle}
             disabled={busy}
             aria-pressed={following}
-            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${following ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'border border-corsia-300 text-corsia-700 hover:bg-corsia-50'} ${className}`}
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-60 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 ${following ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'border border-corsia-300 text-corsia-700 hover:bg-corsia-50'} ${className}`}
         >
             <Icon type={following ? 'check' : 'plus'} className="w-4 h-4" /> {following ? 'Segui già' : 'Segui'}
         </button>

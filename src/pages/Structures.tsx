@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService } from '@/services/database';
@@ -83,7 +83,7 @@ const Structures: React.FC = () => {
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Nome o comune"
                         aria-label="Cerca per nome o comune"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden"
                     />
                 </div>
                 <ProvinceSelect value={province} onChange={setProvince} />
@@ -113,7 +113,7 @@ const Structures: React.FC = () => {
                     {shown.map((s) => (
                         <li key={s.id} className="min-w-0">
                             <Link to={`/profile/${s.id}`} className="group flex gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-card hover:border-corsia-200 hover:shadow-lift transition-shadow h-full">
-                                <img src={s.logo} alt="" className="w-16 h-16 rounded-xl object-cover border border-slate-100 flex-shrink-0" />
+                                <img src={s.logo} alt="" className="w-16 h-16 rounded-xl object-cover border border-slate-100 shrink-0" />
                                 <div className="min-w-0 flex-1">
                                     <p className="font-semibold text-abisso group-hover:text-corsia-700 truncate">{s.name}</p>
                                     <p className="text-sm text-slate-500 truncate">{[s.type, s.city && `${s.city}${s.province ? ` (${s.province})` : ''}`].filter(Boolean).join(' · ')}</p>

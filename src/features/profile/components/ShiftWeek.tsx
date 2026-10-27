@@ -66,8 +66,8 @@ export const ShiftWeek: React.FC<{
                                             <p className="font-semibold text-abisso">{s.shiftTime}</p>
                                             <p className="text-slate-700 truncate">{show === 'person' ? s.userName : s.structureName}</p>
                                             <p className="text-xs text-slate-500 truncate">{s.role}</p>
-                                            <span className={`inline-block mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.text}</span>
-                                            {flagged?.has(s.$id) && <span className="inline-block mt-1.5 ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">Sovrapposto</span>}
+                                            <span className={`inline-block mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-sm border ${badge.cls}`}>{badge.text}</span>
+                                            {flagged?.has(s.$id) && <span className="inline-block mt-1.5 ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-sm border bg-amber-50 text-amber-800 border-amber-200">Sovrapposto</span>}
                                             {actions && <div className="mt-2 flex flex-wrap gap-1.5">{actions(s)}</div>}
                                         </li>
                                     );

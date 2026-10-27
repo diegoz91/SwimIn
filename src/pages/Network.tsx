@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -153,7 +153,7 @@ const Network: React.FC = () => {
             
             <div className="flex justify-center mb-6 sm:mb-8">
                 <nav aria-label="Sezioni della rete" className="bg-slate-100 p-1.5 rounded-2xl flex w-full sm:w-auto shadow-inner border border-slate-200">
-                    <span className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-white text-corsia-700 shadow-sm" aria-current="page">
+                    <span className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-white text-corsia-700 shadow-xs" aria-current="page">
                         <Icon type="users" className="w-4 h-4 hidden min-[380px]:block" />
                         <span>Collegamenti</span>
                     </span>

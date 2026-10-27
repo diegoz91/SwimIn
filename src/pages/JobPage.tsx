@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
 import { InterviewCard } from '@/features/jobs/components/Interview';
@@ -152,7 +152,7 @@ const JobPage: React.FC = () => {
                 {job.isSOS && <div className="bg-galleggiante-700 text-white text-sm font-semibold px-5 sm:px-7 py-2 flex items-center gap-2"><Icon type="alert-triangle" className="w-4 h-4" /> Sostituzione urgente · {formatDate(job.sosDate, 'weekday')}{job.sosShift ? `, ${job.sosShift}` : ''}</div>}
                 <div className="p-5 sm:p-7">
                     <div className="flex items-start gap-4">
-                        <img src={logo} alt="" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-100 bg-white flex-shrink-0" />
+                        <img src={logo} alt="" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-100 bg-white shrink-0" />
                         <div className="min-w-0 flex-1">
                             <h1 id="job-title" className="text-3xl sm:text-4xl font-bold text-abisso leading-[1.05]">{title}</h1>
                             <Link to={`/profile/${job.structureId}`} className="mt-1 inline-block py-1 -my-1 font-semibold text-slate-700 hover:text-corsia-700 hover:underline">{job.structureName || 'Struttura'}</Link>
@@ -173,7 +173,7 @@ const JobPage: React.FC = () => {
 
                     {!open && (
                         <p className="mt-5 rounded-2xl bg-slate-100 text-slate-700 px-4 py-3 text-sm flex items-center gap-2">
-                            <Icon type="lock-closed" className="w-4 h-4 flex-shrink-0" />
+                            <Icon type="lock-closed" className="w-4 h-4 shrink-0" />
                             {expired ? `Annuncio scaduto il ${formatDate(job.expiresAt)}: non riceve più candidature.` : 'Annuncio chiuso: non riceve più candidature.'}
                         </p>
                     )}
@@ -277,7 +277,7 @@ const JobPage: React.FC = () => {
                     <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                         {requirements.map((r) => (
                             <li key={r.label} className="flex items-start gap-2 text-sm">
-                                <span className={`mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 ${r.met ? 'bg-cloro-100 text-cloro-800' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
+                                <span className={`mt-0.5 w-5 h-5 rounded-full grid place-items-center shrink-0 ${r.met ? 'bg-cloro-100 text-cloro-800' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
                                     <Icon type={r.met ? 'check' : 'x'} className="w-3 h-3" />
                                 </span>
                                 <span className={r.met ? 'text-slate-800' : 'text-slate-600'}>
@@ -329,8 +329,8 @@ const JobPage: React.FC = () => {
 
             {/* Smartphone: candidatura sempre a portata di pollice */}
             {!isManager && (
-                <div className="sm:hidden sticky bottom-0 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-t border-slate-200 flex gap-2">
-                    <button onClick={() => toggleSaved('job', job.$id)} aria-pressed={saved} aria-label={saved ? 'Rimuovi dai salvati' : 'Salva l’offerta'} className="w-12 flex-shrink-0 rounded-full border border-slate-200 grid place-items-center text-corsia-700">
+                <div className="sm:hidden sticky bottom-0 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-slate-200 flex gap-2">
+                    <button onClick={() => toggleSaved('job', job.$id)} aria-pressed={saved} aria-label={saved ? 'Rimuovi dai salvati' : 'Salva l’offerta'} className="w-12 shrink-0 rounded-full border border-slate-200 grid place-items-center text-corsia-700">
                         <Icon type="bookmark" className={`w-5 h-5 ${saved ? 'fill-corsia-200' : ''}`} />
                     </button>
                     <div className="flex-1">

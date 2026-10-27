@@ -1,0 +1,176 @@
+# Rilascio: a ogni merge su main (o a mano) un solo flusso, in ordine:
+#   1. Verifica       – build e tutti i test (lo stesso workflow delle PR)
+#   2. Appwrite       – schema, migrazioni, pulizia e Function, se il merge li tocca
+#      Vercel         – Vercel pubblica il sito da sé; qui si aspetta l'esito della pubblicazione
+#   3. Prova reale    – percorsi veri su Appwrite con account di prova
+#   4. Riepilogo      – UN commento nella issue "Rilasci di SwimIn" = una sola email con l'esito
+# Solo documentazione (*.md, docs/) non fa partire il rilascio.
+name: Rilascio
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  group: rilascio
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  deployments: read
+  statuses: read
+
+jobs:
+  verifica:
+    name: Verifica
+    uses: ./.github/workflows/verifica.yml
+    secrets: inherit
+
+  appwrite:
+    name: Appwrite
+    needs: verifica
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      note: ${{ steps.what.outputs.note }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Cosa rilasciare
+        id: what
+        env:
+          KEY: ${{ secrets.APPWRITE_API_KEY }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"; echo "note=secret APPWRITE_* mancanti: lancia npm run setup-db a mano" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "note=schema e Function aggiornati" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qE '^(functions/api/|setup-db\.js|scripts/check-sdk\.js|\.github/workflows/rilascio\.yml)'; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "note=schema e Function aggiornati" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"; echo "note=nessuna modifica a database e Function" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: steps.what.outputs.deploy == 'true'
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Schema e Function
+        if: steps.what.outputs.deploy == 'true'
+        run: |
+          npm ci
+          npm run setup-db
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          APP_URL: ${{ vars.APP_URL }}
+          EMAIL_NOTIFICATIONS: ${{ vars.EMAIL_NOTIFICATIONS }}
+          FUNCTION_URL: ${{ vars.FUNCTION_URL }}
+          PRUNE: ${{ vars.PRUNE || 'apply' }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          ALERT_USER_IDS: ${{ vars.ALERT_USER_IDS }}
+          ESCROW_PUBLIC_KEY: ${{ secrets.ESCROW_PUBLIC_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
+          PAYPAL_MODE: ${{ vars.PAYPAL_MODE }}
+
+  vercel:
+    name: Vercel
+    needs: verifica
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      url: ${{ steps.wait.outputs.url }}
+      note: ${{ steps.wait.outputs.note }}
+    steps:
+      # Vercel pubblica il sito a ogni push su main (integrazione Git) e lo segnala come
+      # "deployment" di GitHub: qui si aspetta il suo esito per includerlo nel riepilogo.
+      - name: Attendi la pubblicazione su Vercel
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 80); do
+            # Stato "Vercel" del commit (integrazione Git), con l'indirizzo della pubblicazione.
+            st=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/statuses?per_page=50" --jq '[.[] | select(.context | test("^Vercel"))][0] | (.state + " " + (.target_url // ""))' 2>/dev/null)
+            state=${st%% *}; url=${st#* }
+            case "$state" in
+              success)
+                prod=$(gh api "repos/${{ github.repository }}/deployments?sha=${{ github.sha }}&per_page=20" --jq '[.[] | select(.environment | test("^Production"; "i"))][0].id // empty')
+                [ -n "$prod" ] && url=$(gh api "repos/${{ github.repository }}/deployments/$prod/statuses?per_page=1" --jq '.[0].environment_url // empty')
+                echo "url=${url:-${{ vars.APP_URL }}}" >> "$GITHUB_OUTPUT"; echo "Pubblicato: ${url:-${{ vars.APP_URL }}}"; exit 0 ;;
+              failure|error) echo "note=pubblicazione non riuscita" >> "$GITHUB_OUTPUT"; echo "::error::Vercel: pubblicazione non riuscita ($url)"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "note=nessun esito da Vercel entro 20 minuti" >> "$GITHUB_OUTPUT"
+          echo "::error::Vercel non ha pubblicato entro 20 minuti."
+          exit 1
+
+  prova:
+    name: Prova reale
+    needs: [appwrite, vercel]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configurazione
+        id: cfg
+        env:
+          ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+        run: |
+          if [ -z "$ENDPOINT" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "::notice::Secret APPWRITE_* mancanti: prova reale saltata."; fi
+      - uses: actions/checkout@v7
+        if: steps.cfg.outputs.skip != 'true'
+      - uses: actions/setup-node@v7
+        if: steps.cfg.outputs.skip != 'true'
+        with:
+          node-version: 24
+      - name: Percorsi su Appwrite reale
+        if: steps.cfg.outputs.skip != 'true'
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: node scripts/real/flows.mjs
+
+  riepilogo:
+    name: Riepilogo
+    needs: [verifica, appwrite, vercel, prova]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ops
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Una email con l'esito
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERIFICA: ${{ needs.verifica.result }}
+          APPWRITE: ${{ needs.appwrite.result }}
+          APPWRITE_NOTE: ${{ needs.appwrite.outputs.note }}
+          VERCEL: ${{ needs.vercel.result }}
+          VERCEL_URL: ${{ needs.vercel.outputs.url }}
+          VERCEL_NOTE: ${{ needs.vercel.outputs.note }}
+          PROVA: ${{ needs.prova.result }}
+          COMMIT_TITLE: ${{ github.event.head_commit.message }}
+          # Chi menzionare (riceve l'email): variabile NOTIFY_USERS, altrimenti chi ha fatto il merge.
+          NOTIFY_USERS: ${{ vars.NOTIFY_USERS || (!endsWith(github.triggering_actor, '[bot]') && github.triggering_actor) || '' }}
+        run: |
+          node scripts/ops/release-summary.mjs riepilogo.md
+          node scripts/ops/notify.mjs release riepilogo.md

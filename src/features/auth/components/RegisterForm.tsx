@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { rememberPendingJob } from '@/utils/pendingJob';
 import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -145,7 +145,7 @@ export const RegisterForm: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-[0.98] outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
                     {isLoading ? (
                         <>

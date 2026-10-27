@@ -1,0 +1,163 @@
+# Verifica: build e tutti i test automatici. Gira su ogni PR e, prima di ogni rilascio, su main
+# (chiamata da rilascio.yml). Due fasi:
+#   1. build  – lockfile, vulnerabilità, tema, tipi, test unitari, build, test di Function, Vercel e anagrafica
+#   2. qualità – schermate in 6 formati, controllo del layout, accessibilità, 45 percorsi end-to-end,
+#                budget del bundle; rapporti sul branch ci-screenshots/<branch>
+name: Verifica
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # Sulle PR un nuovo push annulla la verifica precedente; dentro un rilascio non si annulla mai.
+  group: ${{ github.event_name == 'pull_request' && format('verifica-{0}', github.head_ref) || format('verifica-{0}', github.run_id) }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build e test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Sulle PR il branch vero (non il merge commit), per poter ricommittare il lockfile.
+          ref: ${{ github.head_ref || github.ref }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # package.json cambiato senza lockfile: lo rigenera e lo committa sul branch della PR.
+      # (Dependabot aggiorna il lockfile da sé e ha un token in sola lettura.)
+      - name: Sincronizza package-lock.json
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          if ! git diff --quiet package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: aggiorna package-lock.json"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      # Vulnerabilità alte o critiche nelle dipendenze dell'app: segnalate, corrette dagli aggiornamenti mensili.
+      - name: Vulnerabilità delle dipendenze
+        continue-on-error: true
+        run: |
+          if ! npm audit --omit=dev --audit-level=high; then
+            echo "::warning title=Dipendenze vulnerabili::npm audit segnala vulnerabilità alte o critiche."
+            exit 1
+          fi
+
+      - name: Tema aggiornato (theme.css generato dalla tavolozza)
+        run: node scripts/theme/generate.mjs --check
+
+      - name: Controllo dei tipi
+        run: npx tsc --noEmit
+
+      - name: Test del frontend
+        run: npx vitest run
+
+      - name: Build di produzione
+        run: npx vite build
+        env:
+          # Valori fittizi: la build non contatta Appwrite.
+          VITE_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
+          VITE_APPWRITE_PROJECT_ID: demo
+
+      - name: Test delle funzioni Vercel e dell'anagrafica
+        run: |
+          node --test scripts/vercel/api.test.mjs
+          node --test scripts/anagrafica/istat.test.mjs
+          node --check setup-db.js
+          node --check reset-db.js
+          node --check scripts/check-sdk.js
+
+      - name: Test della Function "api"
+        working-directory: functions/api
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+          retention-days: 3
+
+  qualita:
+    name: Schermate, accessibilità ed end-to-end
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installa dipendenze e browser
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.48.2 axe-core@4.10.2
+          npx playwright install --with-deps chromium
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist
+
+      - name: Schermate e controllo del layout
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173 >/dev/null && break; sleep 1; done
+          mkdir -p screenshots
+          node scripts/screenshots/capture.mjs http://localhost:4173 screenshots | tee screenshots/log.txt
+
+      - name: Test end-to-end e prestazioni
+        run: |
+          set +eo pipefail
+          node scripts/e2e/flows.mjs http://localhost:4173 screenshots/e2e 2>&1 | tee screenshots/e2e.txt; echo "${PIPESTATUS[0]}" > screenshots/e2e.status
+          cp screenshots/e2e/e2e.md screenshots/e2e.md 2>/dev/null || true
+          node scripts/quality/bundle-budget.mjs dist screenshots/perf.md 2>&1 | tee screenshots/budget.txt; echo "${PIPESTATUS[0]}" > screenshots/budget.status
+
+      # Rapporti e schermate sul branch ci-screenshots/<branch> (Dependabot ha un token in sola lettura).
+      - name: Pubblica i rapporti
+        if: always() && github.actor != 'dependabot[bot]'
+        run: |
+          BRANCH="ci-screenshots/${{ github.head_ref || github.ref_name }}"
+          cd screenshots
+          echo '{ "git": { "deploymentEnabled": false } }' > vercel.json
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b "$BRANCH"
+          git add -A
+          git commit -q -m "Rapporti di ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$BRANCH"
+
+      - name: Esito
+        if: always()
+        run: |
+          fail=0
+          if grep -q "^✗" screenshots/log.txt || grep -q "Errori JavaScript rilevati" screenshots/log.txt || grep -q "^↔" screenshots/log.txt; then
+            echo "::error::Schermate non riuscite, errori JavaScript o pagine che escono dallo schermo (log.txt e layout.md sul branch ci-screenshots)."
+            grep -E "^✗|^ - |^↔|^    " screenshots/log.txt | head -60; fail=1
+          fi
+          if grep -q "^♿" screenshots/log.txt; then echo "::error::Problemi di accessibilità gravi o critici (a11y.md)."; grep -E "^♿" screenshots/log.txt; fail=1; fi
+          if [ "$(cat screenshots/e2e.status 2>/dev/null)" != "0" ]; then echo "::error::Test end-to-end non riusciti (e2e.md)."; grep -E "^✗" screenshots/e2e.txt; fail=1; fi
+          if [ "$(cat screenshots/budget.status 2>/dev/null)" != "0" ]; then echo "::error::Bundle oltre il budget (perf.md)."; grep -E "^✗" screenshots/budget.txt; fail=1; fi
+          exit $fail

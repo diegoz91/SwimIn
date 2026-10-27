@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { BrandMark } from '@/components/ui/Brand';
 import { openFeedback } from '@/features/feedback/Feedback';
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import { databaseService } from '@/services/database';
@@ -53,7 +53,7 @@ export const PushPrompt: React.FC = () => {
     if (!visible) return null;
     return (
         <div className="mb-4 rounded-2xl border border-corsia-200 bg-corsia-50 p-4 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 motion-reduce:animate-none">
-            <Icon type="bell" className="w-6 h-6 text-corsia-600 flex-shrink-0" />
+            <Icon type="bell" className="w-6 h-6 text-corsia-600 shrink-0" />
             <p className="flex-1 min-w-[12rem] text-sm text-abisso">
                 <strong>Non perdere messaggi e SOS.</strong> Attiva le notifiche su questo dispositivo; puoi scegliere cosa ricevere in{' '}
                 <Link to="/profile?tab=impostazioni&sezione=notifiche" className="font-semibold text-corsia-700 underline">Impostazioni</Link>.

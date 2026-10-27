@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
@@ -185,7 +185,7 @@ const GroupPage: React.FC = () => {
         const p = profiles.get(m.userId);
         return (
             <li key={m.$id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3">
-                <Link to={`/profile/${m.userId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+                <Link to={`/profile/${m.userId}`} tabIndex={-1} aria-hidden="true" className="shrink-0">
                     <img src={p ? avatarOf(p) : ''} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                 </Link>
                 <Link to={`/profile/${m.userId}`} className="min-w-0 flex-1">
@@ -214,7 +214,7 @@ const GroupPage: React.FC = () => {
     return (
         <div className="pt-4 max-w-3xl mx-auto w-full">
             <section className="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden">
-                <div className="h-32 sm:h-44 bg-gradient-to-br from-corsia-700 to-cloro-500 relative">
+                <div className="h-32 sm:h-44 bg-linear-to-br from-corsia-700 to-cloro-500 relative">
                     {group.cover && <img src={group.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
                 </div>
                 <div className="p-5">

@@ -1,0 +1,72 @@
+# Controlli della produzione, senza riempire la casella di posta:
+# - ogni 10 minuti: sito, /api/health, Function e soglia degli errori (scripts/ops/monitor.mjs);
+# - ogni notte alle 3:17 UTC: la prova reale con account di prova (scripts/real/flows.mjs).
+# Email solo quando qualcosa si rompe (si apre UNA issue "Servizio con problemi") e quando torna
+# tutto regolare (la issue si chiude). Il workflow non fallisce: niente email di GitHub ogni 10 minuti.
+name: Controlli
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      prova:
+        description: 'Esegui anche la prova reale'
+        type: boolean
+        default: false
+
+concurrency:
+  group: controlli
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  controlli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Sito, API e errori
+        id: monitor
+        continue-on-error: true
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          MONITOR_ERROR_THRESHOLD: ${{ vars.MONITOR_ERROR_THRESHOLD }}
+        run: node scripts/ops/monitor.mjs | tee controlli.md
+
+      - name: Prova reale notturna
+        id: prova
+        if: github.event.schedule == '17 3 * * *' || inputs.prova
+        continue-on-error: true
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: |
+          node scripts/real/flows.mjs
+          cat real-e2e.md >> controlli.md 2>/dev/null || true
+
+      - name: Avviso solo se cambia lo stato
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          NOTIFY_USERS: ${{ vars.NOTIFY_USERS }}
+        run: |
+          if [ "${{ steps.monitor.outcome }}" = "failure" ] || [ "${{ steps.prova.outcome }}" = "failure" ]; then
+            { echo "## Qualcosa non va in produzione"; echo; echo "Rilevato il $(TZ=Europe/Rome date '+%d/%m/%Y alle %H:%M'). [Dettagli]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)"; echo; cat controlli.md; } > avviso.md
+            node scripts/ops/notify.mjs incident open avviso.md
+          else
+            node scripts/ops/notify.mjs incident close
+          fi

@@ -61,7 +61,7 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({ kind, curr
                 aria-label={label}
                 title={label}
                 data-html2canvas-ignore="true"
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-white/95 text-slate-700 shadow-md border border-slate-200 hover:bg-white hover:text-blue-600 transition disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${className}`}
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-white/95 text-slate-700 shadow-md border border-slate-200 hover:bg-white hover:text-blue-600 transition disabled:opacity-70 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${className}`}
             >
                 {isUploading ? (
                     <span className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />

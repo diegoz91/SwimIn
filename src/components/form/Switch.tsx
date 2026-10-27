@@ -25,7 +25,7 @@ export const Switch: React.FC<{
     >
         <span
             aria-hidden="true"
-            className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow-xs transition-transform duration-150 ${checked ? 'translate-x-6' : 'translate-x-1'}`}
         />
     </button>
 );

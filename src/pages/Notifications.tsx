@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -126,14 +126,14 @@ const Notifications: React.FC = () => {
                         role="tab"
                         aria-selected={filter === f}
                         onClick={() => setFilter(f)}
-                        className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${filter === f ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         {f === 'all' ? 'Tutte' : `Da leggere${unreadCount ? ` (${unreadCount})` : ''}`}
                     </button>
                 ))}
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 {visible.length === 0 ? (
                     <div className="p-10 text-center">
                         <Icon type="bell" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
@@ -154,9 +154,9 @@ const Notifications: React.FC = () => {
                                                     <div className={`group flex items-stretch ${n.isRead ? '' : 'bg-corsia-50/50'}`}>
                                                         <button
                                                             onClick={() => open(n)}
-                                                            className="flex-1 min-w-0 text-left flex gap-3 p-4 pr-2 hover:bg-slate-50 transition outline-none focus-visible:bg-slate-50"
+                                                            className="flex-1 min-w-0 text-left flex gap-3 p-4 pr-2 hover:bg-slate-50 transition outline-hidden focus-visible:bg-slate-50"
                                                         >
-                                                            <span className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${meta.tone}`}>
+                                                            <span className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${meta.tone}`}>
                                                                 <Icon type={meta.icon} className="w-5 h-5" />
                                                             </span>
                                                             <span className="flex-1 min-w-0">
@@ -170,7 +170,7 @@ const Notifications: React.FC = () => {
                                                                 onClick={() => markOne(n)}
                                                                 aria-label={`Segna come letta: ${n.content}`}
                                                                 title="Segna come letta"
-                                                                className="self-center mr-3 w-9 h-9 grid place-items-center rounded-full text-corsia-700 hover:bg-white outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                                                className="self-center mr-3 w-9 h-9 grid place-items-center rounded-full text-corsia-700 hover:bg-white outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                                                             >
                                                                 <span className="w-2.5 h-2.5 rounded-full bg-corsia-600 group-hover:hidden" aria-hidden="true" />
                                                                 <Icon type="check" className="w-4 h-4 hidden group-hover:block" />

@@ -43,7 +43,7 @@ export const AccountTypePicker: React.FC<{ value: AccountChoice; onChange: (c: A
                             selected ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300 bg-white'
                         }`}
                     >
-                        <Icon type={t.icon} className={`w-6 h-6 sm:mb-1 flex-shrink-0 ${selected ? 'text-corsia-600' : 'text-slate-400'}`} />
+                        <Icon type={t.icon} className={`w-6 h-6 sm:mb-1 shrink-0 ${selected ? 'text-corsia-600' : 'text-slate-400'}`} />
                         <span>
                             <span className={`block font-bold text-sm ${selected ? 'text-corsia-800' : 'text-slate-800'}`}>{t.title}</span>
                             <span className="block text-[11px] leading-tight text-slate-500 mt-0.5">{t.description}</span>

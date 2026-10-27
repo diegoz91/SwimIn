@@ -70,22 +70,22 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ files, setFiles, d
             ) : (
                 <div className="space-y-4">
                     {files.map((item, index) => (
-                        <div key={index} className="flex gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm items-start animate-in zoom-in-95 duration-200">
-                           <img src={item.preview} alt="Preview" className="w-20 h-20 object-cover rounded-md border border-slate-100 flex-shrink-0" />
+                        <div key={index} className="flex gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-xs items-start animate-in zoom-in-95 duration-200">
+                           <img src={item.preview} alt="Preview" className="w-20 h-20 object-cover rounded-md border border-slate-100 shrink-0" />
                            <div className="flex-1 flex flex-col gap-2">
                                 <input 
                                     type="text" 
                                     value={item.alt}
                                     onChange={(e) => updateAltText(index, e.target.value)}
                                     placeholder="Aggiungi una descrizione (Alt text)"
-                                    className="w-full text-sm p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white transition-colors"
+                                    className="w-full text-sm p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-hidden bg-slate-50 focus:bg-white transition-colors"
                                     disabled={disabled}
                                 />
                            </div>
                            <button 
                                onClick={() => removeFile(index)} 
                                disabled={disabled}
-                               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
+                               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md disabled:opacity-50 disabled:cursor-not-allowed outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
                                title="Rimuovi foto"
                            >
                                <Icon type="x" className="w-5 h-5"/>

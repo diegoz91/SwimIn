@@ -99,7 +99,7 @@ const ConfirmDialog: React.FC<{ request: ConfirmOptions; onClose: (ok: boolean) 
             >
                 <div className="sm:hidden mx-auto -mt-2 mb-3 h-1.5 w-10 rounded-full bg-slate-200" aria-hidden="true" />
                 <div className="flex items-start gap-3">
-                    <span className={`flex-shrink-0 w-10 h-10 rounded-xl grid place-items-center ${danger ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`} aria-hidden="true">
+                    <span className={`shrink-0 w-10 h-10 rounded-xl grid place-items-center ${danger ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`} aria-hidden="true">
                         <Icon type={request.icon || (danger ? 'alert-triangle' : 'info')} className="w-5 h-5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -108,14 +108,14 @@ const ConfirmDialog: React.FC<{ request: ConfirmOptions; onClose: (ok: boolean) 
                     </div>
                 </div>
                 <div className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <button ref={cancelRef} type="button" onClick={() => onClose(false)} className="px-5 py-2.5 rounded-full font-semibold text-abisso bg-white border border-slate-200 hover:border-slate-300 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100">
+                    <button ref={cancelRef} type="button" onClick={() => onClose(false)} className="px-5 py-2.5 rounded-full font-semibold text-abisso bg-white border border-slate-200 hover:border-slate-300 outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100">
                         {request.cancelLabel || 'Annulla'}
                     </button>
                     <button
                         ref={confirmRef}
                         type="button"
                         onClick={() => onClose(true)}
-                        className={`px-5 py-2.5 rounded-full font-semibold text-white outline-none focus-visible:ring-4 ${danger ? 'bg-galleggiante-700 hover:bg-red-800 focus-visible:ring-red-200' : 'bg-abisso hover:bg-corsia-900 focus-visible:ring-corsia-200'}`}
+                        className={`px-5 py-2.5 rounded-full font-semibold text-white outline-hidden focus-visible:ring-4 ${danger ? 'bg-galleggiante-700 hover:bg-red-800 focus-visible:ring-red-200' : 'bg-abisso hover:bg-corsia-900 focus-visible:ring-corsia-200'}`}
                     >
                         {request.confirmLabel || 'Conferma'}
                     </button>

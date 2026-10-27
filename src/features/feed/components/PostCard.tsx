@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -274,7 +274,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
     const openDetail = () => onSelectPost?.(post);
 
     return (
-        <article className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in duration-300 ${isBusy ? 'opacity-60 pointer-events-none' : ''}`}>
+        <article className={`bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden animate-in fade-in duration-300 ${isBusy ? 'opacity-60 pointer-events-none' : ''}`}>
             {repostedBy && (
                 <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-500">
                     <Icon type="share" className="w-3.5 h-3.5 text-corsia-600" />
@@ -296,20 +296,20 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
             <div className="p-4 sm:p-5">
                 <div className="flex items-start gap-3 mb-4">
-                    <button onClick={() => navigate(`/profile/${post.authorId}`)} tabIndex={-1} aria-hidden="true" className="flex-shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <button onClick={() => navigate(`/profile/${post.authorId}`)} tabIndex={-1} aria-hidden="true" className="shrink-0 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500">
                         <img src={displayAvatar} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-100 hover:opacity-80 transition-opacity" />
                     </button>
                     <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 onClick={() => navigate(`/profile/${post.authorId}`)}
-                                className="py-0.5 -my-0.5 font-bold text-slate-900 leading-tight hover:text-blue-600 transition-colors truncate text-left outline-none focus-visible:underline"
+                                className="py-0.5 -my-0.5 font-bold text-slate-900 leading-tight hover:text-blue-600 transition-colors truncate text-left outline-hidden focus-visible:underline"
                             >
                                 {authorName}
                             </button>
                             {isPremium(author) && <PremiumBadge />}
                             {swimBadges.map((b) => (
-                                <span key={b.id} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
+                                <span key={b.id} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm border ${b.style}`}>{b.text}</span>
                             ))}
                         </div>
                         {authorSubtitle && <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">{authorSubtitle}</p>}
@@ -332,7 +332,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             aria-label="Altre azioni"
                             aria-haspopup="menu"
                             aria-expanded={isMenuOpen}
-                            className="p-2 -mr-2 -mt-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="p-2 -mr-2 -mt-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                             <Icon type="ellipsis" className="w-5 h-5" />
                         </button>
@@ -366,7 +366,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             onMentionsChange={setEditMentions}
                             maxLength={CONTENT_MAX_LENGTH}
                             rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-[15px]"
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-[15px]"
                             autoFocus
                         />
                         <div className="flex items-center justify-between mt-2">
@@ -397,8 +397,8 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 {media.length > 0 && (
                     <div className={`grid gap-1 rounded-xl overflow-hidden relative ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {isVideoAnalysis && (
-                            <button onClick={openDetail} className="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent z-10 flex items-end p-4 text-left">
-                                <span className="bg-purple-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg border border-purple-400 shadow-lg flex items-center gap-2">
+                            <button onClick={openDetail} className="absolute inset-0 bg-linear-to-t from-purple-900/80 via-transparent to-transparent z-10 flex items-end p-4 text-left">
+                                <span className="bg-purple-600/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-lg border border-purple-400 shadow-lg flex items-center gap-2">
                                     <Icon type="camera" className="w-5 h-5" />
                                     <span className="font-bold text-sm">Video-analisi tecnica</span>
                                 </span>
@@ -408,7 +408,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                             m.type === 'video' ? (
                                 <video key={idx} src={m.url} controls={!isVideoAnalysis} preload="metadata" playsInline className="w-full max-h-[480px] bg-black object-contain" />
                             ) : (
-                                <button key={idx} onClick={openDetail} className="relative block outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                <button key={idx} onClick={openDetail} className="relative block outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <img src={m.url} alt={m.alt || 'Foto del post'} className={`w-full object-cover border border-slate-100 ${media.length > 1 ? 'aspect-square' : 'max-h-[520px]'}`} loading="lazy" />
                                     {idx === 3 && media.length > 4 && (
                                         <span className="absolute inset-0 bg-black/50 text-white text-2xl font-bold flex items-center justify-center">+{media.length - 4}</span>
@@ -448,7 +448,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                 <button
                     onClick={() => (onCommentClick ? onCommentClick() : isVideoAnalysis ? openDetail() : setShowComments((v) => !v))}
                     aria-expanded={isVideoAnalysis ? undefined : showComments}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${isVideoAnalysis ? 'text-purple-600 hover:bg-purple-100' : showComments ? 'text-corsia-700 bg-corsia-50' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 ${isVideoAnalysis ? 'text-purple-600 hover:bg-purple-100' : showComments ? 'text-corsia-700 bg-corsia-50' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
                 >
                     <Icon type="chat-bubble" className="w-5 h-5" />
                     {isVideoAnalysis ? 'Analizza video' : 'Commenta'}
@@ -460,7 +460,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                         aria-label="Ripubblica"
                         aria-haspopup="menu"
                         aria-expanded={repostOpen}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                     >
                         <Icon type="share" className="w-5 h-5" /> <span className="hidden sm:inline">Ripubblica</span>
                     </button>
@@ -502,7 +502,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
                     rows={4}
                     autoFocus
                     placeholder="Perché lo consigli ai tuoi collegamenti?"
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none resize-none text-[15px]"
+                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden resize-none text-[15px]"
                 />
                 <p className="text-xs text-slate-400 text-right">{thought.length}/3000</p>
                 <div className="rounded-xl border border-slate-200 p-3 bg-piastrella">
@@ -523,15 +523,15 @@ const MenuItem: React.FC<{ icon: IconType; label: string; onClick: () => void; d
     <button
         role="menuitem"
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-left outline-none focus-visible:bg-slate-100 ${danger ? 'text-red-700 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'}`}
+        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-left outline-hidden focus-visible:bg-slate-100 ${danger ? 'text-red-700 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'}`}
     >
         <Icon type={icon} className="w-4 h-4" /> {label}
     </button>
 );
 
 const RepostItem: React.FC<{ icon: IconType; title: string; text: string; onClick: () => void; disabled?: boolean }> = ({ icon, title, text, onClick, disabled }) => (
-    <button role="menuitem" onClick={onClick} disabled={disabled} className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-piastrella outline-none focus-visible:bg-piastrella disabled:opacity-50">
-        <Icon type={icon} className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+    <button role="menuitem" onClick={onClick} disabled={disabled} className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-piastrella outline-hidden focus-visible:bg-piastrella disabled:opacity-50">
+        <Icon type={icon} className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
         <span>
             <span className="block text-sm font-semibold text-abisso">{title}</span>
             <span className="block text-xs text-slate-500">{text}</span>

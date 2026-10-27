@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useSaved } from '@/context/SavedContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -55,7 +55,7 @@ const Saved: React.FC = () => {
                         role="tab"
                         aria-selected={tab === id}
                         onClick={() => setTab(id)}
-                        className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${tab === id ? 'bg-white text-abisso shadow-sm' : 'text-slate-500 hover:text-abisso'}`}
+                        className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${tab === id ? 'bg-white text-abisso shadow-xs' : 'text-slate-500 hover:text-abisso'}`}
                     >
                         {label}
                     </button>

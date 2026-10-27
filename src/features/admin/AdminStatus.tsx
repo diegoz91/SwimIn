@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { databaseService, type AppStatusMode } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -89,7 +89,7 @@ export const AdminStatus: React.FC = () => {
                                 role="radio"
                                 aria-checked={mode === m.id}
                                 onClick={() => setMode(m.id)}
-                                className={`text-left rounded-xl border p-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${mode === m.id ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300'}`}
+                                className={`text-left rounded-xl border p-3 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 ${mode === m.id ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300'}`}
                             >
                                 <span className="flex items-center gap-2 font-semibold text-abisso"><Icon type={m.icon} className="w-4 h-4" />{m.label}</span>
                                 <span className="block mt-1 text-xs text-slate-600">{m.hint}</span>

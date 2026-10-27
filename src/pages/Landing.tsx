@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Brand } from '@/components/ui/Brand';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { PoolLanes } from '@/components/marketing/PoolLanes';
@@ -30,7 +30,7 @@ const FeatureList: React.FC<{ items: typeof FOR_PROFESSIONALS }> = ({ items }) =
     <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-7">
         {items.map((f) => (
             <li key={f.title} className="flex gap-4">
-                <span className="w-11 h-11 rounded-xl bg-corsia-50 text-corsia-700 flex items-center justify-center flex-shrink-0">
+                <span className="w-11 h-11 rounded-xl bg-corsia-50 text-corsia-700 flex items-center justify-center shrink-0">
                     <Icon type={f.icon} className="w-6 h-6" />
                 </span>
                 <span>
@@ -128,7 +128,7 @@ const Landing: React.FC = () => {
                         <h2 className="text-4xl sm:text-5xl font-bold leading-none">Tuffati.</h2>
                         <p className="mt-3 text-corsia-100 text-lg max-w-md">Bastano due minuti per creare il profilo. È gratuito per tutti.</p>
                     </div>
-                    <Link to="/register" className="inline-flex justify-center px-8 py-4 font-semibold text-abisso bg-white hover:bg-cloro-50 rounded-full flex-shrink-0">
+                    <Link to="/register" className="inline-flex justify-center px-8 py-4 font-semibold text-abisso bg-white hover:bg-cloro-50 rounded-full shrink-0">
                         Crea il tuo profilo
                     </Link>
                 </div>

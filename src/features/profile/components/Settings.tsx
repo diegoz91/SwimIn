@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import type { AuthenticatedUser } from '@/types/types';
 import { avatarOf, displayNameOf } from '@/utils/profile';
@@ -59,11 +59,11 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
     return (
         <div className="max-w-5xl mx-auto w-full">
             <div className="flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
-                <aside className={`w-full md:w-72 flex-shrink-0 md:sticky md:top-6 ${active ? 'hidden md:block' : ''}`}>
+                <aside className={`w-full md:w-72 shrink-0 md:sticky md:top-6 ${active ? 'hidden md:block' : ''}`}>
                     <h1 className="text-3xl font-bold text-abisso mb-4">Impostazioni</h1>
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                         <div className="px-4 py-4 flex items-center gap-3 border-b border-slate-100">
-                            <img src={avatarOf(currentUser)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100 flex-shrink-0" />
+                            <img src={avatarOf(currentUser)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100 shrink-0" />
                             <div className="min-w-0">
                                 <p className="font-semibold text-abisso truncate">{displayNameOf(currentUser)}</p>
                                 <p className="text-sm text-slate-500 truncate">{currentUser.email}</p>
@@ -83,14 +83,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
                                                     current ? 'md:bg-corsia-50 md:text-corsia-800' : ''
                                                 } hover:bg-piastrella text-abisso`}
                                             >
-                                                <span className={`w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 ${current ? 'md:bg-white text-corsia-700' : 'text-slate-500'} bg-piastrella md:bg-transparent`} aria-hidden="true">
+                                                <span className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${current ? 'md:bg-white text-corsia-700' : 'text-slate-500'} bg-piastrella md:bg-transparent`} aria-hidden="true">
                                                     <Icon type={s.icon} className="w-5 h-5" />
                                                 </span>
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block font-semibold">{s.label}</span>
                                                     <span className="block text-sm text-slate-500 md:hidden">{s.hint}</span>
                                                 </span>
-                                                <Icon type="chevron-right" className="w-5 h-5 text-slate-400 md:hidden flex-shrink-0" />
+                                                <Icon type="chevron-right" className="w-5 h-5 text-slate-400 md:hidden shrink-0" />
                                             </button>
                                         </li>
                                     );

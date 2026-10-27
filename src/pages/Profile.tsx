@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -96,13 +96,13 @@ const ProfilePage: React.FC = () => {
                     <div className="bg-slate-200/50 p-1.5 rounded-full flex gap-1">
                         <button 
                             onClick={() => navigate({ search: '' })}
-                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab === 'profile' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                             Il mio profilo
                         </button>
                         <button 
                             onClick={() => navigate({ search: '?tab=impostazioni' })}
-                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab === 'settings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab === 'settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                             Impostazioni
                         </button>

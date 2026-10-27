@@ -78,7 +78,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
             
             {/* Area Info Utente */}
             <div 
-                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl p-1"
+                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl p-1"
                 onClick={() => onSelectProfile(profile.userId || profile.$id)}
                 role="button"
                 tabIndex={0}
@@ -88,7 +88,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
                 <img 
                     src={displayAvatar} 
                     alt={`Avatar di ${displayName}`} 
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border border-slate-100 shadow-sm bg-slate-50 flex-shrink-0"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border border-slate-100 shadow-xs bg-slate-50 shrink-0"
                     loading="lazy"
                 />
                 <div className="min-w-0 pr-4">
@@ -98,7 +98,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
                         </h3>
                         {/* Rendering dei Badge Nuoto */}
                         {getSwimBadges().map(b => (
-                            <span key={b.id} className={`hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${b.style}`}>{b.text}</span>
+                            <span key={b.id} className={`hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-sm border ${b.style}`}>{b.text}</span>
                         ))}
                     </div>
                     <p className="text-xs sm:text-sm text-slate-500 truncate mt-1">{displayTitle}</p>
@@ -110,11 +110,11 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
             </div>
 
             {/* Pulsanti Azione */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
                 <button 
                     onClick={() => handleAction('reject')}
                     disabled={isProcessing}
-                    className="p-2.5 sm:p-3 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 active:scale-95 disabled:opacity-50"
+                    className="p-2.5 sm:p-3 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-full transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 active:scale-95 disabled:opacity-50"
                     title="Rifiuta richiesta"
                     aria-label="Rifiuta connessione"
                 >
@@ -123,7 +123,7 @@ export const ConnectionRequestCard: React.FC<ConnectionRequestCardProps> = ({
                 <button 
                     onClick={() => handleAction('accept')}
                     disabled={isProcessing}
-                    className="p-2.5 sm:px-5 sm:py-2.5 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95 shadow-sm font-bold flex items-center gap-2 disabled:opacity-50"
+                    className="p-2.5 sm:px-5 sm:py-2.5 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95 shadow-xs font-bold flex items-center gap-2 disabled:opacity-50"
                     title="Accetta richiesta"
                     aria-label="Accetta connessione"
                 >

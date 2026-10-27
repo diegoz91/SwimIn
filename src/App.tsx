@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router';
 
 // Providers
 import { ToastProvider } from '@/context/ToastContext';
@@ -222,7 +222,7 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <ToastProvider>
       <ConfirmProvider>
         <AuthProvider>

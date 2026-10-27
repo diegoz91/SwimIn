@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useMyTeams } from '@/hooks/useMyTeams';
@@ -44,16 +44,16 @@ export const MyWorkplaces: React.FC<{ variant: 'card' | 'strip' }> = ({ variant 
         return (
             <nav aria-label="Le strutture in cui lavori" className="-mx-4 sm:mx-0">
                 <ul className="flex gap-2 overflow-x-auto px-4 sm:px-0 pb-1 scroll-px-4">
-                    <li className="flex-shrink-0">
+                    <li className="shrink-0">
                         <Link to="/turni" className="h-full inline-flex items-center gap-2 pl-3 pr-4 py-2 rounded-full bg-abisso text-white text-sm font-semibold">
                             <Icon type="calendar" className="w-4 h-4" /> Turni
                             {toConfirm > 0 && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-white text-abisso text-xs font-bold grid place-items-center" aria-label={`${toConfirm} da confermare`}>{toConfirm}</span>}
                         </Link>
                     </li>
                     {teams.map((t) => (
-                        <li key={t.structureId} className="flex-shrink-0">
+                        <li key={t.structureId} className="shrink-0">
                             <Link to={`/profile/${t.structureId}?area=staff`} className="inline-flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200 text-sm font-semibold text-abisso max-w-[16rem]">
-                                <span className="relative flex-shrink-0">
+                                <span className="relative shrink-0">
                                     <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-full object-cover bg-white" />
                                     <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white ${colors.get(t.structureId)?.dot}`} aria-hidden="true" />
                                 </span>
@@ -75,7 +75,7 @@ export const MyWorkplaces: React.FC<{ variant: 'card' | 'strip' }> = ({ variant 
                     return (
                         <li key={t.structureId}>
                             <Link to={`/profile/${t.structureId}?area=staff`} className={`flex items-center gap-3 px-4 py-2.5 hover:bg-piastrella border-l-4 ${colors.get(t.structureId)?.bar}`}>
-                                <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-9 h-9 rounded-lg object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-9 h-9 rounded-lg object-cover bg-white border border-slate-100 shrink-0" />
                                 <span className="min-w-0 flex-1">
                                     <span className="block text-sm font-semibold text-abisso truncate">{t.name}</span>
                                     <span className="block text-xs text-slate-500 leading-snug">{nextLabel(next)}</span>

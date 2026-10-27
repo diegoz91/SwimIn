@@ -60,14 +60,14 @@ export const ResumeSection: React.FC = () => {
     const btn = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-60';
 
     return (
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="resume-title">
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="resume-title">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div className="min-w-0">
                     <h2 id="resume-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                         <Icon type="document" className="w-6 h-6 text-blue-600" /> Curriculum vitae
                     </h2>
                     <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
-                        <Icon type="lock-closed" className="w-4 h-4 flex-shrink-0" /> Lo vedi solo tu. Lo ricevono le strutture a cui ti candidi allegandolo.
+                        <Icon type="lock-closed" className="w-4 h-4 shrink-0" /> Lo vedi solo tu. Lo ricevono le strutture a cui ti candidi allegandolo.
                     </p>
                 </div>
             </div>
@@ -87,7 +87,7 @@ export const ResumeSection: React.FC = () => {
             ) : resume ? (
                 <div className="rounded-2xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="w-12 h-14 rounded-lg bg-red-50 border border-red-100 text-galleggiante-700 grid place-items-center flex-shrink-0 text-xs font-bold" aria-hidden="true">PDF</span>
+                        <span className="w-12 h-14 rounded-lg bg-red-50 border border-red-100 text-galleggiante-700 grid place-items-center shrink-0 text-xs font-bold" aria-hidden="true">PDF</span>
                         <div className="min-w-0">
                             <p className="font-semibold text-abisso break-all">{resume.name}</p>
                             <p className="text-sm text-slate-500">

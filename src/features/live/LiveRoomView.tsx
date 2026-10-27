@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from '@/components/form/Field';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { client } from '@/services/appwrite';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { databaseService } from '@/services/database';
@@ -133,7 +133,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                         <h1 id="live-title" className="text-3xl sm:text-4xl font-bold mt-2 leading-none">{room.title}</h1>
                         {room.description && <p className="mt-3 text-corsia-100 max-w-2xl">{room.description}</p>}
                     </div>
-                    <button onClick={onLeave} className="flex-shrink-0 px-5 py-2.5 rounded-full font-semibold bg-white/10 hover:bg-galleggiante transition">
+                    <button onClick={onLeave} className="shrink-0 px-5 py-2.5 rounded-full font-semibold bg-white/10 hover:bg-galleggiante transition">
                         {isHost ? 'Chiudi la diretta' : 'Esci'}
                     </button>
                 </div>
@@ -190,7 +190,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                         }
                         return (
                             <div key={m.$id} className="flex gap-2.5">
-                                <img src={avatarOf(p)} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                                <img src={avatarOf(p)} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                                 <div className="min-w-0">
                                     <p className="text-xs text-slate-500">
                                         <span className="font-semibold text-abisso">{displayNameOf(p)}</span>
@@ -220,7 +220,7 @@ export const LiveRoomView: React.FC<LiveRoomViewProps> = ({ room: initialRoom, u
                             onChange={(e) => setText(e.target.value)}
                             maxLength={1000}
                             placeholder={asQuestion ? 'Scrivi la tua domanda…' : 'Scrivi un messaggio…'}
-                            className="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-piastrella border border-transparent focus:bg-white focus:border-corsia-300 outline-none text-sm"
+                            className="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-piastrella border border-transparent focus:bg-white focus:border-corsia-300 outline-hidden text-sm"
                         />
                         <button type="submit" disabled={!text.trim() || sending} aria-label="Invia" className="w-10 h-10 rounded-full bg-corsia-600 text-white flex items-center justify-center disabled:opacity-50">
                             <Icon type="paper-plane" className="w-5 h-5" />

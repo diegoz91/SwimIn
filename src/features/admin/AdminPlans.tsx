@@ -89,7 +89,7 @@ export const AdminPlans: React.FC = () => {
     return (
         <div className="space-y-4">
             <div className="rounded-2xl bg-white border border-slate-200 p-5 flex gap-3 items-start">
-                <Icon type="info" className="w-5 h-5 text-corsia-700 flex-shrink-0 mt-0.5" />
+                <Icon type="info" className="w-5 h-5 text-corsia-700 shrink-0 mt-0.5" />
                 <div className="text-sm text-slate-700 space-y-1">
                     <p>Prezzi IVA inclusa. I nuovi importi valgono subito per chi si abbona da ora; chi ha già un abbonamento continua a pagare il prezzo che ha sottoscritto.</p>
                     <p className="text-slate-500">

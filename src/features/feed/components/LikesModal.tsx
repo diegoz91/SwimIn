@@ -51,7 +51,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
 
     return (
         <div 
-            className="fixed inset-0 bg-abisso/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity"
+            className="fixed inset-0 bg-abisso/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 transition-opacity"
             onClick={onClose}
         >
             <div 
@@ -64,7 +64,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                     <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                         Reazioni ({likers.length})
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-full transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-slate-500">
                         <Icon type="x" className="w-5 h-5" />
                     </button>
                 </div>
@@ -79,7 +79,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                                     role="tab"
                                     aria-selected={filter === r.key}
                                     onClick={() => setFilter(r.key)}
-                                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${filter === r.key ? 'bg-corsia-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                    className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${filter === r.key ? 'bg-corsia-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                                 >
                                     {r.emoji && <span aria-hidden="true" className="mr-1">{r.emoji}</span>}
                                     {r.key === 'all' ? `${r.label} ${n}` : <><span className="sr-only">{r.label}</span>{n}</>}
@@ -103,19 +103,19 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                                 return (
                                     <div key={id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors group">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <span className="relative flex-shrink-0">
+                                            <span className="relative shrink-0">
                                             <img 
                                                 src={getUserAvatar(user, name)} 
                                                 alt={`Profilo di ${name}`}
-                                                className="w-12 h-12 rounded-full object-cover cursor-pointer border border-slate-200 shadow-sm"
+                                                className="w-12 h-12 rounded-full object-cover cursor-pointer border border-slate-200 shadow-xs"
                                                 onClick={() => { onClose(); onNavigate('profile', id); }}
                                                 loading="lazy"
                                             />
-                                            {r && <span className="absolute -bottom-1 -right-1 w-6 h-6 grid place-items-center rounded-full bg-white shadow text-sm leading-none" title={r.label}>{r.emoji}</span>}
+                                            {r && <span className="absolute -bottom-1 -right-1 w-6 h-6 grid place-items-center rounded-full bg-white shadow-sm text-sm leading-none" title={r.label}>{r.emoji}</span>}
                                             </span>
                                             <div className="min-w-0">
                                                 <p 
-                                                    className="font-bold text-slate-800 cursor-pointer hover:text-blue-600 truncate leading-tight outline-none focus-visible:underline"
+                                                    className="font-bold text-slate-800 cursor-pointer hover:text-blue-600 truncate leading-tight outline-hidden focus-visible:underline"
                                                     onClick={() => { onClose(); onNavigate('profile', id); }}
                                                 >
                                                     {name}
@@ -125,7 +125,7 @@ export const LikesModal: React.FC<LikesModalProps> = ({ postId, onClose, onNavig
                                         </div>
                                         <button 
                                             onClick={() => { onClose(); onNavigate('messages', id); }} 
-                                            className="opacity-0 group-hover:opacity-100 text-blue-600 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-all outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            className="opacity-0 group-hover:opacity-100 text-blue-600 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-all outline-hidden focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-blue-500"
                                             title={`Invia messaggio a ${name}`}
                                         >
                                             <Icon type="chat-bubble" className="w-5 h-5" />

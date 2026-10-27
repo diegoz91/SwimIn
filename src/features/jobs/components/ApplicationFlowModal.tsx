@@ -91,9 +91,9 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
                 onSubmit={(e) => { e.preventDefault(); close(); onNavigate('myApplications'); }}
             >
                 <ul className="text-sm text-slate-600 space-y-2">
-                    <li className="flex gap-2"><Icon type="check-circle" className="w-5 h-5 text-cloro-700 flex-shrink-0" /> Profilo, brevetti ed esperienze</li>
-                    {attachResume && <li className="flex gap-2"><Icon type="check-circle" className="w-5 h-5 text-cloro-700 flex-shrink-0" /> CV: {resume?.name}</li>}
-                    <li className="flex gap-2"><Icon type="bell" className="w-5 h-5 text-corsia-600 flex-shrink-0" /> Quando la struttura apre o seleziona la candidatura ricevi una notifica.</li>
+                    <li className="flex gap-2"><Icon type="check-circle" className="w-5 h-5 text-cloro-700 shrink-0" /> Profilo, brevetti ed esperienze</li>
+                    {attachResume && <li className="flex gap-2"><Icon type="check-circle" className="w-5 h-5 text-cloro-700 shrink-0" /> CV: {resume?.name}</li>}
+                    <li className="flex gap-2"><Icon type="bell" className="w-5 h-5 text-corsia-600 shrink-0" /> Quando la struttura apre o seleziona la candidatura ricevi una notifica.</li>
                 </ul>
             </FormModal>
         );
@@ -126,17 +126,17 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
                 <section aria-labelledby="apply-sent" className="rounded-2xl border border-slate-200 p-4">
                     <h3 id="apply-sent" className="text-sm font-semibold text-slate-500 mb-3">La struttura riceve</h3>
                     <div className="flex items-center gap-3">
-                        <img src={avatarOf(user)} alt="" className="w-11 h-11 rounded-full object-cover bg-white flex-shrink-0" />
+                        <img src={avatarOf(user)} alt="" className="w-11 h-11 rounded-full object-cover bg-white shrink-0" />
                         <div className="min-w-0">
                             <p className="font-semibold text-abisso">{displayNameOf(user)}</p>
                             <p className="text-sm text-slate-500">{headlineOf(user)}</p>
                         </div>
                     </div>
                     <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-slate-600">
-                        <li className="flex items-center gap-2"><Icon type="shield" className="w-4 h-4 text-corsia-600 flex-shrink-0" /> {certs === 1 ? '1 brevetto' : `${certs} brevetti`}</li>
-                        <li className="flex items-center gap-2"><Icon type="briefcase" className="w-4 h-4 text-corsia-600 flex-shrink-0" /> {experiences === 1 ? '1 esperienza' : `${experiences} esperienze`}</li>
-                        <li className="flex items-center gap-2 min-w-0"><Icon type="mail" className="w-4 h-4 text-corsia-600 flex-shrink-0" /> <span className="truncate">{contact?.email || 'Email dell’account'}</span></li>
-                        <li className="flex items-center gap-2"><Icon type="phone" className="w-4 h-4 text-corsia-600 flex-shrink-0" /> {contact?.phone || 'Telefono non indicato'}</li>
+                        <li className="flex items-center gap-2"><Icon type="shield" className="w-4 h-4 text-corsia-600 shrink-0" /> {certs === 1 ? '1 brevetto' : `${certs} brevetti`}</li>
+                        <li className="flex items-center gap-2"><Icon type="briefcase" className="w-4 h-4 text-corsia-600 shrink-0" /> {experiences === 1 ? '1 esperienza' : `${experiences} esperienze`}</li>
+                        <li className="flex items-center gap-2 min-w-0"><Icon type="mail" className="w-4 h-4 text-corsia-600 shrink-0" /> <span className="truncate">{contact?.email || 'Email dell’account'}</span></li>
+                        <li className="flex items-center gap-2"><Icon type="phone" className="w-4 h-4 text-corsia-600 shrink-0" /> {contact?.phone || 'Telefono non indicato'}</li>
                     </ul>
                 </section>
 
@@ -164,7 +164,7 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
                     ) : (
                         <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                             <p className="text-sm text-slate-600 flex-1">Facoltativo, ma aiuta: aggiungi il CV in PDF (fino a 5 MB). Resterà nel tuo profilo per le prossime candidature.</p>
-                            <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-slate-300 text-abisso hover:bg-slate-50 flex-shrink-0">
+                            <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-slate-300 text-abisso hover:bg-slate-50 shrink-0">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi il CV
                             </button>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useBlocks } from '@/context/BlocksContext';
@@ -156,7 +156,7 @@ export const SearchTypeahead: React.FC = () => {
                 onFocus={() => { setRecent(readRecent()); setOpen(true); }}
                 onKeyDown={onKeyDown}
                 placeholder="Persone, piscine, offerte…"
-                className="w-full h-10 pl-10 pr-9 rounded-full bg-piastrella border border-transparent text-sm text-abisso placeholder-slate-400 focus:bg-white focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-none transition"
+                className="w-full h-10 pl-10 pr-9 rounded-full bg-piastrella border border-transparent text-sm text-abisso placeholder-slate-400 focus:bg-white focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-hidden transition"
             />
             {loading && <span className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-corsia-200 border-t-corsia-600 rounded-full animate-spin" aria-hidden="true" />}
 
@@ -168,7 +168,7 @@ export const SearchTypeahead: React.FC = () => {
                         )}
                         {term.length >= 2 && loading && items.length === 0 && (
                             <li className="px-4 py-3 space-y-3" role="presentation" aria-hidden="true">
-                                {[0, 1, 2].map((i) => <span key={i} className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-slate-100 animate-pulse" /><span className="h-3 w-40 bg-slate-100 rounded animate-pulse" /></span>)}
+                                {[0, 1, 2].map((i) => <span key={i} className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-slate-100 animate-pulse" /><span className="h-3 w-40 bg-slate-100 rounded-sm animate-pulse" /></span>)}
                             </li>
                         )}
                         {groups.map((g) => (
@@ -189,9 +189,9 @@ export const SearchTypeahead: React.FC = () => {
                                                 className={`flex items-center gap-3 px-4 py-2 cursor-pointer ${idx === active ? 'bg-piastrella' : ''}`}
                                             >
                                                 {item.image ? (
-                                                    <img src={item.image} alt="" className={`w-9 h-9 object-cover bg-slate-100 flex-shrink-0 ${item.square ? 'rounded-lg' : 'rounded-full'}`} />
+                                                    <img src={item.image} alt="" className={`w-9 h-9 object-cover bg-slate-100 shrink-0 ${item.square ? 'rounded-lg' : 'rounded-full'}`} />
                                                 ) : (
-                                                    <span className="w-9 h-9 rounded-lg bg-piastrella text-slate-500 grid place-items-center flex-shrink-0" aria-hidden="true"><Icon type={item.icon || 'search'} className="w-4 h-4" /></span>
+                                                    <span className="w-9 h-9 rounded-lg bg-piastrella text-slate-500 grid place-items-center shrink-0" aria-hidden="true"><Icon type={item.icon || 'search'} className="w-4 h-4" /></span>
                                                 )}
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block text-sm text-slate-700 truncate"><Highlight text={item.title} term={term} /></span>

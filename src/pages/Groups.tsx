@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService } from '@/services/database';
@@ -13,7 +13,7 @@ const membersLabel = (n: number) => (n === 1 ? '1 membro' : `${n.toLocaleString(
 
 const GroupRow: React.FC<{ group: Group; status?: GroupMember['status'] }> = ({ group, status }) => (
     <Link to={`/gruppi/${group.$id}`} className="group flex gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-card hover:border-corsia-200 hover:shadow-lift transition-shadow h-full">
-        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-corsia-700 to-cloro-500 grid place-items-center">
+        <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-linear-to-br from-corsia-700 to-cloro-500 grid place-items-center">
             {group.cover ? <img src={group.cover} alt="" className="w-full h-full object-cover" /> : <Icon type="users" className="w-7 h-7 text-white/90" />}
         </div>
         <div className="min-w-0 flex-1">
@@ -108,7 +108,7 @@ const Groups: React.FC = () => {
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Cerca per nome o argomento"
                             aria-label="Cerca un gruppo"
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none"
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden"
                         />
                     </div>
                     <ChoiceChips

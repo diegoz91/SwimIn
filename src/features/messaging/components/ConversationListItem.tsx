@@ -80,11 +80,11 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
       aria-current={isSelected ? 'true' : undefined}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
     >
-      <div className="relative flex-shrink-0">
+      <div className="relative shrink-0">
         <img 
           src={getParticipantAvatar()} 
           alt={name} 
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover mr-3 sm:mr-4 border border-slate-100 shadow-sm bg-white" 
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover mr-3 sm:mr-4 border border-slate-100 shadow-xs bg-white" 
           loading="lazy"
         />
       </div>
@@ -94,7 +94,7 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
           <p className={`font-bold text-sm sm:text-base truncate pr-2 ${unreadCount > 0 ? 'text-slate-900' : 'text-slate-700'}`}>
             {name}
           </p>
-          <p className={`text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0 ${unreadCount > 0 ? 'text-blue-600 font-bold' : 'text-slate-400'}`}>
+          <p className={`text-[10px] sm:text-xs whitespace-nowrap shrink-0 ${unreadCount > 0 ? 'text-blue-600 font-bold' : 'text-slate-400'}`}>
             {!isParticipantTyping && formatTimestamp(lastMessage.sentAt)}
           </p>
         </div>
@@ -104,7 +104,7 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
             {getMessagePreview()}
           </p>
           {unreadCount > 0 && (
-            <span className="bg-blue-600 text-white text-[10px] sm:text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5 flex-shrink-0 shadow-sm animate-in zoom-in">
+            <span className="bg-blue-600 text-white text-[10px] sm:text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5 shrink-0 shadow-xs animate-in zoom-in">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

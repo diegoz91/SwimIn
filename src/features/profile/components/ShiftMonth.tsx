@@ -78,7 +78,7 @@ export const ShiftMonth: React.FC<{
                                     <span className="hidden sm:flex flex-col gap-0.5 w-full min-w-0">
                                         {list.slice(0, 2).map((s) => (
                                             <span key={s.$id} className="flex items-center gap-1 min-w-0 text-[11px] text-slate-600">
-                                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotOf(s)}`} />
+                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotOf(s)}`} />
                                                 <span className="truncate">{s.shiftTime.split(/[–-]/)[0]}</span>
                                             </span>
                                         ))}

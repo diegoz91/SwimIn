@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon, type IconType } from './Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'dark';
@@ -19,7 +19,7 @@ const SIZES: Record<ButtonSize, string> = {
 
 /** Classi del pulsante standard di SwimIn (per i casi in cui serve solo la classe). */
 export const buttonClass = (variant: ButtonVariant = 'primary', size: ButtonSize = 'md', extra = '') =>
-    `inline-flex items-center justify-center rounded-full font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed ${VARIANTS[variant]} ${SIZES[size]} ${extra}`;
+    `inline-flex items-center justify-center rounded-full font-semibold transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed ${VARIANTS[variant]} ${SIZES[size]} ${extra}`;
 
 type ButtonProps = {
     variant?: ButtonVariant;

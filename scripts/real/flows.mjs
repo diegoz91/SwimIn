@@ -14,7 +14,7 @@
  * i loro annunci non avvisano le persone vere (avvisi di lavoro).
  *
  * Uso:  APPWRITE_ENDPOINT=… APPWRITE_PROJECT_ID=… [APPWRITE_API_KEY=…] node scripts/real/flows.mjs
- * In CI: workflow "Prova reale" (.github/workflows/real-e2e.yml). Rapporto in real-e2e.md.
+ * In CI: job "Prova reale" di rilascio.yml (dopo ogni rilascio) e controlli.yml (ogni notte). Rapporto in real-e2e.md.
  */
 import { writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';

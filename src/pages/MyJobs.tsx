@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
@@ -207,7 +207,7 @@ const MyJobs: React.FC = () => {
                                     </div>
                                     <Link
                                         to={`/jobs/${job.$id}?candidati=${c.pending ? 'nuove' : c.accepted ? 'selezionate' : 'valutazione'}#candidati`}
-                                        className="flex-shrink-0 self-start px-4 py-2 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-800 hover:bg-corsia-100 inline-flex items-center gap-2"
+                                        className="shrink-0 self-start px-4 py-2 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-800 hover:bg-corsia-100 inline-flex items-center gap-2"
                                     >
                                         {c.total === 1 ? '1 candidatura' : `${c.total} candidature`}
                                         {c.pending > 0 && <span className="tabular-nums text-xs px-1.5 py-0.5 rounded-full bg-corsia-600 text-white">{c.pending} {c.pending === 1 ? 'nuova' : 'nuove'}</span>}

@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { ApiError, databaseService, type JobAlert } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
 import { isPremium } from '@/utils/premium';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { JOB_CONTRACTS, contractLabel } from '@/data/swimming';
 import { provinceName } from '@/data/italy';
@@ -97,7 +97,7 @@ export const JobAlertsModal: React.FC<{ open: boolean; onClose: () => void; init
                     <ul className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
                         {alerts.map((a) => (
                             <li key={a.$id} className="flex items-center gap-3 px-3 py-2.5">
-                                <Icon type="bell" className="w-4 h-4 text-corsia-600 flex-shrink-0" />
+                                <Icon type="bell" className="w-4 h-4 text-corsia-600 shrink-0" />
                                 <span className="min-w-0 flex-1 text-sm text-slate-700 first-letter:uppercase">{describeAlert(a)}</span>
                                 <button type="button" onClick={() => remove(a)} aria-label={`Elimina l’avviso ${describeAlert(a)}`} className="p-2 -m-1 rounded-full text-slate-400 hover:text-galleggiante-700 hover:bg-red-50">
                                     <Icon type="trash" className="w-4 h-4" />

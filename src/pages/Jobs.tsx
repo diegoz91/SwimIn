@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LavoroView } from '@/features/jobs/components/LavoroView';
 import { useApplyFlow } from '@/features/jobs/useApplyFlow';

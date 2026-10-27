@@ -77,7 +77,7 @@ export const MonthYearPicker: React.FC<
                 }}
                 className={triggerClass(!!a11y['aria-invalid'], disabled)}
             >
-                <Icon type="calendar" className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <Icon type="calendar" className="w-4 h-4 text-slate-400 shrink-0" />
                 <span className={`flex-1 truncate ${value ? 'text-abisso' : 'text-slate-400'}`}>
                     {value ? `${cap(MONTHS[(valueMonth || 1) - 1])} ${valueYear}` : disabled ? '—' : placeholder}
                 </span>

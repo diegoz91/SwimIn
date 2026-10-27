@@ -26,7 +26,7 @@ const Rope: React.FC = () => <div className="lane-rope opacity-90" aria-hidden="
  */
 export const PoolLanes: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div
-        className={`relative rounded-[28px] overflow-hidden bg-gradient-to-b from-[#1592BE] to-[#0E6A97] p-3 sm:p-4 shadow-lift ${className}`}
+        className={`relative rounded-[28px] overflow-hidden bg-linear-to-b from-[#1592BE] to-[#0E6A97] p-3 sm:p-4 shadow-lift ${className}`}
         role="img"
         aria-label="Una vasca con quattro corsie: in ognuna scorre un esempio di SwimIn, come un brevetto, una richiesta di sostituzione urgente, una conferma di competenza e un'offerta di lavoro."
     >
@@ -52,7 +52,7 @@ export const PoolLanes: React.FC<{ className?: string }> = ({ className = '' }) 
                             className="relative bg-white rounded-2xl pl-2 pr-4 py-2 flex items-center gap-3 shadow-card motion-safe:animate-[swim_9s_ease-in-out_infinite]"
                             style={{ marginLeft: lane.offset, maxWidth: `calc(100% - ${lane.offset} - 2.5rem)`, animationDelay: `${i * -2.1}s` }}
                         >
-                            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${lane.tone}`}>
+                            <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${lane.tone}`}>
                                 <Icon type={lane.icon} className="w-5 h-5" />
                             </span>
                             <span className="min-w-0">

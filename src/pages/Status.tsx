@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { formatUntil, useAppStatus } from '@/hooks/useAppStatus';
@@ -84,7 +84,7 @@ const Status: React.FC = () => {
             )}
             <p className="text-sm font-semibold text-slate-600">Stato del servizio</p>
             <h1 className="mt-1 text-4xl sm:text-5xl font-bold text-abisso leading-[0.95] flex items-center gap-3">
-                <Icon type={headline.icon} className={`w-9 h-9 flex-shrink-0 ${headline.tone}`} />
+                <Icon type={headline.icon} className={`w-9 h-9 shrink-0 ${headline.tone}`} />
                 <span>{headline.title}</span>
             </h1>
 
@@ -101,12 +101,12 @@ const Status: React.FC = () => {
                     const s = STATE[c.state];
                     return (
                         <li key={c.id} className="px-5 py-4 flex items-center gap-4">
-                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} aria-hidden="true" />
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} aria-hidden="true" />
                             <div className="min-w-0 flex-1">
                                 <p className="font-semibold text-abisso">{c.label}</p>
                                 <p className="text-sm text-slate-600">{c.description}</p>
                             </div>
-                            <div className="text-right flex-shrink-0">
+                            <div className="text-right shrink-0">
                                 <p className={`text-sm font-semibold ${s.chip}`}>{s.text}</p>
                                 {c.ms !== null && c.state !== 'checking' && <p className="text-xs text-slate-500 tabular-nums">{c.ms < 1000 ? `${c.ms} ms` : `${(c.ms / 1000).toLocaleString('it-IT', { maximumFractionDigits: 1 })} s`}</p>}
                             </div>

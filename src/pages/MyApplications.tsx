@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
 import { InterviewCard } from '@/features/jobs/components/Interview';
@@ -64,7 +64,7 @@ const MyApplications: React.FC = () => {
                         role="tab"
                         aria-selected={filter === f.id}
                         onClick={() => setFilter(f.id)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border ${filter === f.id ? 'bg-abisso text-white border-abisso' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                        className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border ${filter === f.id ? 'bg-abisso text-white border-abisso' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
                     >
                         {f.label} <span className="tabular-nums opacity-80">{counts[f.id]}</span>
                     </button>
@@ -87,7 +87,7 @@ const MyApplications: React.FC = () => {
                         return (
                             <li key={a.$id} className="bg-white rounded-2xl border border-slate-200 shadow-card p-5">
                                 <div className="flex items-start gap-3">
-                                    <img src={job?.facilityLogo || initialsAvatar(job?.structureName || 'S')} alt="" className="w-12 h-12 rounded-xl object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                    <img src={job?.facilityLogo || initialsAvatar(job?.structureName || 'S')} alt="" className="w-12 h-12 rounded-xl object-cover bg-white border border-slate-100 shrink-0" />
                                     <div className="min-w-0 flex-1">
                                         <h2 className="font-semibold text-abisso leading-snug">
                                             {job ? <Link to={`/jobs/${job.$id}`} className="hover:underline">{jobDisplayTitle(job)}</Link> : 'Annuncio rimosso'}
@@ -95,7 +95,7 @@ const MyApplications: React.FC = () => {
                                         <p className="text-sm text-slate-600 truncate">{[job?.structureName, job?.city].filter(Boolean).join(' · ')}</p>
                                         <p className="text-xs text-slate-500 mt-0.5">Inviata {formatRelativeTime(a.$createdAt)}{job && !isJobOpen(job) && a.status !== 'hired' ? ' · annuncio chiuso' : ''}</p>
                                     </div>
-                                    <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border inline-flex items-center gap-1 ${s.tone}`}><Icon type={s.icon} className="w-3 h-3" />{s.candidate}</span>
+                                    <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border inline-flex items-center gap-1 ${s.tone}`}><Icon type={s.icon} className="w-3 h-3" />{s.candidate}</span>
                                 </div>
                                 {/* Barra delle tappe */}
                                 <div className="mt-4 flex gap-1.5" aria-hidden="true">

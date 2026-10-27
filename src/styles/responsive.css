@@ -1,33 +1,35 @@
-@layer utilities {
-  .custom-scrollbar::-webkit-scrollbar {
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track {
     background: transparent;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
     @apply bg-slate-300 rounded-full;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  &::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-400;
   }
-  
-  .hide-scrollbar-mobile::-webkit-scrollbar {
+}
+
+@utility hide-scrollbar-mobile {
+  &::-webkit-scrollbar {
     display: none;
   }
-  .hide-scrollbar-mobile {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
-  .pb-safe {
-    padding-bottom: var(--safe-area-bottom);
-  }
-  .pt-safe {
-    padding-top: var(--safe-area-top);
-  }
-  .min-h-safe {
-    min-height: calc(100vh + var(--safe-area-bottom) + var(--safe-area-top));
-  }
+@utility pb-safe {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+@utility pt-safe {
+  padding-top: var(--safe-area-top);
+}
+
+@utility min-h-safe {
+  min-height: calc(100vh + var(--safe-area-bottom) + var(--safe-area-top));
 }

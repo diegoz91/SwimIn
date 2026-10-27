@@ -65,7 +65,7 @@ const ChatImage: React.FC<{ a: ChatAttachment; onOpen: (url: string) => void }> 
     <button
       type="button"
       onClick={() => chatFileUrl(a.fileId, 'view').then(onOpen).catch((err) => console.warn('Apertura allegato:', err))}
-      className="block rounded-xl overflow-hidden bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-400"
+      className="block rounded-xl overflow-hidden bg-slate-100 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-400"
       aria-label={`Apri la foto ${a.name}`}
     >
       {url ? <img src={url} alt={a.name} className="max-h-64 w-auto max-w-full object-cover" /> : <div className="w-48 h-32 animate-pulse" />}
@@ -87,12 +87,12 @@ const FileChip: React.FC<{ a: ChatAttachment; mine: boolean }> = ({ a, mine }) =
       }}
       className={`flex items-center gap-3 w-full max-w-xs text-left rounded-xl px-3 py-2.5 ${mine ? 'bg-black/15 hover:bg-black/25' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'}`}
     >
-      <span className={`w-10 h-10 rounded-lg grid place-items-center text-[11px] font-bold flex-shrink-0 ${mine ? 'bg-white text-corsia-700' : 'bg-corsia-50 text-corsia-700'}`}>{ext || 'FILE'}</span>
+      <span className={`w-10 h-10 rounded-lg grid place-items-center text-[11px] font-bold shrink-0 ${mine ? 'bg-white text-corsia-700' : 'bg-corsia-50 text-corsia-700'}`}>{ext || 'FILE'}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold truncate">{a.name}</span>
         <span className={`block text-xs ${mine ? 'text-white' : 'text-slate-500'}`}>{busy ? 'Download…' : formatFileSize(a.size)}</span>
       </span>
-      <Icon type="download" className="w-5 h-5 flex-shrink-0 opacity-80" />
+      <Icon type="download" className="w-5 h-5 shrink-0 opacity-80" />
     </button>
   );
 };
@@ -127,7 +127,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingRef = useRef(0);
   const pendingRef = useRef<Pending[]>([]);
   const { showToast } = useToast();
@@ -385,23 +385,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0 min-w-0 w-full">
-      <div className="flex items-center p-3 sm:p-4 border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm">
+      <div className="flex items-center p-3 sm:p-4 border-b border-slate-200 bg-white sticky top-0 z-10 shadow-xs">
         <button
             onClick={onBack}
             aria-label="Torna alle conversazioni"
-            className={`${isWidget ? 'block' : 'md:hidden'} mr-3 p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+            className={`${isWidget ? 'block' : 'md:hidden'} mr-3 p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500`}
         >
           <Icon type="arrow-left" className="w-6 h-6" />
         </button>
 
         <div
-          className="flex items-center cursor-pointer hover:bg-slate-50 rounded-xl p-2 -ml-2 transition-colors flex-1 min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex items-center cursor-pointer hover:bg-slate-50 rounded-xl p-2 -ml-2 transition-colors flex-1 min-w-0 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
           onClick={() => onProfileClick?.(participantId)}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter') onProfileClick?.(participantId); }}
         >
-          <img src={getParticipantAvatar()} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border border-slate-100 shadow-sm bg-white" />
+          <img src={getParticipantAvatar()} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border border-slate-100 shadow-xs bg-white" />
           <div className="min-w-0">
             <p className="font-bold text-slate-800 leading-tight text-sm sm:text-base truncate">{getParticipantName()}</p>
             {isParticipantTyping ? (
@@ -454,9 +454,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
                   <div className={`group flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                     {!isMe && (
-                      <div className="w-6 sm:w-8 flex-shrink-0">
+                      <div className="w-6 sm:w-8 shrink-0">
                         {showAvatar && (
-                          <img src={getParticipantAvatar()} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover shadow-sm bg-white" alt="" />
+                          <img src={getParticipantAvatar()} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover shadow-xs bg-white" alt="" />
                         )}
                       </div>
                     )}
@@ -500,7 +500,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     <div className={`flex flex-col min-w-0 max-w-[85%] sm:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
                       <div
                         id={`msg-${msg.$id}`}
-                        className={`relative max-w-full min-w-0 rounded-2xl shadow-sm transition-shadow ${msg.deleted ? 'px-3 py-2 bg-transparent border border-dashed border-slate-300 text-slate-500' : isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-sm'} ${!msg.deleted ? (images.length && !msg.content && !docs.length && !reply ? 'p-1' : 'px-3 py-2 sm:px-4 sm:py-2.5') : ''} ${isTemp ? 'opacity-70' : ''}`}
+                        className={`relative max-w-full min-w-0 rounded-2xl shadow-xs transition-shadow ${msg.deleted ? 'px-3 py-2 bg-transparent border border-dashed border-slate-300 text-slate-500' : isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-xs'} ${!msg.deleted ? (images.length && !msg.content && !docs.length && !reply ? 'p-1' : 'px-3 py-2 sm:px-4 sm:py-2.5') : ''} ${isTemp ? 'opacity-70' : ''}`}
                       >
                         {msg.deleted ? (
                           <p className="text-sm italic flex items-center gap-1.5"><Icon type="x" className="w-4 h-4" /> Messaggio eliminato</p>
@@ -554,7 +554,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 onClick={() => uid === currentUserId && react(msg, key)}
                                 title={`${nameOf(uid)}: ${r.label}${uid === currentUserId ? ' (tocca per togliere)' : ''}`}
                                 aria-label={`${nameOf(uid)} ha reagito con ${r.label}`}
-                                className="bg-white border border-slate-200 rounded-full px-2 py-1 min-w-[1.75rem] text-sm shadow-sm leading-none"
+                                className="bg-white border border-slate-200 rounded-full px-2 py-1 min-w-[1.75rem] text-sm shadow-xs leading-none"
                               >
                                 <span aria-hidden="true">{r.emoji}</span>
                               </button>
@@ -573,10 +573,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
             {isParticipantTyping && (
                  <div className="flex items-end gap-2 justify-start animate-in fade-in slide-in-from-bottom-2">
-                    <div className="w-6 sm:w-8 flex-shrink-0">
-                        <img src={getParticipantAvatar()} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover shadow-sm bg-white" alt="" />
+                    <div className="w-6 sm:w-8 shrink-0">
+                        <img src={getParticipantAvatar()} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover shadow-xs bg-white" alt="" />
                     </div>
-                    <div className="bg-white border border-slate-100 text-slate-500 rounded-2xl rounded-bl-sm px-3 py-2 sm:px-4 sm:py-3 shadow-sm flex items-center gap-1" aria-label="Sta scrivendo">
+                    <div className="bg-white border border-slate-100 text-slate-500 rounded-2xl rounded-bl-xs px-3 py-2 sm:px-4 sm:py-3 shadow-xs flex items-center gap-1" aria-label="Sta scrivendo">
                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
@@ -591,7 +591,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className="p-2 sm:p-3 bg-white border-t border-slate-200">
         {replyTo && (
           <div className="flex items-start gap-2 mb-2 mx-1 rounded-xl bg-slate-50 border-l-4 border-corsia-400 px-3 py-2">
-            <Icon type="reply" className="w-4 h-4 text-corsia-600 mt-0.5 flex-shrink-0" />
+            <Icon type="reply" className="w-4 h-4 text-corsia-600 mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1 text-xs">
               <p className="font-semibold text-abisso">Rispondi a {replyTo.senderId === currentUserId ? 'te stesso' : getParticipantName()}</p>
               <p className="text-slate-500 truncate">{replyText(replyTo) || 'Messaggio'}</p>
@@ -602,7 +602,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         {pending.length > 0 && (
           <ul className="flex gap-2 mb-2 mx-1 overflow-x-auto pb-1" aria-label="Allegati da inviare">
             {pending.map((p) => (
-              <li key={p.id} className={`relative flex-shrink-0 rounded-xl border ${p.error ? 'border-galleggiante' : 'border-slate-200'} bg-slate-50 overflow-hidden`}>
+              <li key={p.id} className={`relative shrink-0 rounded-xl border ${p.error ? 'border-galleggiante' : 'border-slate-200'} bg-slate-50 overflow-hidden`}>
                 {p.preview ? (
                   <img src={p.preview} alt={p.file.name} className="w-16 h-16 object-cover" />
                 ) : (
@@ -655,7 +655,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             }}
             placeholder="Scrivi un messaggio…"
             maxLength={4000}
-            className="flex-1 bg-transparent py-2 px-1 focus:outline-none text-slate-800 placeholder-slate-400 text-sm sm:text-base resize-none max-h-32"
+            className="flex-1 bg-transparent py-2 px-1 focus:outline-hidden text-slate-800 placeholder-slate-400 text-sm sm:text-base resize-none max-h-32"
             style={{ height: 'auto', minHeight: '2.25rem' }}
             onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 128)}px`; }}
           />
@@ -664,7 +664,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             onClick={handleSendMessage}
             disabled={!canSend}
             aria-label={uploading ? 'Caricamento degli allegati in corso' : 'Invia'}
-            className="bg-blue-600 text-white rounded-full p-2 sm:p-2.5 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed shadow-md transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="bg-blue-600 text-white rounded-full p-2 sm:p-2.5 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed shadow-md transition-all active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             {isSending || uploading ? (
                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

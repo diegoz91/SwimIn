@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -43,7 +43,7 @@ export const ConnectButton: React.FC<{ profileId: string; className?: string }> 
         }
     };
 
-    const base = `px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${className}`;
+    const base = `px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition disabled:opacity-60 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 ${className}`;
 
     switch (status.state) {
         case 'connected':

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/main.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "dependencies": {
     "node-appwrite": "^31.0.0"

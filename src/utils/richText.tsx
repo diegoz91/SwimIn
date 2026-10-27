@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 /**
  * Testo di post e commenti con #hashtag, @menzioni e link cliccabili.

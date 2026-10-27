@@ -47,7 +47,7 @@ export const TopProgress: React.FC = () => {
     return (
         <div aria-hidden="true" className="fixed inset-x-0 top-0 z-[120] h-[3px] pointer-events-none" style={{ top: 'env(safe-area-inset-top)' }}>
             <div
-                className="h-full rounded-r-full bg-gradient-to-r from-corsia-600 via-cloro-500 to-corsia-500 shadow-[0_0_8px_rgba(14,165,233,0.45)] transition-[width,opacity] duration-300 ease-out"
+                className="h-full rounded-r-full bg-linear-to-r from-corsia-600 via-cloro-500 to-corsia-500 shadow-[0_0_8px_rgba(14,165,233,0.45)] transition-[width,opacity] duration-300 ease-out"
                 style={{ width: `${width}%`, opacity: visible ? 1 : 0 }}
             />
         </div>

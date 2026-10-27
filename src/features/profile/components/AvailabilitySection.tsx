@@ -104,7 +104,7 @@ export const AvailabilitySection: React.FC<{ profile: UserProfile; isOwnProfile:
     };
 
     return (
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="availability-title">
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="availability-title">
             <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                     <h2 id="availability-title" className="text-xl font-bold text-abisso flex items-center gap-2">
@@ -114,7 +114,7 @@ export const AvailabilitySection: React.FC<{ profile: UserProfile; isOwnProfile:
                     <p className="text-sm text-slate-500 mt-1">{saved.length ? summarizeAvailability(saved) : 'Indica quando puoi lavorare: le strutture ti trovano più facilmente per turni e sostituzioni.'}</p>
                 </div>
                 {isOwnProfile && (
-                    <button onClick={() => setOpen(true)} data-html2canvas-ignore="true" className="flex-shrink-0 text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 px-3 py-1.5 rounded-full inline-flex items-center gap-1">
+                    <button onClick={() => setOpen(true)} data-html2canvas-ignore="true" className="shrink-0 text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 px-3 py-1.5 rounded-full inline-flex items-center gap-1">
                         <Icon type={saved.length ? 'edit' : 'plus'} className="w-4 h-4" /> {saved.length ? 'Modifica' : 'Aggiungi'}
                     </button>
                 )}

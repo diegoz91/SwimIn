@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSignal } from '@/hooks/useSignal';
 import { useAuth } from '@/hooks/useAuth';
@@ -164,7 +164,7 @@ const MyShifts: React.FC = () => {
                         {invites.map((inv) => (
                             <li key={inv.structureId} className="bg-white rounded-2xl border border-cloro-200 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <img src={inv.logo || initialsAvatar(inv.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                    <img src={inv.logo || initialsAvatar(inv.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 shrink-0" />
                                     <div className="min-w-0">
                                         <p className="font-semibold text-abisso truncate">{inv.name}</p>
                                         <p className="text-sm text-slate-600">Ti invita nel suo staff: bacheca, turni e chat della squadra · {formatRelativeTime(inv.invitedAt)}</p>
@@ -202,7 +202,7 @@ const MyShifts: React.FC = () => {
                 <>
                     {firstOverlap && (
                         <div role="status" className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <Icon type="alert-triangle" className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+                            <Icon type="alert-triangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                             <p className="text-sm text-amber-900">
                                 {overlaps.size === 2 ? 'Due turni si sovrappongono' : `${overlaps.size} turni si sovrappongono`}, il primo {shiftDayLabel(firstOverlap.date)}.{' '}
                                 <button type="button" onClick={() => { setParam('vista', 'mese'); setMonth(firstOverlap.date.slice(0, 7)); setSelectedDay(firstOverlap.date); }} className="py-1 -my-1 font-semibold underline">
@@ -226,12 +226,12 @@ const MyShifts: React.FC = () => {
 
                         {structures.length > 1 && (
                             <div role="group" aria-label="Filtra per struttura" className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1">
-                                <button type="button" aria-pressed={!filter} onClick={() => setParam('struttura', '')} className={`flex-shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold ${!filter ? 'bg-abisso border-abisso text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}`}>
+                                <button type="button" aria-pressed={!filter} onClick={() => setParam('struttura', '')} className={`shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold ${!filter ? 'bg-abisso border-abisso text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}`}>
                                     Tutte
                                 </button>
                                 {structures.map((st) => (
-                                    <button key={st.id} type="button" aria-pressed={filter === st.id} onClick={() => setParam('struttura', filter === st.id ? '' : st.id)} className={`flex-shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold max-w-[16rem] ${filter === st.id ? 'bg-abisso border-abisso text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}`}>
-                                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${colors.get(st.id)?.dot}`} aria-hidden="true" />
+                                    <button key={st.id} type="button" aria-pressed={filter === st.id} onClick={() => setParam('struttura', filter === st.id ? '' : st.id)} className={`shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold max-w-[16rem] ${filter === st.id ? 'bg-abisso border-abisso text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}`}>
+                                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors.get(st.id)?.dot}`} aria-hidden="true" />
                                         <span className="truncate">{st.name}</span>
                                     </button>
                                 ))}
@@ -266,8 +266,8 @@ const MyShifts: React.FC = () => {
                                                             <p className="font-semibold text-abisso">{s.shiftTime} <span className="font-normal text-slate-600">· {s.structureName}</span></p>
                                                             <p className="text-sm text-slate-500">{s.role}</p>
                                                             <div className="mt-1 flex flex-wrap gap-1">
-                                                                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.text}</span>
-                                                                {overlaps.has(s.$id) && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">Sovrapposto</span>}
+                                                                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-sm border ${badge.cls}`}>{badge.text}</span>
+                                                                {overlaps.has(s.$id) && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-sm border bg-amber-50 text-amber-800 border-amber-200">Sovrapposto</span>}
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-wrap gap-1.5">{actionsFor(s)}</div>
@@ -292,7 +292,7 @@ const MyShifts: React.FC = () => {
                             const hours = perStructure.find((p) => p.id === st.id)?.hours || 0;
                             const body = (
                                 <>
-                                    <img src={st.logo || initialsAvatar(st.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 flex-shrink-0" />
+                                    <img src={st.logo || initialsAvatar(st.name)} alt="" className="w-11 h-11 rounded-xl object-cover bg-white border border-slate-100 shrink-0" />
                                     <span className="min-w-0 flex-1">
                                         <span className="block font-semibold text-abisso truncate">{st.name}</span>
                                         <span className="block text-sm text-slate-500">
@@ -308,7 +308,7 @@ const MyShifts: React.FC = () => {
                                     {team ? (
                                         <Link to={`/profile/${st.id}?area=staff`} className={`${cls} hover:border-corsia-300 transition-colors`}>
                                             {body}
-                                            <Icon type="chevron-right" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                            <Icon type="chevron-right" className="w-5 h-5 text-slate-400 shrink-0" />
                                         </Link>
                                     ) : (
                                         <div className={cls}>{body}</div>
