@@ -11,6 +11,12 @@ on:
         default: report
         type: choice
         options: [report, apply]
+      buckets:
+        description: 'force = elimina anche i bucket fuori schema che contengono file'
+        required: false
+        default: keep
+        type: choice
+        options: [keep, force]
 
 permissions:
   contents: read
@@ -31,4 +37,5 @@ jobs:
           APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
           PRUNE: ${{ inputs.mode }}
+          PRUNE_BUCKETS: ${{ inputs.buckets }}
         run: node setup-db.js --prune-only
