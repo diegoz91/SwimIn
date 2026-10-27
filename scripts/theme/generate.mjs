@@ -7,12 +7,43 @@
  *
  *   node scripts/theme/generate.mjs           rigenera il file
  *   node scripts/theme/generate.mjs --check   errore se il file non è aggiornato (CI)
+ *
+ * Per tenere leggero il CSS si scrivono solo le tonalità usate nel codice (classi come bg-red-100 o
+ * variabili come --c-red-100); Slate e Corsia sempre intere. Se usi una tonalità nuova, rigenera:
+ * la Verifica lo segnala.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ACCENTS, corsia, slate, light, dark } from './palette.mjs';
 
-const OUT = fileURLToPath(new URL('../../src/styles/theme.css', import.meta.url));
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const OUT = join(ROOT, 'src/styles/theme.css');
+
+/** Tonalità usate nel codice (src e index.html), per famiglia di colore. */
+const NAMES = [...Object.keys(ACCENTS), 'blue', 'slate', 'brand'];
+const used = Object.fromEntries(NAMES.map((n) => [n, new Set()]));
+const scan = (text) => {
+  for (const m of text.matchAll(new RegExp(`(?<![a-z])(${NAMES.join('|')})-(\\d{2,3})(?![0-9])`, 'g'))) used[m[1]].add(m[2]);
+};
+const walk = (dir) => {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (/\.(tsx?|css|html)$/.test(name) && p !== OUT) scan(readFileSync(p, 'utf8'));
+  }
+};
+walk(join(ROOT, 'src'));
+scan(readFileSync(join(ROOT, 'index.html'), 'utf8'));
+// blue e brand usano le variabili di Corsia; Slate e Corsia restano complete.
+for (const k of [...used.blue, ...used.brand]) used.corsia.add(k);
+for (const k of Object.keys(corsia)) used.corsia.add(k);
+for (const k of Object.keys(slate)) used.slate.add(k);
+const keep = (name, k) => used[name]?.has(String(k));
+const pick = (vars) => Object.fromEntries(Object.entries(vars).filter(([key]) => {
+  const m = /^--[ct]-([a-z]+)-(\d+)$/.exec(key);
+  return !m || keep(m[1], m[2]);
+}));
 const v = (prefix, name, k) => `rgb(var(--${prefix}-${name}-${k}))`;
 const block = (selector, vars, extra = '') =>
   `  ${selector} {\n${Object.entries(vars).map(([k, val]) => `    ${k}: ${val};`).join('\n')}${extra ? `\n    ${extra}` : ''}\n  }`;
@@ -20,19 +51,19 @@ const block = (selector, vars, extra = '') =>
 const colors = [];
 const texts = [];
 for (const [name, shades] of Object.entries(ACCENTS)) {
-  for (const k of Object.keys(shades)) {
+  for (const k of Object.keys(shades).filter((k) => keep(name, k))) {
     colors.push(`  --color-${name}-${k}: ${v('c', name, k)};`);
     texts.push(`  --text-color-${name}-${k}: ${v('t', name, k)};`);
   }
 }
 // La scala `blue` usa le variabili di Corsia: le classi blue-* hanno il colore del brand.
-for (const k of Object.keys(corsia)) {
+for (const k of Object.keys(corsia).filter((k) => used.blue.has(k))) {
   colors.push(`  --color-blue-${k}: ${v('c', 'corsia', k)};`);
   texts.push(`  --text-color-blue-${k}: ${v('t', 'corsia', k)};`);
 }
 for (const k of Object.keys(slate)) colors.push(`  --color-slate-${k}: ${v('c', 'slate', k)};`);
 // Compatibilità con il vecchio token "brand".
-for (const k of [50, 100, 500, 600, 900]) colors.push(`  --color-brand-${k}: ${v('c', 'corsia', k)};`);
+for (const k of [50, 100, 500, 600, 900].filter((k) => used.brand.has(String(k)))) colors.push(`  --color-brand-${k}: ${v('c', 'corsia', k)};`);
 
 const css = `/*
  * GENERATO da scripts/theme/generate.mjs a partire da scripts/theme/palette.mjs: non modificarlo a mano.
@@ -97,10 +128,10 @@ ${texts.join('\n')}
 }
 
 @layer base {
-${block(':root', light, 'color-scheme: light;')}
-${block(':root.dark', dark, 'color-scheme: dark;')}
+${block(':root', pick(light), 'color-scheme: light;')}
+${block(':root.dark', pick(dark), 'color-scheme: dark;')}
   /* Riquadri volutamente scuri anche nel tema chiaro (es. lettore video): tengono la tavolozza originale. */
-${block('.palette-fixed', light)}
+${block('.palette-fixed', pick(light))}
 }
 `;
 
