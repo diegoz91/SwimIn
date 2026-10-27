@@ -489,7 +489,7 @@ const schema = [
         id: 'live_rooms', name: 'Live Rooms', permissions: READ_ONLY,
         attributes: [
             str('title', 255, { required: true }), str('description', 1000), str('hostId', 36, { required: true }),
-            str('facilityId', 36), str('status', 50, { required: true }),
+            str('status', 50, { required: true }),
             str('speakers', 36, { array: true }), str('listeners', 36, { array: true }),
             str('startedAt', 100, { required: true }),
         ],
@@ -725,6 +725,50 @@ async function migratePrivateInfo() {
     if (moved) console.log(`   🔐 profiles: email e telefono resi privati su ${moved} profili`);
 }
 
+/**
+ * Il database contiene solo ciò che è nello schema qui sopra: tabelle, colonne, indici e bucket
+ * che non ci sono più (residui di funzioni tolte) vengono eliminati. `PRUNE=report` li elenca
+ * soltanto, `PRUNE=off` salta il passaggio. Gira dopo le migrazioni, che leggono ancora le colonne vecchie.
+ */
+const PRUNE_MODE = ['report', 'off'].includes(process.env.PRUNE) ? process.env.PRUNE : 'apply';
+const pruned = [];
+async function pruneDatabase() {
+    if (PRUNE_MODE === 'off') return;
+    const act = async (what, fn) => {
+        pruned.push(what);
+        if (PRUNE_MODE === 'apply') {
+            await fn();
+            console.log(`   🧹 ${what}`);
+        } else console.log(`   (da eliminare) ${what}`);
+    };
+    const wanted = new Map(schema.map((t) => [t.id, t]));
+    const tables = [];
+    for (let offset = 0; ; offset += 100) {
+        const page = await tablesDB.listTables({ databaseId: DB_ID, queries: [Query.limit(100), Query.offset(offset)] });
+        tables.push(...page.tables);
+        if (page.tables.length < 100) break;
+    }
+    for (const t of tables) {
+        const def = wanted.get(t.$id);
+        if (!def) {
+            await act(`tabella ${t.$id}`, () => tablesDB.deleteTable({ databaseId: DB_ID, tableId: t.$id }));
+            continue;
+        }
+        const keepIndexes = new Set(def.indexes.map((i) => i.key));
+        const { indexes = [] } = await tablesDB.listIndexes({ databaseId: DB_ID, tableId: t.$id });
+        for (const i of indexes) if (!keepIndexes.has(i.key)) await act(`indice ${t.$id}.${i.key}`, () => tablesDB.deleteIndex({ databaseId: DB_ID, tableId: t.$id, key: i.key }));
+        const keepColumns = new Set(def.attributes.map((a) => a.key));
+        const { columns = [] } = await tablesDB.listColumns({ databaseId: DB_ID, tableId: t.$id });
+        for (const c of columns) if (!keepColumns.has(c.key)) await act(`colonna ${t.$id}.${c.key}`, () => tablesDB.deleteColumn({ databaseId: DB_ID, tableId: t.$id, key: c.key }));
+    }
+    const keepBuckets = new Set(buckets.map((b) => b.id));
+    const { buckets: existing = [] } = await storage.listBuckets({ queries: [Query.limit(100)] });
+    for (const b of existing) if (!keepBuckets.has(b.$id)) await act(`bucket ${b.$id}`, () => storage.deleteBucket({ bucketId: b.$id }));
+    if (!pruned.length) console.log('   ✨ Nessun residuo: il database corrisponde allo schema');
+    else if (PRUNE_MODE === 'report') notice(`Residui nel database (PRUNE=report, non eliminati): ${pruned.join(', ')}`);
+    else notice(`Database ripulito: ${pruned.join(', ')}`);
+}
+
 async function setupBuckets() {
     console.log('\n🗂️  Storage');
     for (const b of buckets) {
@@ -922,6 +966,13 @@ async function setupBillingVariables(set, current) {
 }
 
 async function main() {
+    // Solo pulizia (workflow "Pulizia database"): niente schema né deploy.
+    if (process.argv.includes('--prune-only')) {
+        phase = 'pulizia dei residui';
+        console.log(`🧹 Residui fuori schema (${PRUNE_MODE === 'report' ? 'solo elenco' : 'eliminazione'})`);
+        await pruneDatabase();
+        return;
+    }
     console.log('🚀 Configurazione Appwrite per SwimWaveUp…');
     phase = 'database (tabelle, colonne, indici)';
     await setupDatabase();
@@ -935,6 +986,9 @@ async function main() {
     await migrateEventLinks();
     phase = 'bucket di storage';
     await setupBuckets();
+    phase = 'pulizia dei residui (tabelle, colonne, indici, bucket fuori schema)';
+    console.log('\n🧹 Residui fuori schema');
+    await pruneDatabase();
     phase = 'Function api';
     if (!process.argv.includes('--skip-function')) await deployFunction();
     console.log('\n🎉 Setup completato.');

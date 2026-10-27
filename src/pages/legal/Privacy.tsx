@@ -85,7 +85,8 @@ const Privacy: React.FC = () => (
                     <ul>
                         <li>I dati dell'account e del profilo per tutta la durata dell'account.</li>
                         <li>Se elimini l'account, cancelliamo profilo, post, commenti, consigli, candidature, collegamenti e notifiche; i messaggi già inviati restano visibili al destinatario, senza il collegamento al tuo profilo.</li>
-                        <li>I registri tecnici di sicurezza per un periodo limitato, non superiore a 12 mesi salvo obblighi di legge.</li>
+                        <li>I registri tecnici di sicurezza per un periodo limitato, non superiore a 12 mesi salvo obblighi di legge; i registri degli errori dell'app per 30 giorni.</li>
+                        <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; le visite al profilo e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
                     </ul>
                 ),
             },
