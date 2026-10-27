@@ -136,7 +136,7 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
   Vercel /api:  /u/:id e /offerte/:id (anteprime e dati strutturati), sitemap, robots, /api/health
 ```
 
-- **Frontend**: React 19, TypeScript strict, Vite 8 (Rolldown), React Router 6, Tailwind 3.4. Ogni pagina si carica a parte (`lazyPage`, che ricarica una volta se dopo un rilascio un pezzo non esiste più).
+- **Frontend**: React 19, TypeScript 7 (compilatore nativo, strict), Vite 8 (Rolldown), React Router 8, Tailwind CSS 4, Recharts 3, Node 24. Ogni pagina si carica a parte (`lazyPage`, che ricarica una volta se dopo un rilascio un pezzo non esiste più).
 - **Backend**: Appwrite Cloud, con l'API TablesDB (1.8+). `setup-db.js` è la **fonte di verità** dello schema: tabelle, colonne, indici, permessi e bucket. Crea e aggiorna tutto, e cancella ciò che non è più nello schema.
 - **Function `api`** (`functions/api/`): l'unica via per le operazioni che riguardano altri utenti o che devono garantire l'autore (post, collegamenti, messaggi, candidature, turni, pagamenti…). Ogni modulo ha i suoi test.
 - **Tempo reale**:
@@ -188,27 +188,36 @@ La mappa completa di dati, accessi, protezione e tempi di conservazione per ogni
 
 - **Registro unico degli errori** del client e del server, con impronta per raggrupparli. Avviso agli amministratori (notifica ed eventuale webhook Slack, Discord o Telegram) al massimo una volta l'ora per errore.
 - **Stato del servizio** deciso dagli amministratori: rallentamenti o manutenzione, attivi subito per tutti. Pagina pubblica `/stato` e ripiego con `VITE_MAINTENANCE=on`.
-- **`/api/health`** per i monitor esterni. Il workflow **Monitor** controlla l'app ogni 10 minuti.
-- **Prova reale** dopo ogni deploy: percorsi principali con account veri, eliminati alla fine.
+- **`/api/health`** per i monitor esterni. Il workflow **Controlli** guarda l'app ogni 10 minuti e scrive solo quando cambia lo stato.
+- **Prova reale** dopo ogni rilascio e ogni notte: percorsi principali con account veri, eliminati alla fine.
 - **Database sempre pulito**: a ogni deploy `setup-db` elimina tabelle, colonne, indici e bucket fuori schema (`PRUNE=apply|report|off`).
 
 ## Qualità e CI
 
+Un solo flusso su GitHub Actions: **build → test → rilascio → riepilogo**.
+
+```
+PR ──► Verifica ──────────────────────────────────────────► verde: si può unire
+        build e test · schermate · accessibilità · e2e
+
+main ─► Rilascio ─► Verifica ─► Appwrite ─┐
+                              Vercel ─────┴─► Prova reale ─► Riepilogo (una email)
+```
+
 | Workflow | Quando | Cosa fa |
 |---|---|---|
-| **CI** | ogni PR | sincronizza `package-lock.json`, `npm audit`, type-check, test del frontend (Vitest 5), build, test della Function |
-| **Schermate** | ogni PR | quasi 500 schermate in 6 formati (360 → 1440 px, anche tema scuro) sul branch `ci-screenshots/<branch>`; controllo del layout (niente scorrimento orizzontale, aree di tocco ≥ 24 px), **accessibilità** axe-core WCAG 2.1 AA, **45 percorsi end-to-end** con Playwright, LCP/CLS della landing e budget del bundle |
-| **Deploy Appwrite** | push su `main` | schema, migrazioni, pulizia, variabili e deploy della Function con verifica della versione attiva |
-| **Prova reale** | dopo il deploy | percorsi veri su Appwrite con account di prova |
-| **Monitor** | ogni 10 minuti | salute dell'app e soglia di errori |
+| **Verifica** | ogni PR (e dentro ogni rilascio) | lockfile, `npm audit`, tema aggiornato, type-check, test del frontend (Vitest), build, test della Function, delle funzioni Vercel e dell'anagrafica; poi quasi 500 schermate in 6 formati (360 → 1440 px, anche tema scuro) con controllo del layout (niente scorrimento orizzontale, aree di tocco ≥ 24 px), **accessibilità** axe-core WCAG 2.1 AA, **45 percorsi end-to-end** con Playwright, LCP/CLS della landing e budget del bundle. Rapporti sul branch `ci-screenshots/<branch>` |
+| **Rilascio** | merge su `main` o a mano | Verifica → Appwrite (schema, migrazioni, pulizia e Function, se toccati) e attesa della pubblicazione di Vercel → prova reale con account veri → **un solo commento-riepilogo** nella issue *Rilasci di SwimIn*, cioè una sola email con l'esito di ogni fase |
+| **Controlli** | ogni 10 minuti; prova reale ogni notte | sito, `/api/health`, Function, soglia di errori. Email solo quando qualcosa si rompe (si apre una issue) e quando torna regolare (si chiude) |
+| **Aggiornamenti** | quando la Verifica di un aggiornamento è verde | unisce le PR mensili di Dependabot (versioni minori, in un'unica PR) e dell'anagrafica e fa partire il Rilascio; le versioni maggiori restano da rivedere |
+| **Anagrafica comuni** | mensile | aggiorna province e comuni dalla fonte ISTAT e apre la PR |
 | **Pulizia database** | manuale | solo la pulizia dello schema (`report` o `apply`) |
-| **Anagrafica comuni** | mensile | aggiorna province e comuni dalla fonte ISTAT e apre una PR |
 
-Test: 25 file per la Function (`functions/api/test`), test del frontend in `src/**/*.test.ts` ed e2e in `scripts/e2e/flows.mjs`, su un Appwrite finto condiviso (`scripts/screenshots/mock.mjs`).
+Test: 27 file per la Function (`functions/api/test`), test del frontend in `src/**/*.test.ts` ed e2e in `scripts/e2e/flows.mjs`, su un Appwrite finto condiviso (`scripts/screenshots/mock.mjs`).
 
 ## Design system
 
-"Acqua premium". I token Tailwind sono in `tailwind.config.js`:
+"Acqua premium". La tavolozza è in `scripts/theme/palette.mjs`; `node scripts/theme/generate.mjs` ne ricava `src/styles/theme.css`, la configurazione di Tailwind 4 in CSS (la Verifica controlla che sia aggiornato):
 
 | Token | Uso |
 |---|---|
@@ -228,7 +237,7 @@ Test: 25 file per la Function (`functions/api/test`), test del frontend in `src/
 
 ## Avvio in locale
 
-Requisiti: **Node.js 22** e un progetto Appwrite Cloud.
+Requisiti: **Node.js 24** e un progetto Appwrite Cloud.
 
 ```bash
 git clone https://github.com/diegoz91/swimwaveup.0.0.1.git
@@ -263,7 +272,7 @@ npm run dev                       # http://localhost:3000
 | `VITE_GOOGLE_CALENDAR_API` | `off` spegne il salvataggio diretto su Google Calendar |
 | `VITE_MAINTENANCE` | `on` mette il sito in manutenzione anche senza Appwrite |
 
-**Deploy automatico** (GitHub › Settings › Secrets and variables), usato dal workflow *Deploy Appwrite*:
+**Rilascio automatico** (GitHub › Settings › Secrets and variables), usati dai workflow *Rilascio* e *Controlli*:
 
 | Tipo | Nome | Uso |
 |---|---|---|
@@ -272,9 +281,10 @@ npm run dev                       # http://localhost:3000
 | secret | `ALERT_WEBHOOK_URL` | avvisi su Slack, Discord o Telegram (facoltativo) |
 | secret | `ESCROW_PUBLIC_KEY` | chiave **pubblica** per le copie sigillate (`scripts/legal/keygen.mjs`) |
 | variabile | `APP_URL`, `FUNCTION_URL`, `EMAIL_NOTIFICATIONS`, `PAYPAL_MODE` | indirizzi, email, modalità PayPal |
-| variabile | `ALERT_USER_IDS`, `MONITOR_ERROR_THRESHOLD`, `PRUNE` | avvisi, monitor, pulizia dello schema |
+| variabile | `ALERT_USER_IDS`, `MONITOR_ERROR_THRESHOLD`, `PRUNE` | avvisi, controlli, pulizia dello schema |
+| variabile | `NOTIFY_USERS` | chi riceve l'email di riepilogo dei rilasci e degli avvisi (login GitHub separati da virgola) |
 
-Senza i secret `APPWRITE_*`, `npm run setup-db` va lanciato a mano dopo ogni merge che tocca `functions/api/` o `setup-db.js`. Il sito si pubblica su Vercel: le riscritture della SPA e le intestazioni di sicurezza sono in `vercel.json`. Guida passo passo in [`docs/SETUP-APPWRITE.md`](docs/SETUP-APPWRITE.md).
+Senza i secret `APPWRITE_*`, `npm run setup-db` va lanciato a mano dopo ogni merge che tocca `functions/api/` o `setup-db.js`. Il sito si pubblica su Vercel: le riscritture della SPA e le intestazioni di sicurezza sono in `vercel.json`. Per mettere online il sito solo dopo i test, attiva in Vercel le *Deployment Checks* sui controlli della Verifica. Come ridurre le email al solo riepilogo dei rilasci: [`docs/SETUP-APPWRITE.md` §15](docs/SETUP-APPWRITE.md). Guida passo passo in [`docs/SETUP-APPWRITE.md`](docs/SETUP-APPWRITE.md).
 
 ## Struttura del repository
 

@@ -87,5 +87,15 @@
         }
       ]
     }
-  ]
+  ],
+  "github": {
+    "silent": true
+  },
+  "git": {
+    "deploymentEnabled": {
+      "dependabot/**": false,
+      "bot/**": false,
+      "ci-screenshots/**": false
+    }
+  }
 }

@@ -103,7 +103,7 @@ Per aggiornarli in automatico:
 
 Alla fine di ogni deploy `setup-db` chiama la Function con l'azione pubblica `health` e controlla che risponda la versione appena caricata; se non è così la attiva e, se ancora non risponde, il deploy fallisce. Su GitHub l'esito compare come annotazione, per esempio "Function api versione a4b2a9a26287 attiva sul progetto …57b3". Se il sito dice "Questa funzione è in aggiornamento" dopo un deploy riuscito, quasi sempre il sito (Vercel, `VITE_APPWRITE_PROJECT_ID`) e i secret di GitHub (`APPWRITE_PROJECT_ID`) puntano a progetti diversi: le ultime quattro cifre devono coincidere.
 
-Da quel momento il workflow **Deploy Appwrite** lancia `npm run setup-db` a ogni merge che tocca `functions/api/` o `setup-db.js`, e aspetta che la build della Function sia pronta. Si può avviare anche a mano da *Actions → Deploy Appwrite → Run workflow*.
+Da quel momento il workflow **Rilascio** (§15) lancia `npm run setup-db` a ogni merge che tocca `functions/api/` o `setup-db.js`, dopo che la verifica è passata, e aspetta che la build della Function sia pronta. Si può avviare anche a mano da *Actions → Rilascio → Run workflow*.
 
 ## 10. SwimIn Premium (pagamenti)
 
@@ -118,7 +118,7 @@ Senza configurazione Premium funziona già con la **prova gratuita** di 30 giorn
    - su developer.paypal.com → *Apps & Credentials* crea un'app (sandbox per le prove, live in produzione);
    - copia *Client ID* e *Secret* in `PAYPAL_CLIENT_ID` e `PAYPAL_SECRET`;
    - imposta `PAYPAL_MODE=live` quando passi alla produzione.
-4. **Lancia `npm run setup-db`** (o il workflow *Deploy Appwrite*). Lo script:
+4. **Lancia `npm run setup-db`** (o il workflow *Rilascio*). Lo script:
    - crea su Stripe i 6 prezzi e su PayPal i 6 piani predefiniti: professionisti 4,99 €/mese o 47,90 €/anno, appassionati (Premium Passione) 1,99 €/mese o 19 €/anno, strutture 19 €/mese o 179 €/anno, tutti IVA inclusa;
    - registra i webhook verso `FUNCTION_URL/webhooks/stripe` e `/webhooks/paypal`;
    - salva tutto nelle variabili della Function.
@@ -152,19 +152,19 @@ l'etichetta `admin` ricevono una notifica `system_alert` (anche push ed email, s
 Facoltativo: un canale esterno.
 - Slack o Discord: crea un webhook in arrivo e salvalo nel secret GitHub `ALERT_WEBHOOK_URL`.
 - Altri destinatari oltre agli admin: id utente separati da virgola nella variabile GitHub `ALERT_USER_IDS`.
-Al deploy successivo (`Deploy Appwrite`) finiscono tra le variabili della Function.
+Al rilascio successivo finiscono tra le variabili della Function.
 
-**Monitor ogni 10 minuti** (workflow `Monitor`): sito, `/api/health`, Function su Appwrite e picco di
-errori del server (variabile `MONITOR_ERROR_THRESHOLD`, predefinita 20 in 15 minuti). Se fallisce, GitHub
-manda un'email: controlla in GitHub → Settings → Notifications → Actions che le email per i workflow
-falliti siano attive. Per un secondo controllo indipendente da GitHub, aggiungi `https://<dominio>/api/health`
+**Controlli ogni 10 minuti** (workflow `Controlli`): sito, `/api/health`, Function su Appwrite e picco di
+errori del server (variabile `MONITOR_ERROR_THRESHOLD`, predefinita 20 in 15 minuti). Se qualcosa non va si
+apre **una** issue "Servizio con problemi" (una email); quando torna regolare la issue si chiude con un
+commento (una seconda email). Nel frattempo nessun'altra email. Per un secondo controllo indipendente da GitHub, aggiungi `https://<dominio>/api/health`
 a un servizio gratuito come UptimeRobot o Better Stack (risponde 200 se tutto va, 503 se Appwrite non risponde).
 
-**Prova reale** (workflow `Prova reale`): dopo ogni deploy della Function, ogni notte e a mano crea quattro
+**Prova reale** (job del workflow `Rilascio` e, ogni notte, di `Controlli`): crea quattro
 account temporanei (`swimin-e2e+…@example.com`) e percorre iscrizione, CV, candidatura, colloquio,
 assunzione, staff, turni, cambio turno e chat con allegato, controllando anche gli accessi vietati.
 Poi elimina gli account e ripulisce. Gli annunci di questi account non mandano avvisi alle persone vere.
-Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
+Rapporto nel riepilogo del workflow.
 
 **Manutenzione.**
 - *Admin › Stato del servizio*: "Rallentamenti" mostra una striscia gialla con il tuo messaggio;
@@ -206,6 +206,31 @@ Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
 5. *Fine*: "Chiudi" cancella subito le copie; alla scadenza le cancella la pulizia notturna. Proroga con "Proroga" (anche con una nuova copia dei dati di oggi).
 
 Senza `ESCROW_PUBLIC_KEY` la registrazione risponde 503: nessuna copia in chiaro viene mai creata. Mappa completa di dati, accessi e tempi: `docs/PRIVACY-SICUREZZA.md`.
+
+## 15. Build, test e rilascio (pipeline) ed email
+
+Un solo flusso, tutto su GitHub Actions:
+
+| Workflow | Quando | Cosa fa |
+|---|---|---|
+| **Verifica** | ogni PR | build e test: lockfile, vulnerabilità, tema, tipi, test unitari, build, test della Function, delle funzioni Vercel e dell'anagrafica; poi schermate in 6 formati, controllo del layout, accessibilità, 45 percorsi end-to-end e budget del bundle (rapporti sul branch `ci-screenshots/<branch>`) |
+| **Rilascio** | merge su `main` (non per sola documentazione) o a mano | Verifica di nuovo → Appwrite (schema e Function, se toccati) e attesa della pubblicazione di Vercel → prova reale → **un solo riepilogo** |
+| **Controlli** | ogni 10 minuti, prova reale ogni notte | email solo quando il servizio si rompe e quando torna regolare |
+| **Aggiornamenti** | quando la Verifica di un aggiornamento automatico è verde | unisce le PR mensili di Dependabot (versioni minori) e dell'anagrafica e fa partire il Rilascio |
+| **Anagrafica comuni** | ogni mese | aggiorna province e comuni da ISTAT e apre la PR (unita da Aggiornamenti) |
+| **Pulizia database** | a mano | solo la pulizia dello schema |
+
+**Una email per rilascio.** Il riepilogo è un commento nella issue *Rilasci di SwimIn* (etichetta `rilasci`): esito di build e test, Appwrite, Vercel (con il link al sito) e prova reale. Menziona chi ha fatto il merge, oppure gli utenti nella variabile GitHub `NOTIFY_USERS` (login separati da virgola).
+
+**Per non ricevere altre email** (impostazioni del tuo account, una volta):
+- *GitHub → Settings → Notifications*:
+  - in *Actions* togli le email ("Only notify for failed workflows" spento): gli esiti arrivano dal riepilogo;
+  - in *Dependabot alerts* lascia solo la sintesi settimanale;
+- sul repository *Watch → Custom*: lascia attive solo le *Issues*, così ricevi i riepiloghi e gli avvisi di servizio ma non le PR;
+- *Vercel → Account Settings → Notifications*: togli le email delle pubblicazioni. I commenti di Vercel su PR e commit sono già spenti (`github.silent` in `vercel.json`) e le anteprime non partono per i branch automatici (`dependabot/**`, `bot/**`, `ci-screenshots/**`);
+- *Claude*: le notifiche delle sessioni si gestiscono nelle impostazioni di Claude (claude.ai).
+
+**Vercel solo dopo i test (consigliato).** Vercel pubblica il sito da sé a ogni merge, in parallelo alla verifica. Per pubblicarlo in produzione solo se i test passano: *Vercel → Project → Settings → Deployment Checks* e aggiungi il controllo GitHub **Verifica / Build e test** (e *Schermate, accessibilità ed end-to-end*). Vercel prepara la build ma la mette online solo quando i controlli sono verdi.
 
 ## Modello di sicurezza (in breve)
 

@@ -58,7 +58,7 @@ const DEPLOY_VERSION = (process.env.GITHUB_SHA || '').slice(0, 12) || `manuale-$
 /** Messaggio visibile anche come annotazione su GitHub Actions. */
 const notice = (message) => {
     console.log(`   ${message}`);
-    if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Deploy Appwrite::${String(message).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`);
+    if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Appwrite::${String(message).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`);
 };
 /** Ultimi caratteri del project ID: per riconoscere il progetto senza mostrarlo tutto. */
 const projectHint = () => `…${String(APPWRITE_PROJECT_ID).slice(-4)} su ${new URL(APPWRITE_ENDPOINT).host}`;

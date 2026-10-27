@@ -130,7 +130,7 @@ async function callApiOnce<T>(action: string, params: Record<string, unknown>): 
     if (!payload.ok) {
         // La Function su Appwrite è più vecchia del sito: va ridistribuita (npm run setup-db).
         if (/^Azione sconosciuta/.test(payload.error || '')) {
-            console.error(`Function "api" non aggiornata: manca l'azione "${action}". Controlla che il sito e il deploy (GitHub → Deploy Appwrite) usino lo stesso progetto Appwrite, poi lancia npm run setup-db.`);
+            console.error(`Function "api" non aggiornata: manca l'azione "${action}". Controlla che il sito e il rilascio (GitHub → Rilascio) usino lo stesso progetto Appwrite, poi lancia npm run setup-db.`);
             throw new ApiOutdatedError(action);
         }
         const err = new ApiError(payload.error || 'Operazione non riuscita.', payload.code);

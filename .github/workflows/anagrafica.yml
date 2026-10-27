@@ -1,7 +1,8 @@
 name: Anagrafica comuni
 
 # Province e comuni dalla fonte ufficiale ISTAT.
-# - ogni mese: se qualcosa è cambiato (fusioni di comuni, nuove province) apre una PR verso main;
+# - ogni mese: se qualcosa è cambiato (fusioni di comuni, nuove province) apre una PR verso main e ne
+#   avvia la Verifica; se è verde il workflow Aggiornamenti la unisce e fa partire il Rilascio;
 # - su un branch, quando cambia lo script: rigenera i file e li committa sul branch stesso;
 # - a mano dalla scheda Actions ("Run workflow").
 on:
@@ -17,6 +18,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency:
   group: anagrafica-${{ github.ref }}
@@ -60,7 +62,9 @@ jobs:
             git checkout -b "$BRANCH"
             git commit -m "chore(anagrafica): aggiornamento mensile da ISTAT"
             git push -u origin "$BRANCH"
-            printf 'Aggiornamento automatico di province e comuni dalla fonte ISTAT.\n\n```json\n%s\n```\n\nControlla il diff dei file in `public/data/comuni` e unisci se è tutto in ordine.\n' "$SUMMARY" > /tmp/pr-body.md
+            printf 'Aggiornamento automatico di province e comuni dalla fonte ISTAT.\n\n```json\n%s\n```\n\nSe la Verifica è verde viene unita da sola.\n' "$SUMMARY" > /tmp/pr-body.md
             gh pr create --base main --head "$BRANCH" --title "Anagrafica comuni: aggiornamento ISTAT" --body-file /tmp/pr-body.md \
               || echo "::warning::Branch $BRANCH pubblicato. Per aprire la PR in automatico abilita 'Allow GitHub Actions to create and approve pull requests' nelle impostazioni del repository."
+            # Le PR aperte da un workflow non avviano le verifiche da sole: la si avvia qui.
+            gh workflow run verifica.yml --ref "$BRANCH"
           fi
