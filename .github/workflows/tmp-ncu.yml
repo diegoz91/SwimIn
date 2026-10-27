@@ -6,25 +6,22 @@ on:
 permissions:
   contents: write
 jobs:
-  ncu:
+  tailwind:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
-      - name: Ultime versioni
+          node-version: 24
+      - name: Migrazione ufficiale a Tailwind 4
         run: |
-          npx --yes npm-check-updates@latest -u --target latest > ncu-root.txt 2>&1 || true
-          (cd functions/api && npx --yes npm-check-updates@latest -u --target latest) > ncu-api.txt 2>&1 || true
-          cat ncu-root.txt ncu-api.txt
-          echo "::notice title=root::$(grep '→' ncu-root.txt | tr -s ' ' | tr '\n' ';')"
-          echo "::notice title=api::$(grep '→' ncu-api.txt | tr -s ' ' | tr '\n' ';')"
-          npm view node@22 version | tail -1 | xargs -I{} echo "::notice title=node22::{}"
-          npm view node version | xargs -I{} echo "::notice title=nodelatest::{}"
-          rm ncu-root.txt ncu-api.txt
+          npm install --no-audit --no-fund
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json functions/api/package.json
-          git commit -m "chore: dipendenze all'ultima versione" || true
+          git stash -u || true
+          npx --yes @tailwindcss/upgrade@latest --force 2>&1 | tee upgrade.log || true
+          echo "::notice title=upgrade::$(tail -c 3000 upgrade.log | tr '\n' ' ')"
+          rm -f upgrade.log
+          git add -A
+          git commit -m "chore: migrazione automatica a Tailwind 4 (@tailwindcss/upgrade)" || true
           git push origin HEAD:chore/tutto-aggiornato
