@@ -16,7 +16,7 @@ interface FormModalProps {
     tone?: 'default' | 'danger';
     onClose: () => void;
     onSubmit: (e: React.FormEvent) => void;
-    formRef?: React.RefObject<HTMLFormElement>;
+    formRef?: React.RefObject<HTMLFormElement | null>;
     /** Azione secondaria a sinistra nel piè di pagina (es. Elimina). */
     secondaryAction?: React.ReactNode;
     /** Testo del pulsante che chiude senza salvare; null lo nasconde (resta la X in alto). */

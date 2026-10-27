@@ -34,7 +34,7 @@ export const MentionTextarea: React.FC<
         onChange: (value: string) => void;
         mentions: MentionMap;
         onMentionsChange: (map: MentionMap) => void;
-        textareaRef?: React.RefObject<HTMLTextAreaElement>;
+        textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
     }
 > = ({ value, onChange, mentions, onMentionsChange, textareaRef, onKeyDown, ...rest }) => {
     const { user } = useAuth();

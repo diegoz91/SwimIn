@@ -14,8 +14,8 @@ export const ReactionButton: React.FC<{
 }> = ({ value, disabled, onReact }) => {
     const [open, setOpen] = useState(false);
     const wrapRef = useRef<HTMLDivElement>(null);
-    const hoverTimer = useRef<number>();
-    const pressTimer = useRef<number>();
+    const hoverTimer = useRef<number | undefined>(undefined);
+    const pressTimer = useRef<number | undefined>(undefined);
     const longPressed = useRef(false);
     const current = reactionOf(value);
 
