@@ -4,7 +4,7 @@ Social network professionale per il mondo del nuoto, ispirato a LinkedIn.
 Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, direttori sportivi) e **strutture** (piscine, centri sportivi).
 
 ## Stack
-- React 19 (tipi `@types/react` 19: `useRef<T>(null)` è `RefObject<T | null>`) + TypeScript (strict) + Vite 6, React Router 6.30 (flag `v7_*` attivi), Tailwind 3.4
+- React 19 (tipi `@types/react` 19: `useRef<T>(null)` è `RefObject<T | null>`) + TypeScript (strict) + Vite 8 (Rolldown, `build.rolldownOptions`, pezzi separati con `codeSplitting`), React Router 6.30 (flag `v7_*` attivi), Tailwind 3.4
 - Backend BaaS: **Appwrite Cloud** (Auth, Databases, Storage, Realtime) — SDK web `appwrite`
 - Deploy: Vercel (SPA rewrite in `vercel.json`)
 - Alias import: `@/` → `src/`
