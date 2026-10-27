@@ -324,16 +324,17 @@ async function cleanup() {
     const sweep = [
       ['applications', 'applicantId'], ['shifts', 'userId'], ['shifts', 'structureId'], ['shift_swaps', 'structureId'],
       ['staff_invites', 'structureId'], ['messages', 'senderId'], ['messages', 'receiverId'], ['notifications', 'userId'],
-      ['signals', 'userId'], ['client_errors', 'userId'], ['jobs', 'structureId'], ['private_info', '$id'], ['profiles', '$id'],
+      ['signals', 'userId'], ['client_errors', 'userId'], ['typing', 'userId'], ['shift_templates', 'structureId'], ['staff_chat_reads', 'userId'], ['jobs', 'structureId'], ['private_info', '$id'], ['profiles', '$id'],
     ];
     if (created.jobId) sweep.push(['application_reviews', 'jobId', [created.jobId]]);
     let removed = 0;
     for (const [table, field, values = ids] of sweep) {
       try {
         const q = [encodeURIComponent(JSON.stringify({ method: 'equal', attribute: field, values })), encodeURIComponent(JSON.stringify({ method: 'limit', values: [100] }))];
-        const { data } = await rest('GET', `/databases/${DB}/collections/${table}/documents?queries[]=${q[0]}&queries[]=${q[1]}`, { key: KEY });
-        for (const d of data.documents || []) {
-          await rest('DELETE', `/databases/${DB}/collections/${table}/documents/${d.$id}`, { key: KEY }).catch(() => null);
+        // API TablesDB con la chiave (scope rows.*): le letture come utente restano sull'API dell'app.
+        const { data } = await rest('GET', `/tablesdb/${DB}/tables/${table}/rows?queries[]=${q[0]}&queries[]=${q[1]}`, { key: KEY });
+        for (const d of data.rows || []) {
+          await rest('DELETE', `/tablesdb/${DB}/tables/${table}/rows/${d.$id}`, { key: KEY }).catch(() => null);
           removed++;
         }
       } catch (e) {
@@ -342,7 +343,7 @@ async function cleanup() {
     }
     for (const f of created.files) await rest('DELETE', `/storage/buckets/${f.bucket}/files/${f.id}`, { key: KEY }).catch(() => null);
     for (const u of Object.values(users)) if (!u.deleted) await rest('DELETE', `/users/${u.id}`, { key: KEY }).then(() => { u.deleted = true; }).catch((e) => notes.push(`utente ${u.email}: ${e.message}`));
-    if (removed) notes.push(`righe rimaste dopo l’eliminazione degli account e ripulite: ${removed}`);
+    if (removed) notes.push(`righe rimaste dopo l’eliminazione degli account e ripulite: ${removed} (deleteAccount dovrebbe toglierle)`);
   }
   // Verifica: gli account eliminati non entrano più.
   for (const [role, u] of Object.entries(users)) {

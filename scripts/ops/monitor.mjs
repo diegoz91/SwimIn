@@ -66,7 +66,8 @@ if (ENDPOINT && PROJECT && KEY) {
       { method: 'greaterThan', attribute: '$createdAt', values: [since] },
       { method: 'limit', values: [1] },
     ].map((x) => `queries[]=${encodeURIComponent(JSON.stringify(x))}`).join('&');
-    const res = await get(`${ENDPOINT}/databases/swimwaveup_db/collections/client_errors/documents?${q}`, { headers: { 'X-Appwrite-Project': PROJECT, 'X-Appwrite-Key': KEY } });
+    // API TablesDB: la chiave di deploy ha gli scope rows.*, non quelli vecchi documents.*.
+    const res = await get(`${ENDPOINT}/tablesdb/swimwaveup_db/tables/client_errors/rows?${q}`, { headers: { 'X-Appwrite-Project': PROJECT, 'X-Appwrite-Key': KEY } });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(`HTTP ${res.status} ${body.message || ''}`.trim());
     if (body.total >= THRESHOLD) throw new Error(`${body.total} errori: controlla Admin › Errori`);
