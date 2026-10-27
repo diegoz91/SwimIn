@@ -1,17 +1,16 @@
-import type { Facility, StructureProfile, UserProfile } from '@/types/types';
+import type { StructureProfile, UserProfile } from '@/types/types';
 import { initialsAvatar } from '@/utils/avatar';
 
-type AnyProfile = Partial<UserProfile> | Partial<StructureProfile> | Partial<Facility>;
+type AnyProfile = Partial<UserProfile> | Partial<StructureProfile>;
 
-/** Nome da mostrare per professionista, struttura o pagina struttura. */
+/** Nome da mostrare per persona o struttura. */
 export function displayNameOf(p?: AnyProfile | null): string {
     if (!p) return 'Membro di SwimIn';
     if ('userType' in p && p.userType === 'professional') {
         const u = p as Partial<UserProfile>;
         return `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utente';
     }
-    if ('userType' in p && p.userType === 'structure') return (p as Partial<StructureProfile>).structureName || 'Struttura';
-    return (p as Partial<Facility>).name || 'Struttura';
+    return (p as Partial<StructureProfile>).structureName || 'Struttura';
 }
 
 /** Foto profilo o logo; in mancanza, avatar con le iniziali. */
@@ -27,8 +26,7 @@ export function headlineOf(p?: AnyProfile | null): string {
         const u = p as Partial<UserProfile>;
         return u.title || (u.personType === 'enthusiast' ? 'Appassionato di nuoto' : 'Professionista del nuoto');
     }
-    if ('userType' in p) return (p as Partial<StructureProfile>).structureType || 'Struttura sportiva';
-    return (p as Partial<Facility>).type || 'Struttura sportiva';
+    return (p as Partial<StructureProfile>).structureType || 'Struttura sportiva';
 }
 
 /** Persona che pratica il nuoto per passione (non cerca lavoro nel settore). */

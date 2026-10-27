@@ -82,10 +82,7 @@ export const SearchTypeahead: React.FC = () => {
                 for (const p of visible.filter((x) => x.userType === 'professional').slice(0, 4)) {
                     out.push({ id: `p-${p.$id}`, group: 'Persone', title: displayNameOf(p), subtitle: headlineOf(p), image: avatarOf(p), to: `/profile/${p.userId || p.$id}`, recent: term });
                 }
-                const structures = [
-                    ...visible.filter((x) => x.userType === 'structure').map((p) => ({ id: p.userId || p.$id, title: displayNameOf(p), subtitle: [headlineOf(p), p.city].filter(Boolean).join(' · '), image: avatarOf(p) })),
-                    ...net.value.facilities.map((f) => ({ id: f.$id, title: f.name, subtitle: [f.type, f.city].filter(Boolean).join(' · '), image: f.logo || initialsAvatar(f.name) })),
-                ];
+                const structures = visible.filter((x) => x.userType === 'structure').map((p) => ({ id: p.userId || p.$id, title: displayNameOf(p), subtitle: [headlineOf(p), p.city].filter(Boolean).join(' · '), image: avatarOf(p) }));
                 for (const s of structures.slice(0, 3)) out.push({ ...s, id: `s-${s.id}`, group: 'Strutture', square: true, to: `/profile/${s.id}`, recent: term });
             }
             if (jobs.status === 'fulfilled') {

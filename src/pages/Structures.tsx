@@ -9,7 +9,7 @@ import { Stars } from '@/features/reviews/Stars';
 import { POOL_SERVICES } from '@/data/swimming';
 import { provinceName } from '@/data/italy';
 import { avatarOf, ratingOf } from '@/utils/profile';
-import type { Facility, StructureProfile } from '@/types/types';
+import type { StructureProfile } from '@/types/types';
 
 type Item = {
     id: string;
@@ -34,17 +34,6 @@ const fromProfile = (p: StructureProfile): Item => ({
     poolLength: p.poolLength,
     rating: ratingOf(p),
 });
-const fromFacility = (f: Facility): Item => ({
-    id: f.$id,
-    name: f.name,
-    type: f.type,
-    city: f.city,
-    province: f.province,
-    logo: avatarOf(f),
-    services: [],
-    rating: ratingOf(f),
-});
-
 /** Elenco di piscine e strutture: per chi cerca dove nuotare, lavorare o fare un corso. */
 const Structures: React.FC = () => {
     usePageTitle('Piscine e strutture');
@@ -61,7 +50,7 @@ const Structures: React.FC = () => {
         const t = window.setTimeout(() => {
             databaseService
                 .getStructuresDirectory({ province, search })
-                .then(({ profiles, facilities }) => !cancelled && setItems([...profiles.map(fromProfile), ...facilities.map(fromFacility)]))
+                .then(({ profiles }) => !cancelled && setItems(profiles.map(fromProfile)))
                 .catch((e) => {
                     console.error('Strutture:', e);
                     if (!cancelled) setItems([]);

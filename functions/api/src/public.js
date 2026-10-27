@@ -53,20 +53,6 @@ export function publicActions({ find, listAll, list, fail, C, Query }) {
     rating: rating(p),
   });
 
-  const facilityCard = (f) => ({
-    kind: 'structure',
-    id: f.$id,
-    name: f.name,
-    headline: f.type || 'Piscina',
-    city: f.city || '',
-    province: f.province || '',
-    avatar: f.logo || '',
-    cover: f.cover || '',
-    bio: clip(f.bio, 1000),
-    services: [],
-    rating: rating(f),
-  });
-
   /** Annuncio visibile senza account (pagina /offerte/:id e Google Jobs): niente candidati né dati interni. */
   const jobOpen = (j) => j && j.isActive !== false && (!j.expiresAt || j.expiresAt >= today());
   const jobCard = (j) => ({
@@ -115,19 +101,16 @@ export function publicActions({ find, listAll, list, fail, C, Query }) {
         if (profile.publicProfile) return personCard(profile);
         fail(403, 'Questo profilo è visibile solo agli iscritti a SwimIn.');
       }
-      const facility = !profile ? await find(C.facilities, id) : null;
-      if (facility) return facilityCard(facility);
       fail(404, 'Profilo non trovato.');
     },
 
-    /** Indirizzi da indicizzare: strutture, pagine e persone che hanno reso pubblico il profilo. */
+    /** Indirizzi da indicizzare: strutture e persone che hanno reso pubblico il profilo. */
     async publicSitemap() {
-      const [structures, people, facilities] = await Promise.all([
+      const [structures, people] = await Promise.all([
         listAll(C.profiles, [Query.equal('userType', 'structure')]),
         listAll(C.profiles, [Query.equal('publicProfile', true)]),
-        list(C.facilities, [Query.limit(500)]).then((r) => r.documents),
       ]);
-      return [...structures, ...people, ...facilities]
+      return [...structures, ...people]
         .filter((r) => !r.suspended)
         .slice(0, 5000)
         .map((r) => ({ id: r.$id, updatedAt: r.$updatedAt || r.$createdAt || '' }));

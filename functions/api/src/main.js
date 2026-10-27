@@ -44,7 +44,6 @@ const C = {
   applications: 'applications',
   connections: 'connections',
   messages: 'messages',
-  facilities: 'facilities',
   notifications: 'notifications',
   liveRooms: 'live_rooms',
   swimMeets: 'swim_meets',
@@ -81,7 +80,7 @@ const C = {
   plans: 'plans',
 };
 
-const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'facility', 'review'];
+const REPORT_TARGETS = ['post', 'comment', 'profile', 'job', 'review'];
 const REPORT_REASONS = ['spam', 'molestie', 'contenuto_inappropriato', 'falso_profilo', 'offerta_ingannevole', 'altro'];
 const DELETE_ACCOUNT_CONFIRMATION = 'ELIMINA';
 
@@ -236,12 +235,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       ? profile.structureName || 'Una struttura'
       : `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Un utente';
 
-  /** Chi gestisce un annuncio: il creatore del job, più gli admin della struttura se è una Facility. */
+  /** Amministratori di un account Struttura: il titolare e i co-amministratori (che sono nello staff). */
+  const structureAdmins = (profile) => (profile ? [profile.$id, ...(profile.coAdmins || []).filter((id) => (profile.staff || []).includes(id))] : []);
+
+  /** Chi gestisce un annuncio: la struttura e i suoi co-amministratori (più eventuali proprietari storici della riga). */
   const jobManagers = async (job) => {
     const managers = new Set(ownersOf(job));
-    const facility = await find(C.facilities, job.structureId);
-    (facility?.admins || []).forEach((id) => managers.add(id));
-    if (!facility) managers.add(job.structureId); // job pubblicato da un profilo Struttura
+    managers.add(job.structureId);
+    structureAdmins(await find(C.profiles, job.structureId)).forEach((id) => managers.add(id));
     return [...managers];
   };
 
@@ -401,6 +402,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     cancelShiftSwap: { before: (me, p) => find(C.shiftSwaps, p.swapId), after: (me, p, r, w) => (w ? [[`team:${w.structureId}`]] : []) },
     removeStaffMember: { after: (me, p) => [[`team:${p.structureId}`, [p.staffId]]] },
     inviteStaff: { after: (me, p) => [[`team:${p.structureId}`, [p.userId]]] },
+    setCoAdmin: { after: (me, p) => [[`team:${p.structureId}`, [p.userId]]] },
     cancelStaffInvite: { after: (me, p) => [[`team:${p.structureId}`, [p.userId]]] },
     respondStaffInvite: { after: (me, p) => [[`team:${p.structureId}`, [me]]] },
     sendStaffMessage: { after: (me, p) => [[`staffchat:${p.structureId}`]] },
@@ -843,7 +845,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       for (const r of await listAll(C.reviews, [Query.equal('authorId', me)])) {
         await remove(C.reviews, r.$id);
         const published = await listAll(C.reviews, [Query.equal('structureId', r.structureId), Query.equal('status', 'published')]);
-        const table = (await find(C.profiles, r.structureId)) ? C.profiles : C.facilities;
+        const table = C.profiles;
         await update(table, r.structureId, { ratingSum: published.reduce((sum, x) => sum + x.rating, 0), ratingCount: published.length }).catch(() => null);
       }
       for (const otherId of profile?.connections || []) {
@@ -858,28 +860,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         await remove(C.jobs, job.$id);
       }
 
-      // Pagine struttura: eliminate se ne ero l'unico amministratore, altrimenti esco dagli elenchi.
-      for (const field of ['admins', 'staff', 'followers']) {
-        for (const facility of await listAll(C.facilities, [Query.contains(field, [me])])) {
-          const current = await find(C.facilities, facility.$id);
-          if (!current) continue;
-          if (field === 'admins' && (current.admins || []).length <= 1) {
-            files.push(current.logo, current.cover);
-            for (const job of await listAll(C.jobs, [Query.equal('structureId', current.$id)])) {
-              await removeApplications([Query.equal('jobId', job.$id)]);
-              await remove(C.jobs, job.$id);
-            }
-            await remove(C.facilities, current.$id);
-          } else {
-            await update(C.facilities, current.$id, { [field]: removeFromArray(current[field], me) });
-          }
-        }
-      }
-
       // Staff dei profili Struttura.
       for (const structure of await listAll(C.profiles, [Query.contains('staff', [me])])) {
         const current = await find(C.profiles, structure.$id);
-        if (current) await update(C.profiles, current.$id, { staff: removeFromArray(current.staff, me) });
+        if (current) await update(C.profiles, current.$id, { staff: removeFromArray(current.staff, me), coAdmins: removeFromArray(current.coAdmins, me) });
       }
 
       // Eventi, dirette, turni, bacheca e notifiche.
@@ -924,19 +908,12 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
      */
     async createJob(me, data) {
       const structureId = requireString(data.structureId, 'structureId', 36);
-      let structureName;
-      let facilityLogo;
-      if (structureId === me) {
-        const profile = await get(C.profiles, me);
-        if (profile.userType !== 'structure') fail(403, 'Solo le strutture possono pubblicare annunci.');
-        structureName = profile.structureName;
-        facilityLogo = profile.logo;
-      } else {
-        const facility = await find(C.facilities, structureId);
-        if (!facility || !(facility.admins || []).includes(me)) fail(403, 'Non sei amministratore di questa struttura.');
-        structureName = facility.name;
-        facilityLogo = facility.logo;
-      }
+      // La struttura stessa o un suo co-amministratore: nome e logo vengono dal profilo della struttura.
+      const structure = await find(C.profiles, structureId);
+      if (!structure || structure.userType !== 'structure') fail(403, structureId === me ? 'Solo le strutture possono pubblicare annunci.' : 'Struttura non trovata.');
+      if (!structureAdmins(structure).includes(me)) fail(403, 'Non sei amministratore di questa struttura.');
+      const structureName = structure.structureName;
+      const facilityLogo = structure.logo;
       const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
       const int = (v) => (Number.isFinite(Number(v)) && v !== '' && v !== null && v !== undefined ? Math.max(0, Math.min(1_000_000_000, Math.round(Number(v)))) : undefined);
       const list = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim().slice(0, 500)).filter(Boolean).slice(0, 20) : []);
@@ -1035,8 +1012,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
      */
     async listStructureJobs(me, { structureId } = {}) {
       structureId = requireString(structureId || me, 'structureId', 36);
-      const facility = await find(C.facilities, structureId);
-      const managers = facility ? facility.admins || [] : [structureId];
+      const managers = structureId === me ? [me] : structureAdmins(await find(C.profiles, structureId));
       if (!managers.includes(me)) fail(403, 'Non gestisci questa struttura.');
       const jobs = (await listAll(C.jobs, [Query.equal('structureId', structureId)])).sort((a, b) => b.$createdAt.localeCompare(a.$createdAt)).slice(0, 200);
       const counts = {};
@@ -1158,31 +1134,17 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
 
       const applicantId = application.applicantId;
       let structureName = job.structureName || 'Una struttura';
-      const facility = await find(C.facilities, job.structureId);
       // Chi viene assunto entra nello staff (accesso all'area staff della struttura).
       const hiredTeam = await team._addStaff(job.structureId, applicantId);
       structureName = hiredTeam.name || structureName;
-      if (!facility) {
-        // Profilo Struttura: anche collegamento reciproco, come tra colleghi.
-        const [structure, applicant] = await Promise.all([get(C.profiles, job.structureId), get(C.profiles, applicantId)]);
-        await Promise.all([
-          update(C.profiles, structure.$id, { connections: addToArray(structure.connections, applicantId) }),
-          update(C.profiles, applicantId, { connections: addToArray(applicant.connections, structure.$id) }),
-        ]);
-      }
+      // Anche collegamento reciproco con la struttura, come tra colleghi.
+      const [structure, applicant] = await Promise.all([get(C.profiles, job.structureId), get(C.profiles, applicantId)]);
+      await Promise.all([
+        update(C.profiles, structure.$id, { connections: addToArray(structure.connections, applicantId) }),
+        update(C.profiles, applicantId, { connections: addToArray(applicant.connections, structure.$id) }),
+      ]);
       await notify(applicantId, 'hired', `🎉 Congratulazioni! Sei stato assunto da ${structureName}.`, job.structureId);
       return { hired: true };
-    },
-
-    // ---------------- STRUTTURE ----------------
-    async toggleFollowFacility(me, { facilityId }) {
-      facilityId = requireString(facilityId, 'facilityId', 36);
-      const facility = await get(C.facilities, facilityId);
-      const following = (facility.followers || []).includes(me);
-      await update(C.facilities, facilityId, {
-        followers: following ? removeFromArray(facility.followers, me) : addToArray(facility.followers, me),
-      });
-      return { following: !following };
     },
 
     // ---------------- BORDO VASCA LIVE ----------------

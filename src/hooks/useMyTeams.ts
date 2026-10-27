@@ -15,7 +15,7 @@ const fetchTeams = (userId: string) => {
     inflight ??= databaseService
         .listMyTeams()
         .catch((err) => {
-            console.warn('Le mie strutture:', err);
+            console.warn('Strutture in cui lavoro:', err);
             return cache?.userId === userId ? cache.teams : [];
         })
         .then((teams) => {

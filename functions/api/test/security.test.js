@@ -110,7 +110,7 @@ test('chat staff: solo amministratori e staff della struttura', async () => {
   const api = createApi(db, { endpoint: 'https://cloud.appwrite.io/v1', users: { delete: async () => {}, get: async () => ({ labels: [] }) } });
   const P = (id, extra = {}) => (col('profiles')[id] = { $id: id, userId: id, userType: 'professional', firstName: id, connections: [], ...extra });
   P('lido', { userType: 'structure', structureName: 'Lido', staff: ['sara', 'luca'], connections: ['fan'] }); P('sara'); P('luca'); P('fan', { connections: ['lido'] });
-  col('facilities').f1 = { $id: 'f1', name: 'Piscina Comunale', admins: ['gestore'], staff: ['sara'] }; P('gestore');
+  P('f1', { userType: 'structure', structureName: 'Piscina Comunale', staff: ['sara', 'gestore'], coAdmins: ['gestore'] }); P('gestore');
   const rejects = async (p, status) => { try { await p; assert.fail('doveva fallire'); } catch (e) { assert.equal(e.status, status, e.message); } };
 
   // Un collegamento o un follower non è staff.

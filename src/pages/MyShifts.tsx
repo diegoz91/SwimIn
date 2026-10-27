@@ -285,7 +285,7 @@ const MyShifts: React.FC = () => {
 
             {structures.length > 0 && (
                 <section className="mt-6" aria-labelledby="teams-title">
-                    <h2 id="teams-title" className="text-xl font-bold text-abisso mb-3">Le mie strutture</h2>
+                    <h2 id="teams-title" className="text-xl font-bold text-abisso mb-3">Dove lavori</h2>
                     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {structures.map((st) => {
                             const team = (teams || []).find((t) => t.structureId === st.id);

@@ -7,10 +7,11 @@ import { useToast } from '@/context/ToastContext';
 import { ProfileView } from '@/features/profile/components/ProfileView';
 import { FacilityView } from '@/features/profile/components/FacilityView';
 import { Settings } from '@/features/profile/components/Settings';
-import type { UserProfile, StructureProfile, Job, Facility } from '@/types/types';
+import { PageLoader } from '@/components/common/PageLoader';
+import type { UserProfile, StructureProfile, Job } from '@/types/types';
 
-// Uniamo i tre mondi: Professionista, Vecchia Struttura e Nuova Pagina Aziendale (Facility)
-type ProfileType = UserProfile | StructureProfile | Facility;
+// Due tipi di profilo: persona (professionista o appassionato) e account Struttura.
+type ProfileType = UserProfile | StructureProfile;
 
 const ProfilePage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -29,11 +30,9 @@ const ProfilePage: React.FC = () => {
     const isOwnProfile = !id || id === currentUser?.$id;
 
     const viewedName = !viewedProfile ? null
-        : 'userType' in viewedProfile
-            ? (viewedProfile.userType === 'professional'
-                ? `${viewedProfile.firstName || ''} ${viewedProfile.lastName || ''}`.trim()
-                : viewedProfile.structureName)
-            : viewedProfile.name;
+        : viewedProfile.userType === 'professional'
+            ? `${viewedProfile.firstName || ''} ${viewedProfile.lastName || ''}`.trim()
+            : viewedProfile.structureName;
     usePageTitle(isOwnProfile ? 'Il mio profilo' : viewedName || 'Profilo');
 
     useEffect(() => {
@@ -46,28 +45,18 @@ const ProfilePage: React.FC = () => {
                     targetProfile = currentUser;
                 } else if (id) {
                     try {
-                        // 1. Prova a cercare nei profili normali
                         targetProfile = await databaseService.getProfile(id);
                     } catch (error) {
-                        try {
-                            // 2. Se non lo trova, cerca nelle Strutture (Facilities)
-                            const fac = await databaseService.getFacility(id);
-                            if (fac) targetProfile = fac;
-                        } catch (e) {
-                            // Nessun profilo trovato
-                        }
+                        console.warn('Profilo non trovato:', error);
                     }
                 }
 
                 if (targetProfile) {
                     setViewedProfile(targetProfile);
                     
-                    const isLegacyStructure = 'userType' in targetProfile && targetProfile.userType === 'structure';
-                    const isFacility = !('userType' in targetProfile);
-                    
-                    if (isLegacyStructure || isFacility) {
+                    if (targetProfile.userType === 'structure') {
                         const allJobs = await databaseService.getActiveJobs();
-                        const structureId = ('userId' in targetProfile && targetProfile.userId) ? targetProfile.userId : targetProfile.$id;
+                        const structureId = targetProfile.$id;
                         setOpenJobs(allJobs.filter(job => job.structureId === structureId));
                     }
                 } else {
@@ -85,13 +74,7 @@ const ProfilePage: React.FC = () => {
         fetchProfileData();
     }, [id, isOwnProfile, currentUser, navigate, showToast]);
 
-    if (isLoading) {
-        return (
-            <div className="pt-16 flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
-            </div>
-        );
-    }
+    if (isLoading) return <PageLoader variant="detail" />;
 
     if (!viewedProfile || !currentUser) return null;
 
@@ -129,7 +112,7 @@ const ProfilePage: React.FC = () => {
 
             {/* Rendering Dinamico della Vista */}
             {activeTab === 'profile' ? (
-                ('userType' in viewedProfile && viewedProfile.userType === 'professional') ? (
+                viewedProfile.userType === 'professional' ? (
                     <ProfileView 
                         user={viewedProfile as UserProfile} 
                         onBack={() => navigate(-1)} 
@@ -139,7 +122,7 @@ const ProfilePage: React.FC = () => {
                     />
                 ) : (
                     <FacilityView
-                        facility={viewedProfile as (StructureProfile | Facility)}
+                        facility={viewedProfile}
                         openJobs={openJobs}
                         onBack={() => navigate(-1)}
                         onSelectJob={(jobId) => navigate(`/jobs/${jobId}`)}

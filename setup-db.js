@@ -101,7 +101,6 @@ const schema = [
             str('connections', 36, { array: true }),
             bool('isOnline', { default: false }), str('lastActive', 100),
             bool('availableForEmergencies', { default: false }),
-            str('managedFacilities', 36, { array: true }),
             str('skills', 60, { array: true }), // competenze (max 20), confermabili dai collegamenti
             // Contatti e dettagli (validati nei form del client)
             str('phone', 30), str('website', 500),
@@ -119,6 +118,7 @@ const schema = [
             // Moderazione e verifiche
             bool('suspended', { default: false }), bool('pendingVerification', { default: false }),
             str('staff', 36, { array: true }), // profili Struttura: membri dello staff (scritto dalla Function)
+            str('coAdmins', 36, { array: true }), // profili Struttura: co-amministratori scelti dallo staff (setCoAdmin)
             bool('publicProfile', { default: false }), bool('hideProfileViews', { default: false }), // scheda visibile anche senza account (scelta della persona)
             str('notificationPrefs', 1000), // scelte push/email per categoria (JSON), scritte dalla Function
             // SwimIn Premium (scritti solo dalla Function): attivo finché premiumUntil è nel futuro
@@ -270,16 +270,6 @@ const schema = [
             str('toUserId', 36), str('status', 20, { required: true }), str('message', 300), str('takenBy', 36),
         ],
         indexes: [idx('by_structure', ['structureId']), idx('by_shift', ['shiftId'])],
-    },
-    {
-        id: 'facilities', name: 'Facilities', permissions: READ_ONLY,
-        attributes: [
-            str('name', 255, { required: true }), str('type', 255), str('city', 255, { required: true }),
-            str('province', 10), str('bio', 2500), str('logo', 2048), str('cover', 2048),
-            str('admins', 36, { array: true }), str('staff', 36, { array: true }), str('followers', 36, { array: true }),
-            int('ratingSum', { default: 0 }), int('ratingCount', { default: 0 }),
-        ],
-        indexes: [],
     },
     {
         // Blocchi e silenziamenti: ognuno legge solo i propri (scritti dalla Function).
@@ -938,7 +928,7 @@ async function main() {
     phase = 'migrazione dei dati privati';
     await migratePrivateInfo();
     phase = 'permessi delle righe esistenti';
-    for (const t of ['profiles', 'facilities', 'swim_meets', 'posts', 'live_rooms']) await lockClientWrites(t);
+    for (const t of ['profiles', 'swim_meets', 'posts', 'live_rooms']) await lockClientWrites(t);
     // Bacheca e turni: nessun permesso sulle righe, si leggono solo tramite la Function.
     for (const t of ['announcements', 'shifts']) await lockClientWrites(t, []);
     for (const t of ['comments', 'jobs', 'applications']) await stripClientWrites(t);

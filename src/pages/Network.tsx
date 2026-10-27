@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { NetworkView } from '@/features/network/components/NetworkView';
 import { Icon } from '@/components/ui/Icon';
 import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
-import type { UserProfile, StructureProfile, Facility } from '@/types/types';
+import type { UserProfile, StructureProfile } from '@/types/types';
 import type { EnrichedConnectionRequest } from '@/features/network/components/ConnectionRequestCard';
 import { useBlocks } from '@/context/BlocksContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -29,7 +29,7 @@ const Network: React.FC = () => {
     const [suggestions, setSuggestions] = useState<Profile[]>([]);
     const [activeConnections, setActiveConnections] = useState<Profile[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<{profiles: Profile[], facilities: Facility[]}>({profiles: [], facilities: []});
+    const [searchResults, setSearchResults] = useState<{ profiles: Profile[] }>({ profiles: [] });
     const [isLoadingNetwork, setIsLoadingNetwork] = useState(true);
     const [isSearching, setIsSearching] = useState(false);
 
@@ -83,7 +83,7 @@ const Network: React.FC = () => {
                     setIsSearching(false);
                 }
             } else {
-                setSearchResults({profiles: [], facilities: []});
+                setSearchResults({ profiles: [] });
             }
         }, 500);
         return () => clearTimeout(timer);

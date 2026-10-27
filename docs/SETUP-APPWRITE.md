@@ -178,7 +178,7 @@ Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
 |---|---|---|---|
-| profiles, facilities | utenti loggati | solo Function | solo Function (`updateMyProfile`, `updateFacility`) |
+| profiles | utenti loggati | solo Function | solo Function (`updateMyProfile`, `setCoAdmin`) |
 | posts, swim_meets, live_rooms | utenti loggati | solo Function (autore verificato) | solo Function (`updatePost`, `cancelSwimMeet`, `endLiveRoom`) |
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function (`closeJob`, `reopenJob`) |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |

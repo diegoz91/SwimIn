@@ -5,7 +5,7 @@ import { ReportModal } from './ReportModal';
 import { useConfirm } from '@/context/ConfirmContext';
 
 /** Menu "…" sul profilo di un'altra persona o struttura: silenzia, blocca, segnala. */
-export const ProfileActionsMenu: React.FC<{ userId: string; name: string; targetType?: 'profile' | 'facility'; extraItems?: { label: string; icon: IconType; onClick: () => void }[] }> = ({ userId, name, targetType = 'profile', extraItems = [] }) => {
+export const ProfileActionsMenu: React.FC<{ userId: string; name: string; targetType?: 'profile'; extraItems?: { label: string; icon: IconType; onClick: () => void }[] }> = ({ userId, name, targetType = 'profile', extraItems = [] }) => {
     const confirm = useConfirm();
     const { blocked, muted, block, unblock } = useBlocks();
     const [open, setOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { UserProfile, StructureProfile, Experience, Certification, Facility } from '@/types/types';
+import type { UserProfile, StructureProfile, Experience, Certification } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { ExperienceModal } from './ExperienceModal';
 import { CertificationModal } from './CertificationModal';
@@ -29,7 +29,6 @@ import { ProfileEditModal } from './ProfileEditModal';
 import { AvailabilitySection } from './AvailabilitySection';
 import { ResumeSection } from './ResumeSection';
 import { Button, buttonClass } from '@/components/ui/Button';
-import { FacilityFormModal } from './FacilityFormModal';
 import { CompletionChecklist } from './CompletionChecklist';
 import { ProfileSectionNav, goToSection, type ProfileSection } from './ProfileSectionNav';
 import { useMyResume } from '@/hooks/useMyResume';
@@ -101,9 +100,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const phone = isProfessional ? contact?.phone || '' : user.phone || '';
     const email = isProfessional && contact?.allowed && !isOwnProfile ? contact.email : '';
 
-    // STATI PER PAGINE AZIENDALI
-    const [managedFacilities, setManagedFacilities] = useState<Facility[]>([]);
-    const [isFacilityModalOpen, setIsFacilityModalOpen] = useState(false);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
 
     const safeParse = <T,>(data: any): T[] => {
@@ -218,17 +214,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         showToast('Profilo completo al 100%: ora le strutture ti trovano più facilmente.', 'success');
     }, [completionScore, isOwnProfile, ownerId, showToast]);
 
-    // FETCH PAGINE AZIENDALI
-    useEffect(() => {
-        if (isProfessional && isOwnProfile && profUser) {
-            const fetchFacilities = async () => {
-                const facs = await databaseService.getManagedFacilities(profUser.userId || profUser.$id);
-                setManagedFacilities(facs);
-            };
-            fetchFacilities();
-        }
-    }, [isProfessional, isOwnProfile, profUser]);
-
     const displayName = isProfessional 
         ? `${(user as UserProfile).firstName || ''} ${(user as UserProfile).lastName || ''}`.trim() || 'Utente'
         : (user as StructureProfile).structureName || 'Struttura';
@@ -242,21 +227,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const saveImage = async (field: 'avatar' | 'logo' | 'cover', url: string) => {
         const updated = await databaseService.updateProfile(user.userId || user.$id, { [field]: url });
         if (onUpdateProfile) onUpdateProfile({ ...user, ...updated } as UserProfile);
-    };
-
-    const handleCreateFacility = async (data: { name: string; type: string; city: string; province: string }) => {
-        if (!profUser) return;
-        const adminId = profUser.userId || profUser.$id;
-        let newFac: Facility;
-        try {
-            newFac = await databaseService.createFacility({ name: data.name, type: data.type, city: data.city, province: data.province }, adminId);
-        } catch (error) {
-            showToast(error instanceof Error ? error.message : 'Non è stato possibile creare la pagina. Riprova.', 'error');
-            throw error;
-        }
-        setManagedFacilities([newFac, ...managedFacilities]);
-        showToast('Pagina della struttura creata.', 'success');
-        onUpdateProfile?.({ ...profUser, managedFacilities: [...(profUser.managedFacilities || []), newFac.$id] });
     };
 
     const handleSaveExperience = async (exp: Experience) => {
@@ -496,7 +466,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
 
-          {/* Riquadri visibili solo a te: analisi, completamento, disponibilità, strutture. */}
+          {/* Riquadri visibili solo a te: analisi, completamento, disponibilità. */}
           <div data-html2canvas-ignore="true">
       {isOwnProfile && recs.pending.length > 0 && (
         <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
@@ -540,59 +510,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {isOwnProfile && <ProfileAnalyticsCard premium={isPremium(user)} onOpenViews={() => setViewsOpen(true)} />}
 
       {isProfessional && isOwnProfile && completionScore < 100 && <CompletionChecklist score={completionScore} steps={completionSteps} />}
-
-      {/* PAGINE AZIENDALI GESTITE (LINKEDIN MODEL) */}
-      {isWorker && isOwnProfile && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-abisso flex items-center gap-2">
-                    <Icon type="building" className="w-6 h-6 text-blue-600" />
-                    Le mie strutture
-                </h2>
-                <button
-                    onClick={() => setIsFacilityModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
-                >
-                    <Icon type="plus" className="w-4 h-4" /> Crea pagina
-                </button>
-            </div>
-            
-            {managedFacilities.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {managedFacilities.map(fac => (
-                        <div
-                            key={fac.$id}
-                            onClick={() => navigate(`/profile/${fac.$id}`)}
-                            className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white"
-                        >
-                            <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                {fac.logo ? (
-                                    <img src={fac.logo} alt={fac.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <Icon type="building" className="w-6 h-6 text-slate-400" />
-                                )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
-                                <p className="text-xs text-slate-500 font-medium truncate">{[fac.type, fac.city].filter(Boolean).join(', ')}</p>
-                            </div>
-                            <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
-                        <Icon type="building" className="w-6 h-6 text-slate-400" />
-                    </div>
-                    <p className="text-slate-600 font-bold">Nessuna pagina gestita</p>
-                    <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
-                        Sei il direttore o il proprietario di un impianto? Crea la pagina della struttura per pubblicare annunci e gestire lo staff.
-                    </p>
-                </div>
-            )}
-        </div>
-      )}
 
           </div>
 
@@ -858,9 +775,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
       {isOwnProfile && (
         <ProfileEditModal open={isEditingProfile} profile={user} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p)} />
-      )}
-      {isProfessional && isOwnProfile && (
-        <FacilityFormModal open={isFacilityModalOpen} mode="create" onClose={() => setIsFacilityModalOpen(false)} onSubmit={handleCreateFacility} />
       )}
 
       {isReportOpen && <ReportModal targetType="profile" targetId={user.userId || user.$id} onClose={() => setIsReportOpen(false)} />}

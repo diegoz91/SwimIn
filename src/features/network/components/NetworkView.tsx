@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UserProfile, StructureProfile, Facility } from '@/types/types';
+import type { UserProfile, StructureProfile } from '@/types/types';
 import { ConnectionRequestCard, type EnrichedConnectionRequest } from './ConnectionRequestCard';
 import { ConnectionSuggestionCard } from './ConnectionSuggestionCard';
 import { Icon } from '@/components/ui/Icon';
@@ -14,7 +14,7 @@ interface NetworkViewProps {
     activeConnections: Profile[];
     searchQuery: string;
     setSearchQuery: (query: string) => void;
-    searchResults: { profiles: Profile[], facilities: Facility[] };
+    searchResults: { profiles: Profile[] };
     isLoading?: boolean;
     isSearching?: boolean;
     onSelectProfile: (userId: string) => void;
@@ -52,7 +52,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
         );
     }
 
-    const hasSearchResults = searchResults.profiles.length > 0 || searchResults.facilities.length > 0;
+    const hasSearchResults = searchResults.profiles.length > 0;
     const myConnectionIds = currentUser.connections || [];
 
     return (
@@ -176,24 +176,6 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                         </div>
                                     )}
 
-                                    {/* Strutture Trovate */}
-                                    {searchResults.facilities.length > 0 && (
-                                        <div className={searchResults.profiles.length > 0 ? "pt-6 border-t border-slate-100" : ""}>
-                                            <h3 className="text-sm font-semibold text-slate-500 mb-3 pl-2">Strutture</h3>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {searchResults.facilities.map(fac => (
-                                                    <div key={fac.$id} onClick={() => onSelectProfile(fac.$id)} className="flex items-center gap-4 p-4 border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50 hover:bg-white">
-                                                        <img src={fac.logo || initialsAvatar(fac.name)} alt={fac.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm" />
-                                                        <div className="min-w-0 flex-1">
-                                                            <h3 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{fac.name}</h3>
-                                                            <p className="text-xs text-slate-500 truncate">{fac.type || 'Centro sportivo'} • {fac.city}</p>
-                                                        </div>
-                                                        <Icon type="chevron-right" className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>

@@ -14,6 +14,7 @@ import { TrendsCard } from './TrendsCard';
 import { UpcomingEventsCard } from '@/features/events/UpcomingEventsCard';
 import { useBlocks } from '@/context/BlocksContext';
 import { LIVE_ENABLED } from '@/config/features';
+import { useMyTeams } from '@/hooks/useMyTeams';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -176,6 +177,7 @@ const AvailableTodayPanel: React.FC<{ province?: string }> = ({ province }) => {
 
 /** Colonna destra: offerte recenti, persone da conoscere, dirette attive. */
 export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isLoadingJobs: boolean }> = ({ user, jobs, isLoadingJobs }) => {
+    const { teams: myTeams } = useMyTeams();
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [suggestions, setSuggestions] = useState<(UserProfile | StructureProfile)[]>([]);
@@ -217,7 +219,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
 
     return (
         <div className="space-y-4">
-            {(user.userType === 'structure' || ((user as UserProfile).managedFacilities || []).length > 0) && <AvailableTodayPanel province={user.province} />}
+            {(user.userType === 'structure' || (myTeams || []).some((t) => t.role === 'admin')) && <AvailableTodayPanel province={user.province} />}
             <UpcomingEventsCard province={user.province} userId={user.$id} />
             <TrendsCard />
             {LIVE_ENABLED && rooms.length > 0 && (

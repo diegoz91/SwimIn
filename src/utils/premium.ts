@@ -1,6 +1,6 @@
-import type { Facility, StructureProfile, UserProfile } from '@/types/types';
+import type { StructureProfile, UserProfile } from '@/types/types';
 
-type AnyProfile = Partial<UserProfile> | Partial<StructureProfile> | Partial<Facility> | null | undefined;
+type AnyProfile = Partial<UserProfile> | Partial<StructureProfile> | null | undefined;
 
 /** Premium attivo: premiumUntil nel futuro (lo scrive solo il server). */
 export function isPremium(p: AnyProfile, now: number = Date.now()): boolean {
