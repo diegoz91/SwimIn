@@ -433,6 +433,28 @@ const FLOWS = [
         await page.getByRole('button', { name: 'Chiudi l’avviso' }).click();
         await banner.waitFor({ state: 'detached', timeout: 4000 });
     }],
+    ['scrivere un suggerimento dal menu dell’account', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/');
+        await page.getByRole('button', { name: 'Menu account' }).click();
+        await page.getByRole('menuitem', { name: 'Scrivici un suggerimento' }).click();
+        const dialog = page.getByRole('dialog');
+        await dialog.getByRole('button', { name: 'Qualcosa non va' }).click();
+        await dialog.locator('#feedback-message').fill('Il calendario dei turni non si apre dal telefono.');
+        await dialog.getByRole('button', { name: 'Invia', exact: true }).click();
+        const c = await called(state, 'sendFeedback');
+        assert.deepEqual([c.params.kind, c.params.page], ['problema', '/']);
+        await page.getByText('Grazie: lo guardiamo al più presto.').waitFor({ timeout: 4000 });
+    }],
+    ['la struttura esporta i turni del mese', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } }, responses: { getTeamBoard: () => teamBoard('scheduled') } }, async (page, state) => {
+        await open(page, '/profile?area=staff');
+        await page.getByRole('tab', { name: /^Turni/ }).click();
+        await page.getByRole('button', { name: 'Esporta' }).click();
+        const download = page.waitForEvent('download', { timeout: 8000 });
+        await page.getByRole('dialog').getByRole('button', { name: 'Scarica il file' }).click();
+        const file = await download;
+        assert.match(file.suggestedFilename(), /^turni-piscina-lido-di-milano-\d{4}-\d{2}\.csv$/);
+        await called(state, 'exportShifts');
+    }],
     ['le pagine private chiedono l’accesso', 'desktop', { loggedIn: false }, async (page) => {
         await open(page, '/messages');
         await page.waitForURL((u) => /login|^\/$/.test(u.pathname), { timeout: 8000 });

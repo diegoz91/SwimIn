@@ -20,6 +20,7 @@ import { isPremium } from '@/utils/premium';
 import { useMyTeams } from '@/hooks/useMyTeams';
 import { useToast } from '@/context/ToastContext';
 import { LIVE_ENABLED } from '@/config/features';
+import { openFeedback } from '@/features/feedback/Feedback';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -325,6 +326,9 @@ const Header: React.FC = () => {
                   <Link to="/notifiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="bell" className="w-5 h-5 text-slate-400" /> Notifiche
                   </Link>
+                  <button type="button" onClick={() => { setOpenMenu(null); openFeedback(); }} role="menuitem" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                    <Icon type="chat-bubble" className="w-5 h-5 text-slate-400" /> Scrivici un suggerimento
+                  </button>
                   <button onClick={logout} role="menuitem" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                     <Icon type="logout" className="w-5 h-5 text-slate-400" /> Esci
                   </button>

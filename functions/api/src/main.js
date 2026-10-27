@@ -31,6 +31,8 @@ import { pushActions } from './push.js';
 import { makeAssertClean } from './textfilter.js';
 import { digestActions } from './digest.js';
 import { opsActions } from './ops.js';
+import { reminderActions } from './reminders.js';
+import { feedbackActions } from './feedback.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -55,6 +57,7 @@ const C = {
   blocks: 'blocks',
   clientErrors: 'client_errors',
   appStatus: 'app_status',
+  feedback: 'feedback',
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
@@ -455,6 +458,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const actions = {
     ...moderation,
     ...ops,
+    ...feedbackActions({ find, get, create, update, list, count, fail, C, Query, displayName, isAdmin: moderation._isAdmin, sendAlert: ops._sendAlert, assertClean }),
+    ...reminderActions({ find, listAll, update, notify, C, Query, displayName, jobManagers, log }),
     ...team,
     ...social,
     ...content_,
@@ -1314,9 +1319,18 @@ export default async ({ req, res, log, error }) => {
     });
     try {
       await api._pruneSignals().catch((e) => log(`pulizia segnali: ${e?.message || e}`));
-      const result = await api._weeklyDigest();
-      log(`riepilogo settimanale: ${JSON.stringify(result)}`);
-      return res.json({ ok: true, data: result });
+      // Ogni ora: promemoria della sera prima (turni e colloqui di domani, dalle 18 ora italiana).
+      const reminders = await api._sendReminders().catch((e) => {
+        error(`[promemoria] ${e?.message || e}`);
+        return { error: e?.message || String(e) };
+      });
+      log(`promemoria: ${JSON.stringify(reminders)}`);
+      // Riepilogo email: solo il lunedì dalle 6 alle 18 UTC, un gruppo di persone per volta.
+      const nowUtc = new Date();
+      const digestTime = nowUtc.getUTCDay() === 1 && nowUtc.getUTCHours() >= 6 && nowUtc.getUTCHours() <= 18;
+      const result = digestTime ? await api._weeklyDigest() : { skipped: true };
+      if (digestTime) log(`riepilogo settimanale: ${JSON.stringify(result)}`);
+      return res.json({ ok: true, data: { reminders, digest: result } });
     } catch (e) {
       error(`[riepilogo] ${e?.message || e}`);
       await api._recordError({ source: 'server', action: 'riepilogo settimanale', message: e?.message || String(e), stack: e?.stack || '' }).catch(() => null);

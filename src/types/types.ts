@@ -289,6 +289,8 @@ export interface Application extends AppwriteDocument {
   /** proposed = da confermare, accepted = confermato, reschedule = il candidato chiede un altro orario. */
   interviewStatus?: 'proposed' | 'accepted' | 'reschedule' | null;
   interviewReply?: string | null;
+  /** Promemoria della sera prima già inviato (lo scrive la Function). */
+  interviewReminderAt?: string | null;
 }
 
 /** Nota e valutazione interne di una candidatura (solo per chi gestisce l'annuncio). */
@@ -356,6 +358,8 @@ export interface SquadShift extends AppwriteDocument {
   status: 'scheduled' | 'confirmed' | 'declined';
   /** Turni ricorrenti creati insieme. */
   seriesId?: string | null;
+  /** Promemoria della sera prima già inviato (lo scrive la Function). */
+  reminderSentAt?: string | null;
 }
 
 // ----------------------------------------------------
@@ -381,7 +385,7 @@ export interface Facility extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'application_update' | 'staff_invite' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published' | 'system_alert';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'application_update' | 'staff_invite' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published' | 'system_alert' | 'feedback';
   content: string;
   relatedId?: string;
   isRead: boolean;

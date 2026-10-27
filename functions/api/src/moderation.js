@@ -137,15 +137,16 @@ export function moderationActions({ find, get, create, update, remove, list, lis
     async adminOverview(me) {
       await requireAdmin(me);
       const day = new Date(Date.now() - 86_400_000).toISOString();
-      const [people, structures, posts, openReports, errors, pendingCerts] = await Promise.all([
+      const [people, structures, posts, openReports, errors, pendingCerts, openFeedback] = await Promise.all([
         count(C.profiles, [Query.equal('userType', 'professional')]),
         count(C.profiles, [Query.equal('userType', 'structure')]),
         count(C.posts, []),
         count(C.reports, [Query.equal('status', 'open')]),
         count(C.clientErrors, [Query.greaterThan('$createdAt', day)]).catch(() => 0),
         count(C.profiles, [Query.equal('pendingVerification', true)]).catch(() => 0),
+        C.feedback ? count(C.feedback, [Query.equal('status', 'open')]).catch(() => 0) : 0,
       ]);
-      return { people, structures, posts, openReports, errors24h: errors, pendingCerts };
+      return { people, structures, posts, openReports, errors24h: errors, pendingCerts, openFeedback };
     },
 
     async adminListReports(me, { status = 'open' } = {}) {

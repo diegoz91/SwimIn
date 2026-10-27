@@ -204,7 +204,7 @@ const schema = [
             str('resumeFileId', 36), str('resumeName', 120),
             // Colloquio proposto dalla struttura (il candidato lo vede e risponde).
             str('interviewDate', 10), str('interviewTime', 5), str('interviewMode', 20), str('interviewPlace', 300),
-            str('interviewMessage', 500), str('interviewStatus', 20), str('interviewReply', 500),
+            str('interviewMessage', 500), str('interviewStatus', 20), str('interviewReply', 500), str('interviewReminderAt', 30),
         ],
         indexes: [idx('by_job', ['jobId']), idx('by_applicant', ['applicantId'])],
     },
@@ -252,6 +252,7 @@ const schema = [
             str('shiftTime', 100, { required: true }), str('role', 100, { required: true }),
             str('status', 50, { required: true }),
             str('seriesId', 36), // turni ricorrenti creati insieme
+            str('reminderSentAt', 30), // promemoria della sera prima già inviato
         ],
         indexes: [idx('by_structure', ['structureId'])],
     },
@@ -427,6 +428,15 @@ const schema = [
             str('source', 10), str('action', 80), str('fingerprint', 16),
         ],
         indexes: [idx('by_user', ['userId']), idx('by_fingerprint', ['fingerprint']), idx('by_source', ['source'])],
+    },
+    {
+        // Suggerimenti e segnalazioni dall'app ("Scrivici"): solo la Function, letti dagli amministratori.
+        id: 'feedback', name: 'Feedback', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('kind', 20, { required: true }), str('message', 2000, { required: true }),
+            str('page', 300), str('userAgent', 300), str('status', 10, { required: true }),
+        ],
+        indexes: [idx('by_status', ['status']), idx('by_user', ['userId'])],
     },
     {
         // Stato del servizio (riga "main"): tutto ok, rallentamenti o manutenzione. Leggibile da tutti,
@@ -754,8 +764,9 @@ async function deployFunction() {
         execute: ['any'],
         // Le chiamate dell'app finiscono in pochi secondi; il margine serve al riepilogo settimanale programmato.
         timeout: 120,
-        // Riepilogo email: il lunedì, ogni ora dalle 6 alle 18 (UTC), un gruppo di persone per volta.
-        schedule: '0 6-18 * * 1',
+        // Ogni ora: promemoria della sera prima (turni e colloqui) e pulizia dei segnali;
+        // il riepilogo email parte solo il lunedì dalle 6 alle 18 UTC (deciso nel codice).
+        schedule: '0 * * * *',
         entrypoint: 'src/main.js',
         commands: 'npm install --omit=dev',
         // users.write: eliminazione account; files.write: pulizia dei file dell'account eliminato.

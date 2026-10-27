@@ -66,6 +66,7 @@ export function interviewActions({ find, get, create, update, listAll, fail, not
         interviewMessage: note,
         interviewStatus: 'proposed',
         interviewReply: '',
+        interviewReminderAt: '',
       });
       await notify(application.applicantId, 'application_update', `${job.structureName || 'La struttura'} ti propone un colloquio per "${job.title}" il ${ddmm(date)} alle ${time}, ${MODE_LABEL[mode]}.`, job.$id);
       return updated;
