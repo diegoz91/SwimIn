@@ -34,6 +34,9 @@ import { opsActions } from './ops.js';
 import { reminderActions, romeTomorrow } from './reminders.js';
 import { cleanupActions, CLEANUP_HOUR } from './cleanup.js';
 import { feedbackActions } from './feedback.js';
+import { makeSealer } from './seal.js';
+import { auditActions } from './audit.js';
+import { legalActions } from './legal.js';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -58,6 +61,9 @@ const C = {
   clientErrors: 'client_errors',
   appStatus: 'app_status',
   feedback: 'feedback',
+  auditLog: 'audit_log',
+  legalHolds: 'legal_holds',
+  heldItems: 'held_items',
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
@@ -157,7 +163,7 @@ const conversationIdFor = (a, b) => [a, b].sort().join('_');
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null, alertWebhook = '', alertUserIds = [] } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null, alertWebhook = '', alertUserIds = [], escrowPublicKey = '' } = {}) => {
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
     db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
@@ -320,7 +326,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const alertsApi = alertActions({ find, list, listAll, create, remove, fail, notify, C, Query, Permission, Role });
   const recs = recommendationActions({ assertClean, find, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b), isRecruiterOf: (a, b) => isRecruiterOf(a, b) });
   const digest = digestActions({ list, count, update, C, Query, messaging, ID, displayName, appUrl, log });
-  const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
+  const chat = chatActions({
+    get, update, fail, C, storage, Permission, Role,
+    beforeDelete: async (msg) => legal._sealBeforeDelete('messaggio', msg, await legal._activeHoldsFor({ userIds: [msg.senderId, msg.receiverId], conversationId: msg.conversationId })),
+  });
   const resume = resumeActions({ find, create, update, fail, C, storage, Permission, Role, copyFile, log });
   /** Candidature eliminate insieme alle copie dei CV allegati. */
   /** Una candidatura con la copia del CV e le note interne (id = candidatura). */
@@ -339,6 +348,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
   const assertNotBlocked = moderation._assertNotBlocked;
+  // Copie sigillate (chiave pubblica della società) e registro degli accessi dello staff.
+  const sealer = makeSealer(escrowPublicKey);
+  const legal = legalActions({ find, get, create, update, list, listAll, removeAll, fail, C, Query, users, isLegal: moderation._isLegal, sealer, conversationIdFor, isoDay });
+  const audit = auditActions({ create, find, list, fail, C, Query, displayName, isAdmin: moderation._isAdmin, isLegal: moderation._isLegal, log });
   const ops = opsActions({ find, create, update, count, fail, C, Query, users, notify, isAdmin: moderation._isAdmin, log, fetchImpl: fetchImpl || (typeof fetch === 'function' ? fetch : null), alertWebhook, alertUserIds });
 
   // -------------------------------------------------------------------------
@@ -465,7 +478,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...ops,
     ...feedbackActions({ find, get, create, update, list, count, fail, C, Query, displayName, isAdmin: moderation._isAdmin, sendAlert: ops._sendAlert, assertClean }),
     ...reminderActions({ find, listAll, update, notify, C, Query, displayName, jobManagers, log }),
-    ...cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log, isoDay, removeApplication, deleteAccountOf: (id) => actions.deleteAccount(id, { confirmation: DELETE_ACCOUNT_CONFIRMATION }) }),
+    ...legal,
+    adminListAudit: audit.adminListAudit,
+    ...cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log, isoDay, removeApplication, expireHolds: legal._expireHolds, deleteAccountOf: (id) => actions.deleteAccount(id, { confirmation: DELETE_ACCOUNT_CONFIRMATION }) }),
     ...team,
     ...social,
     ...content_,
@@ -692,6 +707,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       // L'autore, oppure un amministratore del gruppo in cui è pubblicato (moderazione).
       const groupAdmin = post.groupId ? await groups._isGroupAdmin(post.groupId, me) : false;
       if (post.authorId !== me && !ownersOf(post).includes(me) && !groupAdmin) fail(403, 'Puoi eliminare solo i tuoi post.');
+      await legal._sealBeforeDelete('post', post, await legal._activeHoldsFor({ userIds: [post.authorId] }));
       for (const tableId of [C.likes, C.comments, C.commentLikes, C.pollVotes]) {
         await removeAll(tableId, [Query.equal('postId', postId)]);
       }
@@ -709,6 +725,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       const allowed = ownersOf(comment).includes(me) || comment.authorId === me || (post && (post.authorId === me || ownersOf(post).includes(me)))
         || (post?.groupId && (await groups._isGroupAdmin(post.groupId, me)));
       if (!allowed) fail(403, 'Non puoi eliminare questo commento.');
+      await legal._sealBeforeDelete('commento', comment, await legal._activeHoldsFor({ userIds: [comment.authorId] }));
 
       for (const reply of await listAll(C.comments, [Query.equal('parentCommentId', commentId)])) {
         await removeAll(C.commentLikes, [Query.equal('commentId', reply.$id)]);
@@ -784,6 +801,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     async deleteAccount(me, { confirmation }) {
       if (confirmation !== DELETE_ACCOUNT_CONFIRMATION) fail(400, `Per confermare scrivi ${DELETE_ACCOUNT_CONFIRMATION}.`);
       if (!users) fail(500, 'Servizio utenti non disponibile.');
+      // Sotto conservazione su ordine dell'autorità: prima della cancellazione, copia sigillata dei dati di oggi.
+      await legal._snapshotUser(me);
       const profile = await find(C.profiles, me);
       const files = [profile?.avatar, profile?.logo, profile?.cover];
       // Documenti dei brevetti (bucket privato)
@@ -1224,7 +1243,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       return removeAll(C.signals, [Query.lessThan('$createdAt', old)]);
     },
   };
-  return withSignals(actions);
+  // Ogni azione admin*/legal* finisce nel registro degli accessi (anche i tentativi negati).
+  return withSignals(audit._withAudit(actions));
 };
 
 // ---------------------------------------------------------------------------
@@ -1338,6 +1358,7 @@ export default async ({ req, res, log, error }) => {
     log: (m) => log(m),
     billing,
     ...alerting,
+    escrowPublicKey: env.ESCROW_PUBLIC_KEY || '',
   });
   const { action, ...params } = body;
   // Controllo di salute (anche da ospiti): quale versione del codice risponde. Lo usa setup-db dopo il deploy.

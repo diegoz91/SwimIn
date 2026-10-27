@@ -429,6 +429,36 @@ const schema = [
         indexes: [idx('by_status', ['status']), idx('by_user', ['userId'])],
     },
     {
+        // Registro degli accessi dello staff (audit.js): ogni azione admin*/legal*, anche negata.
+        // Solo aggiunte dalla Function, mai contenuti; scope "legal" visibile solo al responsabile legale.
+        id: 'audit_log', name: 'Audit log', permissions: SERVER_ONLY,
+        attributes: [
+            str('actorId', 36, { required: true }), str('action', 60, { required: true }), str('scope', 10, { required: true }),
+            str('targetType', 30), str('targetId', 80), str('reason', 500), str('outcome', 10, { required: true }), str('meta', 1000),
+        ],
+        indexes: [idx('by_scope', ['scope']), idx('by_action', ['action']), idx('by_actor', ['actorId'])],
+    },
+    {
+        // Conservazione su ordine dell'autorità (legal.js): l'ordine registrato e la sua scadenza.
+        id: 'legal_holds', name: 'Legal holds', permissions: SERVER_ONLY,
+        attributes: [
+            str('subjectType', 20, { required: true }), str('subjectId', 80, { required: true }),
+            str('authority', 200, { required: true }), str('reference', 100, { required: true }), str('orderDate', 10, { required: true }),
+            str('until', 10, { required: true }), str('status', 10, { required: true }), str('createdBy', 36, { required: true }),
+            str('note', 500), str('releasedBy', 36), str('releasedAt', 30),
+        ],
+        indexes: [idx('by_status', ['status']), idx('by_subject', ['subjectId'])],
+    },
+    {
+        // Copie sigillate (cifrate con la chiave pubblica della società, illeggibili dal sistema) e impronta SHA-256.
+        id: 'held_items', name: 'Held items', permissions: SERVER_ONLY,
+        attributes: [
+            str('holdId', 36, { required: true }), str('kind', 40, { required: true }), str('sourceId', 80),
+            str('sealed', 5000000, { required: true }), str('hash', 64, { required: true }), str('collectedAt', 30, { required: true }),
+        ],
+        indexes: [idx('by_hold', ['holdId'])],
+    },
+    {
         // Stato del servizio (riga "main"): tutto ok, rallentamenti o manutenzione. Leggibile da tutti,
         // anche senza accesso; lo scrivono solo gli amministratori tramite la Function (adminSetAppStatus).
         id: 'app_status', name: 'App status', permissions: [Permission.read(Role.any())],
@@ -974,6 +1004,8 @@ async function setupFunctionVariables() {
     // Avvisi di errore: webhook facoltativo (Slack, Discord, Telegram) e id di chi riceve gli avvisi oltre agli admin.
     if (env.ALERT_WEBHOOK_URL) await set('ALERT_WEBHOOK_URL', env.ALERT_WEBHOOK_URL, true);
     if (env.ALERT_USER_IDS) await set('ALERT_USER_IDS', env.ALERT_USER_IDS);
+    // Chiave PUBBLICA per le copie sigillate (la privata resta fuori linea: scripts/legal/keygen.mjs).
+    if (env.ESCROW_PUBLIC_KEY) await set('ESCROW_PUBLIC_KEY', env.ESCROW_PUBLIC_KEY);
     // Versione del codice caricato: la Function la restituisce con l'azione pubblica "health", per verificare il deploy.
     await set('APP_VERSION', DEPLOY_VERSION);
     console.log(`   ✉️  Email di notifica: ${email === 'on' ? 'attive' : 'spente (EMAIL_NOTIFICATIONS=on in .env.setup dopo aver configurato un provider)'}`);

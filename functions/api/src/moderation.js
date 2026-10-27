@@ -23,6 +23,16 @@ export function moderationActions({ find, get, create, update, remove, list, lis
       return false;
     }
   };
+  /** Responsabile delle richieste delle autorità: etichette "admin" e "legal" insieme. */
+  const isLegal = async (userId) => {
+    if (!users) return false;
+    try {
+      const u = await users.get({ userId });
+      return (u.labels || []).includes('admin') && (u.labels || []).includes('legal');
+    } catch {
+      return false;
+    }
+  };
   const requireAdmin = async (me) => {
     if (!(await isAdmin(me))) fail(403, 'Area riservata agli amministratori.');
   };
@@ -127,6 +137,7 @@ export function moderationActions({ find, get, create, update, remove, list, lis
         muted: mine.filter((r) => r.kind === 'mute').map((r) => r.blockedId),
         blockedBy: byOthers.map((r) => r.blockerId),
         isAdmin: await isAdmin(me),
+        isLegal: await isLegal(me),
       };
     },
 
@@ -221,5 +232,6 @@ export function moderationActions({ find, get, create, update, remove, list, lis
     // esposti per le altre azioni (non chiamabili dal client: filtrati in main.js)
     _assertNotBlocked: assertNotBlocked,
     _isAdmin: isAdmin,
+    _isLegal: isLegal,
   };
 }

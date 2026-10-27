@@ -43,3 +43,8 @@ build
 *.local
 # Function Appwrite
 functions/*/node_modules
+
+# Chiavi e uscite della conservazione su ordine dell'autorità: mai nel repository
+*.pem
+conservazione-in-chiaro/
+conservazione-*.json
