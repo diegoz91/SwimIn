@@ -507,6 +507,8 @@ for (const [name, vp, initial, run] of FLOWS) {
     const page = await context.newPage();
     const jsErrors = [];
     page.on('pageerror', (e) => jsErrors.push(e.message));
+    // La Content Security Policy blocca qualcosa che l'app usa: è un errore da correggere (vite.config.ts).
+    page.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy/i.test(m.text())) jsErrors.push(`CSP: ${m.text().slice(0, 300)}`); });
     // Nessuna finestra del browser (confirm, alert, prompt): le conferme sono quelle dell'app.
     page.on('dialog', (d) => { jsErrors.push(`finestra del browser: ${d.message()}`); void d.dismiss(); });
     await mockAppwrite(page, state);

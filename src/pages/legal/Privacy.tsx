@@ -80,6 +80,18 @@ const Privacy: React.FC = () => (
                 ),
             },
             {
+                title: 'Come proteggiamo i dati',
+                body: (
+                    <ul>
+                        <li>Le comunicazioni tra il tuo dispositivo, SwimIn e i nostri fornitori sono sempre cifrate (HTTPS/TLS).</li>
+                        <li>Le password non sono mai visibili, nemmeno a noi: il fornitore di autenticazione ne conserva solo un'impronta cifrata. Puoi attivare la verifica in due passaggi.</li>
+                        <li>Messaggi privati, allegati, CV, documenti dei brevetti, telefono e note interne delle candidature sono leggibili solo dalle persone autorizzate: i permessi sono controllati dal server per ogni singolo elemento. I file privati sono separati da quelli pubblici e, dove il fornitore lo consente, cifrati sul disco.</li>
+                        <li>Le pagine dell'app possono caricare contenuti solo da SwimIn e dai nostri fornitori (Content Security Policy) e non possono essere incluse in altri siti.</li>
+                        <li>Tentativi ripetuti e abusi sono limitati automaticamente; gli errori tecnici vengono registrati senza il contenuto dei messaggi.</li>
+                    </ul>
+                ),
+            },
+            {
                 title: 'Per quanto tempo conserviamo i dati',
                 body: (
                     <ul>
