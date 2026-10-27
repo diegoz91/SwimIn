@@ -763,7 +763,18 @@ async function pruneDatabase() {
     }
     const keepBuckets = new Set(buckets.map((b) => b.id));
     const { buckets: existing = [] } = await storage.listBuckets({ queries: [Query.limit(100)] });
-    for (const b of existing) if (!keepBuckets.has(b.$id)) await act(`bucket ${b.$id}`, () => storage.deleteBucket({ bucketId: b.$id }));
+    for (const b of existing) {
+        if (keepBuckets.has(b.$id)) continue;
+        // Un bucket fuori schema con dei file potrebbe ancora servire a immagini vecchie (foto profilo, post):
+        // si elimina da solo solo se è vuoto; con file, solo con PRUNE_BUCKETS=force dopo averlo controllato.
+        const { total = 0 } = await storage.listFiles({ bucketId: b.$id, queries: [Query.limit(1)] });
+        if (total > 0 && process.env.PRUNE_BUCKETS !== 'force') {
+            pruned.push(`bucket ${b.$id} "${b.name}" con ${total} file (non eliminato: serve PRUNE_BUCKETS=force)`);
+            console.log(`   ⚠️  bucket ${b.$id} "${b.name}": ${total} file, lasciato`);
+            continue;
+        }
+        await act(`bucket ${b.$id} "${b.name}"${total ? ` con ${total} file` : ' (vuoto)'}`, () => storage.deleteBucket({ bucketId: b.$id }));
+    }
     if (!pruned.length) console.log('   ✨ Nessun residuo: il database corrisponde allo schema');
     else if (PRUNE_MODE === 'report') notice(`Residui nel database (PRUNE=report, non eliminati): ${pruned.join(', ')}`);
     else notice(`Database ripulito: ${pruned.join(', ')}`);
