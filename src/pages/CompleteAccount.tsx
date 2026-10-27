@@ -93,8 +93,8 @@ const CompleteAccount: React.FC = () => {
                             label={
                                 <span className="font-normal text-slate-600">
                                     Ho almeno 16 anni, ho letto e accetto i{' '}
-                                    <Link to="/termini" target="_blank" className="text-corsia-700 font-semibold hover:underline">Termini di servizio</Link> e la{' '}
-                                    <Link to="/privacy" target="_blank" className="text-corsia-700 font-semibold hover:underline">Privacy Policy</Link>.
+                                    <Link to="/termini" target="_blank" className="text-corsia-700 font-semibold underline underline-offset-2">Termini di servizio</Link> e la{' '}
+                                    <Link to="/privacy" target="_blank" className="text-corsia-700 font-semibold underline underline-offset-2">Privacy Policy</Link>.
                                 </span>
                             }
                         />
