@@ -31,7 +31,8 @@ import { pushActions } from './push.js';
 import { makeAssertClean } from './textfilter.js';
 import { digestActions } from './digest.js';
 import { opsActions } from './ops.js';
-import { reminderActions } from './reminders.js';
+import { reminderActions, romeTomorrow } from './reminders.js';
+import { cleanupActions, CLEANUP_HOUR } from './cleanup.js';
 import { feedbackActions } from './feedback.js';
 
 const DB = 'swimwaveup_db';
@@ -322,12 +323,14 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const chat = chatActions({ get, update, fail, C, storage, Permission, Role });
   const resume = resumeActions({ find, create, update, fail, C, storage, Permission, Role, copyFile, log });
   /** Candidature eliminate insieme alle copie dei CV allegati. */
+  /** Una candidatura con la copia del CV e le note interne (id = candidatura). */
+  const removeApplication = async (a) => {
+    await resume._deleteApplicationCopy(a);
+    await remove(C.applicationReviews, a.$id).catch(() => null);
+    await remove(C.applications, a.$id);
+  };
   const removeApplications = async (queries) => {
-    for (const a of await listAll(C.applications, queries)) {
-      await resume._deleteApplicationCopy(a);
-      await remove(C.applicationReviews, a.$id).catch(() => null); // note interne (id = candidatura)
-      await remove(C.applications, a.$id);
-    }
+    for (const a of await listAll(C.applications, queries)) await removeApplication(a);
   };
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertClean, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
   const events = eventActions({ assertClean, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
@@ -462,6 +465,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...ops,
     ...feedbackActions({ find, get, create, update, list, count, fail, C, Query, displayName, isAdmin: moderation._isAdmin, sendAlert: ops._sendAlert, assertClean }),
     ...reminderActions({ find, listAll, update, notify, C, Query, displayName, jobManagers, log }),
+    ...cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log, isoDay, removeApplication, deleteAccountOf: (id) => actions.deleteAccount(id, { confirmation: DELETE_ACCOUNT_CONFIRMATION }) }),
     ...team,
     ...social,
     ...content_,
@@ -1287,6 +1291,11 @@ export default async ({ req, res, log, error }) => {
         return { error: e?.message || String(e) };
       });
       log(`promemoria: ${JSON.stringify(reminders)}`);
+      // Alle 3 ora italiana: pulizia dei dati scaduti, orfani e degli account di prova rimasti.
+      if (romeTomorrow(Date.now()).hour === CLEANUP_HOUR) {
+        const cleaned = await api._nightlyCleanup().catch((e) => ({ error: e?.message || String(e) }));
+        log(`pulizia notturna: ${JSON.stringify(cleaned)}`);
+      }
       // Riepilogo email: solo il lunedì dalle 6 alle 18 UTC, un gruppo di persone per volta.
       const nowUtc = new Date();
       const digestTime = nowUtc.getUTCDay() === 1 && nowUtc.getUTCHours() >= 6 && nowUtc.getUTCHours() <= 18;

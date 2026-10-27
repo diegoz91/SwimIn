@@ -387,7 +387,6 @@ export interface LiveRoom extends AppwriteDocument {
   title: string;
   description?: string;
   hostId: string;
-  facilityId?: string;
   status: 'active' | 'ended';
   speakers: string[]; 
   listeners: string[];
