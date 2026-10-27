@@ -22,15 +22,19 @@ const MAX_SERIES = 90;
 const MAX_TEMPLATES = 20;
 const MAX_SLOTS = 60;
 
+export const MAX_CO_ADMINS = 5;
+
 export function teamActions({ find, get, list, listAll, create, update, remove, removeAll, count = async () => 0, fail, notify, deliver = async () => null, C, Query, displayName }) {
-  /** Amministratori e staff della struttura (pagina Facility o profilo Struttura). */
+  /**
+   * Amministratori e staff di una struttura (account Struttura). Gli amministratori sono l'account
+   * stesso (titolare) e i co-amministratori scelti dallo staff (`coAdmins`, al massimo MAX_CO_ADMINS).
+   */
   const teamOf = async (structureId) => {
     if (typeof structureId !== 'string' || !structureId) fail(400, 'Parametro mancante: structureId');
-    const facility = await find(C.facilities, structureId);
-    if (facility) return { kind: 'facility', row: facility, name: facility.name, admins: facility.admins || [], staff: facility.staff || [] };
     const profile = await find(C.profiles, structureId);
     if (!profile || profile.userType !== 'structure') fail(404, 'Struttura non trovata.');
-    return { kind: 'profile', row: profile, name: profile.structureName || 'Struttura', admins: [profile.$id], staff: profile.staff || [] };
+    const coAdmins = (profile.coAdmins || []).filter((id) => (profile.staff || []).includes(id));
+    return { kind: 'profile', row: profile, name: profile.structureName || 'Struttura', owner: profile.$id, coAdmins, admins: [profile.$id, ...coAdmins], staff: profile.staff || [] };
   };
 
   const roleIn = (team, me) => (team.admins.includes(me) ? 'admin' : team.staff.includes(me) ? 'staff' : null);
@@ -44,8 +48,8 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
     return { team, role };
   };
 
-  const setStaff = (team, staff) =>
-    update(team.kind === 'facility' ? C.facilities : C.profiles, team.row.$id, { staff });
+  // Chi esce dallo staff smette anche di essere co-amministratore.
+  const setStaff = (team, staff) => update(C.profiles, team.row.$id, { staff, coAdmins: team.coAdmins.filter((id) => staff.includes(id)) });
 
   /** Ultima lettura della chat staff di una persona (riga con id deterministico). */
   const readKey = (structureId, userId) => createHash('sha256').update(`${structureId}:${userId}`).digest('hex').slice(0, 32);
@@ -128,7 +132,8 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         role,
         staffLimit: limit,
         invites,
-        members: members.map(memberCard),
+        members: members.map((p) => ({ ...memberCard(p), coAdmin: team.coAdmins.includes(p.$id) })),
+        isOwner: me === team.owner,
         announcements: announcements.documents,
         // Lo staff vede tutti i turni della squadra (serve per gli scambi), non solo i propri.
         shifts: shifts.documents,
@@ -457,6 +462,8 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       const role = roleIn(team, me);
       if (!(role === 'admin' || (role === 'staff' && staffId === me))) fail(403, 'Non puoi modificare lo staff di questa struttura.');
       if (!team.staff.includes(staffId)) fail(404, 'Non fa parte dello staff.');
+      // Un co-amministratore lo toglie solo il titolare (o lascia lui stesso).
+      if (team.coAdmins.includes(staffId) && staffId !== me && me !== team.owner) fail(403, 'Solo il titolare della struttura può togliere un co-amministratore.');
       await setStaff(team, team.staff.filter((id) => id !== staffId));
       // I suoi turni futuri non hanno più senso.
       await removeAll(C.shifts, [Query.equal('structureId', structureId), Query.equal('userId', staffId), Query.greaterThanEqual('date', isoDay(Date.now()))]);
@@ -530,19 +537,34 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
       return { joined: true, structureId };
     },
 
-    /** Strutture di cui faccio parte (staff o amministratore), per "Le mie strutture". */
+    /** Strutture in cui lavoro ("Lavori presso"): staff, oppure co-amministratore. */
     async listMyTeams(me) {
-      const [profiles, facilities] = await Promise.all([
-        listAll(C.profiles, [Query.contains('staff', [me])]),
-        listAll(C.facilities, [Query.contains('staff', [me])]),
-      ]);
-      const admin = await listAll(C.facilities, [Query.contains('admins', [me])]);
-      const rows = [
-        ...profiles.filter((p) => p.userType === 'structure').map((p) => ({ structureId: p.$id, name: p.structureName || 'Struttura', logo: p.logo || '', city: p.city || '', role: 'staff' })),
-        ...facilities.map((f) => ({ structureId: f.$id, name: f.name, logo: f.logo || '', city: f.city || '', role: (f.admins || []).includes(me) ? 'admin' : 'staff' })),
-        ...admin.filter((f) => !(f.staff || []).includes(me)).map((f) => ({ structureId: f.$id, name: f.name, logo: f.logo || '', city: f.city || '', role: 'admin' })),
-      ];
-      return rows;
+      const profiles = await listAll(C.profiles, [Query.contains('staff', [me])]);
+      return profiles
+        .filter((p) => p.userType === 'structure')
+        .map((p) => ({ structureId: p.$id, name: p.structureName || 'Struttura', logo: p.logo || '', city: p.city || '', role: (p.coAdmins || []).includes(me) ? 'admin' : 'staff' }));
+    },
+
+    /**
+     * Il titolare dell'account Struttura sceglie dallo staff chi lo aiuta a gestirla: annunci e
+     * candidati, staff, turni e bacheca. Il profilo della struttura lo modifica solo il titolare.
+     */
+    async setCoAdmin(me, { structureId, userId, admin } = {}) {
+      const team = await teamOf(structureId);
+      if (me !== team.owner) fail(403, 'Solo il titolare della struttura sceglie i co-amministratori.');
+      if (typeof userId !== 'string' || !team.staff.includes(userId)) fail(400, 'Puoi scegliere solo una persona dello staff.');
+      const has = team.coAdmins.includes(userId);
+      if (!!admin === has) return { coAdmins: team.coAdmins };
+      if (admin && team.coAdmins.length >= MAX_CO_ADMINS) fail(409, `Puoi avere al massimo ${MAX_CO_ADMINS} co-amministratori.`);
+      const coAdmins = admin ? [...team.coAdmins, userId] : team.coAdmins.filter((id) => id !== userId);
+      await update(C.profiles, structureId, { coAdmins });
+      await notify(
+        userId,
+        'general',
+        admin ? `${team.name} ti ha nominato co-amministratore: puoi gestire annunci, candidati, staff e turni.` : `Non sei più co-amministratore di ${team.name}: resti nello staff.`,
+        structureId
+      );
+      return { coAdmins };
     },
 
     /** Un amministratore sposta o riassegna un turno: chi lo aveva e chi lo riceve vengono avvisati. */

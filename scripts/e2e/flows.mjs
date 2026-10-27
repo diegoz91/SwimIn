@@ -259,6 +259,20 @@ const FLOWS = [
         const c = await called(state, 'respondStaffInvite');
         assert.deepEqual([c.params.structureId, c.params.accept], ['u_aquae', true]);
     }],
+    ['il titolare nomina un co-amministratore dallo staff', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } }, responses: { getTeamBoard: () => ({ ...teamBoard('confirmed'), isOwner: true }), setCoAdmin: ({ userId, admin }) => ({ coAdmins: admin ? [userId] : [] }) } }, async (page, state) => {
+        await open(page, '/profile?area=staff');
+        await page.getByRole('tab', { name: /^Squadra/ }).click();
+        await page.getByRole('button', { name: 'Rendi co-amministratore' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Nomina' }).click();
+        const c = await called(state, 'setCoAdmin');
+        assert.deepEqual([c.params.structureId, c.params.userId, c.params.admin], ['u_giulia', 'u_sara', true]);
+    }],
+    ['nel profilo personale non si creano pagine struttura', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/profile');
+        await page.locator('#about-title').waitFor({ timeout: 8000 });
+        assert.equal(await page.getByText('Le mie strutture').count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Crea pagina' }).count(), 0);
+    }],
     ['la struttura invita una persona nello staff', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { userType: 'structure', structureName: 'Piscina Lido di Milano' } } } }, async (page, state) => {
         await open(page, '/profile?area=staff');
         await page.getByRole('tab', { name: /^Squadra/ }).click();

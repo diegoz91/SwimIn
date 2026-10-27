@@ -1,6 +1,6 @@
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { lazyPage } from '@/utils/lazyPage';
-import type { StructureProfile, Job, SquadAnnouncement, SquadShift, Facility } from '@/types/types';
+import type { StructureProfile, Job, SquadAnnouncement, SquadShift } from '@/types/types';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type PendingStaffInvite, type ShiftSwap, type TeamMember } from '@/services/database';
@@ -22,7 +22,6 @@ import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
 import { contractLabel, jobRoleLabel } from '@/data/swimming';
 import { ProfileEditModal } from './ProfileEditModal';
-import { FacilityFormModal, type FacilityFormValues } from './FacilityFormModal';
 import { StructureInfo, openStatusOf } from './StructureInfo';
 import { ReviewsSection } from '@/features/reviews/ReviewsSection';
 import { Stars } from '@/features/reviews/Stars';
@@ -42,11 +41,11 @@ type FacilityTab = 'info' | 'jobs' | 'staff' | 'analytics';
 const TAB_SLUG: Record<FacilityTab, string> = { info: 'informazioni', jobs: 'posizioni', staff: 'staff', analytics: 'statistiche' };
 
 interface FacilityViewProps {
-    facility: StructureProfile | Facility;
+    facility: StructureProfile;
     openJobs?: Job[]; 
     onBack: () => void;
     onSelectJob?: (jobId: string) => void;
-    onUpdateProfile?: (profile: StructureProfile | Facility) => void;
+    onUpdateProfile?: (profile: StructureProfile) => void;
 }
 
 export const FacilityView: React.FC<FacilityViewProps> = ({ 
@@ -61,26 +60,24 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const { showToast } = useToast();
     const navigate = useNavigate();
     
-    // 💡 LOGICA DI RICONOSCIMENTO ADMIN E STAFF (MODELLO LINKEDIN)
-    const isLegacyStructure = 'userType' in facility && facility.userType === 'structure';
-    const facilityId = facility.$id || (facility as any).userId;
-    
-    const isAdmin = isLegacyStructure 
-        ? user?.$id === facilityId
-        : (facility as Facility).admins?.includes(user?.$id || '');
-        
+    // Titolare = l'account Struttura stesso; co-amministratori = persone dello staff scelte dal titolare
+    // (annunci, candidati, staff, turni). Il profilo della struttura lo modifica solo il titolare.
+    const facilityId = facility.$id;
+    const isOwner = !!user && user.$id === facilityId;
+    const isCoAdmin = !!user && !isOwner && (facility.coAdmins || []).includes(user.$id) && (facility.staff || []).includes(user.$id);
+    const isAdmin = isOwner || isCoAdmin;
+
     // Staff = chi è stato assunto o aggiunto dalla struttura. Un semplice collegamento
     // o un follower non dà accesso all'area staff (lo verifica comunque il server).
     const isStaff = !isAdmin && !!user && (facility.staff || []).includes(user.$id);
-    
-    // Visita alla pagina di una struttura (profilo): la struttura riceve la notifica, come per le persone.
-    useEffect(() => {
-        if (isLegacyStructure && user && !isAdmin) databaseService.recordProfileView(facilityId).catch((err) => console.warn('Visita non registrata:', err));
-    }, [isLegacyStructure, facilityId, user?.$id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // 💡 STATI PER I FOLLOWERS
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [followersCount, setFollowersCount] = useState(0);
+    // Visita alla pagina di una struttura: la struttura riceve la notifica, come per le persone.
+    useEffect(() => {
+        if (user && !isAdmin) databaseService.recordProfileView(facilityId).catch((err) => console.warn('Visita non registrata:', err));
+    }, [facilityId, user?.$id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const followersCount = facility.connections?.length || 0;
+    const [boardOwner, setBoardOwner] = useState(false);
     
     // Da una notifica della chat staff (?area=chat-staff) si apre direttamente la chat.
     const [params, setParams] = useSearchParams();
@@ -128,25 +125,21 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [swapShift, setSwapShift] = useState<SquadShift | null>(null);
     
     const [isEditingProfile, setIsEditingProfile] = useState(false);
-    const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
 
-    const structureName = isLegacyStructure ? (facility as StructureProfile).structureName : (facility as Facility).name;
-    const structureType = isLegacyStructure ? (facility as StructureProfile).structureType : (facility as Facility).type;
+    const structureName = facility.structureName;
+    const structureType = facility.structureType;
     const city = facility.city;
     const province = facility.province;
-    const bio = facility.bio;
     const logo = facility.logo;
 
     const displayLogo = logo || initialsAvatar(structureName || 'Struttura');
-    const coverImage = (facility as Facility | StructureProfile).cover || null;
+    const coverImage = facility.cover || null;
 
-    /** Salva logo o copertina sulla pagina (Facility) o sul profilo Struttura. */
+    /** Salva logo o copertina sul profilo della struttura (solo il titolare). */
     const saveImage = async (field: 'logo' | 'cover', url: string) => {
-        const updated = isLegacyStructure
-            ? await databaseService.updateProfile(facilityId, { [field]: url })
-            : await databaseService.updateFacility(facilityId, { [field]: url });
+        const updated = await databaseService.updateProfile(facilityId, { [field]: url });
         if (!updated) throw new Error('Salvataggio non riuscito.');
-        if (onUpdateProfile) onUpdateProfile(updated as StructureProfile | Facility);
+        if (onUpdateProfile) onUpdateProfile(updated as StructureProfile);
     };
 
 
@@ -154,18 +147,6 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         setLocalJobs(openJobs);
     }, [openJobs]);
 
-
-    // 💡 INIZIALIZZAZIONE FOLLOWERS ALL'AVVIO
-    useEffect(() => {
-        if (!isLegacyStructure) {
-            const fac = facility as Facility;
-            setFollowersCount(fac.followers?.length || 0);
-            setIsFollowing(fac.followers?.includes(user?.$id || '') || false);
-        } else {
-            // Se è la vecchia struttura (Fase 1), calcoliamo le amicizie standard
-            setFollowersCount((facility as StructureProfile).connections?.length || 0);
-        }
-    }, [facility, user, isLegacyStructure]);
 
     useEffect(() => {
         if (activeTab !== 'staff' || !(isAdmin || isStaff)) return;
@@ -176,6 +157,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             .then((board) => {
                 if (!alive) return;
                 setStaff(board.members || []);
+                setBoardOwner(!!board.isOwner);
                 setStaffLimit(board.staffLimit ?? null);
                 setInvites(board.invites || []);
                 setAnnouncements(board.announcements || []);
@@ -208,29 +190,6 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         return { openJobs: open.length, sosJobs: open.filter((j) => j.isSOS).length, candidates, perJob };
     }, [localJobs]);
 
-    // 💡 LOGICA AZIONE "SEGUI PAGINA"
-    const handleToggleFollow = async () => {
-        if (!user || isLegacyStructure) return; // Non supportato sulle legacy (non ci serve)
-        const isNowFollowing = await databaseService.toggleFollowFacility(facilityId, user.$id);
-        if (isNowFollowing !== null) {
-            setIsFollowing(isNowFollowing);
-            setFollowersCount(prev => isNowFollowing ? prev + 1 : prev - 1);
-            showToast(isNowFollowing ? 'Ora segui questa pagina.' : 'Non segui più questa pagina', 'info');
-        }
-    };
-
-    const handleSaveFacility = async (values: FacilityFormValues) => {
-        let updated: Facility;
-        try {
-            updated = await databaseService.updateFacility(facilityId, values);
-        } catch (error) {
-            showToast(error instanceof Error ? error.message : 'Non è stato possibile salvare le modifiche.', 'error');
-            throw error;
-        }
-        onUpdateProfile?.(updated as Facility);
-        showToast('Pagina aggiornata.', 'success');
-    };
-
     const handleJobCreated = async () => {
         const allJobs = await databaseService.getActiveJobs();
         setLocalJobs(allJobs.filter(job => job.structureId === facilityId));
@@ -248,16 +207,15 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         }
     };
 
-    const handleConfirmDeleteAnnouncement = async () => {
-        if (!announcementToDelete) return;
+    const handleDeleteAnnouncement = async (announcementId: string) => {
+        if (!(await confirm({ title: 'Eliminare la comunicazione?', message: 'Sparisce dalla bacheca di tutto lo staff.', confirmLabel: 'Elimina', tone: 'danger' }))) return;
         try {
-            await databaseService.deleteSquadAnnouncement(announcementToDelete);
-            setAnnouncements(announcements.filter((a) => a.$id !== announcementToDelete));
+            await databaseService.deleteSquadAnnouncement(announcementId);
+            setAnnouncements((list) => list.filter((a) => a.$id !== announcementId));
             showToast('Comunicazione eliminata.', 'info');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Eliminazione non riuscita.', 'error');
         }
-        setAnnouncementToDelete(null);
     };
 
     const sortShifts = (list: SquadShift[]) => [...list].sort((x, y) => (x.date + x.shiftTime).localeCompare(y.date + y.shiftTime));
@@ -310,7 +268,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         try {
             await databaseService.removeStaffMember(facilityId, staffId);
             setStaff(staff.filter((s) => s.userId !== staffId));
-            onUpdateProfile?.({ ...facility, staff: (facility.staff || []).filter((id) => id !== staffId) } as StructureProfile | Facility);
+            onUpdateProfile?.({ ...facility, staff: (facility.staff || []).filter((id) => id !== staffId), coAdmins: (facility.coAdmins || []).filter((id) => id !== staffId) });
             showToast(leaving ? 'Hai lasciato lo staff.' : 'Persona rimossa dallo staff.', 'info');
             if (leaving) setActiveTab('info');
         } catch (err) {
@@ -323,7 +281,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const regularJobs = localJobs.filter((j) => !j.isSOS && isJobOpen(j));
     const openPositions = [...sosJobs, ...regularJobs];
     const status = openStatusOf(facility);
-    const rating = ratingOf(facility as StructureProfile);
+    const rating = ratingOf(facility);
 
     const share = async () => {
         const url = `${window.location.origin}/u/${facilityId}`;
@@ -342,7 +300,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
         { id: 'info', label: 'Informazioni', show: true },
         { id: 'jobs', label: 'Posizioni aperte', badge: openPositions.length, show: true },
         { id: 'staff', label: isAdmin ? 'Gestione staff' : 'Area staff', icon: 'shield', badge: chatUnread || undefined, show: isAdmin || isStaff },
-        { id: 'analytics', label: 'Statistiche', icon: 'chart', show: !!isAdmin },
+        { id: 'analytics', label: 'Statistiche', icon: 'chart', show: isOwner },
     ];
 
     return (
@@ -359,7 +317,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             <header className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
                 <div className="h-36 sm:h-56 relative bg-gradient-to-br from-corsia-800 via-corsia-600 to-cloro-500">
                     {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" loading="lazy" />}
-                    {isAdmin && (
+                    {isOwner && (
                         <ImageUploadButton kind="cover" currentUrl={coverImage} onUploaded={(url) => saveImage('cover', url)} label="Cambia immagine di copertina" className="absolute top-3 right-3 px-3 py-2" />
                     )}
                 </div>
@@ -367,19 +325,21 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     <div className="flex flex-wrap items-end justify-between gap-3 -mt-10 sm:-mt-14">
                         <div className="relative flex-shrink-0">
                             <img src={displayLogo} alt="" className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-lift bg-white" />
-                            {isAdmin && <ImageUploadButton kind="avatar" currentUrl={logo} onUploaded={(url) => saveImage('logo', url)} label="Cambia logo" className="absolute -bottom-1 -right-1 w-9 h-9" />}
+                            {isOwner && <ImageUploadButton kind="avatar" currentUrl={logo} onUploaded={(url) => saveImage('logo', url)} label="Cambia logo" className="absolute -bottom-1 -right-1 w-9 h-9" />}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 pt-12 sm:pt-0">
                             {isAdmin ? (
                                 <>
-                                    <button onClick={() => setIsEditingProfile(true)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-1.5">
-                                        <Icon type="pencil" className="w-4 h-4" /> Modifica pagina
-                                    </button>
+                                    {isOwner && (
+                                        <button onClick={() => setIsEditingProfile(true)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-slate-200 text-abisso hover:border-slate-300 inline-flex items-center gap-1.5">
+                                            <Icon type="pencil" className="w-4 h-4" /> Modifica pagina
+                                        </button>
+                                    )}
                                     <Link to={`/jobs/annunci?struttura=${encodeURIComponent(facilityId)}`} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900 inline-flex items-center gap-1.5">
-                                        <Icon type="briefcase" className="w-4 h-4" /> I miei annunci
+                                        <Icon type="briefcase" className="w-4 h-4" /> {isOwner ? 'I miei annunci' : 'Annunci della struttura'}
                                     </Link>
                                 </>
-                            ) : isLegacyStructure ? (
+                            ) : (
                                 <>
                                     <button onClick={() => navigate('/messages', { state: { startChatWithUserId: facilityId } })} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 inline-flex items-center gap-1.5">
                                         <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
@@ -387,14 +347,6 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     <ConnectButton profileId={facilityId} />
                                     <FollowButton profileId={facilityId} />
                                 </>
-                            ) : (
-                                <button
-                                    onClick={handleToggleFollow}
-                                    aria-pressed={isFollowing}
-                                    className={`px-5 py-2.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 ${isFollowing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-corsia-600 text-white hover:bg-corsia-700'}`}
-                                >
-                                    <Icon type={isFollowing ? 'check' : 'plus'} className="w-4 h-4" /> {isFollowing ? 'Segui già' : 'Segui'}
-                                </button>
                             )}
                         </div>
                     </div>
@@ -413,7 +365,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             </button>
                         )}
                         {status && <span className={`inline-flex items-center gap-1.5 font-semibold ${status.open ? 'text-cloro-800' : 'text-slate-600'}`}><span className={`w-2 h-2 rounded-full ${status.open ? 'bg-cloro-500' : 'bg-slate-400'}`} aria-hidden="true" />{status.label}</span>}
-                        <span className="text-slate-600"><span className="font-semibold text-abisso">{followersCount}</span> {isLegacyStructure ? (followersCount === 1 ? 'collegamento' : 'collegamenti') : 'follower'}</span>
+                        <span className="text-slate-600"><span className="font-semibold text-abisso">{followersCount}</span> {followersCount === 1 ? 'collegamento' : 'collegamenti'}</span>
                         {openPositions.length > 0 && (
                             <button onClick={() => setActiveTab('jobs')} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">
                                 {openPositions.length === 1 ? '1 posizione aperta' : `${openPositions.length} posizioni aperte`}
@@ -442,7 +394,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 {activeTab === 'info' && (
                     <StructureInfo
                         facility={facility}
-                        isAdmin={!!isAdmin}
+                        isAdmin={isOwner}
                         openJobs={openPositions}
                         onEdit={() => setIsEditingProfile(true)}
                         onShowJobs={() => setActiveTab('jobs')}
@@ -555,7 +507,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                         {new Date(ann.$createdAt || Date.now()).toLocaleDateString('it-IT')}
                                                     </span>
                                                     {isAdmin && (
-                                                        <button onClick={() => setAnnouncementToDelete(ann.$id)} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
+                                                        <button onClick={() => void handleDeleteAnnouncement(ann.$id)} aria-label="Elimina la comunicazione" className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
                                                             <Icon type="trash" className="w-4 h-4" />
                                                         </button>
                                                     )}
@@ -658,9 +610,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             <StaffChat structureId={facilityId} structureName={structureName || 'Struttura'} currentUserId={user.$id} isAdmin={isAdmin} onRead={() => setChatUnread(0)} />
                         )}
 
-                        {isStaff && user && (
+                        {(isStaff || isCoAdmin) && user && (
                             <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-                                <span>Fai parte dello staff di {structureName}.</span>
+                                <span>{isCoAdmin ? `Sei co-amministratore di ${structureName}.` : `Fai parte dello staff di ${structureName}.`}</span>
                                 <button onClick={() => handleRemoveStaff(user.$id)} className="py-1 -my-1 font-semibold text-slate-600 hover:text-galleggiante-700">Lascia lo staff</button>
                             </div>
                         )}
@@ -670,6 +622,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 structureId={facilityId}
                                 structureName={structureName || 'la struttura'}
                                 isAdmin={!!isAdmin}
+                                isOwner={isOwner && boardOwner}
                                 currentUserId={user?.$id}
                                 members={staff}
                                 invites={invites}
@@ -683,8 +636,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
 
                 {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
-                {activeTab === 'analytics' && isAdmin && isLegacyStructure && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} viewersLink={null} /></div>}
-                {activeTab === 'analytics' && isAdmin && (
+                {activeTab === 'analytics' && isOwner && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} viewersLink={null} /></div>}
+                {activeTab === 'analytics' && isOwner && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
                         <div className="mb-6">
                             <h2 className="text-2xl font-bold text-abisso">Statistiche</h2>
@@ -695,7 +648,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 { label: 'Annunci aperti', value: metrics.openJobs },
                                 { label: 'SOS in corso', value: metrics.sosJobs },
                                 { label: 'Candidature ricevute', value: metrics.candidates },
-                                { label: isLegacyStructure ? 'Collegamenti' : 'Follower', value: followersCount },
+                                { label: 'Collegamenti', value: followersCount },
                             ].map((m) => (
                                 <div key={m.label} className="rounded-2xl bg-piastrella px-4 py-3">
                                     <dt className="text-xs text-slate-500">{m.label}</dt>
@@ -742,46 +695,8 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     }}
                 />
             )}
-            {isAdmin && isLegacyStructure && (
-                <ProfileEditModal open={isEditingProfile} profile={facility as StructureProfile} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p as StructureProfile)} />
-            )}
-            {isAdmin && !isLegacyStructure && (
-                <FacilityFormModal
-                    open={isEditingProfile}
-                    mode="edit"
-                    initial={{ name: structureName, type: structureType, city, province, bio }}
-                    onClose={() => setIsEditingProfile(false)}
-                    onSubmit={handleSaveFacility}
-                />
-            )}
-
-            {/* MODAL ELIMINAZIONE ANNUNCIO */}
-            {announcementToDelete && (
-                <div className="fixed inset-0 bg-abisso/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-                        <div className="p-6 text-center">
-                            <div className="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Icon type="trash" className="w-8 h-8" />
-                            </div>
-                            <h3 className="text-xl font-bold text-abisso mb-2">Elimina l’annuncio</h3>
-                            <p className="text-slate-500 text-sm mb-6">Sei sicuro di voler eliminare definitivamente questa comunicazione dalla bacheca del team?</p>
-                            <div className="flex gap-3">
-                                <button 
-                                    onClick={() => setAnnouncementToDelete(null)} 
-                                    className="flex-1 font-bold text-slate-600 bg-slate-100 py-3 rounded-xl hover:bg-slate-200 transition outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                                >
-                                    Annulla
-                                </button>
-                                <button 
-                                    onClick={handleConfirmDeleteAnnouncement} 
-                                    className="flex-1 font-bold text-white bg-red-600 py-3 rounded-xl hover:bg-red-700 transition shadow-md outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                                >
-                                    Elimina
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {isOwner && (
+                <ProfileEditModal open={isEditingProfile} profile={facility} onClose={() => setIsEditingProfile(false)} onSaved={(p) => onUpdateProfile?.(p as StructureProfile)} />
             )}
 
             {/* MODAL CREA ANNUNCIO LAVORO */}

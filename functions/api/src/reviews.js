@@ -12,13 +12,11 @@ export function reviewActions({ find, get, create, update, remove, list, fail, n
   /** La struttura recensita e chi la gestisce. */
   const target = async (structureId) => {
     const profile = await find(C.profiles, structureId);
-    if (profile) {
-      if (profile.userType !== 'structure') fail(400, 'Si possono recensire solo le strutture.');
-      return { table: C.profiles, row: profile, managers: [profile.$id], name: profile.structureName || 'la struttura' };
-    }
-    const facility = await find(C.facilities, structureId);
-    if (!facility) fail(404, 'Struttura non trovata.');
-    return { table: C.facilities, row: facility, managers: facility.admins || [], name: facility.name || 'la struttura' };
+    if (!profile) fail(404, 'Struttura non trovata.');
+    if (profile.userType !== 'structure') fail(400, 'Si possono recensire solo le strutture.');
+    // Rispondono il titolare e i co-amministratori (nello staff).
+    const coAdmins = (profile.coAdmins || []).filter((id) => (profile.staff || []).includes(id));
+    return { table: C.profiles, row: profile, managers: [profile.$id, ...coAdmins], name: profile.structureName || 'la struttura' };
   };
 
   /** Ricalcola media e numero dalle recensioni pubblicate (affidabile anche dopo errori parziali). */

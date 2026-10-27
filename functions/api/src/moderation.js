@@ -69,11 +69,10 @@ export function moderationActions({ find, get, create, update, remove, list, lis
       await update(C.reviews, targetId, { status: 'hidden' });
       // media ricalcolata sulle sole recensioni pubblicate
       const published = await listAll(C.reviews, [Query.equal('structureId', review.structureId), Query.equal('status', 'published')]);
-      const table = (await find(C.profiles, review.structureId)) ? C.profiles : C.facilities;
-      await update(table, review.structureId, { ratingSum: published.reduce((s, r) => s + r.rating, 0), ratingCount: published.length });
+      await update(C.profiles, review.structureId, { ratingSum: published.reduce((s, r) => s + r.rating, 0), ratingCount: published.length });
       return review.authorId;
     }
-    return null; // profili e pagine: si sospende l'account
+    return null; // profili: si sospende l'account
   };
 
   const setSuspended = async (userId, suspended) => {
@@ -84,10 +83,10 @@ export function moderationActions({ find, get, create, update, remove, list, lis
   };
 
   const preview = async (targetType, targetId) => {
-    const table = { post: C.posts, comment: C.comments, job: C.jobs, review: C.reviews, profile: C.profiles, facility: C.facilities }[targetType];
+    const table = { post: C.posts, comment: C.comments, job: C.jobs, review: C.reviews, profile: C.profiles }[targetType];
     const row = table ? await find(table, targetId) : null;
     if (!row) return { exists: false };
-    const authorId = row.authorId || row.structureId || (targetType === 'profile' ? row.$id : (row.admins || [])[0]);
+    const authorId = row.authorId || row.structureId || (targetType === 'profile' ? row.$id : null);
     const author = authorId ? await find(C.profiles, authorId) : null;
     const text = row.content || row.title || row.bio || (targetType === 'profile' ? displayName(row) : row.name) || '';
     return { exists: true, authorId, authorName: author ? displayName(author) : '', suspended: !!author?.suspended, text: String(text).slice(0, 400), status: row.status };

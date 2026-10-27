@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { Facility, Job, StructureProfile } from '@/types/types';
+import type { Job, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { POOL_SETTINGS, jobRoleLabel } from '@/data/swimming';
 import { DAYS, formatDay, hasHours, openStatus, weekdayIndex } from '@/utils/openingHours';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { formatDate } from '@/utils/dates';
 
-type AnyStructure = StructureProfile | Facility;
-const isProfile = (f: AnyStructure): f is StructureProfile => 'userType' in f;
+type AnyStructure = StructureProfile;
+const isProfile = (f: AnyStructure): f is StructureProfile => !!f;
 
 /** Indirizzo completo, per le indicazioni stradali. */
 export const fullAddress = (f: AnyStructure) => {

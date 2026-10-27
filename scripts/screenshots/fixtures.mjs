@@ -82,7 +82,6 @@ const profiles = [
             cert('Brevetto Assistente Bagnanti', 'Società Nazionale di Salvamento', 'salvamento', new Date(now + 20 * 86400000).toISOString().slice(0, 10), { id: 'c_snsb', issueDate: '2023-11-14', verificationStatus: 'pending' }),
             cert('BLSD esecutore', 'IRC', 'Primo soccorso', '2026-03-01'),
         ],
-        managedFacilities: [],
     }, 60 * 24 * 90),
     doc('profiles', 'u_marco', {
         userId: 'u_marco', userType: 'professional', premiumUntil: new Date(now + 20 * 86400000).toISOString(), email: 'marco@example.com', firstName: 'Marco', lastName: 'Bellini',
@@ -269,7 +268,6 @@ export const collections = {
         doc('comments', 'c3', { postId: 'p1', authorId: 'u_marco', content: 'Ottima idea, la proviamo giovedì.', parentCommentId: 'c2' }, 8),
     ],
     applications,
-    facilities: [],
     live_rooms: [
         doc('live_rooms', 'r1', { title: 'Didattica in vasca piccola: giochi per i 4-5 anni', hostId: 'u_elena', status: 'active', speakers: ['u_elena', 'u_sara'], listeners: ['u_marco', 'u_luca'], startedAt: iso(15) }, 15),
     ],

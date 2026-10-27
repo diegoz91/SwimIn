@@ -24,7 +24,6 @@ export interface AppwriteConfig {
         messages: string;
         announcements?: string;
         shifts?: string;
-        facilities?: string;
         notifications?: string;
         live_rooms?: string;
         swim_meets?: string;
@@ -67,7 +66,6 @@ export const APPWRITE_CONFIG: AppwriteConfig = {
         messages: 'messages',
         announcements: 'announcements', 
         shifts: 'shifts',
-        facilities: 'facilities',
         notifications: 'notifications',
         live_rooms: 'live_rooms',
         swim_meets: 'swim_meets',

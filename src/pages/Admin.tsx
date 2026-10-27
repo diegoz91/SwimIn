@@ -25,10 +25,10 @@ const REASONS: Record<string, string> = {
     offerta_ingannevole: 'Offerta ingannevole',
     altro: 'Altro',
 };
-const TARGETS: Record<string, string> = { post: 'Post', comment: 'Commento', profile: 'Profilo', job: 'Annuncio', facility: 'Pagina', review: 'Recensione' };
+const TARGETS: Record<string, string> = { post: 'Post', comment: 'Commento', profile: 'Profilo', job: 'Annuncio', review: 'Recensione' };
 
 const targetLink = (r: AdminReport) =>
-    r.targetType === 'post' ? `/post/${r.targetId}` : r.targetType === 'profile' || r.targetType === 'facility' ? `/profile/${r.targetId}` : r.target.authorId ? `/profile/${r.target.authorId}` : null;
+    r.targetType === 'post' ? `/post/${r.targetId}` : r.targetType === 'profile' ? `/profile/${r.targetId}` : r.target.authorId ? `/profile/${r.target.authorId}` : null;
 
 /** Pannello amministratori: segnalazioni, utenti, errori. Ogni azione è verificata dal server. */
 const Admin: React.FC = () => {

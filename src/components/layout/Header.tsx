@@ -294,7 +294,7 @@ const Header: React.FC = () => {
                       )}
                     </>
                   )}
-                  {(user?.userType === 'structure' || ((user as { managedFacilities?: string[] } | null)?.managedFacilities || []).length > 0) && (
+                  {(user?.userType === 'structure' || (teams || []).some((t) => t.role === 'admin')) && (
                     <>
                       <Link to="/jobs/annunci" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
                         <Icon type="briefcase" className="w-5 h-5 text-slate-400" /> I miei annunci

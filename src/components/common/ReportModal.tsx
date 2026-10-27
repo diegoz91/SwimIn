@@ -17,7 +17,6 @@ const TARGET_LABEL: Record<ReportTarget, string> = {
     comment: 'il commento',
     profile: 'il profilo',
     job: "l'annuncio",
-    facility: 'la pagina',
     review: 'la recensione',
 };
 

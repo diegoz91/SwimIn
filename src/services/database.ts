@@ -30,7 +30,6 @@ import type {
     EnrichedPost,
     SquadAnnouncement,
     SquadShift,
-    Facility,
     AppNotification,
     LiveRoom,
     SwimMeet,
@@ -71,7 +70,6 @@ export interface GroupInput {
 
 const { databaseId, collections } = APPWRITE_CONFIG;
 
-const FACILITIES_COLLECTION = (collections as any).facilities || 'facilities_mock_id';
 const NOTIFICATIONS_COLLECTION = (collections as any).notifications || 'notifications_mock_id';
 const LIVE_ROOMS_COLLECTION = (collections as any).live_rooms || 'live_rooms_mock_id';
 const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_mock_id'; // 🟢 NUOVA COSTANTE
@@ -83,7 +81,7 @@ export type ConnectionStatus =
     | { state: 'sent' }
     | { state: 'received'; connectionId: string }
     | { state: 'connected' };
-export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'facility' | 'review';
+export type ReportTarget = 'post' | 'comment' | 'profile' | 'job' | 'review';
 export type ReportReason = 'spam' | 'molestie' | 'contenuto_inappropriato' | 'falso_profilo' | 'offerta_ingannevole' | 'altro';
 
 const profileDisplayName = (p: Profile) =>
@@ -271,12 +269,16 @@ export interface PublicProfile {
 export interface TeamMember {
     $id: string; userId: string; firstName: string; lastName: string; title: string; avatar: string; city: string;
     isOnline: boolean; certificationsList: string[];
+    /** Co-amministratore della struttura (scelto dal titolare). */
+    coAdmin?: boolean;
 }
 export interface StaffInvite { structureId: string; name: string; logo: string; city: string; invitedAt: string }
 export interface MyTeam { structureId: string; name: string; logo: string; city: string; role: 'admin' | 'staff' }
 export interface PendingStaffInvite { userId: string; name: string; avatar: string; title: string; invitedAt: string }
 export interface TeamBoard {
     role: 'admin' | 'staff';
+    /** Chi guarda è il titolare dell'account Struttura (sceglie i co-amministratori). */
+    isOwner?: boolean;
     /** Solo per gli amministratori: inviti nello staff in attesa di risposta. */
     invites?: PendingStaffInvite[];
     /** Solo per gli amministratori: persone massime nello staff con il piano Base (null = senza limiti). */
@@ -1165,27 +1167,14 @@ export const databaseService = {
         return await callApi<Review>('replyReview', { reviewId, reply });
     },
 
-    /** Strutture (profili Struttura e pagine struttura), filtrabili per provincia e nome. */
+    /** Strutture (account Struttura), filtrabili per provincia e nome. */
     async getStructuresDirectory(opts: { province?: string; search?: string } = {}) {
         const term = (opts.search || '').trim();
         const profileQ = [Query.equal('userType', 'structure'), Query.limit(100)];
-        const facilityQ = [Query.limit(100)];
-        if (opts.province) {
-            profileQ.push(Query.equal('province', opts.province));
-            facilityQ.push(Query.equal('province', opts.province));
-        }
-        if (term.length >= 2) {
-            profileQ.push(Query.or([Query.contains('structureName', term), Query.contains('city', term)]));
-            facilityQ.push(Query.or([Query.contains('name', term), Query.contains('city', term)]));
-        }
-        const [profiles, facilities] = await Promise.all([
-            databases.listDocuments<StructureProfile>(databaseId, collections.profiles, profileQ),
-            databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, facilityQ).catch((e) => {
-                console.warn('Pagine struttura non disponibili:', e);
-                return { documents: [] as Facility[] };
-            }),
-        ]);
-        return { profiles: profiles.documents, facilities: facilities.documents };
+        if (opts.province) profileQ.push(Query.equal('province', opts.province));
+        if (term.length >= 2) profileQ.push(Query.or([Query.contains('structureName', term), Query.contains('city', term)]));
+        const profiles = await databases.listDocuments<StructureProfile>(databaseId, collections.profiles, profileQ);
+        return { profiles: profiles.documents };
     },
 
     /**
@@ -1256,37 +1245,20 @@ export const databaseService = {
      */
     async searchNetwork(searchQuery: string, currentUserId: string) {
         const term = (searchQuery || '').trim().split(/\s+/).sort((a, b) => b.length - a.length)[0] || '';
-        if (term.length < 2) return { profiles: [] as Profile[], facilities: [] as Facility[] };
+        if (term.length < 2) return { profiles: [] as Profile[] };
 
-        const [profRes, facRes] = await Promise.all([
-            databases.listDocuments<Profile>(databaseId, collections.profiles, [
-                Query.or([
-                    Query.contains('firstName', term),
-                    Query.contains('lastName', term),
-                    Query.contains('structureName', term),
-                    Query.contains('title', term),
-                    Query.contains('structureType', term),
-                    Query.contains('city', term),
-                ]),
-                Query.limit(30),
+        const profRes = await databases.listDocuments<Profile>(databaseId, collections.profiles, [
+            Query.or([
+                Query.contains('firstName', term),
+                Query.contains('lastName', term),
+                Query.contains('structureName', term),
+                Query.contains('title', term),
+                Query.contains('structureType', term),
+                Query.contains('city', term),
             ]),
-            databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, [
-                Query.or([
-                    Query.contains('name', term),
-                    Query.contains('type', term),
-                    Query.contains('city', term),
-                ]),
-                Query.limit(20),
-            ]).catch((error) => {
-                console.warn('Ricerca strutture non disponibile:', error);
-                return { documents: [] as Facility[] };
-            }),
+            Query.limit(30),
         ]);
-
-        return {
-            profiles: profRes.documents.filter(p => p.$id !== currentUserId && p.userId !== currentUserId),
-            facilities: facRes.documents,
-        };
+        return { profiles: profRes.documents.filter((p) => p.$id !== currentUserId && p.userId !== currentUserId) };
     },
 
     /** Post che contengono il termine (ricerca globale). */
@@ -1451,50 +1423,11 @@ export const databaseService = {
     },
 
     // ==========================================
-    // 🏢 FACILITIES
+    // 🏢 STRUTTURE
     // ==========================================
-    async getFacility(facilityId: string) {
-        try {
-            return await databases.getDocument<Facility>(databaseId, FACILITIES_COLLECTION, facilityId);
-        } catch (e) {
-            return null;
-        }
-    },
-
-    /** Nuova pagina struttura: la crea il server, con chi chiama come amministratore. */
-    async createFacility(data: Partial<Facility>, _adminId?: string) {
-        return await callApi<Facility>('createFacility', data as Record<string, unknown>);
-    },
-
-    async updateFacility(facilityId: string, data: Partial<Facility>) {
-        const clean: Record<string, unknown> = { ...data };
-        for (const k of Object.keys(clean)) if (k.startsWith('$')) delete clean[k];
-        return await callApi<Facility>('updateFacility', { ...clean, facilityId });
-    },
-
-    async getManagedFacilities(adminId: string) {
-        try {
-            const userProfile = await this.getProfile(adminId) as UserProfile;
-            const facilityIds = userProfile.managedFacilities || [];
-            
-            if (facilityIds.length === 0) return [];
-
-            const res = await databases.listDocuments<Facility>(databaseId, FACILITIES_COLLECTION, [
-                Query.equal('$id', facilityIds),
-                Query.orderDesc('$createdAt')
-            ]);
-            return res.documents;
-        } catch(e) { return []; }
-    },
-
-    async toggleFollowFacility(facilityId: string, _userId: string) {
-        try {
-            const { following } = await callApi<{ following: boolean }>('toggleFollowFacility', { facilityId });
-            return following;
-        } catch(e) { 
-            console.error('toggleFollowFacility:', e);
-            return null; 
-        }
+    /** Il titolare di una struttura nomina o toglie un co-amministratore (scelto dallo staff). */
+    async setCoAdmin(structureId: string, userId: string, admin: boolean) {
+        return await callApi<{ coAdmins: string[] }>('setCoAdmin', { structureId, userId, admin });
     },
 
     /** Assunzione: il candidato entra nello staff. Lancia l'errore del server (es. limite staff del piano Base). */

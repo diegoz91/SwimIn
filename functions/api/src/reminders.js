@@ -25,8 +25,8 @@ export function reminderActions({ find, listAll, update, notify, C, Query, displ
   const names = new Map();
   const structureName = async (id) => {
     if (names.has(id)) return names.get(id);
-    const p = (await find(C.profiles, id)) || (await find(C.facilities, id));
-    const name = p ? p.structureName || p.name || displayName(p) : 'la struttura';
+    const p = await find(C.profiles, id);
+    const name = p ? p.structureName || displayName(p) : 'la struttura';
     names.set(id, name);
     return name;
   };

@@ -102,13 +102,11 @@ assert.deepEqual(await api.hireCandidate('piscina',{applicationId:app.$id}),{hir
 assert.equal(col('jobs').j1.isActive,false); assert.ok(col('profiles').piscina.connections.includes('anna'));
 await rejects(api.applyForJob('bob',{jobId:'j1'}),409);
 
-// Facility, live, meet
-col('facilities').f1={$id:'f1',name:'Centro',followers:[],staff:[],admins:['eve']};
-assert.deepEqual(await api.toggleFollowFacility('bob',{facilityId:'f1'}),{following:true});
-assert.deepEqual(await api.toggleFollowFacility('bob',{facilityId:'f1'}),{following:false});
+// Struttura gestita anche da un co-amministratore (eve), live, meet
+P('f1',{userType:'structure',structureName:'Centro',staff:['eve'],coAdmins:['eve']});
 col('jobs').j2={$id:'j2',structureId:'f1',title:'Istruttore',isActive:true,$permissions:['update("user:eve")']};
 const a2=await api.applyForJob('bob',{jobId:'j2'}); assert.ok(a2.$permissions.includes('read("user:eve")'));
-await api.hireCandidate('eve',{applicationId:a2.$id}); assert.deepEqual(col('facilities').f1.staff,['bob']);
+await api.hireCandidate('eve',{applicationId:a2.$id}); assert.deepEqual(col('profiles').f1.staff,['eve','bob']);
 
 // Area staff: solo amministratori e staff, non i semplici collegamenti
 assert.deepEqual(col('profiles').piscina.staff,['anna']);
@@ -138,7 +136,7 @@ assert.deepEqual(col('profiles').piscina.staff,[]); assert.equal(Object.keys(col
 await rejects(api.getTeamBoard('anna',{structureId:'piscina'}),403);
 await rejects(api.removeStaffMember('anna',{structureId:'f1',staffId:'bob'}),403);
 assert.deepEqual(await api.removeStaffMember('eve',{structureId:'f1',staffId:'bob'}),{removed:true});
-col('facilities').f1.staff=['bob'];
+col('profiles').f1.staff=['eve','bob'];
 col('live_rooms').r1={$id:'r1',hostId:'eve',status:'active',speakers:['eve'],listeners:[]};
 let r=await api.joinLiveRoom('bob',{roomId:'r1',role:'speaker'}); assert.deepEqual(r.speakers,['eve']); assert.deepEqual(r.listeners,['bob']);
 r=await api.leaveLiveRoom('bob',{roomId:'r1'}); assert.deepEqual(r.listeners,[]);
@@ -312,13 +310,21 @@ assert.deepEqual((await api.updateMyProfile('zoe',{availability:['lun-sera','xx'
 await api.setPresence('zoe',{isOnline:false,typingTo:'anna'}); assert.equal(col('profiles').zoe.isOnline,false); assert.equal(col('profiles').zoe.typingTo,undefined); // non più sul profilo pubblico
 assert.deepEqual([col('typing').zoe.targetId,col('typing').zoe.$permissions],['anna',['read("user:anna")']]);
 await api.setPresence('zoe',{typingTo:null}); assert.equal(col('typing').zoe,undefined);
-// Pagine struttura
-await rejects(api.createFacility('piscina',{name:'Doppia',city:'Milano',province:'MI'}),403);
-const fac=await api.createFacility('zoe',{name:'Piscina Zoe',city:'Milano',province:'MI'});
-assert.deepEqual(fac.admins,['zoe']); assert.ok(col('profiles').zoe.managedFacilities.includes(fac.$id));
-await rejects(api.updateFacility('anna',{facilityId:fac.$id,name:'Mia'}),403);
-assert.equal((await api.updateFacility('zoe',{facilityId:fac.$id,name:'Piscina Zoe 2',admins:['anna']})).name,'Piscina Zoe 2');
-assert.deepEqual(col('facilities')[fac.$id].admins,['zoe']);
+// Co-amministratori: li sceglie solo il titolare, tra lo staff
+await rejects(api.setCoAdmin('eve',{structureId:'f1',userId:'bob',admin:true}),403);
+await rejects(api.setCoAdmin('f1',{structureId:'f1',userId:'zoe',admin:true}),400);
+assert.deepEqual((await api.setCoAdmin('f1',{structureId:'f1',userId:'bob',admin:true})).coAdmins,['eve','bob']);
+assert.ok(notifs('bob').some(n=>n.content.includes('co-amministratore')));
+const coJob=await api.createJob('bob',{structureId:'f1',title:'Assistente bagnanti',description:'Turni serali in vasca grande, brevetto richiesto.',role:'assistente',city:'Milano'});
+assert.equal(coJob.structureName,'Centro');
+await rejects(api.createJob('zoe',{structureId:'f1',title:'Finto',description:'Annuncio non autorizzato per la struttura.',role:'x',city:'Milano'}),403);
+for (const j of Object.values(col('jobs'))) j.$createdAt ??= new Date(0).toISOString(); // il finto DB non lo mette
+assert.ok((await api.listStructureJobs('bob',{structureId:'f1'})).some(j=>j.$id===coJob.$id));
+await rejects(api.removeStaffMember('eve',{structureId:'f1',staffId:'bob'}),403); // un co-amministratore lo toglie solo il titolare
+assert.deepEqual((await api.setCoAdmin('f1',{structureId:'f1',userId:'bob',admin:false})).coAdmins,['eve']);
+await rejects(api.createJob('bob',{structureId:'f1',title:'Ancora',description:'Non più co-amministratore della struttura.',role:'x',city:'Milano'}),403);
+assert.equal((await api.listMyTeams('eve')).find(t=>t.structureId==='f1').role,'admin');
+assert.equal((await api.listMyTeams('bob')).find(t=>t.structureId==='f1').role,'staff');
 }
 
 // Recensioni delle strutture
@@ -337,10 +343,9 @@ await rejects(api.replyReview('bob',{reviewId:r1.review.$id,reply:'Grazie'}),403
 assert.equal((await api.replyReview('piscina',{reviewId:r1.review.$id,reply:'Grazie, stiamo rinnovando gli spogliatoi.'})).reply,'Grazie, stiamo rinnovando gli spogliatoi.');
 await rejects(api.deleteReview('bob',{reviewId:r1.review.$id}),403);
 assert.equal((await api.deleteReview('anna',{reviewId:r1.review.$id})).ratingCount,1);
-// pagina struttura: chi la amministra non può recensirla
-col('facilities').fr={$id:'fr',name:'Centro Rev',admins:['eve'],staff:[],followers:[]};
-await rejects(api.upsertReview('eve',{structureId:'fr',rating:5,content:'La mia piscina è la migliore di tutte, venite!'}),403);
-assert.equal((await api.upsertReview('anna',{structureId:'fr',rating:3,content:'Nella media, vasca un po\' affollata la sera.'})).ratingCount,1);
+// struttura: chi la co-amministra non può recensirla
+await rejects(api.upsertReview('eve',{structureId:'f1',rating:5,content:'La mia piscina è la migliore di tutte, venite!'}),403);
+assert.equal((await api.upsertReview('anna',{structureId:'f1',rating:3,content:'Nella media, vasca un po\' affollata la sera.'})).ratingCount,1);
 }
 
 // Blocco, silenziamento e moderazione
@@ -421,8 +426,7 @@ col('posts').pa={$id:'pa',authorId:'anna',likesCount:0,commentsCount:0,media:[JS
 await api.toggleLike('bob',{postId:'pa'});
 // anna ha già consigliato p3 più sopra
 const likesP3=col('posts').p3.likesCount;
-col('facilities').fa={$id:'fa',name:'Sola',admins:['anna'],staff:[],followers:[]};
-col('facilities').f1.followers=['anna','bob'];
+col('profiles').f1.staff=[...col('profiles').f1.staff,'anna']; col('profiles').f1.coAdmins=['eve','anna'];
 col('swim_meets').sa={$id:'sa',creatorId:'anna',status:'upcoming',participants:['anna','bob']};
 await rejects(api.deleteAccount('anna',{confirmation:'si'}),400);
 assert.deepEqual(await api.deleteAccount('anna',{confirmation:'ELIMINA'}),{deleted:true});
@@ -434,8 +438,7 @@ assert.equal(col('posts').p3.likesCount,likesP3-1);
 assert.equal(Object.values(col('comments')).filter(c=>c.authorId==='anna').length,0);
 assert.deepEqual(col('profiles').bob.connections,['eve']);
 assert.equal(Object.values(col('applications')).filter(a=>a.applicantId==='anna').length,0);
-assert.equal(col('facilities').fa,undefined);
-assert.deepEqual(col('facilities').f1.followers,['bob']);
+assert.ok(!col('profiles').f1.staff.includes('anna')); assert.deepEqual(col('profiles').f1.coAdmins,['eve']);
 assert.equal(col('swim_meets').sa.status,'cancelled');
 assert.equal(notifs('anna').length,0);
 assert.ok(deletedFiles.includes('avatarAnna') && deletedFiles.includes('fotoAnna'));

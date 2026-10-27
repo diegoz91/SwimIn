@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PageLoader } from '@/components/common/PageLoader';
 import { PostCard } from '@/features/feed/components/PostCard';
 import { initialsAvatar } from '@/utils/avatar';
-import type { EnrichedPost, Facility, Group, Job, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
+import type { EnrichedPost, Group, Job, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
 import { EventCard } from '@/features/events/EventCard';
 import { groupCategoryLabel } from '@/data/groups';
 import { jobDisplayTitle } from '@/utils/jobs';
@@ -18,7 +18,7 @@ type Tab = 'tutti' | 'persone' | 'strutture' | 'offerte' | 'gruppi' | 'eventi' |
 
 interface Results {
     people: UserProfile[];
-    structures: (StructureProfile | Facility)[];
+    structures: StructureProfile[];
     jobs: Job[];
     groups: Group[];
     events: SwimMeet[];
@@ -28,12 +28,8 @@ interface Results {
 
 const EMPTY: Results = { people: [], structures: [], jobs: [], groups: [], events: [], hashtags: [], posts: [] };
 
-const nameOf = (p: UserProfile | StructureProfile | Facility) =>
-    'userType' in p
-        ? p.userType === 'professional'
-            ? `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Utente'
-            : p.structureName || 'Struttura'
-        : p.name;
+const nameOf = (p: UserProfile | StructureProfile) =>
+    p.userType === 'professional' ? `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Utente' : p.structureName || 'Struttura';
 
 const ResultRow: React.FC<{ to: string; image: string; title: string; subtitle?: string; square?: boolean }> = ({ to, image, title, subtitle, square }) => (
     <li>
@@ -113,10 +109,10 @@ const Search: React.FC = () => {
             databaseService.searchHashtags(q),
         ]).then(([network, jobs, posts, groups, events, hashtags]) => {
             if (cancelled) return;
-            const net = network.status === 'fulfilled' ? network.value : { profiles: [], facilities: [] };
+            const net = network.status === 'fulfilled' ? network.value : { profiles: [] };
             setResults({
                 people: net.profiles.filter((p): p is UserProfile => p.userType === 'professional' && !blocks.isHidden(p.userId || p.$id)),
-                structures: [...net.profiles.filter((p): p is StructureProfile => p.userType === 'structure'), ...net.facilities],
+                structures: net.profiles.filter((p): p is StructureProfile => p.userType === 'structure'),
                 jobs: jobs.status === 'fulfilled' ? jobs.value : [],
                 posts: posts.status === 'fulfilled' ? posts.value.filter((p) => !blocks.isHidden(p.authorId)) : [],
                 groups: groups.status === 'fulfilled' ? groups.value : [],

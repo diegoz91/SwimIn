@@ -104,7 +104,6 @@ export interface UserProfile extends BaseProfile {
   experienceList?: string[];
   certificationsList?: string[];
   availableForEmergencies?: boolean;
-  managedFacilities?: string[]; 
   /** Competenze dichiarate, confermabili dai collegamenti. */
   skills?: string[];
   languages?: string[];
@@ -121,6 +120,8 @@ export interface StructureProfile extends BaseProfile {
   structureName?: string;
   /** Membri dello staff (assunti o aggiunti): accedono all'area staff. Scritto dal server. */
   staff?: string[];
+  /** Co-amministratori scelti dallo staff dal titolare: gestiscono annunci, candidati, staff e turni. Scritto dal server. */
+  coAdmins?: string[];
   structureType?: string;
   logo?: string;
   address?: string;
@@ -360,24 +361,6 @@ export interface SquadShift extends AppwriteDocument {
   seriesId?: string | null;
   /** Promemoria della sera prima già inviato (lo scrive la Function). */
   reminderSentAt?: string | null;
-}
-
-// ----------------------------------------------------
-// 7. FACILITIES
-// ----------------------------------------------------
-export interface Facility extends AppwriteDocument {
-  name: string;
-  type?: string;
-  city: string;
-  province?: string;
-  bio?: string;
-  logo?: string;
-  cover?: string;
-  admins: string[];     
-  staff: string[];      
-  followers: string[];  
-  ratingSum?: number;
-  ratingCount?: number;
 }
 
 // ----------------------------------------------------

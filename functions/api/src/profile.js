@@ -398,38 +398,5 @@ export function profileActions({ find, get, create, update, remove = async () =>
       }
       return { ok: true };
     },
-
-    /** Pagina struttura gestita da un professionista: l'admin è chi la crea. */
-    async createFacility(me, data = {}) {
-      const profile = await get(C.profiles, me);
-      if (profile.userType !== 'professional') fail(403, 'Le strutture hanno già il proprio profilo.');
-      if ((profile.managedFacilities || []).length >= 10) fail(409, 'Puoi gestire al massimo 10 pagine.');
-      const name = take(validators.text(data.name, 'Nome della struttura', { min: 2, max: 120, required: true }));
-      const type = take(validators.text(data.type, 'Tipo', { max: 80 }));
-      const loc = take(validators.location(data.city, data.province));
-      const facility = await create(
-        C.facilities,
-        { name, type, city: loc.city, province: loc.province, bio: '', admins: [me], staff: [], followers: [] },
-        [Permission.read(Role.users())]
-      );
-      await update(C.profiles, me, { managedFacilities: [...(profile.managedFacilities || []), facility.$id] });
-      return facility;
-    },
-
-    async updateFacility(me, { facilityId, ...data } = {}) {
-      if (typeof facilityId !== 'string' || !facilityId) fail(400, 'Parametro mancante: facilityId');
-      const facility = await get(C.facilities, facilityId);
-      if (!(facility.admins || []).includes(me)) fail(403, 'Non sei amministratore di questa pagina.');
-      const has = (k) => Object.prototype.hasOwnProperty.call(data, k);
-      const out = {};
-      if (has('name')) out.name = take(validators.text(data.name, 'Nome della struttura', { min: 2, max: 120, required: true }));
-      if (has('type')) out.type = take(validators.text(data.type, 'Tipo', { max: 80 }));
-      if (has('bio')) out.bio = take(validators.longText(data.bio, 'Presentazione', 2500));
-      if (has('city') || has('province')) Object.assign(out, take(validators.location(has('city') ? data.city : facility.city, has('province') ? data.province : facility.province)));
-      if (has('logo')) out.logo = storageUrl(data.logo, 'Logo');
-      if (has('cover')) out.cover = storageUrl(data.cover, 'Copertina');
-      if (!Object.keys(out).length) return facility;
-      return update(C.facilities, facilityId, out);
-    },
   };
 }

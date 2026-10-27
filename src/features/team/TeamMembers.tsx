@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, databaseService, type PendingStaffInvite, type TeamMember } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { Icon } from '@/components/ui/Icon';
 import { FormModal } from '@/components/form/FormModal';
 import { avatarOf, displayNameOf } from '@/utils/profile';
@@ -24,6 +25,8 @@ interface Props {
     structureId: string;
     structureName: string;
     isAdmin: boolean;
+    /** Titolare dell'account Struttura: nomina e toglie i co-amministratori. */
+    isOwner?: boolean;
     currentUserId?: string;
     members: TeamMember[];
     invites: PendingStaffInvite[];
@@ -37,8 +40,30 @@ interface Props {
  * Squadra: le persone dello staff, visibili a tutto il team. Gli amministratori invitano
  * chi lavora già in struttura, vedono gli inviti in attesa e le scadenze dei brevetti.
  */
-export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdmin, currentUserId, members, invites, staffLimit, loading, onRemove, onChanged }) => {
+export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdmin, isOwner = false, currentUserId, members, invites, staffLimit, loading, onRemove, onChanged }) => {
     const { showToast } = useToast();
+    const confirm = useConfirm();
+    const [coBusy, setCoBusy] = useState<string | null>(null);
+    const coAdmins = members.filter((m) => m.coAdmin).length;
+
+    const toggleCoAdmin = async (m: TeamMember, name: string) => {
+        const next = !m.coAdmin;
+        if (next && !(await confirm({
+            title: `Nominare ${name} co-amministratore?`,
+            message: 'Potrà pubblicare e gestire gli annunci, valutare i candidati, invitare nello staff e organizzare turni e bacheca. Il profilo della struttura resta modificabile solo da te.',
+            confirmLabel: 'Nomina',
+        }))) return;
+        setCoBusy(m.userId);
+        try {
+            await databaseService.setCoAdmin(structureId, m.userId, next);
+            showToast(next ? `${name} ora è co-amministratore.` : `${name} non è più co-amministratore: resta nello staff.`, 'success');
+            onChanged();
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Operazione non riuscita.', 'error');
+        } finally {
+            setCoBusy(null);
+        }
+    };
     const [inviting, setInviting] = useState(false);
     const used = members.length + invites.length;
 
@@ -122,6 +147,7 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                                     </div>
                                     <div className="min-w-0">
                                         <Link to={`/profile/${m.userId}`} className="font-semibold text-abisso hover:underline">{name}{m.userId === currentUserId && <span className="ml-1 text-xs font-normal text-slate-500">(tu)</span>}</Link>
+                                        {m.coAdmin && <span className="ml-2 align-middle text-xs font-semibold px-2 py-0.5 rounded-full bg-corsia-50 text-corsia-800 border border-corsia-200">Co-amministratore</span>}
                                         <p className="text-sm text-slate-500 truncate">{m.title || 'Professionista'}</p>
                                     </div>
                                 </div>
@@ -141,13 +167,25 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                                         )}
                                     </div>
                                 )}
-                                <div className="flex items-center gap-1 sm:justify-end">
+                                <div className="flex flex-wrap items-center gap-1 sm:justify-end">
                                     {m.userId !== currentUserId && (
                                         <Link to={`/messages?u=${encodeURIComponent(m.userId)}`} className="w-9 h-9 rounded-full grid place-items-center text-corsia-700 hover:bg-corsia-50" aria-label={`Scrivi a ${name}`}>
                                             <Icon type="chat-bubble" className="w-5 h-5" />
                                         </Link>
                                     )}
-                                    {isAdmin && (
+                                    {isOwner && (
+                                        <button
+                                            type="button"
+                                            disabled={coBusy === m.userId || (!m.coAdmin && coAdmins >= 5)}
+                                            onClick={() => toggleCoAdmin(m, name)}
+                                            aria-pressed={!!m.coAdmin}
+                                            title={!m.coAdmin && coAdmins >= 5 ? 'Al massimo 5 co-amministratori' : undefined}
+                                            className="px-3 py-1.5 rounded-full text-sm font-semibold text-corsia-700 hover:bg-corsia-50 disabled:opacity-50"
+                                        >
+                                            {m.coAdmin ? 'Togli da co-amministratore' : 'Rendi co-amministratore'}
+                                        </button>
+                                    )}
+                                    {isAdmin && (isOwner || !m.coAdmin) && (
                                         <button onClick={() => onRemove(m.userId)} className="w-9 h-9 rounded-full grid place-items-center text-slate-500 hover:text-galleggiante-700 hover:bg-red-50" aria-label={`Togli ${name} dallo staff`}>
                                             <Icon type="user-minus" className="w-5 h-5" />
                                         </button>
