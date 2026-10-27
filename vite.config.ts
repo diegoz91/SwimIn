@@ -58,13 +58,16 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    minify: 'esbuild',
+    // Vite 8 (Rolldown): minificazione con Oxc e CSS con Lightning CSS, i predefiniti.
     sourcemap: false,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          appwrite: ['appwrite'],
+        // Librerie che cambiano di rado in pezzi a parte: restano nella cache del browser tra un rilascio e l'altro.
+        codeSplitting: {
+          groups: [
+            { name: 'vendor', test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|@remix-run[\\/]router|scheduler)[\\/]/, priority: 20 },
+            { name: 'appwrite', test: /[\\/]node_modules[\\/]appwrite[\\/]/, priority: 10 },
+          ],
         },
       },
     },

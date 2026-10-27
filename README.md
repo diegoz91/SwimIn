@@ -136,7 +136,7 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
   Vercel /api:  /u/:id e /offerte/:id (anteprime e dati strutturati), sitemap, robots, /api/health
 ```
 
-- **Frontend**: React 19, TypeScript strict, Vite 6, React Router 6, Tailwind 3.4. Ogni pagina si carica a parte (`lazyPage`, che ricarica una volta se dopo un rilascio un pezzo non esiste più).
+- **Frontend**: React 19, TypeScript strict, Vite 8 (Rolldown), React Router 6, Tailwind 3.4. Ogni pagina si carica a parte (`lazyPage`, che ricarica una volta se dopo un rilascio un pezzo non esiste più).
 - **Backend**: Appwrite Cloud, con l'API TablesDB (1.8+). `setup-db.js` è la **fonte di verità** dello schema: tabelle, colonne, indici, permessi e bucket. Crea e aggiorna tutto, e cancella ciò che non è più nello schema.
 - **Function `api`** (`functions/api/`): l'unica via per le operazioni che riguardano altri utenti o che devono garantire l'autore (post, collegamenti, messaggi, candidature, turni, pagamenti…). Ogni modulo ha i suoi test.
 - **Tempo reale**:
@@ -196,7 +196,7 @@ La mappa completa di dati, accessi, protezione e tempi di conservazione per ogni
 
 | Workflow | Quando | Cosa fa |
 |---|---|---|
-| **CI** | ogni PR | sincronizza `package-lock.json`, `npm audit`, type-check, test del frontend (Vitest), build, test della Function |
+| **CI** | ogni PR | sincronizza `package-lock.json`, `npm audit`, type-check, test del frontend (Vitest 5), build, test della Function |
 | **Schermate** | ogni PR | quasi 500 schermate in 6 formati (360 → 1440 px, anche tema scuro) sul branch `ci-screenshots/<branch>`; controllo del layout (niente scorrimento orizzontale, aree di tocco ≥ 24 px), **accessibilità** axe-core WCAG 2.1 AA, **45 percorsi end-to-end** con Playwright, LCP/CLS della landing e budget del bundle |
 | **Deploy Appwrite** | push su `main` | schema, migrazioni, pulizia, variabili e deploy della Function con verifica della versione attiva |
 | **Prova reale** | dopo il deploy | percorsi veri su Appwrite con account di prova |
