@@ -1,10 +1,42 @@
-@import './design-system.css';
+@import './design-system.css' layer(base);
 @import './components.css';
 @import './responsive.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@config '../../tailwind.config.js';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility lane-rope {
+  /*
+   * Il "galleggiante": la corda divisoria tra le corsie, a segmenti alternati.
+   * È l'elemento distintivo del brand: compare sotto l'header e nei momenti chiave.
+   */
+  height: 4px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-corsia-600) 0 18px,
+    var(--color-cloro-400) 18px 36px,
+    #ffffff 36px 40px
+  );
+}
 
 @layer base {
   * {
@@ -39,7 +71,7 @@
   }
 
   :focus-visible {
-    outline-color: theme('colors.corsia.500');
+    outline-color: var(--color-corsia-500);
   }
 
   /* Numeri senza le freccette del browser: i valori si scrivono. */
@@ -75,21 +107,5 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
-  }
-}
-
-@layer components {
-  /*
-   * Il "galleggiante": la corda divisoria tra le corsie, a segmenti alternati.
-   * È l'elemento distintivo del brand: compare sotto l'header e nei momenti chiave.
-   */
-  .lane-rope {
-    height: 4px;
-    background-image: repeating-linear-gradient(
-      90deg,
-      theme('colors.corsia.600') 0 18px,
-      theme('colors.cloro.400') 18px 36px,
-      #ffffff 36px 40px
-    );
   }
 }
