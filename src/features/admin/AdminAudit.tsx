@@ -37,6 +37,16 @@ const OUTCOME: Record<AuditRow['outcome'], { label: string; cls: string }> = {
     error: { label: 'Errore', cls: 'bg-slate-100 text-slate-700 border-slate-200' },
 };
 
+/** Parametri registrati come testo leggibile ("query: rossi"). */
+const metaText = (meta: string) => {
+    if (!meta) return '';
+    try {
+        return Object.entries(JSON.parse(meta) as Record<string, unknown>).map(([k, v]) => `${k}: ${String(v)}`).join(', ');
+    } catch {
+        return meta;
+    }
+};
+
 const TARGET: Record<string, string> = { user: 'utente', profile: 'profilo', report: 'segnalazione', hold: 'conservazione', application: 'candidatura', feedback: 'suggerimento', cert: 'brevetto', job: 'annuncio', subject: 'oggetto' };
 
 /**
@@ -95,7 +105,7 @@ export const AdminAudit: React.FC = () => {
                             </div>
                             {(r.targetId || r.reason || r.meta) && (
                                 <p className="mt-1 text-xs text-slate-500 break-all">
-                                    {[r.targetId && `${TARGET[r.targetType] || r.targetType || 'elemento'} ${r.targetId}`, r.reason && `motivo: ${r.reason}`, r.meta].filter(Boolean).join(' · ')}
+                                    {[r.targetId && `${TARGET[r.targetType] || r.targetType || 'elemento'} ${r.targetId}`, r.reason && `motivo: ${r.reason}`, metaText(r.meta)].filter(Boolean).join(' · ')}
                                 </p>
                             )}
                         </li>
