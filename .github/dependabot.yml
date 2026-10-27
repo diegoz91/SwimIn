@@ -11,6 +11,10 @@ updates:
     groups:
       dipendenze:
         update-types: [minor, patch]
+    ignore:
+      # I tipi di Node seguono la versione usata in produzione e in CI (22, vedi "engines").
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /functions/api
     schedule:

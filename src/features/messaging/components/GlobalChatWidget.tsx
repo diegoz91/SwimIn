@@ -196,7 +196,7 @@ export const GlobalChatWidget: React.FC = () => {
           {totalUnread > 0 && !isOpen && (
              <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{totalUnread}</span>
           )}
-          <Icon type={(isOpen ? 'chevron-down' : 'chevron-up') as any} className="w-5 h-5" />
+          <Icon type="chevron-right" className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-90' : '-rotate-90'}`} aria-hidden="true" />
         </div>
       </div>
 

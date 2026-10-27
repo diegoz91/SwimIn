@@ -19,7 +19,7 @@ export const useIsSheet = () => {
 
 interface PopoverProps {
     open: boolean;
-    anchorRef: React.RefObject<HTMLElement>;
+    anchorRef: React.RefObject<HTMLElement | null>;
     onClose: () => void;
     /** Titolo mostrato nel foglio su mobile. */
     title: string;

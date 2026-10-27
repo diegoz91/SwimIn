@@ -71,9 +71,9 @@ export interface GroupInput {
 
 const { databaseId, collections } = APPWRITE_CONFIG;
 
-const NOTIFICATIONS_COLLECTION = (collections as any).notifications || 'notifications_mock_id';
-const LIVE_ROOMS_COLLECTION = (collections as any).live_rooms || 'live_rooms_mock_id';
-const SWIM_MEETS_COLLECTION = (collections as any).swim_meets || 'swim_meets_mock_id'; // 🟢 NUOVA COSTANTE
+const NOTIFICATIONS_COLLECTION = collections.notifications;
+const LIVE_ROOMS_COLLECTION = collections.live_rooms;
+const SWIM_MEETS_COLLECTION = collections.swim_meets;
 
 type Profile = UserProfile | StructureProfile;
 
