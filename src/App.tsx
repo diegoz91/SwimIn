@@ -9,6 +9,7 @@ import { SavedProvider } from '@/context/SavedContext';
 import { BlocksProvider, useBlocks } from '@/context/BlocksContext';
 import { AppStatusProvider, useAppStatus } from '@/hooks/useAppStatus';
 import { MAINTENANCE_OPEN_PATHS, MaintenanceScreen, OutageScreen, StatusBanner } from '@/components/common/ServiceStatus';
+import { FeedbackHost } from '@/features/feedback/Feedback';
 import { ErrorReporter } from '@/components/common/ErrorReporter';
 import { PushBridge } from '@/components/common/PushBridge';
 import { PremiumPrompt } from '@/features/premium/PremiumPrompt';
@@ -144,6 +145,7 @@ const AppContent: React.FC = () => {
       <PushBridge />
       <PremiumPrompt />
       <StatusBanner isAdmin={isAdmin} />
+      {authenticated && <FeedbackHost />}
       {showChrome && <Header />}
 
       <ScrollRoot enabled={showChrome}>

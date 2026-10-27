@@ -440,6 +440,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['rallentamenti', '/', { loggedIn: true, appStatus: degraded }],
         ['admin-stato', '/admin?tab=stato', { loggedIn: true, responses: asAdmin, appStatus: maintenance }],
         ['admin-errori', '/admin?tab=errori', { loggedIn: true, responses: asAdmin }],
+        ['admin-suggerimenti', '/admin?tab=feedback', { loggedIn: true, responses: asAdmin }],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
         const page = await context.newPage();

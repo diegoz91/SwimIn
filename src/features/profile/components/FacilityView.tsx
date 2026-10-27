@@ -9,6 +9,7 @@ import { useSignal } from '@/hooks/useSignal';
 import { ShiftEditModal } from '@/features/team/ShiftEditModal';
 import { ShiftCreateModal } from '@/features/team/ShiftCreateModal';
 import { ShiftTemplatesModal } from '@/features/team/ShiftTemplatesModal';
+import { ShiftExportModal } from '@/features/team/ShiftExportModal';
 import { ShiftSwapModal, SwapRequests, type SwapItem } from '@/features/team/ShiftSwap';
 import { useToast } from '@/context/ToastContext';
 import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
@@ -122,6 +123,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
     const [isImportant, setIsImportant] = useState(false);
     const [showAddShift, setShowAddShift] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [showExport, setShowExport] = useState(false);
     const [swaps, setSwaps] = useState<ShiftSwap[]>([]);
     const [swapShift, setSwapShift] = useState<SquadShift | null>(null);
     
@@ -595,6 +597,9 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                             <button onClick={() => setShowTemplates(true)} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-slate-300 text-abisso text-sm font-semibold hover:bg-slate-50">
                                                 <Icon type="calendar" className="w-4 h-4" /> Modelli
                                             </button>
+                                            <button onClick={() => setShowExport(true)} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-slate-300 text-abisso text-sm font-semibold hover:bg-slate-50">
+                                                <Icon type="document" className="w-4 h-4" /> Esporta
+                                            </button>
                                             <button onClick={() => setShowAddShift(true)} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-corsia-600 text-white text-sm font-semibold hover:bg-corsia-700">
                                                 <Icon type="plus" className="w-4 h-4" /> Assegna turni
                                             </button>
@@ -724,6 +729,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                     onApplied={addShifts}
                 />
             )}
+            {isAdmin && <ShiftExportModal open={showExport} structureId={facilityId} defaultMonth={shiftWeek.slice(0, 7)} onClose={() => setShowExport(false)} />}
             {user && <ShiftSwapModal shift={swapShift} colleagues={staff} currentUserId={user.$id} onClose={() => setSwapShift(null)} onSent={() => setBoardVersion((v) => v + 1)} />}
             {isAdmin && (
             <ShiftEditModal

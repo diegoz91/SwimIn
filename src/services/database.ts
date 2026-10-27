@@ -181,7 +181,7 @@ export interface AdminPlans {
     changed?: string[];
     warnings?: string[];
 }
-export interface AdminOverview { people: number; structures: number; posts: number; openReports: number; errors24h: number; pendingCerts: number }
+export interface AdminOverview { people: number; structures: number; posts: number; openReports: number; errors24h: number; pendingCerts: number; openFeedback?: number }
 export interface AdminReport {
     $id: string;
     $createdAt: string;
@@ -198,6 +198,9 @@ export interface AdminReport {
 }
 export interface ClientErrorRow { $id: string; $createdAt: string; userId: string; message: string; stack?: string; url?: string; userAgent?: string; source?: 'client' | 'server' | null; action?: string | null; fingerprint?: string | null }
 export type AppStatusMode = 'ok' | 'degraded' | 'maintenance';
+export type FeedbackKind = 'problema' | 'idea' | 'altro';
+export interface FeedbackRow { $id: string; $createdAt: string; userId: string; kind: FeedbackKind; message: string; page?: string; userAgent?: string; status: 'open' | 'done'; name: string; userType: string }
+export interface ShiftExportRow { id: string; date: string; start: string; end: string; hours: number; userId: string; userName: string; role: string; status: 'scheduled' | 'confirmed' | 'declined' }
 /** Stato del servizio deciso dagli amministratori (riga `main` di `app_status`, leggibile da tutti). */
 export interface AppStatus { mode: AppStatusMode; message: string; until: string; updatedAt: string | null }
 export const APP_STATUS_OK: AppStatus = { mode: 'ok', message: '', until: '', updatedAt: null };
@@ -469,6 +472,19 @@ export const databaseService = {
     /** Controllo di salute della Function (azione pubblica `health`): versione e stato del servizio. */
     async serviceHealth() {
         return await callApi<{ version: string; actions: number; status: AppStatus }>('health');
+    },
+    async sendFeedback(kind: FeedbackKind, message: string, page: string, userAgent: string) {
+        return await callApi<{ ok: boolean; id: string }>('sendFeedback', { kind, message, page, userAgent });
+    },
+    async adminListFeedback(status: 'open' | 'done') {
+        return await callApi<FeedbackRow[]>('adminListFeedback', { status });
+    },
+    async adminSetFeedbackStatus(feedbackId: string, status: 'open' | 'done') {
+        return await callApi<{ ok: boolean }>('adminSetFeedbackStatus', { feedbackId, status });
+    },
+    /** Turni di un mese di una struttura (solo amministratori), per l'esportazione delle paghe. */
+    async exportShifts(structureId: string, month: string) {
+        return await callApi<{ structureName: string; month: string; shifts: ShiftExportRow[] }>('exportShifts', { structureId, month });
     },
     async adminSetAppStatus(mode: AppStatusMode, message: string, until: string) {
         return await callApi<AppStatus>('adminSetAppStatus', { mode, message, until });

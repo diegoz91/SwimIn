@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BrandMark } from '@/components/ui/Brand';
+import { openFeedback } from '@/features/feedback/Feedback';
 
 const GROUPS: { title: string; links: { to: string; label: string }[] }[] = [
     { title: 'Scopri', links: [{ to: '/gruppi', label: 'Gruppi' }, { to: '/eventi', label: 'Eventi' }, { to: '/strutture', label: 'Piscine' }, { to: '/premium', label: 'Premium' }] },
@@ -32,6 +33,11 @@ export const AppFooter: React.FC = () => (
                                     <Link to={l.to} className="inline-block py-0.5 text-sm text-slate-600 hover:text-corsia-700 hover:underline">{l.label}</Link>
                                 </li>
                             ))}
+                            {g.title === 'Il tuo account' && (
+                                <li>
+                                    <button type="button" onClick={() => openFeedback()} className="inline-block py-0.5 text-sm text-slate-600 hover:text-corsia-700 hover:underline">Scrivici un suggerimento</button>
+                                </li>
+                            )}
                         </ul>
                     </nav>
                 ))}
@@ -40,6 +46,7 @@ export const AppFooter: React.FC = () => (
                 {[{ to: '/privacy', label: 'Privacy' }, { to: '/termini', label: 'Termini' }, { to: '/cookie', label: 'Cookie' }, { to: '/profile?tab=impostazioni&sezione=info', label: 'Assistenza' }].map((l) => (
                     <Link key={l.to} to={l.to} className="py-1 hover:text-corsia-700">{l.label}</Link>
                 ))}
+                <button type="button" onClick={() => openFeedback()} className="py-1 hover:text-corsia-700">Scrivici</button>
             </div>
             <p className="mt-4 md:mt-6 md:pt-4 md:border-t md:border-slate-100 text-center md:text-left text-xs text-slate-500">© {new Date().getFullYear()} SwimIn · Fatto in Italia per il mondo del nuoto</p>
         </div>

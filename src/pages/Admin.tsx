@@ -12,9 +12,10 @@ import type { Certification } from '@/types/types';
 import { AdminPlans } from '@/features/admin/AdminPlans';
 import { AdminStatus } from '@/features/admin/AdminStatus';
 import { AdminErrors } from '@/features/admin/AdminErrors';
+import { AdminFeedback } from '@/features/admin/AdminFeedback';
 import { useConfirm } from '@/context/ConfirmContext';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato' | 'feedback';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -38,7 +39,7 @@ const Admin: React.FC = () => {
     // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
     const [tab, setTab] = useState<Tab>(() => {
         const t = new URLSearchParams(window.location.search).get('tab');
-        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato'] as const).find((x) => x === t) ?? 'panoramica';
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato', 'feedback'] as const).find((x) => x === t) ?? 'panoramica';
     });
     const tabsRef = useRef<HTMLDivElement>(null);
     // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
@@ -52,6 +53,7 @@ const Admin: React.FC = () => {
     const [userQuery, setUserQuery] = useState('');
     const [userRows, setUserRows] = useState<AdminUserRow[]>([]);
     const [busy, setBusy] = useState<string | null>(null);
+    const [feedbackOpen, setFeedbackOpen] = useState<number | null>(null);
 
     const onCertCount = useCallback((n: number) => setOverview((o) => (o ? { ...o, pendingCerts: n } : o)), []);
     const fail = useCallback((e: unknown) => showToast(e instanceof Error ? e.message : 'Operazione non riuscita.', 'error'), [showToast]);
@@ -129,6 +131,7 @@ const Admin: React.FC = () => {
     const TABS: { id: Tab; label: string; badge?: number }[] = [
         { id: 'panoramica', label: 'Panoramica' },
         { id: 'segnalazioni', label: 'Segnalazioni', badge: overview?.openReports },
+        { id: 'feedback', label: 'Suggerimenti', badge: feedbackOpen ?? overview?.openFeedback },
         { id: 'verifiche', label: 'Brevetti', badge: overview?.pendingCerts },
         { id: 'utenti', label: 'Utenti' },
         { id: 'piani', label: 'Piani e prezzi' },
@@ -262,6 +265,7 @@ const Admin: React.FC = () => {
 
             {tab === 'errori' && (errors === null ? <PageLoader variant="list" /> : <AdminErrors rows={errors} />)}
             {tab === 'stato' && <AdminStatus />}
+            {tab === 'feedback' && <AdminFeedback onOpenCount={setFeedbackOpen} />}
         </div>
     );
 };

@@ -327,6 +327,16 @@ export const apiResponses = {
             limits: { min: 99, max: 99900 },
         };
     },
+    sendFeedback: () => ({ ok: true, id: 'fb-new' }),
+    adminListFeedback: ({ status = 'open' } = {}) => (status === 'open' ? [
+        { $id: 'fb1', $createdAt: iso(25), userId: 'u_marco', kind: 'problema', message: 'Dal telefono, nel calendario del mese non riesco a vedere i turni della seconda struttura.', page: '/turni', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', status: 'open', name: 'Marco Bellini', userType: 'professional' },
+        { $id: 'fb2', $createdAt: iso(180), userId: 'u_sara', kind: 'idea', message: 'Sarebbe utile poter filtrare le offerte per orario (solo serali).', page: '/jobs', userAgent: 'Mozilla/5.0 (Macintosh)', status: 'open', name: 'Sara Colombo', userType: 'professional' },
+    ] : []),
+    adminSetFeedbackStatus: ({ status } = {}) => ({ ok: true, status }),
+    exportShifts: ({ month = '2026-11' } = {}) => ({ structureName: 'Piscina Lido di Milano', month, shifts: [
+        { id: 'x1', date: `${month}-03`, start: '09:00', end: '13:00', hours: 4, userId: ME, userName: 'Giulia Ferri', role: 'Istruttrice', status: 'confirmed' },
+        { id: 'x2', date: `${month}-05`, start: '15:00', end: '19:30', hours: 4.5, userId: 'u_sara', userName: 'Sara Colombo', role: 'Assistente bagnanti', status: 'scheduled' },
+    ] }),
     health: () => ({ version: 'anteprima', actions: 300, status: { mode: 'ok', message: '', until: '', updatedAt: null } }),
     adminSetAppStatus: ({ mode, message = '', until = '' } = {}) => ({ mode, message: mode === 'ok' ? '' : message, until: mode === 'ok' ? '' : until, updatedAt: new Date().toISOString() }),
     adminListErrors: () => [

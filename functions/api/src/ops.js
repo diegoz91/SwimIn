@@ -54,8 +54,8 @@ export function opsActions({ find, create, update, count, fail, C, Query, users,
     return admins;
   };
 
-  const sendAlert = async (text) => {
-    for (const id of await adminIds()) await notify(id, 'system_alert', text, '').catch((e) => log(`avviso admin: ${e?.message || e}`));
+  const sendAlert = async (text, type = 'system_alert') => {
+    for (const id of await adminIds()) await notify(id, type, text, '').catch((e) => log(`avviso admin: ${e?.message || e}`));
     if (alertWebhook && fetchImpl) {
       await fetchImpl(alertWebhook, {
         method: 'POST',

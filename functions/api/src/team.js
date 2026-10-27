@@ -404,7 +404,7 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         fail(409, 'Il turno è cambiato nel frattempo: la richiesta non è più valida.');
       }
       const meProfile = await get(C.profiles, me);
-      const row = await update(C.shifts, shift.$id, { userId: me, userName: displayName(meProfile).slice(0, 255), status: 'confirmed' });
+      const row = await update(C.shifts, shift.$id, { userId: me, userName: displayName(meProfile).slice(0, 255), status: 'confirmed', reminderSentAt: '' });
       await update(C.shiftSwaps, swapId, { status: 'accepted', takenBy: me });
       const who = displayName(meProfile);
       await notify(swap.fromUserId, 'shift', `${who} coprirà il tuo turno del ${ddmm(shift.date)}, ${shift.shiftTime}.`, swap.structureId);
@@ -563,6 +563,7 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         ...next,
         ...(person ? { userName: displayName(person).slice(0, 255), role: String(person.title || shift.role || 'Staff').slice(0, 100) } : {}),
         status: 'scheduled',
+        reminderSentAt: '', // nuovo giorno o nuova persona: il promemoria va rimandato
       });
       const when = `${next.date.slice(8, 10)}/${next.date.slice(5, 7)}, ${next.shiftTime}`;
       if (changedPerson) {
@@ -572,6 +573,26 @@ export function teamActions({ find, get, list, listAll, create, update, remove, 
         await notify(next.userId, 'shift', `${team.name} ha modificato il tuo turno: ora è il ${when}. Confermalo nell’area staff.`, shift.structureId);
       }
       return row;
+    },
+
+    /**
+     * Turni di un mese per le paghe (solo amministratori della struttura): righe ordinate per
+     * giorno e orario, con le ore di ogni turno. Il file CSV lo compone il client.
+     */
+    async exportShifts(me, { structureId, month } = {}) {
+      const { team } = await requireRole(me, structureId, 'admin');
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) fail(400, 'Mese non valido.');
+      const rows = await listAll(C.shifts, [Query.equal('structureId', structureId), Query.greaterThanEqual('date', `${month}-01`), Query.lessThanEqual('date', `${month}-31`)]);
+      const minutes = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+      const shifts = rows
+        .filter((x) => String(x.date || '').startsWith(month))
+        .map((x) => {
+          const [start = '', end = ''] = String(x.shiftTime || '').split('–');
+          const hours = start && end ? Math.max(0, minutes(end) - minutes(start)) / 60 : 0;
+          return { id: x.$id, date: x.date, start, end, hours: Math.round(hours * 100) / 100, userId: x.userId, userName: x.userName || 'Staff', role: x.role || '', status: x.status || 'scheduled' };
+        })
+        .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start) || a.userName.localeCompare(b.userName));
+      return { structureName: team.name, month, shifts };
     },
 
     /** I miei turni in tutte le strutture (dalla settimana scorsa in avanti). */
