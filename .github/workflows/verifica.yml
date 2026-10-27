@@ -115,7 +115,7 @@ jobs:
           npm install --no-save --no-audit --no-fund playwright@1.48.2 axe-core@4.10.2
           npx playwright install --with-deps chromium
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
