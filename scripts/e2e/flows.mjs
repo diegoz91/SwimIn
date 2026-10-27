@@ -331,7 +331,7 @@ const FLOWS = [
         await page.locator('label[for="accept-terms"]').click();
         await page.getByRole('button', { name: 'Crea il mio profilo' }).click();
         const c = await called(state, 'initProfile');
-        assert.deepEqual([c.params.userType, c.params.structureName], ['structure', 'Piscina Comunale di Segrate']);
+        assert.deepEqual([c.params.userType, c.params.structureName, c.params.acceptedTerms], ['structure', 'Piscina Comunale di Segrate', true]);
     }],
     ['l’avviso di assunzione compare una volta sola', 'mobile', { loggedIn: true, overrides: { applications: { a1: { status: 'hired', $updatedAt: new Date().toISOString() } } } }, async (page) => {
         await open(page, '/');
@@ -439,6 +439,28 @@ const FLOWS = [
         const c = await called(state, 'adminSetAppStatus');
         assert.equal(c.params.mode, 'maintenance');
         assert.equal(c.params.message, 'Aggiornamento del database: torniamo alle 23:30.');
+    }],
+    ['il responsabile legale esporta una conservazione con il motivo', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true, isLegal: true }) } }, async (page, state) => {
+        await open(page, '/admin?tab=autorita');
+        await page.getByText('RGNR 1234/2026').waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Esporta' }).click();
+        const dialog = page.getByRole('dialog');
+        await dialog.getByRole('button', { name: 'Scarica il file cifrato' }).click();
+        await dialog.getByText('Indica il motivo').waitFor({ timeout: 3000 });
+        assert.ok(!state.calls.some((c) => c.action === 'legalExportHold'), 'senza motivo non si esporta');
+        await dialog.locator('#step-reason').fill('Consegna alla Procura, richiesta prot. 55/2026');
+        const download = page.waitForEvent('download', { timeout: 8000 });
+        await dialog.getByRole('button', { name: 'Scarica il file cifrato' }).click();
+        const file = await download;
+        assert.match(file.suggestedFilename(), /^conservazione-RGNR_1234_2026-\d{4}-\d{2}-\d{2}\.json$/);
+        const c = await called(state, 'legalExportHold');
+        assert.deepEqual([c.params.holdId, c.params.reason], ['h1', 'Consegna alla Procura, richiesta prot. 55/2026']);
+    }],
+    ['un amministratore senza etichetta legal non vede le richieste delle autorità', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) } }, async (page) => {
+        await open(page, '/admin?tab=accessi');
+        await page.getByText('Ha esportato una conservazione').waitFor({ timeout: 8000 });
+        assert.equal(await page.getByRole('tab', { name: 'Richieste autorità' }).count(), 0);
+        assert.equal(await page.getByRole('tab', { name: 'Registro accessi' }).getAttribute('aria-selected'), 'true');
     }],
     ['rallentamenti: avviso in cima che si può chiudere', 'mobile', { loggedIn: true, appStatus: { mode: 'degraded', message: 'Le notifiche arrivano in ritardo.', until: '' } }, async (page) => {
         await open(page, '/');

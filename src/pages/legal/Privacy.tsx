@@ -88,6 +88,7 @@ const Privacy: React.FC = () => (
                         <li>Messaggi privati, allegati, CV, documenti dei brevetti, telefono e note interne delle candidature sono leggibili solo dalle persone autorizzate: i permessi sono controllati dal server per ogni singolo elemento. I file privati sono separati da quelli pubblici e, dove il fornitore lo consente, cifrati sul disco.</li>
                         <li>Le pagine dell'app possono caricare contenuti solo da SwimIn e dai nostri fornitori (Content Security Policy) e non possono essere incluse in altri siti.</li>
                         <li>Tentativi ripetuti e abusi sono limitati automaticamente; gli errori tecnici vengono registrati senza il contenuto dei messaggi.</li>
+                        <li>Il personale di SwimIn ha solo gli accessi strettamente necessari (moderazione delle segnalazioni, verifica dei brevetti, assistenza) e ogni sua azione resta in un registro che non si può modificare. I messaggi privati non sono consultabili dal pannello di amministrazione.</li>
                     </ul>
                 ),
             },
@@ -99,6 +100,13 @@ const Privacy: React.FC = () => (
                         <li>Se elimini l'account, cancelliamo profilo, post, commenti, consigli, candidature, collegamenti e notifiche; i messaggi già inviati restano visibili al destinatario, senza il collegamento al tuo profilo.</li>
                         <li>I registri tecnici di sicurezza per un periodo limitato, non superiore a 12 mesi salvo obblighi di legge; i registri degli errori dell'app per 30 giorni.</li>
                         <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; le visite al profilo e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
+                        <li>Le candidature (con il CV allegato e le valutazioni di chi seleziona) fino a 12 mesi dopo la chiusura dell'annuncio; le segnalazioni chiuse e la chat dello staff per 12 mesi; i turni di lavoro per 24 mesi.</li>
+                        <li>La data in cui hai accettato Termini e Privacy, per tutta la durata dell'account.</li>
+                        <li>
+                            Non conserviamo i messaggi oltre la durata dell'account per eventuali richieste future. Solo se un'autorità giudiziaria o di polizia ci ordina
+                            formalmente di conservarli, facciamo una copia cifrata dei dati indicati nell'ordine, che nessuno può leggere dal sistema: resta per il tempo
+                            stabilito dall'ordine (di norma 60 giorni, prorogabili), viene consegnata solo all'autorità e poi cancellata.
+                        </li>
                     </ul>
                 ),
             },

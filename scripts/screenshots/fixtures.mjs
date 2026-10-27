@@ -331,6 +331,21 @@ export const apiResponses = {
         { $id: 'fb2', $createdAt: iso(180), userId: 'u_sara', kind: 'idea', message: 'Sarebbe utile poter filtrare le offerte per orario (solo serali).', page: '/jobs', userAgent: 'Mozilla/5.0 (Macintosh)', status: 'open', name: 'Sara Colombo', userType: 'professional' },
     ] : []),
     adminSetFeedbackStatus: ({ status } = {}) => ({ ok: true, status }),
+    adminSearchUsers: () => [
+        { $id: 'u_marco', name: 'Marco Bellini', email: 'marco.bellini@esempio.it', userType: 'professional', personType: 'professional', city: 'Milano', suspended: false },
+    ],
+    adminListAudit: () => [
+        { id: 'au1', at: iso(3), actorId: ME, actorName: 'Giulia Ferri', action: 'legalExportHold', scope: 'legal', targetType: 'hold', targetId: 'h1', reason: 'Consegna alla Procura, richiesta prot. 55/2026', outcome: 'ok', meta: '{"offset":0}' },
+        { id: 'au2', at: iso(20), actorId: ME, actorName: 'Giulia Ferri', action: 'adminResolveReport', scope: 'admin', targetType: 'report', targetId: 'rp7', reason: '', outcome: 'ok', meta: '{"decision":"remove"}' },
+        { id: 'au3', at: iso(95), actorId: 'u_marco', actorName: 'Marco Bellini', action: 'adminSearchUsers', scope: 'admin', targetType: '', targetId: '', reason: '', outcome: 'denied', meta: '{"query":"rossi"}' },
+        { id: 'au4', at: iso(300), actorId: ME, actorName: 'Giulia Ferri', action: 'adminSetAppStatus', scope: 'admin', targetType: '', targetId: '', reason: '', outcome: 'ok', meta: '{"mode":"ok"}' },
+    ],
+    legalListHolds: () => [
+        { $id: 'h1', $createdAt: iso(60 * 24 * 3), subjectType: 'user', subjectId: 'u_marco', authority: 'Procura della Repubblica di Milano', reference: 'RGNR 1234/2026', orderDate: new Date(now - 4 * 86400000).toISOString().slice(0, 10), until: new Date(now + 57 * 86400000).toISOString().slice(0, 10), status: 'active', createdBy: ME, items: 7 },
+        { $id: 'h2', $createdAt: iso(60 * 24 * 70), subjectType: 'conversation', subjectId: 'u_marco_u_sara', authority: 'Polizia Postale, Compartimento Lombardia', reference: 'Prot. 88/2026', orderDate: new Date(now - 72 * 86400000).toISOString().slice(0, 10), until: new Date(now - 12 * 86400000).toISOString().slice(0, 10), status: 'expired', createdBy: ME, items: 0 },
+    ],
+    legalCreateHold: (p = {}) => ({ $id: 'h3', $createdAt: new Date().toISOString(), ...p, subjectId: p.userId, status: 'active', until: new Date(now + 90 * 86400000).toISOString().slice(0, 10), createdBy: ME, items: 6 }),
+    legalExportHold: ({ holdId, reason } = {}) => ({ manifest: { format: 'swimin-conservazione-v1', hold: { id: holdId }, reason, items: [{ id: 'i1', kind: 'messaggi', sha256: '0'.repeat(64) }] }, items: [{ id: 'i1', sealed: '{"v":1}' }], nextOffset: null }),
     exportShifts: ({ month = '2026-11' } = {}) => ({ structureName: 'Piscina Lido di Milano', month, shifts: [
         { id: 'x1', date: `${month}-03`, start: '09:00', end: '13:00', hours: 4, userId: ME, userName: 'Giulia Ferri', role: 'Istruttrice', status: 'confirmed' },
         { id: 'x2', date: `${month}-05`, start: '15:00', end: '19:30', hours: 4.5, userId: 'u_sara', userName: 'Sara Colombo', role: 'Assistente bagnanti', status: 'scheduled' },

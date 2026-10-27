@@ -20,7 +20,7 @@ export const MESSAGE_REACTIONS = ['consiglio', 'adoro', 'felice', 'applauso', 'i
 
 const parse = (raw, fallback) => { try { return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } };
 
-export function chatActions({ get, update, fail, C, storage, Permission, Role }) {
+export function chatActions({ get, update, fail, C, storage, Permission, Role, beforeDelete = async () => {} }) {
   const participantOf = (msg, me) => msg.senderId === me || msg.receiverId === me;
 
   return {
@@ -79,6 +79,8 @@ export function chatActions({ get, update, fail, C, storage, Permission, Role })
       if (typeof messageId !== 'string' || !messageId) fail(400, 'Messaggio non valido.');
       const msg = await get(C.messages, messageId);
       if (msg.senderId !== me) fail(403, 'Puoi eliminare solo i tuoi messaggi.');
+      // Conservazione su ordine dell'autorità: prima di cancellare resta una copia sigillata.
+      await beforeDelete(msg);
       if (storage) {
         for (const raw of msg.attachments || []) {
           const a = parse(raw, null);

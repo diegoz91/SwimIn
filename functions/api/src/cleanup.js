@@ -4,7 +4,9 @@
  * - righe scadute o ormai inutili: "sta scrivendo", inviti e cambi turno chiusi o superati,
  *   dirette finite da più di 30 giorni con i loro messaggi;
  * - tempi di conservazione: errori 30 giorni, notifiche lette 90 giorni (tutte dopo 12 mesi),
- *   visite al profilo e suggerimenti gestiti 12 mesi;
+ *   visite al profilo e suggerimenti gestiti 12 mesi, registro accessi 12 mesi (richieste autorità 5 anni),
+ *   copie sigillate alla scadenza della conservazione, segnalazioni chiuse e chat staff 12 mesi,
+ *   turni dopo 24 mesi, candidature di annunci chiusi da 12 mesi;
  * - righe orfane: annunci di strutture che non esistono più (con le candidature e le copie dei CV),
  *   candidature senza annuncio, turni, inviti, modelli e chat di strutture eliminate;
  * - account lasciati dalla prova automatica (`swimin-e2e+…@example.com`) da più di 2 ore.
@@ -12,7 +14,7 @@
 const DAY = 86_400_000;
 export const CLEANUP_HOUR = 3;
 
-export function cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log = () => {}, isoDay, removeApplication, deleteAccountOf }) {
+export function cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log = () => {}, isoDay, removeApplication, deleteAccountOf, expireHolds = null }) {
   const ago = (days, now) => new Date(now - days * DAY).toISOString();
 
   return {
@@ -57,6 +59,24 @@ export function cleanupActions({ find, listAll, remove, removeAll, C, Query, use
         (await removeAll(C.notifications, [Query.equal('isRead', true), Query.lessThan('$createdAt', ago(90, now))])) +
         (await removeAll(C.notifications, [Query.lessThan('$createdAt', ago(365, now))])));
       await step('visite', () => removeAll(C.profileViews, [Query.lessThan('$createdAt', ago(365, now))]));
+      // Registro degli accessi: 12 mesi; le voci delle richieste delle autorità 5 anni (prova di cosa è stato consegnato).
+      await step('registroAccessi', async () =>
+        (await removeAll(C.auditLog, [Query.equal('scope', 'admin'), Query.lessThan('$createdAt', ago(365, now))])) +
+        (await removeAll(C.auditLog, [Query.equal('scope', 'legal'), Query.lessThan('$createdAt', ago(1825, now))])));
+      // Conservazioni su ordine dell'autorità scadute: le copie sigillate si cancellano.
+      if (expireHolds) await step('conservazioniScadute', () => expireHolds({ now }));
+      // Segnalazioni chiuse, chat dello staff e turni passati (CSV per le paghe già scaricabile).
+      await step('segnalazioniChiuse', () => removeAll(C.reports, [Query.notEqual('status', 'open'), Query.lessThan('$updatedAt', ago(365, now))]));
+      await step('chatStaff', () => removeAll(C.staffMessages, [Query.lessThan('$createdAt', ago(365, now))]));
+      await step('turniPassati', () => removeAll(C.shifts, [Query.lessThan('date', isoDay(now - 730 * DAY))]));
+      // Candidature di annunci chiusi da più di 12 mesi (con CV allegati e valutazioni interne); l'annuncio resta.
+      await step('candidatureChiuse', async () => {
+        let n = 0;
+        for (const job of await listAll(C.jobs, [Query.equal('isActive', false), Query.lessThan('$updatedAt', ago(365, now))])) {
+          for (const a of await listAll(C.applications, [Query.equal('jobId', job.$id)])) { await removeApplication(a); n++; }
+        }
+        return n;
+      });
       await step('suggerimenti', () => removeAll(C.feedback, [Query.equal('status', 'done'), Query.lessThan('$updatedAt', ago(365, now))]));
 
       // Righe orfane.

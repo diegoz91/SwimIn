@@ -193,6 +193,20 @@ Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
 
 **Crittografia end-to-end dei messaggi**: non adottata. Richiederebbe chiavi su ogni dispositivo (chi cambia telefono perde lo storico), renderebbe impossibili anteprime nelle notifiche, moderazione delle segnalazioni e chat staff condivise. I messaggi sono protetti da permessi per riga e cifratura in transito; la cifratura per colonna lato server (Pro) è il passo successivo sensato.
 
+## 14. Richieste delle autorità e registro degli accessi
+
+**Registro degli accessi** (`functions/api/src/audit.js`, tabella `audit_log`): ogni azione `admin*` e `legal*` della Function viene registrata in automatico (chi, quando, cosa, su quale elemento, motivo, esito; anche i tentativi negati), senza contenuti. Si consulta in *Admin › Registro accessi*. Conservazione: 12 mesi; le voci delle richieste delle autorità 5 anni.
+
+**Conservazione su ordine dell'autorità** (`functions/api/src/legal.js`, tabelle `legal_holds` e `held_items`). I messaggi **non** si conservano "per sicurezza" oltre l'account (sarebbe contrario al GDPR); si conservano solo dopo un ordine formale (es. ordine europeo di conservazione, 60 giorni + 30).
+
+1. *Una volta, su un computer fidato*: `node scripts/legal/keygen.mjs ./chiavi` → `escrow-public.pem` va nel secret GitHub **`ESCROW_PUBLIC_KEY`** (il deploy lo passa alla Function; incollare il PEM intero, a capo compresi). `escrow-private.pem` (protetta da frase segreta) va **fuori linea**: chiavetta in cassaforte + copia presso il legale. Mai su GitHub, Appwrite o Vercel.
+2. *Chi gestisce le richieste*: Console Appwrite → Auth → utente → Labels → `admin` **e** `legal`. Compare la scheda *Admin › Richieste autorità*.
+3. *Arriva un ordine*: "Registra un ordine" (persona o conversazione, autorità, protocollo, data, durata, come è arrivato). La Function sigilla subito account, accessi (IP), profilo, dati privati, messaggi, post, commenti, candidature: copie cifrate (AES-256-GCM, chiave avvolta con RSA-OAEP) con impronta SHA-256. Se l'utente poi elimina messaggi, post, commenti o l'account, resta una copia sigillata.
+4. *Consegna*: "Esporta" → file JSON cifrato con il manifesto delle impronte. Sul computer fuori linea: `node scripts/legal/decrypt.mjs file.json escrow-private.pem uscita/` verifica le impronte e scrive i dati in chiaro + `manifesto.txt` (catena di custodia). Consegnare con canale sicuro (PEC) e cancellare la cartella.
+5. *Fine*: "Chiudi" cancella subito le copie; alla scadenza le cancella la pulizia notturna. Proroga con "Proroga" (anche con una nuova copia dei dati di oggi).
+
+Senza `ESCROW_PUBLIC_KEY` la registrazione risponde 503: nessuna copia in chiaro viene mai creata. Mappa completa di dati, accessi e tempi: `docs/PRIVACY-SICUREZZA.md`.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |
@@ -201,6 +215,8 @@ Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
 | posts, swim_meets, live_rooms | utenti loggati | solo Function (autore verificato) | solo Function (`updatePost`, `cancelSwimMeet`, `endLiveRoom`) |
 | jobs | utenti loggati | solo Function (struttura verificata) | solo Function (`closeJob`, `reopenJob`) |
 | announcements, shifts (area staff) | solo tramite Function, per amministratori e staff | solo Function | solo Function |
+| audit_log (registro accessi) | solo tramite Function (`adminListAudit`, voci `legal` solo con etichetta `legal`) | solo Function (in automatico) | nessuno |
+| legal_holds, held_items (conservazione) | solo tramite Function (`legal*`, etichette `admin` + `legal`); copie cifrate, leggibili solo fuori linea | solo Function | solo Function (scadenza, chiusura) |
 | private_info (telefono delle persone) | solo tramite Function (`getContactInfo`): la persona, i collegamenti, chi valuta una sua candidatura | solo Function | solo Function |
 | push_subscriptions, blocks, client_errors, profile_views, subscriptions, plans, staff_messages, staff_chat_reads, event_private | solo Function | solo Function | solo Function |
 | typing ("sta scrivendo") | solo il destinatario (permesso sulla riga) | solo Function | solo Function |

@@ -84,6 +84,18 @@ test('pulizia notturna', async () => {
   put('shifts', 'sGhost', { structureId: 'pagina_vecchia', userId: 'anna', date: '2026-12-01' });
   put('shift_templates', 'm1', { structureId: 'pagina_vecchia', name: 'x' });
 
+  // tempi di conservazione aggiunti con la mappa privacy
+  put('reports', 'rp1', { status: 'resolved', $updatedAt: t(400) });
+  put('reports', 'rp2', { status: 'open', $updatedAt: t(400) });
+  put('staff_messages', 'sm1', { structureId: 'lido', $createdAt: t(400) });
+  put('staff_messages', 'sm2', { structureId: 'lido', $createdAt: t(10) });
+  put('shifts', 'sAncient', { structureId: 'lido', userId: 'anna', date: '2024-10-01' });
+  put('jobs', 'jClosed', { structureId: 'lido', title: 'chiuso', isActive: false, $updatedAt: t(400) });
+  put('applications', 'aClosed', { jobId: 'jClosed', applicantId: 'anna' });
+  put('audit_log', 'al1', { scope: 'admin', $createdAt: t(400) });
+  put('audit_log', 'al2', { scope: 'legal', $createdAt: t(400) });
+  put('audit_log', 'al3', { scope: 'legal', $createdAt: t(2000) });
+
   const out = await api._nightlyCleanup({ now });
   const ids = (table) => Object.keys(col(table)).sort();
   assert.deepEqual(ids('typing'), ['ty2']);
@@ -94,7 +106,10 @@ test('pulizia notturna', async () => {
   assert.deepEqual(ids('client_errors'), ['ce2']);
   assert.deepEqual(ids('notifications').filter((id) => id.startsWith('n')), ['n2']);
   assert.deepEqual(ids('feedback'), ['f2']);
-  assert.deepEqual(ids('jobs'), ['jOk']);
+  assert.deepEqual(ids('jobs'), ['jClosed', 'jOk']);
+  assert.deepEqual(ids('reports'), ['rp2']);
+  assert.deepEqual(ids('staff_messages'), ['sm2']);
+  assert.deepEqual(ids('audit_log'), ['al2']);
   assert.deepEqual(ids('applications'), ['aOk']);
   assert.deepEqual(ids('application_reviews'), []);
   assert.deepEqual(ids('shifts'), ['sNew', 'sOld']);

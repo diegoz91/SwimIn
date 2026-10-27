@@ -45,7 +45,7 @@ const CompleteAccount: React.FC = () => {
     const submit = form.handleSubmit(async (v) => {
         setError(null);
         try {
-            await completeAccount(registrationOf(choice, v));
+            await completeAccount({ ...registrationOf(choice, v), acceptedTerms: v.acceptedTerms });
             showToast('Account creato. Benvenuto in SwimIn!', 'success');
             navigate('/benvenuto', { replace: true });
         } catch (err) {
@@ -92,9 +92,9 @@ const CompleteAccount: React.FC = () => {
                             invalid={!!errors.acceptedTerms}
                             label={
                                 <span className="font-normal text-slate-600">
-                                    Ho letto e accetto i{' '}
-                                    <Link to="/termini" target="_blank" className="text-corsia-700 font-semibold hover:underline">Termini di servizio</Link> e la{' '}
-                                    <Link to="/privacy" target="_blank" className="text-corsia-700 font-semibold hover:underline">Privacy Policy</Link>.
+                                    Ho almeno 16 anni, ho letto e accetto i{' '}
+                                    <Link to="/termini" target="_blank" className="text-corsia-700 font-semibold underline underline-offset-2">Termini di servizio</Link> e la{' '}
+                                    <Link to="/privacy" target="_blank" className="text-corsia-700 font-semibold underline underline-offset-2">Privacy Policy</Link>.
                                 </span>
                             }
                         />
