@@ -321,6 +321,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const removeApplications = async (queries) => {
     for (const a of await listAll(C.applications, queries)) {
       await resume._deleteApplicationCopy(a);
+      await remove(C.applicationReviews, a.$id).catch(() => null); // note interne (id = candidatura)
       await remove(C.applications, a.$id);
     }
   };
@@ -887,6 +888,16 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.shifts, [Query.equal('structureId', me)]);
       await removeAll(C.announcements, [Query.equal('structureId', me)]);
       await removeAll(C.notifications, [Query.equal('userId', me)]);
+      // Cambi turno, modelli di settimana, chat staff, segnali e "sta scrivendo".
+      await removeAll(C.shiftSwaps, [Query.equal('fromUserId', me)]);
+      await removeAll(C.shiftSwaps, [Query.equal('toUserId', me)]);
+      await removeAll(C.shiftSwaps, [Query.equal('structureId', me)]);
+      await removeAll(C.shiftTemplates, [Query.equal('structureId', me)]);
+      await removeAll(C.staffMessages, [Query.equal('structureId', me)]);
+      await removeAll(C.staffChatReads, [Query.equal('userId', me)]);
+      await removeAll(C.staffChatReads, [Query.equal('structureId', me)]);
+      await removeAll(C.signals, [Query.equal('userId', me)]);
+      await removeAll(C.typing, [Query.equal('userId', me)]);
       await removeAll(C.endorsements, [Query.equal('profileId', me)]);
       await removeAll(C.endorsements, [Query.equal('endorserId', me)]);
 
