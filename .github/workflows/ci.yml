@@ -40,6 +40,16 @@ jobs:
       - name: Installa dipendenze
         run: npm ci
 
+      # Vulnerabilità note nelle dipendenze usate dall'app (gravità alta o critica): segnalate qui e
+      # corrette dalle PR di Dependabot. Non blocca la CI, per non fermare il lavoro su un avviso di terzi.
+      - name: Controllo vulnerabilità delle dipendenze
+        continue-on-error: true
+        run: |
+          if ! npm audit --omit=dev --audit-level=high; then
+            echo "::warning title=Dipendenze vulnerabili::npm audit segnala vulnerabilità alte o critiche: controlla le PR di Dependabot."
+            exit 1
+          fi
+
       - name: Type-check
         run: npx tsc --noEmit
 

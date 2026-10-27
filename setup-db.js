@@ -732,6 +732,21 @@ async function migratePrivateInfo() {
  */
 const PRUNE_MODE = ['report', 'off'].includes(process.env.PRUNE) ? process.env.PRUNE : 'apply';
 const pruned = [];
+/** Prima riga (tabella/id) che contiene il testo, cercando in tutte le tabelle dello schema. */
+async function findReference(text) {
+    for (const t of schema) {
+        let cursor = null;
+        for (;;) {
+            const { rows } = await tablesDB.listRows({ databaseId: DB_ID, tableId: t.id, queries: [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])] });
+            const hit = rows.find((r) => JSON.stringify(r).includes(text));
+            if (hit) return `${t.id}/${hit.$id}`;
+            if (rows.length < 100) break;
+            cursor = rows[rows.length - 1].$id;
+        }
+    }
+    return null;
+}
+
 async function pruneDatabase() {
     if (PRUNE_MODE === 'off') return;
     const act = async (what, fn) => {
@@ -767,13 +782,16 @@ async function pruneDatabase() {
         if (keepBuckets.has(b.$id)) continue;
         // Un bucket fuori schema con dei file potrebbe ancora servire a immagini vecchie (foto profilo, post):
         // si elimina da solo solo se è vuoto; con file, solo con PRUNE_BUCKETS=force dopo averlo controllato.
-        const { total = 0 } = await storage.listFiles({ bucketId: b.$id, queries: [Query.limit(1)] });
-        if (total > 0 && process.env.PRUNE_BUCKETS !== 'force') {
-            pruned.push(`bucket ${b.$id} "${b.name}" con ${total} file (non eliminato: serve PRUNE_BUCKETS=force)`);
-            console.log(`   ⚠️  bucket ${b.$id} "${b.name}": ${total} file, lasciato`);
+        const { total = 0, files: sample = [] } = await storage.listFiles({ bucketId: b.$id, queries: [Query.limit(3)] });
+        const names = sample.map((f) => `${f.name} (${Math.round((f.sizeOriginal || 0) / 1024)} kB, ${String(f.$createdAt).slice(0, 10)})`).join(', ');
+        // Con dei file: si elimina solo se nessuna riga del database li usa ancora (o con PRUNE_BUCKETS=force).
+        const usedBy = total > 0 && process.env.PRUNE_BUCKETS !== 'force' ? await findReference(b.$id) : null;
+        if (usedBy) {
+            pruned.push(`bucket ${b.$id} "${b.name}" con ${total} file ancora usati (${usedBy}): non eliminato`);
+            console.log(`   ⚠️  bucket ${b.$id} "${b.name}": usato da ${usedBy}, lasciato`);
             continue;
         }
-        await act(`bucket ${b.$id} "${b.name}"${total ? ` con ${total} file` : ' (vuoto)'}`, () => storage.deleteBucket({ bucketId: b.$id }));
+        await act(`bucket ${b.$id} "${b.name}"${total ? ` con ${total} file non usati da nessuna riga: ${names}` : ' (vuoto)'}`, () => storage.deleteBucket({ bucketId: b.$id }));
     }
     if (!pruned.length) console.log('   ✨ Nessun residuo: il database corrisponde allo schema');
     else if (PRUNE_MODE === 'report') notice(`Residui nel database (PRUNE=report, non eliminati): ${pruned.join(', ')}`);
@@ -788,14 +806,27 @@ async function setupBuckets() {
             enabled: true, maximumFileSize: b.maxSizeMB * 1024 * 1024,
             allowedFileExtensions: b.extensions || ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov', 'webm'],
         };
-        try {
-            await storage.createBucket(args);
-            console.log(`   ✅ Bucket creato: ${b.name}`);
-        } catch (e) {
-            if (!exists(e)) throw e;
-            await storage.updateBucket(args);
-            console.log(`   🔒 Bucket ${b.name}: permessi riallineati`);
+        // File cifrati sul disco (AES, file fino a 20 MB) e controllo antivirus quando il piano li offre.
+        const variants = [{ ...args, encryption: true, antivirus: true }, { ...args, encryption: true, antivirus: false }, args];
+        let done = false;
+        for (const [i, v] of variants.entries()) {
+            try {
+                try {
+                    await storage.createBucket(v);
+                    console.log(`   ✅ Bucket creato: ${b.name}`);
+                } catch (e) {
+                    if (!exists(e)) throw e;
+                    await storage.updateBucket(v);
+                    console.log(`   🔒 Bucket ${b.name}: permessi riallineati${v.encryption ? ', cifratura' : ''}${v.antivirus ? ' e antivirus' : ''} attivi`);
+                }
+                if (i > 0) notice(`Bucket ${b.id}: ${v.encryption ? 'antivirus non disponibile sul piano attuale' : 'cifratura e antivirus non disponibili sul piano attuale'}.`);
+                done = true;
+                break;
+            } catch (e) {
+                if (i === variants.length - 1) throw e;
+            }
         }
+        if (!done) throw new Error(`Bucket ${b.id} non configurato`);
     }
 }
 

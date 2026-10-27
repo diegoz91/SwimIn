@@ -174,6 +174,25 @@ Rapporto nel riepilogo del workflow (artefatto `prova-reale`).
   se vuoi, `VITE_MAINTENANCE_MESSAGE`, poi rilancia il deploy. Per tornare online togli la variabile e
   rilancia. Se il server non risponde l'app mostra comunque da sola "SwimIn non risponde" e riprova.
 
+## 13. Sicurezza e privacy: cosa fa l'app e cosa configurare
+
+**Già nel codice**
+- Connessioni sempre cifrate (HTTPS, HSTS). Password gestite da Appwrite (mai visibili, conservate come impronta cifrata); verifica in due passaggi per tutti.
+- Permessi per singola riga e file: messaggi, allegati, CV, brevetti, telefono, note interne e area staff li legge solo chi è autorizzato; tutto ciò che tocca altri utenti passa dalla Function, che controlla l'identità.
+- Content Security Policy generata a ogni build (`vite.config.ts`): script solo dall'app (lo script del tema con il suo hash), connessioni solo ad Appwrite e alle API di Google Calendar, nessun iframe, nessun plugin. I test end-to-end falliscono se la policy blocca qualcosa. In `vercel.json`: `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
+- Bucket con cifratura dei file e antivirus quando il piano li offre (`setup-db` lo prova e avvisa se non disponibili).
+- Limiti anti-abuso, filtro dei testi, registro errori senza contenuti, eliminazione dell'account e download dei propri dati dalle impostazioni, pulizia notturna secondo i tempi di conservazione.
+- Dependabot (`.github/dependabot.yml`) e `npm audit` in CI per le vulnerabilità delle dipendenze; `SECURITY.md` per le segnalazioni.
+
+**Da configurare nella console (una volta)**
+- *Appwrite › Auth › Security*: "Password dictionary" e "Personal data" attivi, "Password history" (es. 5), limite sessioni per utente (es. 10), "Session alerts" se le email sono attive.
+- *Appwrite › Auth › Users*: verifica in due passaggi attiva sugli account con etichetta `admin`.
+- *Dominio personalizzato per Appwrite* (es. `api.swimin.it`, Settings › Custom domains) e `VITE_APPWRITE_ENDPOINT` aggiornato: il cookie di sessione diventa del tuo dominio. Senza, i browser che bloccano i cookie di terze parti (Safari) fanno usare all'SDK la "sessione di riserva" in memoria locale, meno protetta.
+- *GitHub › Settings › Code security*: Secret scanning, Push protection e Private vulnerability reporting attivi.
+- *Piano Pro di Appwrite*: backup giornalieri del database e, se si vuole, colonne cifrate per i testi più sensibili (messaggi, telefono): richiedono una migrazione dei dati, da pianificare.
+
+**Crittografia end-to-end dei messaggi**: non adottata. Richiederebbe chiavi su ogni dispositivo (chi cambia telefono perde lo storico), renderebbe impossibili anteprime nelle notifiche, moderazione delle segnalazioni e chat staff condivise. I messaggi sono protetti da permessi per riga e cifratura in transito; la cifratura per colonna lato server (Pro) è il passo successivo sensato.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

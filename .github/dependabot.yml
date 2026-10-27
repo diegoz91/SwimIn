@@ -1,0 +1,23 @@
+# Aggiornamenti di sicurezza automatici: una PR quando una dipendenza ha una vulnerabilità nota
+# o una nuova versione (raggruppate per non intasare). La CI le verifica come le altre PR.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dipendenze:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /functions/api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
