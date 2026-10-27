@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
 
         return (
             <div className="min-h-[60vh] flex items-center justify-center p-6">
-                <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-sm p-8 text-center">
+                <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-xs p-8 text-center">
                     <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl" aria-hidden="true">
                         🌊
                     </div>
@@ -46,13 +46,13 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
                             onClick={() => window.location.reload()}
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full transition outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         >
                             Ricarica la pagina
                         </button>
                         <a
                             href="/"
-                            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full transition outline-hidden focus-visible:ring-2 focus-visible:ring-slate-400"
                         >
                             Torna alla home
                         </a>

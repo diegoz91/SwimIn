@@ -75,7 +75,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
                         `}>
                             <Icon 
                                 type={toast.type === 'success' ? 'check-double' : toast.type === 'error' ? 'x' : 'info'} 
-                                className="w-5 h-5 flex-shrink-0" 
+                                className="w-5 h-5 shrink-0" 
                             />
                         </div>
                         
@@ -89,7 +89,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
                         {toast.action && (
                             <button
                                 onClick={() => { toast.action?.onClick(); removeToast(toast.id); }}
-                                className="self-center flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                className="self-center shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold text-corsia-700 bg-corsia-50 hover:bg-corsia-100 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                             >
                                 {toast.action.label}
                             </button>

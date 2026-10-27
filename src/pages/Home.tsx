@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useLiveCollection } from '@/hooks/useLiveCollection';
@@ -157,7 +157,7 @@ const Home: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={showNewPosts}
-                                className="pointer-events-auto inline-flex items-center gap-2 bg-corsia-600 text-white text-sm font-semibold rounded-full pl-3 pr-4 py-2 shadow-lg hover:bg-corsia-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-corsia-500 outline-none"
+                                className="pointer-events-auto inline-flex items-center gap-2 bg-corsia-600 text-white text-sm font-semibold rounded-full pl-3 pr-4 py-2 shadow-lg hover:bg-corsia-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-corsia-500 outline-hidden"
                             >
                                 <Icon type="arrow-up" className="w-4 h-4" />
                                 {newPosts === 1 ? '1 nuovo post' : `${newPosts} nuovi post`}
@@ -170,9 +170,9 @@ const Home: React.FC = () => {
                                 <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse">
                                     <div className="flex gap-3 items-center">
                                         <div className="w-12 h-12 rounded-full bg-slate-100" />
-                                        <div className="flex-1 space-y-2"><div className="h-3 bg-slate-100 rounded w-1/3" /><div className="h-3 bg-slate-100 rounded w-1/4" /></div>
+                                        <div className="flex-1 space-y-2"><div className="h-3 bg-slate-100 rounded-sm w-1/3" /><div className="h-3 bg-slate-100 rounded-sm w-1/4" /></div>
                                     </div>
-                                    <div className="mt-5 space-y-2"><div className="h-3 bg-slate-100 rounded" /><div className="h-3 bg-slate-100 rounded w-5/6" /><div className="h-3 bg-slate-100 rounded w-2/3" /></div>
+                                    <div className="mt-5 space-y-2"><div className="h-3 bg-slate-100 rounded-sm" /><div className="h-3 bg-slate-100 rounded-sm w-5/6" /><div className="h-3 bg-slate-100 rounded-sm w-2/3" /></div>
                                 </div>
                             ))}
                         </div>
@@ -192,20 +192,20 @@ const Home: React.FC = () => {
                                 <button 
                                     onClick={() => loadFeed(posts.length, true)} 
                                     disabled={isFetchingMore}
-                                    className="w-full py-4 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                    className="w-full py-4 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100 shadow-xs outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                                 >
                                     {isFetchingMore ? 'Caricamento...' : 'Mostra altri post'}
                                 </button>
                             )}
                         </>
                     ) : (
-                        <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200">
+                        <div className="bg-white rounded-3xl p-10 text-center shadow-xs border border-slate-200">
                             <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                                 <Icon type="globe" className="w-10 h-10 text-slate-300" />
                             </div>
                             <h3 className="text-xl font-bold text-slate-800">Il tuo feed è ancora vuoto</h3>
                             <p className="text-slate-500 mt-2 max-w-sm mx-auto">Collegati con colleghi e piscine per vedere qui i loro aggiornamenti, oppure pubblica il tuo primo post.</p>
-                            <button onClick={() => navigate('/network')} className="mt-6 bg-blue-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 transition shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                            <button onClick={() => navigate('/network')} className="mt-6 bg-blue-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 transition shadow-xs outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500">
                                 Trova colleghi
                             </button>
                         </div>

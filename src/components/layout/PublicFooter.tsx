@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 /** Link legali mostrati nelle pagine pubbliche (accesso e registrazione). */
 export const PublicFooter: React.FC = () => (

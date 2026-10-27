@@ -113,7 +113,7 @@ export const SwapRequests: React.FC<{ items: SwapItem[]; onChanged: () => void }
                             <p className="text-sm text-slate-600">{w.detail}</p>
                             {w.message && <p className="text-sm text-slate-500 italic mt-0.5 break-words">«{w.message}»</p>}
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex gap-2 shrink-0">
                             {w.kind === 'mine' ? (
                                 <button type="button" disabled={busy === w.id} onClick={() => act(w.id, () => databaseService.cancelShiftSwap(w.id), 'Richiesta annullata.')} className="px-3.5 py-1.5 rounded-full text-sm font-semibold border border-slate-300 text-abisso hover:bg-slate-50 disabled:opacity-60">Annulla</button>
                             ) : (

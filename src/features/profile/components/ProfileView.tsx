@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import type { UserProfile, StructureProfile, Experience, Certification } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { ExperienceModal } from './ExperienceModal';
@@ -292,7 +292,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {!isOwnProfile ? (
                 <button 
                     onClick={onBack} 
-                    className="text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
+                    className="text-blue-600 font-semibold hover:underline flex items-center gap-2 group transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-sm px-1"
                 >
                     <Icon type="arrow-left" className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
                     Torna indietro
@@ -329,8 +329,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       <div>
           
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative mb-6">
-            <div className="h-32 sm:h-48 relative bg-gradient-to-br from-blue-800 via-blue-600 to-cyan-500">
+          <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden relative mb-6">
+            <div className="h-32 sm:h-48 relative bg-linear-to-br from-blue-800 via-blue-600 to-cyan-500">
                 {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" />}
                 {isOwnProfile && (
                     <ImageUploadButton
@@ -367,7 +367,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       <FollowButton profileId={user.userId || user.$id} onChange={(_, n) => setFollowers(n)} />
                       <button
                           onClick={() => onContact(user.userId || user.$id)}
-                          className="flex-1 sm:flex-none justify-center whitespace-nowrap px-5 py-2.5 bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 font-semibold rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                          className="flex-1 sm:flex-none justify-center whitespace-nowrap px-5 py-2.5 bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 font-semibold rounded-full transition-all flex items-center gap-2 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                       >
                           <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                       </button>
@@ -389,7 +389,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         {isPremium(user) && <PremiumBadge size="md" />}
                       </h1>
                       {user.isOnline && (
-                          <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-sm border border-green-200 animate-in zoom-in" title="L'utente è attualmente online su SwimIn">
+                          <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-bold shadow-xs border border-green-200 animate-in zoom-in" title="L'utente è attualmente online su SwimIn">
                               <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
@@ -413,7 +413,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           type="button"
                           onClick={() => setConnectionsOpen(true)}
                           disabled={!(user.connections?.length)}
-                          className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg font-semibold hover:bg-corsia-100 disabled:hover:bg-corsia-50 disabled:cursor-default outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                          className="flex items-center gap-1.5 text-corsia-700 bg-corsia-50 px-2 py-1 rounded-lg font-semibold hover:bg-corsia-100 disabled:hover:bg-corsia-50 disabled:cursor-default outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                       >
                           <Icon type="users" className="w-4 h-4" /> {(user.connections?.length || 0) === 1 ? '1 collegamento' : `${user.connections?.length || 0} collegamenti`}
                       </button>
@@ -421,7 +421,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <button
                               type="button"
                               onClick={() => setFollowersOpen(true)}
-                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                           >
                               {followers === 1 ? '1 follower' : `${followers} follower`}
                           </button>
@@ -431,7 +431,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                               type="button"
                               onClick={() => setViewsOpen(true)}
                               data-html2canvas-ignore="true"
-                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                              className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2 py-1 rounded-lg font-semibold hover:bg-slate-200 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                           >
                               <Icon type="user" className="w-4 h-4" /> {viewsCount === 1 ? '1 visita al profilo' : `${viewsCount} visite al profilo`}
                           </button>
@@ -447,12 +447,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           )}
                           {email && (
                               <a href={`mailto:${email}`} className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
-                                  <Icon type="paper-plane" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{email}</span>
+                                  <Icon type="paper-plane" className="w-4 h-4 shrink-0" /> <span className="truncate">{email}</span>
                               </a>
                           )}
                           {user.website && (
                               <a href={user.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 inline-flex items-center gap-1.5 text-corsia-700 font-semibold hover:underline max-w-full">
-                                  <Icon type="globe" className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{user.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</span>
+                                  <Icon type="globe" className="w-4 h-4 shrink-0" /> <span className="truncate">{user.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</span>
                               </a>
                           )}
                           {(profUser?.languages || []).length > 0 && (
@@ -472,8 +472,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <PendingRecommendationsBanner pending={recs.pending} onReview={() => setReview({ open: true })} />
       )}
       {isWorker && isOwnProfile && profUser && (
-        <div className={`bg-white rounded-3xl shadow-sm border p-5 sm:p-6 mb-6 flex items-center gap-4 ${profUser.availableForEmergencies ? 'border-red-200' : 'border-slate-200'}`}>
-            <span className={`w-11 h-11 rounded-2xl grid place-items-center flex-shrink-0 ${profUser.availableForEmergencies ? 'bg-red-50 text-galleggiante-700' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
+        <div className={`bg-white rounded-3xl shadow-xs border p-5 sm:p-6 mb-6 flex items-center gap-4 ${profUser.availableForEmergencies ? 'border-red-200' : 'border-slate-200'}`}>
+            <span className={`w-11 h-11 rounded-2xl grid place-items-center shrink-0 ${profUser.availableForEmergencies ? 'bg-red-50 text-galleggiante-700' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
                 <Icon type="alert-triangle" className="w-6 h-6" />
             </span>
             <div className="min-w-0 flex-1">
@@ -500,9 +500,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     if (onUpdateProfile) onUpdateProfile(updated);
                     showToast(newState ? 'Disponibilità attivata: le piscine vicine possono contattarti per le sostituzioni urgenti.' : 'Disponibilità per sostituzioni disattivata.', 'success');
                 }}
-                className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center cursor-pointer rounded-full transition-colors duration-150 outline-none focus-visible:ring-4 focus-visible:ring-red-100 ${profUser.availableForEmergencies ? 'bg-red-600' : 'bg-slate-300 hover:bg-slate-400'}`}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center cursor-pointer rounded-full transition-colors duration-150 outline-hidden focus-visible:ring-4 focus-visible:ring-red-100 ${profUser.availableForEmergencies ? 'bg-red-600' : 'bg-slate-300 hover:bg-slate-400'}`}
             >
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${profUser.availableForEmergencies ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-xs transition-transform duration-150 ${profUser.availableForEmergencies ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
         </div>
       )}
@@ -515,7 +515,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {isProfessional && <ProfileSectionNav sections={PROFILE_SECTIONS} />}
 
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
+          <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6">
             <h2 id="about-title" className="text-xl font-bold text-abisso mb-4 flex items-center gap-2">
                 <Icon type="info" className="w-5 h-5 text-blue-600" />
                 {isProfessional ? 'Chi sono' : 'Chi siamo'}
@@ -532,7 +532,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
 
           {isProfessional && profUser && (profUser.sports || []).length > 0 && (
-            <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="sports-title">
+            <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="sports-title">
               <h2 id="sports-title" className="text-xl font-bold text-abisso mb-4">{isFan ? 'In vasca' : 'Discipline praticate'}</h2>
               <ul className="flex flex-wrap gap-2">
                 {(profUser.sports || []).map((sp) => (
@@ -571,7 +571,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {isProfessional && (isWorker || experiences.length > 0 || certifications.length > 0) && (
             <>
-                <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="career-title">
+                <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="career-title">
                     <div className="flex items-center justify-between gap-4 mb-6">
                         <div>
                             <h2 id="career-title" className="text-xl font-bold text-abisso flex items-center gap-2">
@@ -581,7 +581,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             {experienceMonths > 0 && <p className="text-sm text-slate-500 mt-0.5">{formatDuration(experienceMonths)} in totale</p>}
                         </div>
                         {isOwnProfile && (
-                            <button onClick={() => setExperienceModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                            <button onClick={() => setExperienceModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi
                             </button>
                         )}
@@ -591,7 +591,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         <ol className="relative border-l-2 border-corsia-100 ml-2 space-y-7">
                             {sortedExperiences.map((exp) => (
                             <li key={exp.index} className="relative pl-6 sm:pl-8">
-                                <span className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow-sm ${exp.current ? 'bg-cloro-500' : 'bg-corsia-400'}`} aria-hidden="true" />
+                                <span className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow-xs ${exp.current ? 'bg-cloro-500' : 'bg-corsia-400'}`} aria-hidden="true" />
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <h3 className="font-bold text-lg text-abisso leading-tight">{exp.role}</h3>
@@ -608,7 +608,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                         <button
                                             data-html2canvas-ignore="true"
                                             onClick={() => setExperienceModal({ isOpen: true, mode: 'edit', experience: exp, index: exp.index })}
-                                            className="flex-shrink-0 p-2 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                            className="shrink-0 p-2 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                                             aria-label={`Modifica esperienza: ${exp.role}`}
                                         >
                                             <Icon type="pencil" className="w-4 h-4" />
@@ -626,14 +626,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     )}
                 </section>
 
-                <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8" aria-labelledby="certs-title">
+                <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8" aria-labelledby="certs-title">
                     <div className="flex items-center justify-between mb-6">
                         <h2 id="certs-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                             <Icon type="certificate" className="w-6 h-6 text-blue-600" />
                             Brevetti e certificazioni
                         </h2>
                         {isOwnProfile && (
-                            <button onClick={() => setCertificationModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                            <button onClick={() => setCertificationModal({isOpen: true, mode: 'add'})} data-html2canvas-ignore="true" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-700 hover:bg-corsia-100 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500">
                                 <Icon type="plus" className="w-4 h-4" /> Aggiungi
                             </button>
                         )}
@@ -669,7 +669,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                             <button
                                                 data-html2canvas-ignore="true"
                                                 onClick={() => setCertificationModal({isOpen: true, mode: 'edit', certification: cert, index})}
-                                                className="flex-shrink-0 p-2 -mt-1 -mr-1 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                                className="shrink-0 p-2 -mt-1 -mr-1 text-slate-400 hover:text-corsia-700 hover:bg-corsia-50 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                                                 aria-label={`Modifica brevetto: ${cert.name}`}
                                             >
                                                 <Icon type="pencil" className="w-4 h-4" />
@@ -695,7 +695,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                             type="button"
                                             data-html2canvas-ignore="true"
                                             onClick={() => setVerifyCert(cert)}
-                                            className="mt-3 self-start text-sm font-semibold text-corsia-700 hover:text-corsia-800 inline-flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-corsia-500"
+                                            className="mt-3 self-start text-sm font-semibold text-corsia-700 hover:text-corsia-800 inline-flex items-center gap-1.5 rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                                         >
                                             <Icon type="shield" className="w-4 h-4" />
                                             {cert.verificationStatus === 'rejected' ? 'Invia un nuovo documento' : 'Richiedi la verifica'}
@@ -793,8 +793,8 @@ const PendingRecommendationsBanner: React.FC<{ pending: Recommendation[]; onRevi
     const names = [...new Set(pending.map((r) => r.author.name))];
     const who = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} e ${names[1]}` : `${names[0]}, ${names[1]} e altri ${names.length - 2}`;
     return (
-        <section aria-labelledby="pending-recs-title" className="bg-white rounded-3xl shadow-sm border-2 border-corsia-200 p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex -space-x-3 flex-shrink-0" aria-hidden="true">
+        <section aria-labelledby="pending-recs-title" className="bg-white rounded-3xl shadow-xs border-2 border-corsia-200 p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex -space-x-3 shrink-0" aria-hidden="true">
                 {pending.slice(0, 3).map((r) => (
                     <img key={r.$id} src={r.author.avatar || initialsAvatar(r.author.name)} alt="" className="w-12 h-12 rounded-full object-cover ring-4 ring-white bg-slate-100" />
                 ))}
@@ -805,7 +805,7 @@ const PendingRecommendationsBanner: React.FC<{ pending: Recommendation[]; onRevi
                 </h2>
                 <p className="text-sm text-slate-600 mt-0.5">{who} {names.length === 1 ? 'ha scritto' : 'hanno scritto'} di te. Leggi e decidi se pubblicarle sul profilo: finché non lo fai, le vedi solo tu.</p>
             </div>
-            <button type="button" onClick={onReview} className="px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700 flex-shrink-0">
+            <button type="button" onClick={onReview} className="px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700 shrink-0">
                 {pending.length === 1 ? 'Leggi e decidi' : 'Rivedile'}
             </button>
         </section>

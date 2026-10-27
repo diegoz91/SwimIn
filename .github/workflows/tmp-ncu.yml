@@ -6,22 +6,17 @@ on:
 permissions:
   contents: write
 jobs:
-  tailwind:
+  ncu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Migrazione ufficiale a Tailwind 4
-        run: |
-          npm install --no-audit --no-fund
+      - run: |
+          npx --yes npm-check-updates@latest -u --target latest --filter tw-animate-css,@tailwindcss/vite,react-router
+          npx --yes npm-check-updates@latest -u --target minor --filter @types/node
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git stash -u || true
-          npx --yes @tailwindcss/upgrade@latest --force 2>&1 | tee upgrade.log || true
-          echo "::notice title=upgrade::$(tail -c 3000 upgrade.log | tr '\n' ' ')"
-          rm -f upgrade.log
-          git add -A
-          git commit -m "chore: migrazione automatica a Tailwind 4 (@tailwindcss/upgrade)" || true
+          git add package.json && git commit -m "chore: ultime versioni dei pacchetti nuovi" || true
           git push origin HEAD:chore/tutto-aggiornato

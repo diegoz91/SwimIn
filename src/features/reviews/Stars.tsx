@@ -50,7 +50,7 @@ export const StarInput: React.FC<{ value: number; onChange: (v: number) => void;
                             onChange(next);
                             (e.currentTarget.parentElement?.children[next - 1] as HTMLElement | undefined)?.focus();
                         }}
-                        className="p-0.5 rounded-md outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 transition-transform active:scale-90"
+                        className="p-0.5 rounded-md outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 transition-transform active:scale-90"
                     >
                         <svg viewBox="0 0 24 24" className={`w-9 h-9 transition-colors ${i <= shown ? 'text-amber-400' : invalid ? 'text-red-200' : 'text-slate-200'}`} fill="currentColor" aria-hidden="true">
                             <path d={STAR} />

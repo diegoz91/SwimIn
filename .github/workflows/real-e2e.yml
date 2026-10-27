@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-node@v7
         if: steps.cfg.outputs.skip != 'true'
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Percorsi su Appwrite reale
         if: steps.cfg.outputs.skip != 'true'

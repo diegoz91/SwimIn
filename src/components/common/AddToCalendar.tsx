@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
 import { downloadIcs, type IcsEvent } from '@/utils/ics';
@@ -104,7 +104,7 @@ export const AddToCalendar: React.FC<Props> = ({ events, filename, label = 'Aggi
         };
     }, [open]);
 
-    const item = 'w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-piastrella outline-none focus-visible:bg-piastrella rounded-xl';
+    const item = 'w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-piastrella outline-hidden focus-visible:bg-piastrella rounded-xl';
     const menu = (
         <div
             ref={menuRef}
@@ -119,14 +119,14 @@ export const AddToCalendar: React.FC<Props> = ({ events, filename, label = 'Aggi
         >
             {mobile && <p className="px-4 pt-1 pb-2 font-semibold text-abisso">Aggiungi al calendario</p>}
             <button type="button" role="menuitem" className={item} disabled={busy} onClick={() => { const ev = list(); setOpen(false); void save(ev); }}>
-                <Icon type="calendar" className="w-5 h-5 text-corsia-600 mt-0.5 flex-shrink-0" />
+                <Icon type="calendar" className="w-5 h-5 text-corsia-600 mt-0.5 shrink-0" />
                 <span className="min-w-0">
                     <span className="block text-sm font-semibold text-abisso">Google Calendar</span>
                     <span className="block text-xs text-slate-500">{count > 1 ? 'Salva tutti gli appuntamenti nel tuo calendario' : 'Salva nel tuo calendario Google'}</span>
                 </span>
             </button>
             <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); downloadIcs(filename, list()); }}>
-                <Icon type="download" className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+                <Icon type="download" className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
                 <span className="min-w-0">
                     <span className="block text-sm font-semibold text-abisso">Apple, Outlook e altri</span>
                     <span className="block text-xs text-slate-500">Scarica il file del calendario (.ics)</span>

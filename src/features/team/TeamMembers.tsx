@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ApiError, databaseService, type PendingStaffInvite, type TeamMember } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -141,7 +141,7 @@ export const TeamMembers: React.FC<Props> = ({ structureId, structureName, isAdm
                         return (
                             <li key={m.userId} className="px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <div className="relative flex-shrink-0">
+                                    <div className="relative shrink-0">
                                         <img src={m.avatar || initialsAvatar(name)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                                         {m.isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-cloro-500 border-2 border-white"><span className="sr-only">Online</span></span>}
                                     </div>
@@ -278,7 +278,7 @@ const InviteModal: React.FC<{ open: boolean; structureId: string; structureName:
                 onChange={(e) => setTerm(e.target.value)}
                 autoComplete="off"
                 placeholder="Es. Giulia Ferri"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-hidden focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100"
             />
             <div aria-live="polite">
                 {results === null ? (

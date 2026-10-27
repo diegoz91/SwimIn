@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService, type PublicProfile as PublicData } from '@/services/database';
@@ -64,7 +64,7 @@ const PublicProfile: React.FC = () => {
                 ) : (
                     <article className="space-y-4">
                         <section className="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden">
-                            <div className="h-36 sm:h-48 bg-gradient-to-br from-corsia-700 via-corsia-500 to-cloro-400 relative">
+                            <div className="h-36 sm:h-48 bg-linear-to-br from-corsia-700 via-corsia-500 to-cloro-400 relative">
                                 {data.cover && <img src={data.cover} alt="" className="w-full h-full object-cover" />}
                                 <div className="lane-rope absolute bottom-0 inset-x-0" aria-hidden="true" />
                             </div>
@@ -135,7 +135,7 @@ const PublicProfile: React.FC = () => {
                                 <ul className="space-y-3">
                                     {(data.experiences || []).map((e, i) => (
                                         <li key={i} className="flex gap-3">
-                                            <span className="mt-1 w-9 h-9 rounded-lg bg-corsia-50 text-corsia-700 grid place-items-center flex-shrink-0"><Icon type="briefcase" className="w-4 h-4" /></span>
+                                            <span className="mt-1 w-9 h-9 rounded-lg bg-corsia-50 text-corsia-700 grid place-items-center shrink-0"><Icon type="briefcase" className="w-4 h-4" /></span>
                                             <span>
                                                 <span className="block font-semibold text-abisso">{e.title}</span>
                                                 <span className="block text-sm text-slate-600">{e.company}</span>

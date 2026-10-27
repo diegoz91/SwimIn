@@ -196,7 +196,7 @@ export const ProfileEditModal: React.FC<Props> = ({ open, profile, onClose, onSa
                                 role="radio"
                                 aria-checked={values.personType === value}
                                 onClick={() => set('personType', value)}
-                                className={`text-left p-3.5 rounded-2xl border-2 transition-colors outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 ${values.personType === value ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300'}`}
+                                className={`text-left p-3.5 rounded-2xl border-2 transition-colors outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 ${values.personType === value ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300'}`}
                             >
                                 <span className="block font-semibold text-abisso text-sm">{title}</span>
                                 <span className="block text-xs text-slate-500 mt-0.5">{desc}</span>

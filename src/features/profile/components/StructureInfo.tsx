@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Job, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { POOL_SETTINGS, jobRoleLabel } from '@/data/swimming';
@@ -126,14 +126,14 @@ export const StructureInfo: React.FC<Props> = ({ facility, isAdmin, openJobs, on
                             {openJobs.slice(0, 3).map((j) => (
                                 <li key={j.$id}>
                                     <Link to={`/jobs/${j.$id}`} className="flex items-center gap-3 py-3 group">
-                                        <span className={`w-10 h-10 rounded-xl grid place-items-center flex-shrink-0 ${j.isSOS ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`} aria-hidden="true">
+                                        <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${j.isSOS ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`} aria-hidden="true">
                                             <Icon type={j.isSOS ? 'alert-triangle' : 'briefcase'} className="w-5 h-5" />
                                         </span>
                                         <span className="min-w-0 flex-1">
                                             <span className="block font-semibold text-abisso group-hover:underline truncate">{jobDisplayTitle(j)}</span>
                                             <span className="block text-sm text-slate-500 truncate">{j.isSOS ? `Sostituzione urgente · ${formatDate(j.sosDate, 'weekday')}` : [jobRoleLabel(j.role), j.city].filter(Boolean).join(' · ')}</span>
                                         </span>
-                                        <Icon type="chevron-right" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                        <Icon type="chevron-right" className="w-5 h-5 text-slate-400 shrink-0" />
                                     </Link>
                                 </li>
                             ))}
@@ -150,7 +150,7 @@ export const StructureInfo: React.FC<Props> = ({ facility, isAdmin, openJobs, on
                     <ul className="mt-3 space-y-3 text-sm">
                         {address && (
                             <li className="flex gap-3">
-                                <Icon type="location" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                <Icon type="location" className="w-5 h-5 text-slate-400 shrink-0" />
                                 <span className="min-w-0">
                                     <span className="block text-slate-800">{address}</span>
                                     <a
@@ -166,13 +166,13 @@ export const StructureInfo: React.FC<Props> = ({ facility, isAdmin, openJobs, on
                         )}
                         {facility.phone && (
                             <li className="flex gap-3">
-                                <Icon type="phone" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                <Icon type="phone" className="w-5 h-5 text-slate-400 shrink-0" />
                                 <a href={`tel:${facility.phone.replace(/\s/g, '')}`} className="py-1 -my-1 font-semibold text-corsia-700 hover:underline">{facility.phone}</a>
                             </li>
                         )}
                         {facility.website && (
                             <li className="flex gap-3 min-w-0">
-                                <Icon type="globe" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                <Icon type="globe" className="w-5 h-5 text-slate-400 shrink-0" />
                                 <a href={facility.website} target="_blank" rel="noopener noreferrer nofollow" className="py-1 -my-1 font-semibold text-corsia-700 hover:underline break-all">
                                     {facility.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                                 </a>
@@ -210,7 +210,7 @@ export const StructureInfo: React.FC<Props> = ({ facility, isAdmin, openJobs, on
 
                 {staffCount > 0 && (
                     <section className="bg-white rounded-3xl border border-slate-200 shadow-card p-5 flex items-center gap-3" aria-label="Staff">
-                        <span className="w-10 h-10 rounded-full bg-cloro-50 text-cloro-800 grid place-items-center flex-shrink-0" aria-hidden="true"><Icon type="users" className="w-5 h-5" /></span>
+                        <span className="w-10 h-10 rounded-full bg-cloro-50 text-cloro-800 grid place-items-center shrink-0" aria-hidden="true"><Icon type="users" className="w-5 h-5" /></span>
                         <p className="text-sm text-slate-700"><span className="font-semibold text-abisso">{staffCount === 1 ? '1 persona' : `${staffCount} persone`}</span> nello staff su SwimIn</p>
                     </section>
                 )}

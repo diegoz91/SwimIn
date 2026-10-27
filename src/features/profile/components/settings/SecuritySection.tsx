@@ -175,7 +175,7 @@ const GoogleRow: React.FC<{ hasPassword: boolean }> = ({ hasPassword }) => {
 
     return (
         <Row
-            leading={<span className="w-10 h-10 rounded-xl bg-piastrella grid place-items-center flex-shrink-0" aria-hidden="true"><img src={googleG} alt="" className="w-5 h-5" /></span>}
+            leading={<span className="w-10 h-10 rounded-xl bg-piastrella grid place-items-center shrink-0" aria-hidden="true"><img src={googleG} alt="" className="w-5 h-5" /></span>}
             title="Google"
             description={
                 identity === undefined ? 'Controllo in corso…'
@@ -296,12 +296,12 @@ const ActivityGroup: React.FC = () => {
                         const [label, icon] = eventOf(l.event);
                         return (
                             <li key={`${l.time}-${i}`} className="px-5 sm:px-6 py-3 flex items-center gap-4">
-                                <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 grid place-items-center flex-shrink-0" aria-hidden="true"><Icon type={icon} className="w-5 h-5" /></span>
+                                <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 grid place-items-center shrink-0" aria-hidden="true"><Icon type={icon} className="w-5 h-5" /></span>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-semibold text-abisso">{label}</p>
                                     <p className="text-sm text-slate-500 break-words">{[deviceLabel(l), l.countryName && l.countryName !== 'Unknown' ? l.countryName : ''].filter(Boolean).join(' · ')}</p>
                                 </div>
-                                <time dateTime={l.time} className="text-sm text-slate-500 flex-shrink-0 text-right">{whenOf(l.time)}</time>
+                                <time dateTime={l.time} className="text-sm text-slate-500 shrink-0 text-right">{whenOf(l.time)}</time>
                             </li>
                         );
                     })}

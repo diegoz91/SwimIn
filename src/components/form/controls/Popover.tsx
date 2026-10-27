@@ -168,7 +168,7 @@ export const Highlight: React.FC<{ text: string; query: string }> = ({ text, que
     return (
         <>
             {text.slice(0, i)}
-            <mark className="bg-cloro-100 text-abisso rounded-sm">{text.slice(i, i + q.length)}</mark>
+            <mark className="bg-cloro-100 text-abisso rounded-xs">{text.slice(i, i + q.length)}</mark>
             {text.slice(i + q.length)}
         </>
     );

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useBlocks } from '@/context/BlocksContext';
 import { useToast } from '@/context/ToastContext';
@@ -154,7 +154,7 @@ const Admin: React.FC = () => {
                         role="tab"
                         aria-selected={tab === t.id}
                         onClick={() => setTab(t.id)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition ${tab === t.id ? 'bg-abisso text-white border-abisso' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                        className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition ${tab === t.id ? 'bg-abisso text-white border-abisso' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
                     >
                         {t.label}
                         {!!t.badge && <span className={`ml-2 px-1.5 rounded-full text-xs ${tab === t.id ? 'bg-white/20' : 'bg-galleggiante text-white'}`}>{t.badge}</span>}
@@ -251,7 +251,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setUserQuery(e.target.value)}
                         placeholder="Nome, cognome, struttura o email"
                         aria-label="Cerca utenti"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white mb-4 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white mb-4 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden"
                     />
                     <ul className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
                         {userRows.length === 0 && <li className="p-6 text-sm text-slate-500 text-center">{userQuery.trim().length < 2 ? 'Scrivi almeno due lettere.' : 'Nessun utente trovato.'}</li>}
@@ -354,8 +354,8 @@ const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = ({ 
                 const c = item.cert;
                 return (
                     <li key={key} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                        <button type="button" onClick={() => expand(item)} aria-expanded={isOpen} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-corsia-500">
-                            <Icon type="shield" className="w-5 h-5 text-corsia-600 flex-shrink-0" />
+                        <button type="button" onClick={() => expand(item)} aria-expanded={isOpen} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-corsia-500">
+                            <Icon type="shield" className="w-5 h-5 text-corsia-600 shrink-0" />
                             <span className="min-w-0 flex-1">
                                 <span className="block font-semibold text-abisso truncate">{c.name}</span>
                                 <span className="block text-xs text-slate-500 truncate">{item.name}{item.city ? `, ${item.city}` : ''}</span>
@@ -387,7 +387,7 @@ const AdminVerifications: React.FC<{ onCountChange: (n: number) => void }> = ({ 
                                     <Link to={`/profile/${item.profileId}`} className="inline-block text-corsia-700 font-semibold hover:underline">Apri il profilo</Link>
                                     <label className="block">
                                         <span className="block text-xs text-slate-500 mb-1">Motivo del rifiuto (obbligatorio per respingere)</span>
-                                        <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={3} className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none resize-none" placeholder="Es. il numero non corrisponde al documento" />
+                                        <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={3} className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden resize-none" placeholder="Es. il numero non corrisponde al documento" />
                                     </label>
                                     <div className="flex gap-2">
                                         <button type="button" disabled={busy} onClick={() => decide(item, true)} className="flex-1 px-4 py-2 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700 disabled:opacity-60">Approva</button>

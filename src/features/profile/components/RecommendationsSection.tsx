@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { FormModal } from '@/components/form/FormModal';
 import { Field, fieldClass } from '@/components/form/Field';
@@ -117,7 +117,7 @@ export const RecommendationsSection: React.FC<{
         return (
             <li key={r.$id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex items-start gap-3">
-                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+                    <Link to={`/profile/${r.authorId}`} tabIndex={-1} aria-hidden="true" className="shrink-0">
                         <img src={r.author.avatar || initialsAvatar(r.author.name)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100" />
                     </Link>
                     <div className="min-w-0 flex-1">
@@ -137,7 +137,7 @@ export const RecommendationsSection: React.FC<{
     };
 
     return (
-        <section ref={sectionRef} id="referenze" className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6 scroll-mt-20" aria-labelledby="recs-title">
+        <section ref={sectionRef} id="referenze" className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6 scroll-mt-20" aria-labelledby="recs-title">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <h2 id="recs-title" className="text-xl font-bold text-abisso flex items-center gap-2">
                     <Icon type="star" className="w-6 h-6 text-blue-600" /> Referenze

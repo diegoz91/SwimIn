@@ -1,26 +1,48 @@
-@import './design-system.css' layer(base);
+/*
+ * Stili globali di SwimIn (Tailwind 4: configurazione in CSS).
+ * Colori, font, ombre e animazioni sono in theme.css, generato da scripts/theme/generate.mjs.
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './theme.css';
 @import './components.css';
 @import './responsive.css';
 
-@import 'tailwindcss';
-
-@config '../../tailwind.config.js';
-
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+ * Comportamenti di Tailwind 3 mantenuti (in Tailwind 4 cambiano i predefiniti):
+ * bordi grigio chiaro invece del colore del testo, segnaposto grigi, puntatore sui pulsanti,
+ * anello di focus nel blu del brand.
+ */
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: rgb(var(--c-slate-200));
+    --tw-ring-color: rgb(var(--c-corsia-500) / 0.5);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--c-slate-400));
+    opacity: 1;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  dialog {
+    margin: auto;
+  }
+
+  :root {
+    --app-bg: rgb(var(--c-page));
+    --app-text: rgb(var(--t-abisso));
+    /* Notch degli smartphone (iOS/Android). */
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 }
 
@@ -32,8 +54,8 @@
   height: 4px;
   background-image: repeating-linear-gradient(
     90deg,
-    var(--color-corsia-600) 0 18px,
-    var(--color-cloro-400) 18px 36px,
+    rgb(var(--c-corsia-600)) 0 18px,
+    rgb(var(--c-cloro-400)) 18px 36px,
     #ffffff 36px 40px
   );
 }
@@ -71,7 +93,7 @@
   }
 
   :focus-visible {
-    outline-color: var(--color-corsia-500);
+    outline-color: rgb(var(--c-corsia-500));
   }
 
   /* Numeri senza le freccette del browser: i valori si scrivono. */

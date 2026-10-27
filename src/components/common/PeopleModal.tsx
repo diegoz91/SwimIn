@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { initialsAvatar } from '@/utils/avatar';
 
@@ -69,14 +69,14 @@ export const PeopleModal: React.FC<{
 
     if (!open) return null;
     return createPortal(
-        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-abisso/50 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-abisso/50 backdrop-blur-xs animate-in fade-in duration-150" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
             <div role="dialog" aria-modal="true" aria-labelledby="people-modal-title" className="bg-white w-full sm:max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-2xl shadow-lift flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 motion-reduce:animate-none">
                 <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-100">
                     <div>
                         <h2 id="people-modal-title" className="text-2xl font-bold text-abisso leading-tight">{title}</h2>
                         {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
                     </div>
-                    <button ref={closeRef} onClick={onClose} aria-label="Chiudi" className="p-2 -m-1 rounded-full text-slate-500 hover:bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500">
+                    <button ref={closeRef} onClick={onClose} aria-label="Chiudi" className="p-2 -m-1 rounded-full text-slate-500 hover:bg-slate-100 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500">
                         <Icon type="x" className="w-5 h-5" />
                     </button>
                 </div>
@@ -88,7 +88,7 @@ export const PeopleModal: React.FC<{
                             onChange={(e) => setQ(e.target.value)}
                             placeholder="Cerca per nome"
                             aria-label="Cerca per nome"
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-sm"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden text-sm"
                         />
                     </div>
                 )}
@@ -106,18 +106,18 @@ export const PeopleModal: React.FC<{
                             {shown.map((r, i) => {
                                 const content = (
                                     <>
-                                        <img src={r.avatar || initialsAvatar(r.name)} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-100 flex-shrink-0" />
+                                        <img src={r.avatar || initialsAvatar(r.name)} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-100 shrink-0" />
                                         <span className="min-w-0 flex-1">
                                             <span className="block font-semibold text-abisso truncate">{r.name}</span>
                                             {r.headline && <span className="block text-sm text-slate-500 truncate">{r.headline}</span>}
                                         </span>
-                                        {r.meta && <span className="text-xs text-slate-400 flex-shrink-0">{r.meta}</span>}
+                                        {r.meta && <span className="text-xs text-slate-400 shrink-0">{r.meta}</span>}
                                     </>
                                 );
                                 return (
                                     <li key={r.id || `anonimo-${i}`}>
                                         {r.id ? (
-                                            <button onClick={() => { onClose(); navigate(`/profile/${r.id}`); }} className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-piastrella outline-none focus-visible:bg-piastrella">
+                                            <button onClick={() => { onClose(); navigate(`/profile/${r.id}`); }} className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-piastrella outline-hidden focus-visible:bg-piastrella">
                                                 {content}
                                             </button>
                                         ) : (

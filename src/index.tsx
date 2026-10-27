@@ -22,7 +22,7 @@ if (!rootElement) {
 
 const ConfigError: React.FC<{ vars: string[] }> = ({ vars }) => (
   <div className="min-h-screen flex items-center justify-center p-6">
-    <div className="max-w-lg bg-white border border-red-200 rounded-2xl p-6 shadow-sm">
+    <div className="max-w-lg bg-white border border-red-200 rounded-2xl p-6 shadow-xs">
       <h1 className="text-lg font-bold text-red-700 mb-2">Configurazione mancante</h1>
       <p className="text-slate-700 mb-3">
         Mancano le variabili d'ambiente di Appwrite. Crea un file <code>.env</code> partendo da <code>.env.example</code>

@@ -7,7 +7,7 @@ import React from 'react';
 export const PremiumBadge: React.FC<{ size?: 'sm' | 'md'; label?: boolean; className?: string }> = ({ size = 'sm', label = false, className = '' }) => {
     const box = size === 'md' ? 'w-6 h-6' : 'w-4 h-4';
     return (
-        <span className={`inline-flex items-center gap-1 align-middle flex-shrink-0 ${className}`} title="SwimIn Premium">
+        <span className={`inline-flex items-center gap-1 align-middle shrink-0 ${className}`} title="SwimIn Premium">
             <svg viewBox="0 0 24 24" className={box} aria-hidden="true">
                 <defs>
                     <linearGradient id="swimin-oro" x1="0" y1="0" x2="1" y2="1">

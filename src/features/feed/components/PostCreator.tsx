@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
@@ -63,11 +63,11 @@ export const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated, groupId
                     <img 
                         src={displayAvatar || defaultAvatar} 
                         alt="Il tuo profilo" 
-                        className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-slate-50 flex-shrink-0"
+                        className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-slate-50 shrink-0"
                     />
                     <button
                         onClick={() => handleOpenModal()}
-                        className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 font-medium text-left px-4 py-3 sm:py-3.5 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 font-medium text-left px-4 py-3 sm:py-3.5 rounded-full transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                         {placeholder}
                     </button>

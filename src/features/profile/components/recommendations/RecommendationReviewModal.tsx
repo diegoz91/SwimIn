@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { FormModal } from '@/components/form/FormModal';
 import { useToast } from '@/context/ToastContext';
 import { databaseService, type Recommendation } from '@/services/database';
@@ -87,7 +87,7 @@ export const RecommendationReviewModal: React.FC<{
             }
         >
             <div className="flex items-start gap-3">
-                <img src={a.avatar || initialsAvatar(a.name)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 flex-shrink-0" />
+                <img src={a.avatar || initialsAvatar(a.name)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 shrink-0" />
                 <div className="min-w-0">
                     <Link to={`/profile/${current.authorId}`} onClick={() => finish(results)} className="font-semibold text-abisso hover:underline">{a.name}</Link>
                     <p className="text-sm text-slate-500">{[a.headline, relationLabel(current.relationship), formatDate(current.$createdAt.slice(0, 10), 'short')].filter(Boolean).join(' · ')}</p>

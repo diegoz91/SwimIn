@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
@@ -287,11 +287,11 @@ const Premium: React.FC = () => {
 
 const FeatureMark: React.FC<{ value: string | boolean; premium?: boolean }> = ({ value, premium }) =>
     value ? (
-        <span className={`mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 ${premium ? 'bg-oro-100 text-oro-700' : 'bg-corsia-50 text-corsia-700'}`}>
+        <span className={`mt-0.5 w-5 h-5 rounded-full grid place-items-center shrink-0 ${premium ? 'bg-oro-100 text-oro-700' : 'bg-corsia-50 text-corsia-700'}`}>
             <Icon type="check" className="w-3.5 h-3.5" />
         </span>
     ) : (
-        <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-slate-100 text-slate-400">
+        <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center shrink-0 bg-slate-100 text-slate-400">
             <Icon type="x" className="w-3 h-3" />
         </span>
     );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 
@@ -23,7 +23,7 @@ export const TrendsCard: React.FC = () => {
                                 <span className="text-xs text-slate-400 mr-2">{i + 1}</span>
                                 <span className="font-semibold text-abisso group-hover:text-corsia-700 break-all">#{t.tag}</span>
                             </span>
-                            <span className="text-xs text-slate-500 flex-shrink-0">{t.posts === 1 ? '1 post' : `${t.posts} post`}</span>
+                            <span className="text-xs text-slate-500 shrink-0">{t.posts === 1 ? '1 post' : `${t.posts} post`}</span>
                         </Link>
                     </li>
                 ))}

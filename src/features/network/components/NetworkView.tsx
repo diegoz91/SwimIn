@@ -46,7 +46,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 min-h-[50vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-blue-600 shadow-sm"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-blue-600 shadow-xs"></div>
                 <p className="text-slate-500 font-bold mt-4 animate-pulse">Sincronizzazione network...</p>
             </div>
         );
@@ -71,12 +71,12 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     <input 
                         type="text" 
                         placeholder="Cerca colleghi, istruttori, strutture aziendali, città..." 
-                        className="w-full pl-14 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none text-lg transition-all"
+                        className="w-full pl-14 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden text-lg transition-all"
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                     {searchQuery && (
-                        <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 outline-none">
+                        <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 outline-hidden">
                             <Icon type="x" className="h-5 w-5" />
                         </button>
                     )}
@@ -87,7 +87,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                 
                 {/* 📇 COLONNA SINISTRA: RUBRICA COLLEGAMENTI */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
+                    <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden lg:sticky lg:top-6">
                         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                             <h2 className="font-bold text-slate-800 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" /> I tuoi collegamenti
@@ -110,7 +110,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                                 <img 
                                                     src={avatar} 
                                                     alt={name}
-                                                    className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm cursor-pointer" 
+                                                    className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-xs cursor-pointer" 
                                                     onClick={() => onSelectProfile(id)}
                                                 />
                                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelectProfile(id)}>
@@ -119,10 +119,10 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                                 </div>
                                                 {/* Azioni Rapide Hover */}
                                                 <div className="flex items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-1">
-                                                    <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-none" title="Invia messaggio">
+                                                    <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-hidden" title="Invia messaggio">
                                                         <Icon type="chat-bubble" className="w-4 h-4"/>
                                                     </button>
-                                                    <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg outline-none" title="Rimuovi">
+                                                    <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg outline-hidden" title="Rimuovi">
                                                         <Icon type="user-minus" className="w-4 h-4"/>
                                                     </button>
                                                 </div>
@@ -148,7 +148,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     
                     {/* 1. RISULTATI RICERCA */}
                     {searchQuery.trim().length >= 2 && (
-                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 animate-in slide-in-from-top-4">
+                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 animate-in slide-in-from-top-4">
                             <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <Icon type="search" className="w-5 h-5 text-blue-600" />
                                 Risultati per "{searchQuery}"
@@ -183,7 +183,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
 
                     {/* 2. RICHIESTE IN SOSPESO (Nascoste se c'è una ricerca attiva) */}
                     {!searchQuery && pendingRequests.length > 0 && (
-                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6">
                             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Icon type="users" className="w-5 h-5 text-blue-600" />
                                 Richieste in sospeso ({pendingRequests.length})
@@ -205,7 +205,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
 
                     {/* 3. SUGGERIMENTI INTELLIGENTI (Nascosti se c'è una ricerca attiva) */}
                     {!searchQuery && (
-                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6">
                             <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <Icon type="sparkles" className="w-5 h-5 text-amber-500" />
                                 Potresti conoscere...
@@ -224,7 +224,7 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                                 </div>
                             ) : (
                                 <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-xs border border-slate-100">
                                         <Icon type="globe" className="w-8 h-8 text-slate-300" />
                                     </div>
                                     <p className="text-slate-600 font-bold text-lg">Hai raggiunto il bordo vasca!</p>

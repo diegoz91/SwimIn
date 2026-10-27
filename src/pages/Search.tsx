@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService } from '@/services/database';
@@ -33,8 +33,8 @@ const nameOf = (p: UserProfile | StructureProfile) =>
 
 const ResultRow: React.FC<{ to: string; image: string; title: string; subtitle?: string; square?: boolean }> = ({ to, image, title, subtitle, square }) => (
     <li>
-        <Link to={to} className="flex items-center gap-3 px-4 py-3 hover:bg-piastrella outline-none focus-visible:bg-piastrella">
-            <img src={image} alt="" className={`w-12 h-12 object-cover flex-shrink-0 border border-slate-100 ${square ? 'rounded-xl' : 'rounded-full'}`} />
+        <Link to={to} className="flex items-center gap-3 px-4 py-3 hover:bg-piastrella outline-hidden focus-visible:bg-piastrella">
+            <img src={image} alt="" className={`w-12 h-12 object-cover shrink-0 border border-slate-100 ${square ? 'rounded-xl' : 'rounded-full'}`} />
             <span className="min-w-0">
                 <span className="block font-semibold text-abisso truncate">{title}</span>
                 {subtitle && <span className="block text-sm text-slate-500 truncate">{subtitle}</span>}
@@ -159,7 +159,7 @@ const Search: React.FC = () => {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Cerca persone, piscine, offerte, gruppi, eventi, #hashtag"
                         autoFocus={!q}
-                        className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white border border-slate-200 shadow-card text-abisso focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-none"
+                        className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white border border-slate-200 shadow-card text-abisso focus:border-corsia-300 focus:ring-2 focus:ring-corsia-100 outline-hidden"
                     />
                 </div>
             </form>
@@ -194,7 +194,7 @@ const Search: React.FC = () => {
                                 {recent.map((r) => (
                                     <li key={r}>
                                         <button type="button" onClick={() => { setInput(r); setParams({ q: r }); }} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-piastrella">
-                                            <Icon type="clock" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                            <Icon type="clock" className="w-5 h-5 text-slate-400 shrink-0" />
                                             <span className="flex-1 min-w-0 truncate text-abisso">{r}</span>
                                             <Icon type="chevron-right" className="w-4 h-4 text-slate-400" />
                                         </button>

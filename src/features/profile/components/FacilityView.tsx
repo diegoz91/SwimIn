@@ -16,7 +16,7 @@ import { CreateJobModal } from '@/features/jobs/components/CreateJobModal';
 import { ImageUploadButton } from '@/components/ui/ImageUploadButton';
 import { ConnectButton } from '@/components/common/ConnectButton';
 import { FollowButton } from '@/components/common/FollowButton';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { StaffChat } from '@/features/team/StaffChat';
 import { initialsAvatar } from '@/utils/avatar';
 import { isJobOpen, jobDisplayTitle } from '@/utils/jobs';
@@ -315,7 +315,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
             </div>
 
             <header className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
-                <div className="h-36 sm:h-56 relative bg-gradient-to-br from-corsia-800 via-corsia-600 to-cloro-500">
+                <div className="h-36 sm:h-56 relative bg-linear-to-br from-corsia-800 via-corsia-600 to-cloro-500">
                     {coverImage && <img src={coverImage} alt="" className="w-full h-full object-cover" loading="lazy" />}
                     {isOwner && (
                         <ImageUploadButton kind="cover" currentUrl={coverImage} onUploaded={(url) => saveImage('cover', url)} label="Cambia immagine di copertina" className="absolute top-3 right-3 px-3 py-2" />
@@ -323,7 +323,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 </div>
                 <div className="px-5 sm:px-7 pb-5">
                     <div className="flex flex-wrap items-end justify-between gap-3 -mt-10 sm:-mt-14">
-                        <div className="relative flex-shrink-0">
+                        <div className="relative shrink-0">
                             <img src={displayLogo} alt="" className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-lift bg-white" />
                             {isOwner && <ImageUploadButton kind="avatar" currentUrl={logo} onUploaded={(url) => saveImage('logo', url)} label="Cambia logo" className="absolute -bottom-1 -right-1 w-9 h-9" />}
                         </div>
@@ -380,7 +380,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                             key={t.id}
                             onClick={() => setActiveTab(t.id)}
                             aria-current={activeTab === t.id ? 'page' : undefined}
-                            className={`flex-shrink-0 px-3 sm:px-4 py-3.5 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 transition-colors ${activeTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
+                            className={`shrink-0 px-3 sm:px-4 py-3.5 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 transition-colors ${activeTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
                         >
                             {t.icon && <Icon type={t.icon} className="w-4 h-4" />}
                             {t.label}
@@ -440,7 +440,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                 </h3>
                                                 <p className="text-sm text-slate-500">{[job.role && jobRoleLabel(job.role), job.contractType && contractLabel(job.contractType), job.city].filter(Boolean).join(' · ')}</p>
                                             </div>
-                                            <button onClick={() => onSelectJob?.(job.$id)} className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-800 hover:bg-corsia-100">
+                                            <button onClick={() => onSelectJob?.(job.$id)} className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold bg-corsia-50 text-corsia-800 hover:bg-corsia-100">
                                                 {isAdmin ? 'Candidati e dettagli' : 'Dettagli e candidatura'}
                                             </button>
                                         </div>
@@ -454,7 +454,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
 
                 {/* 3. GESTIONE TEAM (Admin & Staff) */}
                 {activeTab === 'staff' && (isAdmin || isStaff) && (
-                    <div ref={staffAreaRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden scroll-mt-20">
+                    <div ref={staffAreaRef} className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden scroll-mt-20">
                         
                         <div className="border-b border-slate-100 px-3 sm:px-4 flex gap-1 overflow-x-auto" role="tablist" aria-label="Area staff">
                             {([
@@ -468,7 +468,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     role="tab"
                                     aria-selected={staffSubTab === t.id}
                                     onClick={() => setStaffSubTab(t.id)}
-                                    className={`flex-shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 ${staffSubTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
+                                    className={`shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px inline-flex items-center gap-1.5 ${staffSubTab === t.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
                                 >
                                     {t.label}
                                     {'badge' in t && t.badge > 0 && <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-corsia-600 text-white text-xs grid place-items-center tabular-nums">{t.badge > 99 ? '99+' : t.badge}</span>}
@@ -482,12 +482,12 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                     <div className="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
                                         <textarea 
                                             placeholder="Scrivi una comunicazione ufficiale per tutto il tuo team..." 
-                                            className="w-full bg-white border border-slate-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow resize-none text-[15px]" 
+                                            className="w-full bg-white border border-slate-200 rounded-xl p-4 outline-hidden focus:ring-2 focus:ring-blue-500 transition-shadow resize-none text-[15px]" 
                                             rows={3} value={newAnnouncement} onChange={e=>setNewAnnouncement(e.target.value)}
                                         />
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 gap-4">
                                             <Checkbox id="ann-important" tone="danger" checked={isImportant} onChange={setIsImportant} label="Segna come importante" description="Compare in evidenza nella bacheca dello staff." />
-                                            <button onClick={handlePostAnnouncement} className="w-full sm:w-auto bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                                            <button onClick={handlePostAnnouncement} className="w-full sm:w-auto bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-xs flex items-center justify-center gap-2 active:scale-95">
                                                 <Icon type="send" className="w-4 h-4"/> Pubblica
                                             </button>
                                         </div>
@@ -496,7 +496,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 
                                 <div className="space-y-4">
                                     {announcements.map(ann => (
-                                        <div key={ann.$id} className={`p-5 rounded-2xl border transition-all ${ann.isImportant ? 'bg-red-50/50 border-red-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                                        <div key={ann.$id} className={`p-5 rounded-2xl border transition-all ${ann.isImportant ? 'bg-red-50/50 border-red-200 shadow-xs' : 'bg-white border-slate-200'}`}>
                                             <div className="flex justify-between items-start mb-3">
                                                 <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${ann.isImportant ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                                                     {ann.isImportant ? 'Importante' : 'Comunicazione'}
@@ -507,7 +507,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                                         {new Date(ann.$createdAt || Date.now()).toLocaleDateString('it-IT')}
                                                     </span>
                                                     {isAdmin && (
-                                                        <button onClick={() => void handleDeleteAnnouncement(ann.$id)} aria-label="Elimina la comunicazione" className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
+                                                        <button onClick={() => void handleDeleteAnnouncement(ann.$id)} aria-label="Elimina la comunicazione" className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 transition-colors p-1.5 rounded-md outline-hidden focus-visible:ring-2 focus-visible:ring-red-400" title="Elimina">
                                                             <Icon type="trash" className="w-4 h-4" />
                                                         </button>
                                                     )}
@@ -638,7 +638,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
                 {activeTab === 'analytics' && isOwner && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} viewersLink={null} /></div>}
                 {activeTab === 'analytics' && isOwner && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
                         <div className="mb-6">
                             <h2 className="text-2xl font-bold text-abisso">Statistiche</h2>
                             <p className="text-sm text-slate-500 mt-1">Annunci pubblicati da questa pagina e candidature ricevute.</p>

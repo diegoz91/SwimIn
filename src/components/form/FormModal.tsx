@@ -101,7 +101,7 @@ export const FormModal: React.FC<FormModalProps> = ({
                 <div className="sm:hidden mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-200" aria-hidden="true" />
                 <header className="flex items-start gap-3 px-5 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-slate-100">
                     {icon && (
-                        <span className={`flex-shrink-0 w-10 h-10 rounded-xl grid place-items-center ${tone === 'danger' ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`}>
+                        <span className={`shrink-0 w-10 h-10 rounded-xl grid place-items-center ${tone === 'danger' ? 'bg-red-50 text-galleggiante-700' : 'bg-corsia-50 text-corsia-700'}`}>
                             <Icon type={icon} className="w-5 h-5" />
                         </span>
                     )}
@@ -111,7 +111,7 @@ export const FormModal: React.FC<FormModalProps> = ({
                         </h2>
                         {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
                     </div>
-                    <button type="button" onClick={requestClose} className="p-2 -mr-2 rounded-full text-slate-400 hover:text-abisso hover:bg-slate-100 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100" aria-label="Chiudi">
+                    <button type="button" onClick={requestClose} className="p-2 -mr-2 rounded-full text-slate-400 hover:text-abisso hover:bg-slate-100 outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100" aria-label="Chiudi">
                         <Icon type="x" className="w-5 h-5" />
                     </button>
                 </header>
@@ -135,11 +135,11 @@ export const FormModal: React.FC<FormModalProps> = ({
                         <footer className="flex items-center gap-3 px-5 sm:px-6 py-4 border-t border-slate-100 pb-[max(1rem,env(safe-area-inset-bottom))]">
                             <div className="flex-1">{secondaryAction}</div>
                             {cancelLabel !== null && (
-                                <button type="button" onClick={requestClose} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50">
+                                <button type="button" onClick={requestClose} disabled={busy} className="px-5 py-2.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50">
                                     {cancelLabel}
                                 </button>
                             )}
-                            <button type="submit" disabled={busy} className={`px-6 py-2.5 rounded-full font-semibold text-white shadow-card outline-none focus-visible:ring-4 disabled:opacity-70 inline-flex items-center gap-2 transition-colors ${primary}`}>
+                            <button type="submit" disabled={busy} className={`px-6 py-2.5 rounded-full font-semibold text-white shadow-card outline-hidden focus-visible:ring-4 disabled:opacity-70 inline-flex items-center gap-2 transition-colors ${primary}`}>
                                 {busy && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />}
                                 {busy ? busyLabel : submitLabel}
                             </button>

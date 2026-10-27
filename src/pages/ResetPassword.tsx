@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { account } from '@/services/appwrite';
 import { useToast } from '@/context/ToastContext';
 
@@ -47,7 +47,7 @@ const ResetPassword: React.FC = () => {
   };
 
   const inputClass =
-    'w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-slate-50 focus:bg-white';
+    'w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-hidden bg-slate-50 focus:bg-white';
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50">
@@ -102,7 +102,7 @@ const ResetPassword: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md disabled:opacity-70 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               {isLoading ? 'Salvataggio…' : 'Salva nuova password'}
             </button>

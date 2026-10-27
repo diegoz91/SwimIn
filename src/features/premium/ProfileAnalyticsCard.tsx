@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { requestPremium } from '@/services/premiumPrompt';
@@ -30,7 +30,7 @@ export const ProfileAnalyticsCard: React.FC<{ premium: boolean; onOpenViews: () 
     const locked = () => requestPremium('Le statistiche del profilo e dei post sono incluse in SwimIn Premium.');
 
     return (
-        <section aria-labelledby="analytics-title" className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
+        <section aria-labelledby="analytics-title" className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" data-html2canvas-ignore="true">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
                     <h2 id="analytics-title" className="text-xl font-bold text-abisso">Analisi</h2>
@@ -54,11 +54,11 @@ const Tile: React.FC<{ icon: IconType; value: number | null; label: string; hint
                 <Icon type={icon} className="w-5 h-5 text-corsia-600" />
                 {locked && <PremiumBadge />}
             </span>
-            <span className="block font-display text-3xl font-bold text-abisso mt-2 tabular-nums">{locked ? '–' : value === null ? <span className="inline-block w-10 h-7 rounded bg-slate-100 animate-pulse align-middle" /> : value.toLocaleString('it-IT')}</span>
+            <span className="block font-display text-3xl font-bold text-abisso mt-2 tabular-nums">{locked ? '–' : value === null ? <span className="inline-block w-10 h-7 rounded-sm bg-slate-100 animate-pulse align-middle" /> : value.toLocaleString('it-IT')}</span>
             <span className="block text-sm font-semibold text-abisso">{label}</span>
             <span className="block text-sm text-slate-500 mt-0.5">{locked ? 'Con Premium' : hint}</span>
         </>
     );
-    const cls = 'block text-left rounded-2xl border border-slate-200 bg-piastrella/50 p-4 hover:border-corsia-300 hover:bg-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-400';
+    const cls = 'block text-left rounded-2xl border border-slate-200 bg-piastrella/50 p-4 hover:border-corsia-300 hover:bg-white transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-400';
     return to ? <Link to={to} className={cls}>{body}</Link> : <button type="button" onClick={onClick} className={`${cls} w-full`}>{body}</button>;
 };

@@ -9,7 +9,7 @@ const ApplicationsChart: React.FC<{ data: { name: string; candidature: number }[
             <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'rgb(var(--c-slate-500))' }} />
             <YAxis type="category" dataKey="name" width={150} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'rgb(var(--t-abisso))' }} />
             <Tooltip cursor={{ fill: 'rgb(var(--c-page))' }} contentStyle={{ borderRadius: 12, border: '1px solid rgb(var(--c-slate-200))', background: 'rgb(var(--c-white))', color: 'rgb(var(--t-abisso))' }} />
-            <Bar dataKey="candidature" name="Candidature" fill="#0E6A97" radius={[0, 6, 6, 0]} barSize={18} />
+            <Bar dataKey="candidature" name="Candidature" fill="rgb(var(--c-corsia-600))" radius={[0, 6, 6, 0]} barSize={18} />
         </BarChart>
     </ResponsiveContainer>
 );

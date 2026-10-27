@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -24,7 +24,7 @@ import { UploadProgress } from '@/components/common/UploadProgress';
 import { resumeFileError } from '@/services/resume';
 
 const inputClass =
-    'w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none';
+    'w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-hidden';
 
 /**
  * Configurazione guidata del profilo dopo la registrazione: pochi passi per
@@ -141,7 +141,7 @@ const Onboarding: React.FC = () => {
                 <ol className="flex gap-2 mb-8" aria-label="Avanzamento">
                     {steps.map((label, i) => (
                         <li key={label} className="flex-1" aria-current={i === step ? 'step' : undefined}>
-                            <div className={`h-1.5 rounded-full transition-colors duration-300 ${i < step ? 'bg-corsia-600' : i === step ? 'bg-gradient-to-r from-corsia-600 to-cloro-500' : 'bg-slate-200'}`} />
+                            <div className={`h-1.5 rounded-full transition-colors duration-300 ${i < step ? 'bg-corsia-600' : i === step ? 'bg-linear-to-r from-corsia-600 to-cloro-500' : 'bg-slate-200'}`} />
                             <span className={`hidden sm:flex items-center gap-1 mt-2 text-xs font-semibold ${i === step ? 'text-abisso' : i < step ? 'text-corsia-700' : 'text-slate-500'}`}>
                                 {i < step && <Icon type="check" className="w-3 h-3" />}{label}
                             </span>
@@ -218,7 +218,7 @@ const Onboarding: React.FC = () => {
                                         >
                                             <span className="flex items-start justify-between gap-2">
                                                 <span className="font-semibold text-abisso text-sm">{c.name}</span>
-                                                {selected && <Icon type="check-circle" className="w-5 h-5 text-corsia-600 flex-shrink-0" />}
+                                                {selected && <Icon type="check-circle" className="w-5 h-5 text-corsia-600 shrink-0" />}
                                             </span>
                                             <span className="block text-xs text-slate-500 mt-1">{c.issuer}</span>
                                         </button>
@@ -279,7 +279,7 @@ const Onboarding: React.FC = () => {
                                     <span className="block text-sm text-slate-500">{sos ? 'Riceverai le richieste urgenti' : 'Non riceverai richieste urgenti'}</span>
                                 </span>
                                 <span className={`relative inline-flex h-7 w-12 rounded-full transition ${sos ? 'bg-galleggiante' : 'bg-slate-300'}`}>
-                                    <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow transform transition ${sos ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                    <span className={`inline-block h-6 w-6 mt-0.5 rounded-full bg-white shadow-sm transform transition ${sos ? 'translate-x-5' : 'translate-x-0.5'}`} />
                                 </span>
                             </button>
                         </div>
@@ -338,7 +338,7 @@ const OnboardingResume: React.FC = () => {
             {progress !== null && <UploadProgress value={progress} label="Caricamento del CV" />}
             {resume ? (
                 <div className="flex items-center gap-3 p-4 rounded-2xl border-2 border-cloro-300 bg-cloro-50">
-                    <Icon type="check-circle" className="w-6 h-6 text-cloro-700 flex-shrink-0" />
+                    <Icon type="check-circle" className="w-6 h-6 text-cloro-700 shrink-0" />
                     <div className="min-w-0 flex-1">
                         <p className="font-semibold text-abisso break-all">{resume.name}</p>
                         <p className="text-sm text-slate-600">Pronto per le candidature</p>

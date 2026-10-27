@@ -48,7 +48,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
     };
 
     return (
-        <div className="fixed inset-0 bg-abisso/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 bg-abisso/70 backdrop-blur-xs z-[60] flex items-center justify-center p-4" onClick={onClose}>
             <form
                 onSubmit={submit}
                 onClick={(e) => e.stopPropagation()}
@@ -71,7 +71,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
                             className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${reason === r.id ? 'border-corsia-400 bg-corsia-50' : 'border-slate-200 hover:bg-slate-50'}`}
                         >
                             <input type="radio" name="reason" value={r.id} checked={reason === r.id} onChange={() => setReason(r.id)} className="peer sr-only" />
-                            <span aria-hidden="true" className={`mt-0.5 w-5 h-5 flex-shrink-0 rounded-full border-2 grid place-items-center transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${reason === r.id ? 'border-corsia-600' : 'border-slate-300'}`}>
+                            <span aria-hidden="true" className={`mt-0.5 w-5 h-5 shrink-0 rounded-full border-2 grid place-items-center transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${reason === r.id ? 'border-corsia-600' : 'border-slate-300'}`}>
                                 <span className={`w-2.5 h-2.5 rounded-full bg-corsia-600 transition-transform duration-150 ${reason === r.id ? 'scale-100' : 'scale-0'}`} />
                             </span>
                             <span>
@@ -87,7 +87,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ targetType, targetId, 
                         onChange={(e) => setDetails(e.target.value)}
                         maxLength={1000}
                         rows={3}
-                        className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
                 <div className="p-4 border-t border-slate-100 flex gap-3">

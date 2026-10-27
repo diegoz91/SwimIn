@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/context/ToastContext';
@@ -90,7 +90,7 @@ const PublicJob: React.FC = () => {
                                 </p>
                             )}
                             <div className="flex items-start gap-4">
-                                <img src={job.structureLogo || initialsAvatar(job.structureName)} alt="" className="w-16 h-16 rounded-2xl object-cover border border-slate-100 bg-white flex-shrink-0" />
+                                <img src={job.structureLogo || initialsAvatar(job.structureName)} alt="" className="w-16 h-16 rounded-2xl object-cover border border-slate-100 bg-white shrink-0" />
                                 <div className="min-w-0">
                                     <h1 className="text-3xl sm:text-4xl font-bold text-abisso leading-tight break-words">{job.title}</h1>
                                     <p className="mt-1 text-slate-600">

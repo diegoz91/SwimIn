@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { ApiError, databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
 import { useContactInfo } from '@/hooks/useContactInfo';
@@ -144,7 +144,7 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
                         role="tab"
                         aria-selected={tab === g.id}
                         onClick={() => setTab(g.id)}
-                        className={`flex-shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === g.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
+                        className={`shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === g.id ? 'border-corsia-600 text-corsia-800' : 'border-transparent text-slate-500 hover:text-abisso'}`}
                     >
                         {g.label}
                         <span className={`ml-1.5 tabular-nums px-1.5 py-0.5 rounded-full text-xs ${g.id === 'nuove' && g.rows.length ? 'bg-corsia-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{g.rows.length}</span>
@@ -203,9 +203,9 @@ export const CandidatesPanel: React.FC<{ job: Job; onHired?: () => void }> = ({ 
                 }}
             >
                 <ul className="space-y-2 text-sm text-slate-700">
-                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 flex-shrink-0" /> Entra nello staff: vede bacheca, turni e chat della struttura.</li>
-                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 flex-shrink-0" /> Riceve subito una notifica.</li>
-                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 flex-shrink-0" /> L’annuncio si chiude e non riceve altre candidature (puoi riaprirlo).</li>
+                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 shrink-0" /> Entra nello staff: vede bacheca, turni e chat della struttura.</li>
+                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 shrink-0" /> Riceve subito una notifica.</li>
+                    <li className="flex gap-2"><Icon type="check" className="w-4 h-4 mt-0.5 text-cloro-700 shrink-0" /> L’annuncio si chiude e non riceve altre candidature (puoi riaprirlo).</li>
                 </ul>
             </FormModal>
         </section>
@@ -238,7 +238,7 @@ const CandidateRow: React.FC<{
     return (
         <li className={expanded ? 'bg-piastrella/60' : ''}>
             <div className="px-5 sm:px-6 py-4 flex items-start gap-3">
-                <img src={avatarOf(p)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 flex-shrink-0" />
+                <img src={avatarOf(p)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 shrink-0" />
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <Link to={`/profile/${row.applicantId}`} className="font-semibold text-abisso hover:underline">{name}</Link>
@@ -256,7 +256,7 @@ const CandidateRow: React.FC<{
                         {[p?.city && `${p.city}${p.province ? ` (${p.province})` : ''}`, `candidatura ${formatRelativeTime(row.$createdAt)}`].filter(Boolean).join(' · ')}
                     </p>
                 </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <div className="flex flex-col items-end gap-2 shrink-0">
                     {row.resumeFileId && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 inline-flex items-center gap-1"><Icon type="document" className="w-3 h-3" />CV</span>}
                     {score !== null && (
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${score >= 80 ? 'bg-cloro-100 text-cloro-800' : score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`} title="Requisiti dell’annuncio soddisfatti dal profilo">
@@ -282,7 +282,7 @@ const CandidateRow: React.FC<{
                             {row.resumeFileId && (
                                 <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
                                     <span className="inline-flex items-center gap-2 text-sm text-slate-700 min-w-0">
-                                        <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-100 text-galleggiante-700 text-[11px] font-bold" aria-hidden="true">PDF</span>
+                                        <span className="px-1.5 py-0.5 rounded-sm bg-red-50 border border-red-100 text-galleggiante-700 text-[11px] font-bold" aria-hidden="true">PDF</span>
                                         <span className="break-all">{row.resumeName || 'CV'}</span>
                                     </span>
                                     <span className="flex gap-3 ml-auto">
@@ -412,7 +412,7 @@ const InternalReview: React.FC<{ applicationId: string; review?: ApplicationRevi
                 rows={3}
                 maxLength={2000}
                 placeholder="Es. Ottima prova in acqua, disponibile solo nei weekend."
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-abisso placeholder:text-slate-400 outline-none focus:border-corsia-500 focus:ring-4 focus:ring-corsia-100 resize-y"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-abisso placeholder:text-slate-400 outline-hidden focus:border-corsia-500 focus:ring-4 focus:ring-corsia-100 resize-y"
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-slate-500">{review?.updatedAt ? `Aggiornata ${formatRelativeTime(review.updatedAt)}` : 'Nessuna valutazione ancora.'}</p>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { DateTile } from './EventCard';

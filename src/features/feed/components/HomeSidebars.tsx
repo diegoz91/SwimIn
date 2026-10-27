@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -41,7 +41,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
 
     return (
         <Panel>
-            <div className="h-16 bg-gradient-to-br from-corsia-700 to-cloro-500 relative">
+            <div className="h-16 bg-linear-to-br from-corsia-700 to-cloro-500 relative">
                 {user.cover && <img src={user.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
             </div>
             <div className="relative px-4 pb-4 -mt-8">
@@ -111,7 +111,7 @@ export const CertificationAlert: React.FC<{ user: AuthenticatedUser }> = ({ user
             to="/profile"
             className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${expired ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
         >
-            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${expired ? 'bg-red-100 text-galleggiante-700' : 'bg-amber-100 text-amber-700'}`}>
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${expired ? 'bg-red-100 text-galleggiante-700' : 'bg-amber-100 text-amber-700'}`}>
                 <Icon type="certificate" className="w-5 h-5" />
             </span>
             <span className="flex-1 min-w-0">
@@ -121,7 +121,7 @@ export const CertificationAlert: React.FC<{ user: AuthenticatedUser }> = ({ user
                     {rest.length > 0 && ` Altri ${rest.length} da controllare.`}
                 </span>
             </span>
-            <Icon type="chevron-right" className="w-5 h-5 text-slate-400 flex-shrink-0" />
+            <Icon type="chevron-right" className="w-5 h-5 text-slate-400 shrink-0" />
         </Link>
     );
 };
@@ -156,7 +156,7 @@ const AvailableTodayPanel: React.FC<{ province?: string }> = ({ province }) => {
                     return (
                         <li key={id}>
                             <Link to={`/profile/${id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-piastrella">
-                                <span className="relative flex-shrink-0">
+                                <span className="relative shrink-0">
                                     <img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover" />
                                     <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-cloro-500 ring-2 ring-white" aria-hidden="true" />
                                 </span>
@@ -228,7 +228,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                         {rooms.map((r) => (
                             <li key={r.$id}>
                                 <Link to="/live" className="flex items-start gap-3 px-4 py-2.5 hover:bg-piastrella">
-                                    <span className="mt-1.5 w-2.5 h-2.5 rounded-full bg-galleggiante flex-shrink-0 motion-safe:animate-pulse" aria-hidden="true" />
+                                    <span className="mt-1.5 w-2.5 h-2.5 rounded-full bg-galleggiante shrink-0 motion-safe:animate-pulse" aria-hidden="true" />
                                     <span className="min-w-0">
                                         <span className="block text-sm font-semibold text-abisso line-clamp-2">{r.title}</span>
                                         <span className="block text-xs text-slate-500">{(r.speakers?.length || 0) + (r.listeners?.length || 0)} partecipanti</span>
@@ -255,7 +255,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                                     onClick={() => navigate(`/jobs/${job.$id}`)}
                                     className="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-piastrella"
                                 >
-                                    <img src={job.facilityLogo || initialsAvatar(job.structureName)} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
+                                    <img src={job.facilityLogo || initialsAvatar(job.structureName)} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0" />
                                     <span className="min-w-0">
                                         <span className="block text-sm font-semibold text-abisso truncate">
                                             {job.isSOS && <span className="text-galleggiante-700">SOS </span>}
@@ -281,7 +281,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                             const sent = requested.includes(id);
                             return (
                                 <li key={id} className="flex items-center gap-3 px-4 py-2.5">
-                                    <Link to={`/profile/${id}`} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+                                    <Link to={`/profile/${id}`} tabIndex={-1} aria-hidden="true" className="shrink-0">
                                         <img src={avatarOf(p)} alt="" className="w-10 h-10 rounded-full object-cover" />
                                     </Link>
                                     <Link to={`/profile/${id}`} className="min-w-0 flex-1">
@@ -292,7 +292,7 @@ export const HomeRightRail: React.FC<{ user: AuthenticatedUser; jobs: Job[]; isL
                                         onClick={() => connect(id)}
                                         disabled={sent}
                                         aria-label={sent ? 'Richiesta inviata' : `Collegati con ${displayNameOf(p)}`}
-                                        className="flex-shrink-0 w-9 h-9 rounded-full border border-corsia-200 text-corsia-700 hover:bg-corsia-50 flex items-center justify-center disabled:border-slate-200 disabled:text-slate-400"
+                                        className="shrink-0 w-9 h-9 rounded-full border border-corsia-200 text-corsia-700 hover:bg-corsia-50 flex items-center justify-center disabled:border-slate-200 disabled:text-slate-400"
                                     >
                                         <Icon type={sent ? 'check' : 'plus'} className="w-4 h-4" />
                                     </button>

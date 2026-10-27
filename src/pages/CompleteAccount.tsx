@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -101,7 +101,7 @@ const CompleteAccount: React.FC = () => {
                         {errors.acceptedTerms && <p className="mt-1.5 text-sm text-galleggiante-700">{errors.acceptedTerms}</p>}
                     </div>
                     {error && <p role="alert" className="text-sm font-medium text-galleggiante-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
-                    <button type="submit" disabled={isLoading} className="w-full bg-corsia-600 hover:bg-corsia-700 text-white font-bold py-3.5 px-4 rounded-full disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2">
+                    <button type="submit" disabled={isLoading} className="w-full bg-corsia-600 hover:bg-corsia-700 text-white font-bold py-3.5 px-4 rounded-full disabled:opacity-70 outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 focus-visible:ring-offset-2">
                         {isLoading ? 'Creazione in corso…' : 'Crea il mio profilo'}
                     </button>
                 </form>

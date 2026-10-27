@@ -867,7 +867,7 @@ async function deployFunction() {
     const settings = {
         functionId: FUNCTION_ID,
         name: 'SwimWaveUp API',
-        runtime: process.env.APPWRITE_FUNCTION_RUNTIME || 'node-22',
+        runtime: process.env.APPWRITE_FUNCTION_RUNTIME || 'node-24',
         // Anche senza login, ma la Function accetta da ospiti solo le azioni pubbliche (PUBLIC_ACTIONS).
         execute: ['any'],
         // Le chiamate dell'app finiscono in pochi secondi; il margine serve al riepilogo settimanale programmato.

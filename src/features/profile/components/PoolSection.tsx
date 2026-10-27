@@ -15,7 +15,7 @@ export const PoolSection: React.FC<{ profile: StructureProfile; isOwnProfile: bo
     if (!facts.length && !services.length && !profile.address && !isOwnProfile) return null;
 
     return (
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="pool-title">
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="pool-title">
             <div className="flex items-start justify-between gap-4 mb-5">
                 <h2 id="pool-title" className="text-xl font-bold text-abisso">L’impianto</h2>
                 {isOwnProfile && (

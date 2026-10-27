@@ -26,7 +26,7 @@ jobs:
           sparse-checkout: scripts/ops
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
       - name: Controlli
         env:
           APP_URL: ${{ vars.APP_URL }}

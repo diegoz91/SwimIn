@@ -41,7 +41,7 @@ export const PageLoader: React.FC<{ label?: string; variant?: Variant }> = ({ la
                     <div className="space-y-3">
                         {[0, 1, 2].map((i) => (
                             <Card key={i} className="flex gap-4 items-center">
-                                <div className="w-12 h-12 rounded-xl bg-slate-200/80 flex-shrink-0" />
+                                <div className="w-12 h-12 rounded-xl bg-slate-200/80 shrink-0" />
                                 <div className="flex-1 space-y-2"><Bar className="h-4 w-1/2" /><Bar className="h-3 w-1/3" /></div>
                             </Card>
                         ))}

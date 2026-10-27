@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { btn } from './settings/ui';
 import { confirmTotpSetup, disableTotp, mfaStatus, regenerateRecoveryCodes, startTotpSetup, totpQrUrl } from '@/services/mfa';
 
-const codeInput = 'w-40 px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none text-lg tracking-[0.3em] tabular-nums';
+const codeInput = 'w-40 px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden text-lg tracking-[0.3em] tabular-nums';
 
 const downloadCodes = (codes: string[]) => {
     const text = `Codici di recupero SwimIn\n\nOgni codice si usa una volta sola, se non hai il telefono con l'app di autenticazione.\nConservali in un posto sicuro.\n\n${codes.join('\n')}\n`;
@@ -119,7 +119,7 @@ export const TwoFactorSetup: React.FC = () => {
                         <p className="font-semibold text-abisso">1. Inquadra il codice con l’app di autenticazione</p>
                         <p className="text-slate-500">Google Authenticator, Microsoft Authenticator, Authy, 1Password…</p>
                         <div className="mt-3 flex flex-col sm:flex-row gap-4 sm:items-center">
-                            <div className="w-[180px] h-[180px] rounded-xl border border-slate-200 bg-white grid place-items-center overflow-hidden flex-shrink-0">
+                            <div className="w-[180px] h-[180px] rounded-xl border border-slate-200 bg-white grid place-items-center overflow-hidden shrink-0">
                                 {setup.qr ? <img src={setup.qr} alt="Codice QR per l’app di autenticazione" className="w-full h-full" /> : <span className="text-xs text-slate-400 px-4 text-center">Caricamento del QR…</span>}
                             </div>
                             <div className="min-w-0">

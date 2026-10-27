@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { Query } from 'appwrite';
 import { ChatWindow } from './ChatWindow';
 import { messagePreview } from '@/services/chatFiles';

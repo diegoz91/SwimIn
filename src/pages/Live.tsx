@@ -149,7 +149,7 @@ const Live: React.FC = () => {
                     </div>
                     <div>
                         <label htmlFor="live-title" className="block text-sm font-semibold text-slate-700 mb-1.5">Argomento</label>
-                        <input id="live-title" required autoFocus maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none" placeholder={IDEAS[0]} />
+                        <input id="live-title" required autoFocus maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-hidden" placeholder={IDEAS[0]} />
                         <div className="flex flex-wrap gap-2 mt-2">
                             {IDEAS.map((idea) => (
                                 <button key={idea} type="button" onClick={() => setTitle(idea)} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-piastrella text-slate-600 hover:text-abisso">
@@ -160,7 +160,7 @@ const Live: React.FC = () => {
                     </div>
                     <div>
                         <label htmlFor="live-desc" className="block text-sm font-semibold text-slate-700 mb-1.5">Descrizione (facoltativa)</label>
-                        <textarea id="live-desc" rows={2} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-none" />
+                        <textarea id="live-desc" rows={2} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-corsia-200 focus:border-corsia-400 outline-hidden" />
                     </div>
                     <button type="submit" disabled={busy || !title.trim()} className="w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-white bg-galleggiante hover:bg-red-700 disabled:opacity-50">
                         {busy ? 'Apertura…' : 'Vai in diretta'}

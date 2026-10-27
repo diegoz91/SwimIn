@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService } from '@/services/database';
@@ -110,7 +110,7 @@ const Talent: React.FC = () => {
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Qualifica, nome o comune"
                             aria-label="Cerca per qualifica, nome o comune"
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-none"
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-corsia-400 focus:ring-4 focus:ring-corsia-100 outline-hidden"
                         />
                     </div>
                     <ProvinceSelect value={province} onChange={setProvince} />
@@ -150,7 +150,7 @@ const Talent: React.FC = () => {
                             return (
                                 <li key={id} className="bg-white rounded-2xl border border-slate-200 shadow-card p-4 flex flex-col sm:flex-row gap-4">
                                     <Link to={`/profile/${id}`} className="flex gap-4 min-w-0 flex-1 group">
-                                        <span className="relative flex-shrink-0">
+                                        <span className="relative shrink-0">
                                             <img src={avatarOf(p)} alt="" className="w-16 h-16 rounded-full object-cover border border-slate-100" />
                                             {p.isOnline && <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" aria-label="Online" />}
                                         </span>
@@ -159,7 +159,7 @@ const Talent: React.FC = () => {
                                                 <span className="truncate">{displayNameOf(p)}</span>
                                                 {isPremium(p) && <PremiumBadge />}
                                                 {verified > 0 && (
-                                                    <span title={verified === 1 ? '1 brevetto verificato' : `${verified} brevetti verificati`} className="inline-flex text-corsia-600 flex-shrink-0">
+                                                    <span title={verified === 1 ? '1 brevetto verificato' : `${verified} brevetti verificati`} className="inline-flex text-corsia-600 shrink-0">
                                                         <Icon type="shield" className="w-4 h-4" />
                                                         <span className="sr-only">Brevetti verificati</span>
                                                     </span>
@@ -177,7 +177,7 @@ const Talent: React.FC = () => {
                                             </span>
                                         </span>
                                     </Link>
-                                    <div className="flex sm:flex-col gap-2 sm:w-40 flex-shrink-0">
+                                    <div className="flex sm:flex-col gap-2 sm:w-40 shrink-0">
                                         <ConnectButton profileId={id} className="flex-1 sm:flex-none" />
                                         <button type="button" onClick={() => message(id)} className="flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-semibold border border-corsia-200 text-corsia-700 hover:border-corsia-400">
                                             Messaggio

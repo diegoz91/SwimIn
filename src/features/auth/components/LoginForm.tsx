@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { Icon } from '@/components/ui/Icon';
@@ -100,7 +100,7 @@ export const LoginForm: React.FC = () => {
             {mfaStep ? (
                 <form onSubmit={handleMfa} className="space-y-5">
                     <div className="rounded-2xl bg-piastrella p-4 flex gap-3">
-                        <Icon type="shield" className="w-6 h-6 text-corsia-600 flex-shrink-0" />
+                        <Icon type="shield" className="w-6 h-6 text-corsia-600 shrink-0" />
                         <p className="text-sm text-slate-700">
                             {useRecoveryCode ? 'Inserisci uno dei codici di recupero che hai salvato quando hai attivato la verifica.' : 'Apri l’app di autenticazione sul telefono e scrivi il codice di 6 cifre per SwimIn.'}
                         </p>
@@ -114,7 +114,7 @@ export const LoginForm: React.FC = () => {
                             inputMode={useRecoveryCode ? 'text' : 'numeric'}
                             autoComplete="one-time-code"
                             autoFocus
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50 focus:bg-white text-lg tracking-[0.3em] tabular-nums"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-hidden bg-slate-50 focus:bg-white text-lg tracking-[0.3em] tabular-nums"
                             placeholder={useRecoveryCode ? 'abcd1234ef' : '123456'}
                             disabled={isLoading}
                         />
@@ -141,7 +141,7 @@ export const LoginForm: React.FC = () => {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-slate-50 focus:bg-white"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-hidden bg-slate-50 focus:bg-white"
                                 placeholder="nome@esempio.com"
                                 disabled={isLoading}
                                 required
@@ -154,7 +154,7 @@ export const LoginForm: React.FC = () => {
                                 <button 
                                     type="button" 
                                     onClick={() => setShowRecovery(true)}
-                                    className="py-1 -my-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                                    className="py-1 -my-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-sm"
                                 >
                                     Password dimenticata?
                                 </button>
@@ -164,7 +164,7 @@ export const LoginForm: React.FC = () => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-slate-50 focus:bg-white"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-hidden bg-slate-50 focus:bg-white"
                                 placeholder="••••••••"
                                 disabled={isLoading}
                                 required
@@ -175,7 +175,7 @@ export const LoginForm: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         >
                             {isLoading ? (
                                 <>
@@ -191,7 +191,7 @@ export const LoginForm: React.FC = () => {
                     <div className="mt-8 text-center border-t border-slate-100 pt-6">
                         <p className="text-slate-600">
                             Non hai ancora un account?{' '}
-                            <Link to="/register" className="text-blue-600 font-bold hover:text-blue-800 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-200 rounded">
+                            <Link to="/register" className="text-blue-600 font-bold hover:text-blue-800 transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-200 rounded-sm">
                                 Iscriviti ora
                             </Link>
                         </p>
@@ -202,7 +202,7 @@ export const LoginForm: React.FC = () => {
                     <div className="mb-6">
                         <button 
                             onClick={() => setShowRecovery(false)}
-                            className="flex items-center text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-4 outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded pr-2"
+                            className="flex items-center text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-4 outline-hidden focus-visible:ring-2 focus-visible:ring-slate-300 rounded-sm pr-2"
                         >
                             <Icon type="arrow-left" className="w-4 h-4 mr-1" />
                             Torna all’accesso
@@ -219,7 +219,7 @@ export const LoginForm: React.FC = () => {
                                 type="email"
                                 value={recoveryEmail}
                                 onChange={(e) => setRecoveryEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-slate-50 focus:bg-white"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-hidden bg-slate-50 focus:bg-white"
                                 placeholder="nome@esempio.com"
                                 disabled={isRecovering}
                                 required
@@ -230,7 +230,7 @@ export const LoginForm: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isRecovering}
-                            className="w-full bg-abisso hover:bg-corsia-900 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                            className="w-full bg-abisso hover:bg-corsia-900 text-white font-bold py-3.5 px-4 rounded-full transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-95 outline-hidden focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
                         >
                             {isRecovering ? (
                                 <>

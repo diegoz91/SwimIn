@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { PostDetailView } from '@/features/feed/components/PostDetailView';
 import { PageLoader } from '@/components/common/PageLoader';
 import { databaseService } from '@/services/database';

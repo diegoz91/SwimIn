@@ -16,7 +16,7 @@ export const CompletionChecklist: React.FC<{ score: number; steps: CompletionSte
     const next = missing[0];
 
     return (
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="completion-title">
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 sm:p-8 mb-6" aria-labelledby="completion-title">
             <div className="flex items-center gap-5 sm:gap-6">
                 <CompletionRing value={score} />
                 <div className="min-w-0">
@@ -40,14 +40,14 @@ export const CompletionChecklist: React.FC<{ score: number; steps: CompletionSte
                             disabled={!s.onClick}
                             className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200 text-left hover:border-corsia-300 hover:bg-corsia-50/40 transition-colors disabled:cursor-default"
                         >
-                            <span className="w-7 h-7 rounded-full border-2 border-dashed border-corsia-300 text-corsia-700 grid place-items-center flex-shrink-0" aria-hidden="true">
+                            <span className="w-7 h-7 rounded-full border-2 border-dashed border-corsia-300 text-corsia-700 grid place-items-center shrink-0" aria-hidden="true">
                                 <Icon type="plus" className="w-3.5 h-3.5" />
                             </span>
                             <span className="min-w-0 flex-1">
                                 <span className="block text-sm font-semibold text-abisso">{s.label}</span>
                                 {s.hint && <span className="block text-xs text-slate-500">{s.hint}</span>}
                             </span>
-                            <span className="text-xs font-semibold text-corsia-700 flex-shrink-0">+{s.weight}%</span>
+                            <span className="text-xs font-semibold text-corsia-700 shrink-0">+{s.weight}%</span>
                         </button>
                     </li>
                 ))}

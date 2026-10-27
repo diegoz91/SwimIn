@@ -97,7 +97,7 @@ export const GroupFormModal: React.FC<{ open: boolean; group?: Group | null; onC
         >
             <div>
                 <p className="text-sm font-semibold text-abisso mb-1.5">Copertina <span className="ml-1 font-normal text-slate-400">facoltativa</span></p>
-                <div className="relative h-28 rounded-xl overflow-hidden bg-gradient-to-br from-corsia-700 to-cloro-500">
+                <div className="relative h-28 rounded-xl overflow-hidden bg-linear-to-br from-corsia-700 to-cloro-500">
                     {values.cover && <img src={values.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
                     <div className="absolute bottom-2 right-2 flex gap-2">
                         {values.cover && (

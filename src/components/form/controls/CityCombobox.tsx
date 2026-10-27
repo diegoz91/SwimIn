@@ -220,7 +220,7 @@ export const CityCombobox: React.FC<Props> = ({ value, onChange, onBlur, provinc
                             aria-label="Cerca il comune"
                             aria-controls={listId}
                             aria-activedescendant={results[active] ? `${listId}-${active}` : undefined}
-                            className="w-full px-4 py-3 rounded-xl bg-piastrella text-abisso placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-corsia-100"
+                            className="w-full px-4 py-3 rounded-xl bg-piastrella text-abisso placeholder:text-slate-400 outline-hidden focus:ring-2 focus:ring-corsia-100"
                             autoComplete="off"
                             spellCheck={false}
                         />

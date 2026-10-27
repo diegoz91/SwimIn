@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { onPremiumRequest, type PremiumRequest } from '@/services/premiumPrompt';
 import { PremiumBadge } from './PremiumBadge';
@@ -23,9 +23,9 @@ export const PremiumPrompt: React.FC = () => {
     if (!req) return null;
     const exhausted = req.code === 'inmail_exhausted';
     return createPortal(
-        <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-abisso/50 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={(e) => e.target === e.currentTarget && setReq(null)}>
+        <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-abisso/50 backdrop-blur-xs animate-in fade-in duration-150" onMouseDown={(e) => e.target === e.currentTarget && setReq(null)}>
             <div role="dialog" aria-modal="true" aria-labelledby="premium-prompt-title" className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-lift overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 motion-reduce:animate-none">
-                <div className="bg-gradient-to-br from-oro-50 to-white px-6 pt-6 pb-4 border-b border-oro-100">
+                <div className="bg-linear-to-br from-oro-50 to-white px-6 pt-6 pb-4 border-b border-oro-100">
                     <div className="flex items-start justify-between gap-3">
                         <PremiumBadge size="md" />
                         <button onClick={() => setReq(null)} aria-label="Chiudi" className="p-2 -m-2 rounded-full text-slate-500 hover:bg-white">

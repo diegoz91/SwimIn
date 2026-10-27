@@ -175,7 +175,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
                                     )}
                                     <div className={`group flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'} ${grouped ? '-mt-2' : ''}`}>
                                         {!mine && (
-                                            <div className="w-8 flex-shrink-0">
+                                            <div className="w-8 shrink-0">
                                                 {!grouped && <img src={author?.avatar || initialsAvatar(name)} alt="" className="w-8 h-8 rounded-full object-cover bg-white" />}
                                             </div>
                                         )}
@@ -188,7 +188,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
                                                 <Icon type="trash" className="w-4 h-4" />
                                             </button>
                                         )}
-                                        <div className={`min-w-0 max-w-[85%] sm:max-w-md rounded-2xl px-3.5 py-2 shadow-sm ${mine ? 'bg-corsia-600 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-sm'}`}>
+                                        <div className={`min-w-0 max-w-[85%] sm:max-w-md rounded-2xl px-3.5 py-2 shadow-xs ${mine ? 'bg-corsia-600 text-white rounded-br-xs' : 'bg-white text-slate-800 border border-slate-100 rounded-bl-xs'}`}>
                                             {!mine && !grouped && (
                                                 <p className="text-xs font-semibold text-corsia-700 mb-0.5 flex items-center gap-1.5">
                                                     {name}
@@ -217,7 +217,7 @@ export const StaffChat: React.FC<{ structureId: string; structureName: string; c
                         onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 128)}px`; }}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                         placeholder="Scrivi allo staff…"
-                        className="flex-1 bg-transparent resize-none px-3 py-2 focus:outline-none text-[15px] max-h-32 min-w-0"
+                        className="flex-1 bg-transparent resize-none px-3 py-2 focus:outline-hidden text-[15px] max-h-32 min-w-0"
                     />
                     <button onClick={send} disabled={!text.trim() || sending} aria-label="Invia" className="bg-corsia-600 text-white rounded-full p-2.5 hover:bg-corsia-700 disabled:bg-slate-300">
                         {sending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Icon type="send" className="w-5 h-5" />}

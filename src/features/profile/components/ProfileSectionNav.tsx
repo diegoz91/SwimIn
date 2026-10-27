@@ -46,10 +46,10 @@ export const ProfileSectionNav: React.FC<{ sections: ProfileSection[] }> = ({ se
 
     if (present.length < 3) return null;
     return (
-        <nav aria-label="Sezioni del profilo" className="sticky top-0 z-20 -mx-4 sm:mx-0 mb-4 px-4 sm:px-0 py-2 bg-piastrella/95 backdrop-blur">
+        <nav aria-label="Sezioni del profilo" className="sticky top-0 z-20 -mx-4 sm:mx-0 mb-4 px-4 sm:px-0 py-2 bg-piastrella/95 backdrop-blur-sm">
             <ul className="flex gap-2 overflow-x-auto">
                 {present.map((s) => (
-                    <li key={s.id} className="flex-shrink-0">
+                    <li key={s.id} className="shrink-0">
                         <button
                             type="button"
                             onClick={() => goToSection(s.id)}

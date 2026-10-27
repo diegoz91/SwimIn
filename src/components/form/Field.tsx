@@ -59,7 +59,7 @@ export const Field: React.FC<FieldProps> = ({ id, label, optional, hint, error, 
             )}
             {error ? (
                 <p id={errorId} className="mt-1.5 text-sm text-galleggiante-700 flex items-start gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <Icon type="alert-triangle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <Icon type="alert-triangle" className="w-4 h-4 mt-0.5 shrink-0" />
                     {error}
                 </p>
             ) : (

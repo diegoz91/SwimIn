@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { account } from '@/services/appwrite';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';

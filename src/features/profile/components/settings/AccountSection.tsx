@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { account } from '@/services/appwrite';
 import { databaseService, type BillingStatus } from '@/services/database';
 import { useAuth } from '@/hooks/useAuth';
@@ -75,7 +75,7 @@ export const AccountSection: React.FC<{ user: AuthenticatedUser; onEditProfile: 
                     <Row
                         title={<span className="flex items-center gap-2">{displayNameOf(user)} {isPremium(user) && <PremiumBadge />}</span>}
                         description={headlineOf(user) || accountKind(user)}
-                        leading={<img src={avatarOf(user)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 flex-shrink-0" />}
+                        leading={<img src={avatarOf(user)} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100 shrink-0" />}
                         aside={<button type="button" onClick={onEditProfile} className={btn.secondary}>Modifica il profilo</button>}
                     />
                     <Row title="Tipo di account" description={accountKind(user)} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Brand } from '@/components/ui/Brand';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
@@ -95,7 +95,7 @@ export const StatusBanner: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         return (
             <div role="status" className="bg-abisso text-white text-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <Icon type="shield" className="w-4 h-4 flex-shrink-0" />
+                    <Icon type="shield" className="w-4 h-4 shrink-0" />
                     <span className="min-w-0 flex-1">Manutenzione attiva: gli utenti vedono la pagina di manutenzione.</span>
                     <Link to="/admin?tab=stato" className="font-semibold underline underline-offset-2 py-1 -my-1">Gestisci</Link>
                 </div>
@@ -116,13 +116,13 @@ export const StatusBanner: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     return (
         <div role="status" className="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-start gap-3">
-                <Icon type="alert-triangle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <Icon type="alert-triangle" className="w-4 h-4 mt-0.5 shrink-0" />
                 <p className="min-w-0 flex-1 break-words">
                     {status.message || 'Alcune funzioni possono essere lente.'}
                     {until && <span className="whitespace-nowrap"> · fine prevista {until}</span>}{' '}
                     <Link to="/stato" className="font-semibold underline underline-offset-2 py-1 -my-1 whitespace-nowrap">Dettagli</Link>
                 </p>
-                <button type="button" onClick={close} aria-label="Chiudi l’avviso" className="p-1 -m-1 rounded-full hover:bg-amber-100 flex-shrink-0">
+                <button type="button" onClick={close} aria-label="Chiudi l’avviso" className="p-1 -m-1 rounded-full hover:bg-amber-100 shrink-0">
                     <Icon type="x" className="w-4 h-4" />
                 </button>
             </div>

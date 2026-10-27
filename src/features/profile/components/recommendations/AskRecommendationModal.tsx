@@ -80,7 +80,7 @@ export const AskRecommendationModal: React.FC<{ open: boolean; me: UserProfile; 
                         const state = sent[id];
                         return (
                             <li key={id} className="flex items-center gap-3 px-1 py-3">
-                                <img src={avatarOf(p)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100 flex-shrink-0" />
+                                <img src={avatarOf(p)} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100 shrink-0" />
                                 <div className="min-w-0 flex-1">
                                     <p className="font-semibold text-abisso truncate">{displayNameOf(p)}</p>
                                     <p className="text-sm text-slate-500 truncate">{headlineOf(p)}</p>
@@ -88,7 +88,7 @@ export const AskRecommendationModal: React.FC<{ open: boolean; me: UserProfile; 
                                 {state === 'sent' || state === 'already' ? (
                                     <span className="text-sm font-semibold text-cloro-800 px-2">{state === 'sent' ? 'Richiesta inviata' : 'Già richiesta'}</span>
                                 ) : (
-                                    <button type="button" onClick={() => ask(p)} disabled={state === 'sending'} className="px-4 py-2 rounded-full text-sm font-semibold border border-corsia-200 text-corsia-700 hover:bg-corsia-50 disabled:opacity-60 flex-shrink-0">
+                                    <button type="button" onClick={() => ask(p)} disabled={state === 'sending'} className="px-4 py-2 rounded-full text-sm font-semibold border border-corsia-200 text-corsia-700 hover:bg-corsia-50 disabled:opacity-60 shrink-0">
                                         {state === 'sending' ? 'Invio…' : 'Chiedi'}
                                     </button>
                                 )}

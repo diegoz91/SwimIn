@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { JobCard } from './JobCard';
 import { Icon } from '@/components/ui/Icon';
 import { CreateSOSModal } from './CreateSOSModal';
@@ -115,13 +115,13 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ apply, isManager }) => {
             {isStructure && (
                 <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
                     <div className="flex items-start gap-3">
-                        <span className="w-10 h-10 rounded-full bg-galleggiante text-white grid place-items-center flex-shrink-0" aria-hidden="true"><Icon type="alert-triangle" className="w-5 h-5" /></span>
+                        <span className="w-10 h-10 rounded-full bg-galleggiante text-white grid place-items-center shrink-0" aria-hidden="true"><Icon type="alert-triangle" className="w-5 h-5" /></span>
                         <div>
                             <h2 className="font-semibold text-abisso">Turno scoperto all’ultimo momento?</h2>
                             <p className="text-sm text-slate-700">Lancia una sostituzione urgente: avvisiamo subito i professionisti disponibili in zona.</p>
                         </div>
                     </div>
-                    <button onClick={() => setSosOpen(true)} className="px-5 py-2.5 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800 flex-shrink-0">Richiedi una sostituzione</button>
+                    <button onClick={() => setSosOpen(true)} className="px-5 py-2.5 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800 shrink-0">Richiedi una sostituzione</button>
                 </div>
             )}
 
@@ -133,7 +133,7 @@ export const LavoroView: React.FC<LavoroViewProps> = ({ apply, isManager }) => {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ruolo, brevetto, piscina o città"
                     aria-label="Cerca offerte di lavoro"
-                    className="flex-1 min-w-0 py-3.5 px-3 bg-transparent outline-none text-abisso placeholder:text-slate-400"
+                    className="flex-1 min-w-0 py-3.5 px-3 bg-transparent outline-hidden text-abisso placeholder:text-slate-400"
                 />
             </div>
 

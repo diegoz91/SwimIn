@@ -22,7 +22,7 @@ export const ThemeSegmented: React.FC = () => {
                     aria-checked={pref === o.value}
                     onClick={() => setTheme(o.value)}
                     className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-400 ${
-                        pref === o.value ? 'bg-white text-abisso shadow-sm' : 'text-slate-600 hover:text-abisso'
+                        pref === o.value ? 'bg-white text-abisso shadow-xs' : 'text-slate-600 hover:text-abisso'
                     }`}
                 >
                     <Icon type={o.icon} className="w-4 h-4" /> {o.label}
@@ -72,7 +72,7 @@ export const ThemeCards: React.FC = () => {
                         role="radio"
                         aria-checked={on}
                         onClick={() => setTheme(o.value)}
-                        className={`text-left rounded-2xl border-2 p-3 transition-colors outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 ${on ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                        className={`text-left rounded-2xl border-2 p-3 transition-colors outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 ${on ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                     >
                         <Preview mode={o.value === 'system' ? 'split' : o.value} />
                         <span className="mt-3 flex items-center gap-2 font-semibold text-abisso">
