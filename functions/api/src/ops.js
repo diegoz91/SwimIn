@@ -16,6 +16,18 @@ export const STATUS_MODES = ['ok', 'degraded', 'maintenance'];
 const ALERT_EVERY_MS = 60 * 60_000;
 const TEST_EMAIL = /^swimin-e2e\+[a-z0-9-]+@example\.com$/i;
 
+/**
+ * Messaggio leggibile: le pagine d'errore HTML di proxy e CDN (es. "503 first byte timeout" di
+ * Varnish davanti ad Appwrite) diventano il loro titolo, senza tutto il markup.
+ */
+export function readableMessage(message) {
+  const text = String(message || '').trim();
+  if (!/<html|<!doctype|<\?xml/i.test(text)) return text;
+  const title = /<title>([^<]*)<\/title>/i.exec(text)?.[1]?.trim();
+  const h1 = /<h1>([^<]*)<\/h1>/i.exec(text)?.[1]?.trim();
+  return `Risposta HTML dal servizio: ${title || h1 || 'pagina d’errore'}`;
+}
+
 /** Impronta stabile di un errore: numeri, id e indirizzi diventano segnaposto. */
 export function fingerprintOf(source, action, message) {
   const norm = String(message || '')
@@ -68,7 +80,7 @@ export function opsActions({ find, create, update, count, fail, C, Query, users,
 
   /** Registra un errore e, se è il primo con questa impronta nell'ultima ora, avvisa. */
   const recordError = async ({ source = 'client', userId = 'system', action = '', message, stack = '', url = '', userAgent = '' }) => {
-    const msg = String(message || '').trim();
+    const msg = readableMessage(message);
     if (!msg) return { ok: true };
     const fingerprint = fingerprintOf(source, action, msg);
     const since = new Date(Date.now() - ALERT_EVERY_MS).toISOString();

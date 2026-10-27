@@ -160,13 +160,52 @@ const ownersOf = (doc) =>
 const conversationIdFor = (a, b) => [a, b].sort().join('_');
 
 /**
+ * Errori passeggeri del servizio (proxy/CDN di Appwrite che risponde 502/503/504 "first byte timeout",
+ * troppe richieste, rete): vale la pena riprovare. Gli errori "veri" (400, 401, 403, 404, 409) no.
+ */
+const isTransient = (e) => {
+  const code = Number(e?.code || e?.response?.code || 0);
+  if ([429, 500, 502, 503, 504].includes(code)) return true;
+  const msg = String(e?.message || e || '');
+  return /first byte timeout|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|fetch failed|<html/i.test(msg);
+};
+
+/** Riprova fino a `tries` volte gli errori passeggeri, con attesa crescente (250 ms, 750 ms…). */
+const withRetry = async (fn, { tries = 3, wait = 250, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) => {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn(i);
+    } catch (e) {
+      if (i >= tries || !isTransient(e)) throw e;
+      await sleep(wait * (3 ** (i - 1)));
+    }
+  }
+};
+
+/** Come Promise.all ma al massimo `limit` operazioni alla volta (per non sovraccaricare Appwrite). */
+const mapLimit = async (items, limit, fn) => {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+};
+
+/**
  * @param db istanza di TablesDB (API Appwrite 1.8+). "Tabella" e "riga" sono
  *           i nuovi nomi di "collezione" e "documento": i dati sono gli stessi.
  */
-const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null, alertWebhook = '', alertUserIds = [], escrowPublicKey = '' } = {}) => {
+const createApi = (db, { users = null, storage = null, endpoint = '', messaging = null, vapid = null, appUrl = '', log = () => {}, fetchImpl, billing = {}, copyFile = null, alertWebhook = '', alertUserIds = [], escrowPublicKey = '', retry = {} } = {}) => {
+  const again = (fn) => withRetry(fn, retry);
+
   /** Riga o null se non esiste. */
   const find = (tableId, rowId) =>
-    db.getRow({ databaseId: DB, tableId, rowId }).catch((e) => {
+    again(() => db.getRow({ databaseId: DB, tableId, rowId })).catch((e) => {
       if (e?.code === 404) return null;
       throw e;
     });
@@ -174,17 +213,40 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const get = async (tableId, rowId) => (await find(tableId, rowId)) ?? fail(404, 'Elemento non trovato.');
 
   const list = async (tableId, queries) => {
-    const res = await db.listRows({ databaseId: DB, tableId, queries });
+    const res = await again(() => db.listRows({ databaseId: DB, tableId, queries }));
     return { total: res.total, documents: res.rows };
   };
 
+  /**
+   * L'id è deciso prima: se un tentativo è arrivato al database ma la risposta si è persa,
+   * il successivo trova la riga già creata (409) e la restituisce invece di duplicarla.
+   */
   const create = (tableId, data, permissions, rowId = ID.unique()) =>
-    db.createRow({ databaseId: DB, tableId, rowId, data, permissions });
+    again(async (attempt) => {
+      try {
+        return await db.createRow({ databaseId: DB, tableId, rowId, data, permissions });
+      } catch (e) {
+        if (attempt > 1 && e?.code === 409) {
+          const row = await db.getRow({ databaseId: DB, tableId, rowId }).catch(() => null);
+          if (row) return row;
+        }
+        throw e;
+      }
+    });
 
   /** Con `permissions` sostituisce anche i permessi della riga. */
-  const update = (tableId, rowId, data, permissions) => db.updateRow({ databaseId: DB, tableId, rowId, data, ...(permissions ? { permissions } : {}) });
+  const update = (tableId, rowId, data, permissions) => again(() => db.updateRow({ databaseId: DB, tableId, rowId, data, ...(permissions ? { permissions } : {}) }));
 
-  const remove = (tableId, rowId) => db.deleteRow({ databaseId: DB, tableId, rowId });
+  /** Una riga già sparita a un nuovo tentativo è un'eliminazione riuscita. */
+  const remove = (tableId, rowId) =>
+    again(async (attempt) => {
+      try {
+        return await db.deleteRow({ databaseId: DB, tableId, rowId });
+      } catch (e) {
+        if (attempt > 1 && e?.code === 404) return null;
+        throw e;
+      }
+    });
 
   const count = async (tableId, queries) => (await list(tableId, [...queries, Query.limit(1)])).total;
 
@@ -200,13 +262,13 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     }
   };
 
-  /** Elimina tutte le righe che soddisfano le query, a blocchi di 100. */
+  /** Elimina tutte le righe che soddisfano le query, a blocchi di 100 e 8 eliminazioni alla volta. */
   const removeAll = async (tableId, queries) => {
     let removed = 0;
     for (;;) {
       const page = await list(tableId, [...queries, Query.limit(100)]);
       if (page.documents.length === 0) return removed;
-      await Promise.all(page.documents.map((row) => remove(tableId, row.$id)));
+      await mapLimit(page.documents, 8, (row) => remove(tableId, row.$id));
       removed += page.documents.length;
     }
   };
@@ -543,7 +605,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
         Query.equal('isRead', false),
         Query.limit(100),
       ]);
-      await Promise.all(unread.documents.map((m) => update(C.messages, m.$id, { isRead: true })));
+      await mapLimit(unread.documents, 8, (m) => update(C.messages, m.$id, { isRead: true }));
       return { updated: unread.documents.length };
     },
 
@@ -771,7 +833,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     // ---------------- NOTIFICHE ----------------
     async markAllNotificationsRead(me) {
       const unread = await listAll(C.notifications, [Query.equal('userId', me), Query.equal('isRead', false)]);
-      await Promise.all(unread.map((n) => update(C.notifications, n.$id, { isRead: true })));
+      await mapLimit(unread, 8, (n) => update(C.notifications, n.$id, { isRead: true }));
       return { updated: unread.length };
     },
 
@@ -1386,4 +1448,4 @@ export default async ({ req, res, log, error }) => {
 };
 
 // Esportato per i test locali.
-export { createApi, ownersOf, conversationIdFor, parseFileUrl, postMediaUrls, HttpError };
+export { createApi, ownersOf, conversationIdFor, parseFileUrl, postMediaUrls, HttpError, withRetry, isTransient, mapLimit };
