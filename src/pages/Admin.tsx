@@ -13,9 +13,11 @@ import { AdminPlans } from '@/features/admin/AdminPlans';
 import { AdminStatus } from '@/features/admin/AdminStatus';
 import { AdminErrors } from '@/features/admin/AdminErrors';
 import { AdminFeedback } from '@/features/admin/AdminFeedback';
+import { AdminAudit } from '@/features/admin/AdminAudit';
+import { AdminLegal } from '@/features/admin/AdminLegal';
 import { useConfirm } from '@/context/ConfirmContext';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato' | 'feedback';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato' | 'feedback' | 'accessi' | 'autorita';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -34,12 +36,12 @@ const targetLink = (r: AdminReport) =>
 const Admin: React.FC = () => {
     const confirm = useConfirm();
     usePageTitle('Amministrazione');
-    const { isAdmin } = useBlocks();
+    const { isAdmin, isLegal } = useBlocks();
     const { showToast } = useToast();
     // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
     const [tab, setTab] = useState<Tab>(() => {
         const t = new URLSearchParams(window.location.search).get('tab');
-        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato', 'feedback'] as const).find((x) => x === t) ?? 'panoramica';
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato', 'feedback', 'accessi', 'autorita'] as const).find((x) => x === t) ?? 'panoramica';
     });
     const tabsRef = useRef<HTMLDivElement>(null);
     // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
@@ -137,6 +139,9 @@ const Admin: React.FC = () => {
         { id: 'piani', label: 'Piani e prezzi' },
         { id: 'errori', label: 'Errori', badge: overview?.errors24h },
         { id: 'stato', label: 'Stato del servizio' },
+        { id: 'accessi', label: 'Registro accessi' },
+        // Solo per il responsabile delle richieste delle autorità (etichette admin + legal, verificate dal server).
+        ...(isLegal ? [{ id: 'autorita' as const, label: 'Richieste autorità' }] : []),
     ];
 
     return (
@@ -233,6 +238,10 @@ const Admin: React.FC = () => {
             {tab === 'verifiche' && <AdminVerifications onCountChange={onCertCount} />}
 
             {tab === 'piani' && <AdminPlans />}
+
+            {tab === 'accessi' && <AdminAudit />}
+
+            {tab === 'autorita' && (isLegal ? <AdminLegal /> : <p className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">Questa sezione è riservata al responsabile delle richieste delle autorità.</p>)}
 
             {tab === 'utenti' && (
                 <>

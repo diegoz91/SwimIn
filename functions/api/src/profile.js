@@ -319,10 +319,11 @@ export function profileActions({ find, get, create, update, remove = async () =>
 
   return {
     /** Crea il profilo alla registrazione (idempotente). Email e id vengono dall'account. */
-    async initProfile(me, { userType, personType, firstName, lastName, structureName }) {
+    async initProfile(me, { userType, personType, firstName, lastName, structureName, acceptedTerms, termsVersion }) {
       const existing = await find(C.profiles, me);
       if (existing) return existing;
       if (!['professional', 'structure'].includes(userType)) fail(400, 'Tipo di account non valido.');
+      if (acceptedTerms !== true) fail(400, 'Per creare l’account devi accettare Termini e Privacy Policy.');
       // L'email resta nell'account: il profilo è leggibile da tutti gli utenti, l'email no.
       const base = { userId: me, userType, readReceipts: true, isOnline: true, connections: [] };
       const data =
@@ -336,7 +337,10 @@ export function profileActions({ find, get, create, update, remove = async () =>
             }
           : { ...base, structureName: take(validators.text(structureName, 'Nome della struttura', { min: 2, max: 120, required: true })) };
       // Lettura per tutti gli utenti (anche dal permesso della tabella); nessuna scrittura dal client.
-      return create(C.profiles, data, [Permission.read(Role.users())], me);
+      const created = await create(C.profiles, data, [Permission.read(Role.users())], me);
+      // Prova del consenso (art. 7 GDPR): quando e quale versione dei testi, nei dati privati.
+      await savePrivate(me, { termsAcceptedAt: new Date().toISOString(), termsVersion: String(termsVersion || '').slice(0, 40) || null });
+      return created;
     },
 
     /** Modifica del proprio profilo: solo i campi ammessi, validati. */

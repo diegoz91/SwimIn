@@ -15,6 +15,8 @@ export interface RegistrationData {
   firstName?: string;
   lastName?: string;
   structureName?: string;
+  /** Termini e Privacy accettati (con l'età minima): la Function registra data e versione. */
+  acceptedTerms?: boolean;
 }
 
 interface AuthContextType {

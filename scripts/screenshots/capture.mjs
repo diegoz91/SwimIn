@@ -428,6 +428,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
 }
 // Affidabilità: pagina di stato, manutenzione, rallentamenti e pannello admin (stato del servizio, errori).
 const asAdmin = { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) };
+const asLegal = { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true, isLegal: true }) };
 const maintenance = { mode: 'maintenance', message: 'Stiamo aggiornando il database per il lancio. Torniamo online entro mezz’ora.', until: new Date(Date.now() + 30 * 60_000).toISOString() };
 const degraded = { mode: 'degraded', message: 'Le notifiche possono arrivare con qualche minuto di ritardo.', until: '' };
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile', 'mobile-piccolo'].includes(n))) {
@@ -441,6 +442,9 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['admin-stato', '/admin?tab=stato', { loggedIn: true, responses: asAdmin, appStatus: maintenance }],
         ['admin-errori', '/admin?tab=errori', { loggedIn: true, responses: asAdmin }],
         ['admin-suggerimenti', '/admin?tab=feedback', { loggedIn: true, responses: asAdmin }],
+        ['admin-accessi', '/admin?tab=accessi', { loggedIn: true, responses: asLegal }],
+        ['admin-autorita', '/admin?tab=autorita', { loggedIn: true, responses: asLegal }],
+        ['scuro-admin-autorita', '/admin?tab=autorita', { loggedIn: true, responses: asLegal }, true],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
         const page = await context.newPage();

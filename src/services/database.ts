@@ -5,6 +5,7 @@ import { getPostContent } from '@/utils/postMedia';
 import { requestPremium } from '@/services/premiumPrompt';
 import { isJobOpen } from '@/utils/jobs';
 import { APPWRITE_CONFIG } from '@/config/constants';
+import { LEGAL } from '@/config/legal';
 import type { Audience } from '@/utils/premium';
 import type { 
     UserProfile, 
@@ -206,6 +207,12 @@ const toAppStatus = (row: { mode?: string; message?: string | null; until?: stri
     row && (row.mode === 'degraded' || row.mode === 'maintenance')
         ? { mode: row.mode, message: row.message || '', until: row.until || '', updatedAt: row.$updatedAt || null }
         : { ...APP_STATUS_OK, updatedAt: row?.$updatedAt || null };
+/** Voce del registro degli accessi dello staff (solo identificativi, mai contenuti). */
+export interface AuditRow { id: string; at: string; actorId: string; actorName: string; action: string; scope: 'admin' | 'legal'; targetType: string; targetId: string; reason: string; outcome: 'ok' | 'denied' | 'error'; meta: string }
+/** Conservazione su ordine dell'autorità. */
+export interface LegalHold { $id: string; $createdAt: string; subjectType: 'user' | 'conversation'; subjectId: string; authority: string; reference: string; orderDate: string; until: string; status: 'active' | 'released' | 'expired'; createdBy: string; note?: string; releasedAt?: string; items: number }
+export interface LegalHoldInput { subjectType: 'user' | 'conversation'; userId: string; otherUserId?: string; authority: string; reference: string; orderDate: string; days: number; reason: string }
+interface LegalExportPage { manifest: Record<string, unknown> & { items: unknown[] }; items: { id: string; sealed: string }[]; nextOffset: number | null }
 export interface AdminUserRow { $id: string; name: string; email: string; userType: string; personType?: string; city?: string; suspended: boolean }
 
 
@@ -327,9 +334,10 @@ export const databaseService = {
     async initializeProfile(
         _userId: string,
         _email: string,
-        data: { userType: 'professional' | 'structure'; personType?: 'professional' | 'enthusiast'; firstName?: string; lastName?: string; structureName?: string }
+        data: { userType: 'professional' | 'structure'; personType?: 'professional' | 'enthusiast'; firstName?: string; lastName?: string; structureName?: string; acceptedTerms?: boolean }
     ) {
-        return await callApi<Profile>('initProfile', data as Record<string, unknown>);
+        // Versione dei testi accettati: la data di aggiornamento di Termini e Privacy.
+        return await callApi<Profile>('initProfile', { ...data, termsVersion: LEGAL.lastUpdated } as Record<string, unknown>);
     },
 
     async getProfile(userId: string): Promise<Profile> {
@@ -431,7 +439,7 @@ export const databaseService = {
     // MODERAZIONE
     // ==========================================
     async listBlockRelations() {
-        return await callApi<{ blocked: string[]; muted: string[]; blockedBy: string[]; isAdmin: boolean }>('listBlockRelations');
+        return await callApi<{ blocked: string[]; muted: string[]; blockedBy: string[]; isAdmin: boolean; isLegal?: boolean }>('listBlockRelations');
     },
     async blockUser(userId: string, kind: 'block' | 'mute' = 'block') {
         return await callApi('blockUser', { userId, kind });
@@ -490,6 +498,34 @@ export const databaseService = {
     },
     async adminSetAppStatus(mode: AppStatusMode, message: string, until: string) {
         return await callApi<AppStatus>('adminSetAppStatus', { mode, message, until });
+    },
+    async adminListAudit(filters: { action?: string; actorId?: string } = {}) {
+        return await callApi<AuditRow[]>('adminListAudit', filters);
+    },
+    async legalListHolds() {
+        return await callApi<LegalHold[]>('legalListHolds');
+    },
+    async legalCreateHold(input: LegalHoldInput) {
+        return await callApi<LegalHold>('legalCreateHold', { ...input });
+    },
+    async legalExtendHold(holdId: string, days: number, refresh: boolean, reason: string) {
+        return await callApi<LegalHold & { added: number }>('legalExtendHold', { holdId, days, refresh, reason });
+    },
+    async legalReleaseHold(holdId: string, reason: string) {
+        return await callApi<{ released: boolean; removed: number }>('legalReleaseHold', { holdId, reason });
+    },
+    /** Esportazione cifrata completa: chiede le pagine finché finiscono e le unisce in un solo pacchetto. */
+    async legalExportHold(holdId: string, reason: string) {
+        let offset: number | null = 0;
+        let manifest: LegalExportPage['manifest'] | null = null;
+        const items: LegalExportPage['items'] = [];
+        while (offset !== null) {
+            const page: LegalExportPage = await callApi<LegalExportPage>('legalExportHold', { holdId, reason, offset });
+            manifest ??= page.manifest;
+            items.push(...page.items);
+            offset = page.nextOffset;
+        }
+        return { manifest, items };
     },
     async adminSearchUsers(query: string) {
         return await callApi<AdminUserRow[]>('adminSearchUsers', { query });

@@ -10,6 +10,8 @@ interface BlocksValue {
     /** Utenti che hanno bloccato me: i loro contenuti non vanno mostrati. */
     blockedBy: string[];
     isAdmin: boolean;
+    /** Responsabile delle richieste delle autorità (etichette admin + legal): solo per mostrare la scheda. */
+    isLegal: boolean;
     /** Nascondere del tutto (blocco in una delle due direzioni). */
     isHidden: (userId?: string) => boolean;
     /** Nascondere dal feed (bloccati o silenziati). */
@@ -24,14 +26,14 @@ const BlocksContext = createContext<BlocksValue | null>(null);
 export const BlocksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
-    const [state, setState] = useState({ blocked: [] as string[], muted: [] as string[], blockedBy: [] as string[], isAdmin: false });
+    const [state, setState] = useState({ blocked: [] as string[], muted: [] as string[], blockedBy: [] as string[], isAdmin: false, isLegal: false });
 
     const load = useCallback(() => {
-        if (!user) return setState({ blocked: [], muted: [], blockedBy: [], isAdmin: false });
+        if (!user) return setState({ blocked: [], muted: [], blockedBy: [], isAdmin: false, isLegal: false });
         databaseService
             .listBlockRelations()
             // Risposta incompleta (es. Function non aggiornata): elenchi vuoti invece di un errore.
-            .then((r) => setState({ blocked: r?.blocked || [], muted: r?.muted || [], blockedBy: r?.blockedBy || [], isAdmin: !!r?.isAdmin }))
+            .then((r) => setState({ blocked: r?.blocked || [], muted: r?.muted || [], blockedBy: r?.blockedBy || [], isAdmin: !!r?.isAdmin, isLegal: !!r?.isLegal }))
             .catch((e) => console.warn('Blocchi non disponibili:', e));
     }, [user?.$id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -86,7 +88,7 @@ export const BlocksProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 };
 
 const EMPTY: BlocksValue = {
-    blocked: [], muted: [], blockedBy: [], isAdmin: false,
+    blocked: [], muted: [], blockedBy: [], isAdmin: false, isLegal: false,
     isHidden: () => false, isMutedOrHidden: () => false,
     block: async () => false, unblock: async () => false,
 };

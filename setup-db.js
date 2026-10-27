@@ -396,6 +396,8 @@ const schema = [
             str('phone', 30),
             // CV personale (PDF nel bucket privato resumes): solo il proprietario lo vede.
             str('resumeFileId', 36), str('resumeName', 120), int('resumeSize'), str('resumeUpdatedAt', 40),
+            // Accettazione di Termini e Privacy all'iscrizione (data e versione dei testi).
+            str('termsAcceptedAt', 40), str('termsVersion', 40),
         ],
         indexes: [],
     },
