@@ -108,7 +108,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
                     >
                         <Icon type="arrow-left" className="w-4 h-4" /> Impostazioni
                     </button>
-                    <div className="[&_h2]:outline-none" key={shown}>
+                    <div className="[&_h2]:outline-hidden" key={shown}>
                         {shown === 'account' && <AccountSection user={currentUser} onEditProfile={() => onNavigate('profile')} onLogout={onLogout} />}
                         {shown === 'sicurezza' && <SecuritySection user={currentUser} />}
                         {shown === 'notifiche' && <NotificationsTab />}
