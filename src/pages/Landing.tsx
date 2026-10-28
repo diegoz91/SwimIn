@@ -4,6 +4,7 @@ import { Brand } from '@/components/ui/Brand';
 import { Icon, type IconType } from '@/components/ui/Icon';
 import { PoolLanes } from '@/components/marketing/PoolLanes';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { storedInvite } from '@/utils/invite';
 
 const FOR_PROFESSIONALS: { icon: IconType; title: string; text: string }[] = [
     { icon: 'certificate', title: 'Brevetti sempre in regola', text: 'Inserisci brevetti e certificazioni con la scadenza: SwimIn ti avvisa prima che scadano.' },
@@ -44,6 +45,8 @@ const FeatureList: React.FC<{ items: typeof FOR_PROFESSIONALS }> = ({ items }) =
 
 /** Pagina pubblica per chi non ha ancora effettuato l'accesso. */
 const Landing: React.FC = () => {
+    // Arrivato dal QR o dal link di invito della fase di test (il codice resta sul dispositivo).
+    const invited = !!storedInvite();
     usePageTitle(null);
 
     return (
@@ -62,6 +65,16 @@ const Landing: React.FC = () => {
 
             <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-16 sm:pt-12 sm:pb-24 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
                 <div>
+                    {invited && (
+                        <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-cloro-200 bg-cloro-50 px-4 py-3">
+                            <p className="text-sm text-abisso min-w-0 flex-1">
+                                <strong className="font-semibold">Sei stato invitato alla fase di test.</strong> Il tuo codice è già pronto: crea il profilo e prova SwimIn in anteprima.
+                            </p>
+                            <Link to="/register" className="shrink-0 inline-flex justify-center px-4 py-2 text-sm font-semibold text-white bg-corsia-600 hover:bg-corsia-700 rounded-full">
+                                Usa l’invito
+                            </Link>
+                        </div>
+                    )}
                     <h1 className="text-[2.75rem] leading-[0.95] sm:text-6xl lg:text-7xl font-bold text-abisso">
                         La community di chi vive il nuoto.
                     </h1>

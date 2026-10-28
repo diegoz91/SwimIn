@@ -232,6 +232,18 @@ Un solo flusso, tutto su GitHub Actions:
 
 **Vercel solo dopo i test (consigliato).** Vercel pubblica il sito da sé a ogni merge, in parallelo alla verifica. Per pubblicarlo in produzione solo se i test passano: *Vercel → Project → Settings → Deployment Checks* e aggiungi il controllo GitHub **Verifica / Build e test** (e *Schermate, accessibilità ed end-to-end*). Vercel prepara la build ma la mette online solo quando i controlli sono verdi.
 
+## 16. Fase di test: inviti con QR
+
+Durante la fase di test l'iscrizione è **solo su invito** (`inviteOnly` sulla riga `main` di `app_status`, acceso se manca) e chiunque apra SwimIn vede prima l'avviso della fase di test (`BetaGate`): finché non lo accetta il resto della pagina non risponde.
+
+1. Entra con un account con l'etichetta `admin` → *Admin › Fase di test*.
+2. *Crea invito*: scrivi per chi è (es. "Istruttori Piscina Lido"), quante persone possono usarlo e, se vuoi, una scadenza.
+3. Si apre il QR: *Scarica il QR* (PNG da stampare o mandare su WhatsApp) oppure *Copia il link* (`https://<sito>/?invito=CODICE`). Chi lo inquadra arriva su SwimIn con il codice già compilato nell'iscrizione (anche con Google).
+4. Nell'elenco vedi gli usi (`7 su 20`), lo stato (attivo, scaduto, esaurito, disattivato) e puoi disattivare un invito in qualsiasi momento.
+5. Al lancio: spegni *Solo su invito* (iscrizione aperta a tutti) e, quando non serve più l'avviso, imposta `VITE_BETA=off` su Vercel e ripubblica.
+
+Chi ha già un account entra normalmente; gli account della prova automatica (`swimin-e2e+…`) non hanno bisogno del codice. Data e versione delle condizioni accettate e codice usato restano in `private_info`. Se cambi i testi delle condizioni, aggiorna `BETA_VERSION` in `src/config/legal.ts`: l'avviso ricompare a tutti.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

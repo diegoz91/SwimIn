@@ -8,6 +8,7 @@ const STORAGE: { what: string; name: string; where: string; duration: string; wh
     { what: 'Tema', name: 'swimin-theme', where: 'memoria locale', duration: 'finché non lo cambi', why: 'ricorda se preferisci il tema chiaro o scuro.' },
     { what: 'Ordine del feed', name: 'swimin:feed', where: 'memoria locale', duration: 'finché non lo cambi', why: 'ricorda la scelta tra "Per te" e "Più recenti".' },
     { what: 'Ricerche recenti', name: 'swimin-recent-searches', where: 'memoria locale', duration: 'finché non le cancelli', why: 'ti propone le ultime ricerche fatte da questo dispositivo.' },
+    { what: 'Fase di test', name: 'swimin:beta, swimin:beta-sent, swimin:invito', where: 'memoria locale e di sessione', duration: 'fino alla fine della fase di test (il codice di invito fino all’iscrizione)', why: 'ricorda che hai accettato le condizioni della fase di test e il codice di invito ricevuto con il QR o il link.' },
     { what: 'Avvisi già visti', name: 'swimin:hired-seen, swimin:push-prompt-dismissed, swimin:status-dismissed…', where: 'memoria locale e di sessione', duration: 'sul dispositivo o fino alla chiusura della scheda', why: 'non ti ripropone avvisi che hai già chiuso.' },
     { what: 'Passaggi in corso', name: 'swimin:google, swimin:offerta, swimin:chunk-reload', where: 'memoria di sessione o locale', duration: 'pochi minuti, poi vengono tolti', why: 'riportano alla pagina giusta dopo l\'accesso con Google, dopo l\'iscrizione da un\'offerta o dopo un aggiornamento dell\'app.' },
 ];

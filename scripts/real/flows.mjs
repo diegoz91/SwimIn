@@ -180,10 +180,10 @@ async function flows() {
 
   await step('Iscrizione: struttura, candidata, collega ed esterno', async () => {
     await signUp('struttura', `Piscina prova ${RUN}`);
-    await api('struttura', 'initProfile', { userType: 'structure', structureName: `Piscina prova automatica ${RUN}`, acceptedTerms: true, termsVersion: 'prova' });
+    await api('struttura', 'initProfile', { userType: 'structure', structureName: `Piscina prova automatica ${RUN}`, acceptedTerms: true, termsVersion: 'prova', betaAccepted: true, betaVersion: 'prova' });
     for (const [role, first] of [['candidata', 'Carla'], ['collega', 'Paolo'], ['esterno', 'Ettore']]) {
       await signUp(role, `${first} Prova`);
-      await api(role, 'initProfile', { userType: 'professional', personType: 'professional', firstName: first, lastName: 'Prova', acceptedTerms: true, termsVersion: 'prova' });
+      await api(role, 'initProfile', { userType: 'professional', personType: 'professional', firstName: first, lastName: 'Prova', acceptedTerms: true, termsVersion: 'prova', betaAccepted: true, betaVersion: 'prova' });
     }
     const p = await readDoc('esterno', 'profiles', users.candidata.id);
     ok(p.firstName === 'Carla', 'il profilo appena creato non si legge');

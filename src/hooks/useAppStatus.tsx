@@ -35,7 +35,7 @@ const isOutage = (err: unknown) => {
  */
 export const AppStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { authenticated } = useAuth();
-    const [status, setStatus] = useState<AppStatus>(BUILD_MAINTENANCE ? { mode: 'maintenance', message: BUILD_MESSAGE, until: '', updatedAt: null } : APP_STATUS_OK);
+    const [status, setStatus] = useState<AppStatus>(BUILD_MAINTENANCE ? { mode: 'maintenance', message: BUILD_MESSAGE, until: '', updatedAt: null, inviteOnly: true } : APP_STATUS_OK);
     // Tentativi falliti di fila: il server è "irraggiungibile" dal secondo (un errore isolato non basta).
     const [failures, setFailures] = useState(0);
     const reachable = failures < 2;

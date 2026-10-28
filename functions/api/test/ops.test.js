@@ -86,7 +86,7 @@ test('errori registrati e un solo avviso agli amministratori', async () => {
 test('stato del servizio: solo amministratori, leggibile da tutti', async () => {
   const { db, col } = makeDb();
   const api = createApi(db, { users });
-  assert.deepEqual(await api._appStatus(), { mode: 'ok', message: '', until: '', updatedAt: null });
+  assert.deepEqual(await api._appStatus(), { mode: 'ok', message: '', until: '', inviteOnly: true, updatedAt: null });
   await assert.rejects(api.adminSetAppStatus('anna', { mode: 'maintenance', message: 'Aggiornamento in corso' }), /amministratori/);
   await assert.rejects(api.adminSetAppStatus('boss', { mode: 'chiuso', message: 'x' }), /non valido/);
   await assert.rejects(api.adminSetAppStatus('boss', { mode: 'maintenance' }), /messaggio/);

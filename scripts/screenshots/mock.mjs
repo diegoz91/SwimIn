@@ -2,7 +2,11 @@
  * Appwrite finto per le schermate e i test end-to-end: intercetta le richieste del browser
  * e risponde con i dati di esempio di fixtures.mjs. `state` tiene sessione e chiamate fatte.
  */
+import { readFileSync } from 'node:fs';
 import { account, accountLogs, apiResponses, collections, sessions } from './fixtures.mjs';
+
+/** Versione delle condizioni della fase di test (da `src/config/legal.ts`). */
+export const BETA_VERSION = readFileSync(new URL('../../src/config/legal.ts', import.meta.url), 'utf8').match(/BETA_VERSION = '([^']+)'/)[1];
 
 const json = (route, body, status = 200) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -38,13 +42,20 @@ const withOverrides = (collection, state) => {
 };
 
 /**
- * state: { loggedIn: boolean, mfaRequired?: boolean, calls?: {action, params}[], responses?: {[action]: fn}, appStatus?: {mode, message, until} }
+ * state: { loggedIn: boolean, mfaRequired?: boolean, calls?: {action, params}[], responses?: {[action]: fn}, appStatus?: {mode, message, until, inviteOnly} }
+ * Le condizioni della fase di test risultano già accettate, salvo `betaPending: true`; l'iscrizione
+ * è aperta (`inviteOnly: false`) salvo `appStatus.inviteOnly`.
  * Con `loggedIn: false` il login (POST /account/sessions/email) apre la sessione;
  * con `mfaRequired` serve anche la sfida della verifica in due passaggi.
  */
 export async function mockAppwrite(page, state) {
     state.calls ??= [];
     state.accountCalls ??= [];
+    if (!state.betaPending) {
+        await page.addInitScript((v) => {
+            try { if (!localStorage.getItem('swimin:beta')) localStorage.setItem('swimin:beta', v); } catch { /* memoria non disponibile */ }
+        }, BETA_VERSION);
+    }
     await page.route(/\/v1\/realtime/, (route) => route.abort());
     // Realtime finto: il test manda eventi con state.pushRealtime(collezione, tipo, riga).
     const sockets = new Set();
@@ -140,8 +151,8 @@ export async function mockAppwrite(page, state) {
 
         const one = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents\/([^/]+)$/);
         if (one) {
-            // Stato del servizio (manutenzione, rallentamenti): `state.appStatus` = { mode, message, until }.
-            if (one[1] === 'app_status' && state.appStatus) return json(route, { $id: 'main', $updatedAt: new Date().toISOString(), ...state.appStatus });
+            // Stato del servizio (manutenzione, rallentamenti, solo su invito): `state.appStatus`.
+            if (one[1] === 'app_status') return json(route, { $id: 'main', $updatedAt: new Date().toISOString(), mode: 'ok', message: '', until: '', inviteOnly: false, ...state.appStatus });
             if (state.missing?.[one[1]]?.includes(one[2])) return json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);
             const row = withOverrides(one[1], state).find((r) => r.$id === one[2]);
             return row ? json(route, row) : json(route, { message: 'Not found', code: 404, type: 'document_not_found' }, 404);

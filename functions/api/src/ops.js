@@ -107,6 +107,7 @@ export function opsActions({ find, create, update, count, fail, C, Query, users,
     mode: STATUS_MODES.includes(row?.mode) ? row.mode : 'ok',
     message: row?.message || '',
     until: row?.until || '',
+    inviteOnly: row?.inviteOnly !== false,
     updatedAt: row?.$updatedAt || row?.$createdAt || null,
   });
 

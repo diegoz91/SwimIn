@@ -5,7 +5,7 @@ import { getPostContent } from '@/utils/postMedia';
 import { requestPremium } from '@/services/premiumPrompt';
 import { isJobOpen } from '@/utils/jobs';
 import { APPWRITE_CONFIG } from '@/config/constants';
-import { LEGAL } from '@/config/legal';
+import { BETA_VERSION, LEGAL } from '@/config/legal';
 import type { Audience } from '@/utils/premium';
 import type { 
     UserProfile, 
@@ -201,12 +201,18 @@ export type FeedbackKind = 'problema' | 'idea' | 'altro';
 export interface FeedbackRow { $id: string; $createdAt: string; userId: string; kind: FeedbackKind; message: string; page?: string; userAgent?: string; status: 'open' | 'done'; name: string; userType: string }
 export interface ShiftExportRow { id: string; date: string; start: string; end: string; hours: number; userId: string; userName: string; role: string; status: 'scheduled' | 'confirmed' | 'declined' }
 /** Stato del servizio deciso dagli amministratori (riga `main` di `app_status`, leggibile da tutti). */
-export interface AppStatus { mode: AppStatusMode; message: string; until: string; updatedAt: string | null }
-export const APP_STATUS_OK: AppStatus = { mode: 'ok', message: '', until: '', updatedAt: null };
-const toAppStatus = (row: { mode?: string; message?: string | null; until?: string | null; $updatedAt?: string } | null): AppStatus =>
-    row && (row.mode === 'degraded' || row.mode === 'maintenance')
-        ? { mode: row.mode, message: row.message || '', until: row.until || '', updatedAt: row.$updatedAt || null }
-        : { ...APP_STATUS_OK, updatedAt: row?.$updatedAt || null };
+/** `inviteOnly`: fase di test, iscrizione solo con codice di invito (se manca vale acceso, come sul server). */
+export interface AppStatus { mode: AppStatusMode; message: string; until: string; updatedAt: string | null; inviteOnly: boolean }
+export const APP_STATUS_OK: AppStatus = { mode: 'ok', message: '', until: '', updatedAt: null, inviteOnly: true };
+const toAppStatus = (row: { mode?: string; message?: string | null; until?: string | null; $updatedAt?: string; inviteOnly?: boolean | null } | null): AppStatus => ({
+    ...(row && (row.mode === 'degraded' || row.mode === 'maintenance')
+        ? { mode: row.mode, message: row.message || '', until: row.until || '' }
+        : { mode: 'ok' as const, message: '', until: '' }),
+    updatedAt: row?.$updatedAt || null,
+    inviteOnly: row?.inviteOnly !== false,
+});
+/** Invito alla fase di test (Admin › Fase di test). */
+export interface BetaInvite { $id: string; code: string; label: string; maxUses: number; uses: number; expiresAt: string; active: boolean; createdAt: string }
 /** Voce del registro degli accessi dello staff (solo identificativi, mai contenuti). */
 export interface AuditRow { id: string; at: string; actorId: string; actorName: string; action: string; scope: 'admin' | 'legal'; targetType: string; targetId: string; reason: string; outcome: 'ok' | 'denied' | 'error'; meta: string }
 /** Conservazione su ordine dell'autorità. */
@@ -334,10 +340,11 @@ export const databaseService = {
     async initializeProfile(
         _userId: string,
         _email: string,
-        data: { userType: 'professional' | 'structure'; personType?: 'professional' | 'enthusiast'; firstName?: string; lastName?: string; structureName?: string; acceptedTerms?: boolean }
+        data: { userType: 'professional' | 'structure'; personType?: 'professional' | 'enthusiast'; firstName?: string; lastName?: string; structureName?: string; acceptedTerms?: boolean; inviteCode?: string }
     ) {
-        // Versione dei testi accettati: la data di aggiornamento di Termini e Privacy.
-        return await callApi<Profile>('initProfile', { ...data, termsVersion: LEGAL.lastUpdated } as Record<string, unknown>);
+        // Versione dei testi accettati (Termini e Privacy) e condizioni della fase di test, accettate
+        // all'ingresso dell'app (BetaGate): senza non si arriva al modulo di iscrizione.
+        return await callApi<Profile>('initProfile', { ...data, termsVersion: LEGAL.lastUpdated, betaAccepted: true, betaVersion: BETA_VERSION } as Record<string, unknown>);
     },
 
     async getProfile(userId: string): Promise<Profile> {
@@ -498,6 +505,25 @@ export const databaseService = {
     },
     async adminSetAppStatus(mode: AppStatusMode, message: string, until: string) {
         return await callApi<AppStatus>('adminSetAppStatus', { mode, message, until });
+    },
+    // ---------------- FASE DI TEST ----------------
+    async checkInvite(code: string) {
+        return await callApi<{ valid: boolean; inviteOnly: boolean }>('checkInvite', { code });
+    },
+    async acceptBeta(version: string) {
+        return await callApi<{ ok: boolean }>('acceptBeta', { version });
+    },
+    async adminListInvites() {
+        return await callApi<{ inviteOnly: boolean; invites: BetaInvite[] }>('adminListInvites');
+    },
+    async adminCreateInvite(input: { label: string; maxUses: number; expiresAt: string }) {
+        return await callApi<BetaInvite>('adminCreateInvite', input);
+    },
+    async adminSetInviteActive(inviteId: string, active: boolean) {
+        return await callApi<BetaInvite>('adminSetInviteActive', { inviteId, active });
+    },
+    async adminSetInviteOnly(enabled: boolean) {
+        return await callApi<{ inviteOnly: boolean }>('adminSetInviteOnly', { enabled });
     },
     async adminListAudit(filters: { action?: string; actorId?: string } = {}) {
         return await callApi<AuditRow[]>('adminListAudit', filters);

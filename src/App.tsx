@@ -25,6 +25,8 @@ import { TopProgress } from '@/components/common/TopProgress';
 import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { lazyPage } from '@/utils/lazyPage';
 import { LIVE_ENABLED } from '@/config/features';
+import { captureInviteFromUrl } from '@/utils/invite';
+import { BetaGate } from '@/features/beta/BetaGate';
 
 // Widget Chat (sempre presente da loggati, caricato a parte)
 const GlobalChatWidget = lazyPage(() =>
@@ -113,6 +115,9 @@ const ScrollRoot: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({
   );
 };
 
+// Codice di invito dal QR o dal link (?invito=…), su qualsiasi pagina si arrivi.
+captureInviteFromUrl();
+
 const AppContent: React.FC = () => {
   const { authenticated } = useAuth();
   const { pathname } = useLocation();
@@ -140,6 +145,7 @@ const AppContent: React.FC = () => {
         Vai al contenuto
       </a>
 
+      <BetaGate />
       <TopProgress />
       <ConnectionStatus />
       <PushBridge />

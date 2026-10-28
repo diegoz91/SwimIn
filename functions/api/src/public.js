@@ -7,7 +7,7 @@ const parse = (list) => (list || []).flatMap((raw) => { try { return [JSON.parse
 const clip = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const PUBLIC_ACTIONS = ['publicProfile', 'publicSitemap', 'publicJob', 'publicJobs'];
+export const PUBLIC_ACTIONS = ['publicProfile', 'publicSitemap', 'publicJob', 'publicJobs', 'checkInvite'];
 
 export function publicActions({ find, listAll, list, fail, C, Query }) {
   const rating = (row) => (row.ratingCount ? { average: Math.round((row.ratingSum / row.ratingCount) * 10) / 10, count: row.ratingCount } : null);

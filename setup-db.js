@@ -398,6 +398,8 @@ const schema = [
             str('resumeFileId', 36), str('resumeName', 120), int('resumeSize'), str('resumeUpdatedAt', 40),
             // Accettazione di Termini e Privacy all'iscrizione (data e versione dei testi).
             str('termsAcceptedAt', 40), str('termsVersion', 40),
+            // Fase di test: condizioni accettate (data e versione) e codice di invito usato.
+            str('betaAcceptedAt', 40), str('betaVersion', 40), str('inviteCode', 16),
         ],
         indexes: [],
     },
@@ -429,6 +431,15 @@ const schema = [
             str('page', 300), str('userAgent', 300), str('status', 10, { required: true }),
         ],
         indexes: [idx('by_status', ['status']), idx('by_user', ['userId'])],
+    },
+    {
+        // Inviti alla fase di test (beta.js): codice, destinatario, usi. Solo la Function li legge e scrive.
+        id: 'beta_invites', name: 'Beta invites', permissions: SERVER_ONLY,
+        attributes: [
+            str('code', 16, { required: true }), str('label', 120), int('maxUses', { required: true }), int('uses', { default: 0 }),
+            str('expiresAt', 10), bool('active', { default: true }), str('createdBy', 36),
+        ],
+        indexes: [idx('by_code', ['code'])],
     },
     {
         // Registro degli accessi dello staff (audit.js): ogni azione admin*/legal*, anche negata.
@@ -464,7 +475,11 @@ const schema = [
         // Stato del servizio (riga "main"): tutto ok, rallentamenti o manutenzione. Leggibile da tutti,
         // anche senza accesso; lo scrivono solo gli amministratori tramite la Function (adminSetAppStatus).
         id: 'app_status', name: 'App status', permissions: [Permission.read(Role.any())],
-        attributes: [str('mode', 20, { required: true }), str('message', 500), str('until', 30), str('updatedBy', 36)],
+        attributes: [
+            str('mode', 20, { required: true }), str('message', 500), str('until', 30), str('updatedBy', 36),
+            // Fase di test: iscrizione solo con codice di invito (beta.js). Senza valore vale acceso.
+            bool('inviteOnly', { default: true }),
+        ],
         indexes: [],
     },
     {
