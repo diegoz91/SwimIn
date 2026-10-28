@@ -128,19 +128,19 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                     {/* I tuoi collegamenti: il contenuto principale della pagina */}
                     {!searchQuery && (
                         <section className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden" aria-labelledby="network-connections">
-                            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-3">
+                            <div className="px-6 py-5 flex items-center justify-between gap-3">
                                 <h2 id="network-connections" className="text-lg font-bold text-abisso flex items-center gap-2">
                                     <Icon type="users" className="w-5 h-5 text-corsia-600" /> I tuoi collegamenti
                                 </h2>
                                 <span className="bg-corsia-50 text-corsia-700 text-sm font-semibold px-2.5 py-0.5 rounded-full tabular-nums">{activeConnections.length}</span>
                             </div>
                             {activeConnections.length > 0 ? (
-                                <ul className="grid sm:grid-cols-2 gap-px bg-slate-100">
+                                <ul className="grid sm:grid-cols-2">
                                     {activeConnections.map((conn) => {
                                         const id = conn.userId || conn.$id;
                                         const name = displayNameOf(conn);
                                         return (
-                                            <li key={id} className="bg-white flex items-center gap-3 p-4 min-w-0">
+                                            <li key={id} className="flex items-center gap-3 p-4 min-w-0 border-t border-slate-100 sm:odd:border-r">
                                                 <button type="button" onClick={() => onSelectProfile(id)} tabIndex={-1} aria-hidden="true" className="shrink-0">
                                                     <img src={avatarOf(conn)} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
                                                 </button>
