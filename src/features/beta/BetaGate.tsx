@@ -84,7 +84,8 @@ export const BetaGate: React.FC = () => {
                     <h2 id="beta-title" className="mt-4 text-3xl font-bold text-abisso leading-tight">Benvenuto nella prova di SwimIn</h2>
                     <p id="beta-intro" className="mt-2 text-slate-600">Prima di entrare leggi e accetta queste condizioni: valgono per tutta la fase di test.</p>
                 </div>
-                <ol className="flex-1 min-h-0 overflow-y-auto px-6 sm:px-8 py-5 space-y-4">
+                {/* Si scorre anche da tastiera (tabIndex), come chiede WCAG per le aree scorrevoli. */}
+                <ol tabIndex={0} aria-label="Condizioni della fase di test" className="flex-1 min-h-0 overflow-y-auto focus-visible:outline-2 focus-visible:outline-corsia-500 px-6 sm:px-8 py-5 space-y-4">
                     {BETA_TERMS.map((t, i) => (
                         <li key={t.title} className="flex gap-3">
                             <span className="w-7 h-7 shrink-0 rounded-full bg-corsia-50 text-corsia-700 text-sm font-bold grid place-items-center tabular-nums" aria-hidden="true">{i + 1}</span>

@@ -109,7 +109,8 @@ const FLOWS = [
         await page.locator('#lastName').fill('Riva');
         await page.locator('#email').fill('luca.riva@example.com');
         await page.locator('#password').fill('Bracciata!2026');
-        await page.locator('label[for="accept-terms"]').click();
+        // Sulla casella, non sul testo: su smartphone il centro dell'etichetta cade sul link ai Termini.
+        await page.locator('label[for="accept-terms"]').click({ position: { x: 12, y: 12 } });
         await code.fill('SBAGLIATO');
         await page.getByRole('button', { name: 'Crea account' }).click();
         await page.getByText('Codice non valido, scaduto o già usato da troppe persone.').waitFor({ timeout: 5000 });
