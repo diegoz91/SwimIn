@@ -20,7 +20,7 @@ const Stats: React.FC = () => {
                 <h1 className="text-3xl font-bold text-abisso">Statistiche</h1>
                 <p className="text-slate-500 mt-1 flex items-center gap-1.5"><Icon type="lock-closed" className="w-4 h-4" /> Ultimi 30 giorni, visibili solo a te.</p>
             </header>
-            <StatsDashboard premium={isPremium(user)} viewersLink={user.userType === 'structure' ? null : '/profile?visite=1'} />
+            <StatsDashboard premium={isPremium(user)} showViewers={user.userType !== 'structure'} />
         </div>
     );
 };

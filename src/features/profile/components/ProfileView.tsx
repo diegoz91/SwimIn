@@ -19,9 +19,9 @@ import { initialsAvatar } from '@/utils/avatar';
 import { isEnthusiast } from '@/utils/profile';
 import { useContactInfo } from '@/hooks/useContactInfo';
 import { PeopleModal, type PersonRow } from '@/components/common/PeopleModal';
+import { ProfileViewersModal } from '@/features/premium/ProfileViewersModal';
 import { FollowButton } from '@/components/common/FollowButton';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
-import { formatRelativeTime } from '@/utils/format';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 import { ProfileAnalyticsCard } from '@/features/premium/ProfileAnalyticsCard';
@@ -178,13 +178,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             .filter((p) => !blocks.isHidden(p.$id) && !p.suspended)
             .map((p) => ({ id: p.$id, name: displayNameOf(p), headline: headlineOf(p), avatar: avatarOf(p) }))
             .sort((a, b) => a.name.localeCompare(b.name, 'it'));
-    const [lockedViews, setLockedViews] = useState(0);
-    const loadViews = async (): Promise<PersonRow[]> => {
-        const r = await databaseService.listProfileViews();
-        setViewsCount(r?.total ?? 0);
-        setLockedViews(r?.locked || 0);
-        return (r?.viewers || []).map((v) => ({ id: v.id, name: v.name, headline: v.headline, avatar: v.avatar, meta: formatRelativeTime(v.viewedAt) }));
-    };
 
     // Coriandoli una volta sola: quando il punteggio passa a 100% durante la sessione,
     // mai se il profilo era già completo all'apertura (né su altri dispositivi dopo).
@@ -739,23 +732,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         empty="Ancora nessun follower."
         onClose={() => setFollowersOpen(false)}
       />
-      {isOwnProfile && (
-        <PeopleModal
-          open={viewsOpen}
-          title="Chi ha visto il tuo profilo"
-          subtitle="Negli ultimi 30 giorni"
-          load={loadViews}
-          empty="Ancora nessuna visita negli ultimi 30 giorni. Un profilo completo e qualche post aiutano a farsi trovare."
-          footer={lockedViews > 0 ? (
-            <div className="m-2 rounded-xl border border-oro-300 bg-oro-50 p-4 text-center">
-              <p className="font-semibold text-abisso flex items-center justify-center gap-2"><PremiumBadge /> Altre {lockedViews} {lockedViews === 1 ? 'persona ha' : 'persone hanno'} visto il tuo profilo</p>
-              <p className="text-sm text-slate-600 mt-1">Con Premium vedi tutti i visitatori degli ultimi 30 giorni e le statistiche.</p>
-              <Link to="/premium" onClick={() => setViewsOpen(false)} className="inline-block mt-3 px-4 py-2 rounded-full text-sm font-semibold bg-abisso text-white hover:bg-corsia-900">Scopri Premium</Link>
-            </div>
-          ) : null}
-          onClose={() => setViewsOpen(false)}
-        />
-      )}
+      {isOwnProfile && <ProfileViewersModal open={viewsOpen} onClose={() => setViewsOpen(false)} onTotal={setViewsCount} />}
       <CertificationModal
         isOpen={certificationModal.isOpen}
         onClose={() => setCertificationModal({ isOpen: false, mode: 'add' })}
