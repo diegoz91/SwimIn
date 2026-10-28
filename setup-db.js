@@ -392,6 +392,17 @@ const schema = [
         indexes: [idx('by_user', ['userId'])],
     },
     {
+        // Recessi da Premium (Codice del Consumo art. 54-bis): dichiarazione, data e ora, esito del rimborso.
+        // Id = abbonamento. Solo la Function; restano 5 anni come prova anche dopo l'eliminazione dell'account.
+        id: 'withdrawals', name: 'Withdrawals', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('subscriptionId', 36, { required: true }), str('provider', 20, { required: true }),
+            str('externalId', 100), str('statement', 1000, { required: true }), str('requestedAt', 40, { required: true }),
+            str('refundStatus', 20, { required: true }), int('refundAmount', { default: 0 }),
+        ],
+        indexes: [idx('by_user', ['userId']), idx('by_refund', ['refundStatus'])],
+    },
+    {
         // Prezzi dei piani Premium decisi dagli amministratori (azioni adminGetPlans/adminUpdatePlans).
         // Id della riga = piano (person_month, enthusiast_year…). Nessun permesso: solo la Function.
         id: 'plans', name: 'Plans', permissions: SERVER_ONLY,
@@ -540,8 +551,30 @@ const schema = [
             str('details', 1000), str('status', 50, { required: true }),
             // decisione dell'amministratore
             str('resolution', 20), str('resolvedBy', 36), str('resolvedAt', 100), str('note', 1000),
+            // regola violata (MODERATION_GROUNDS), per la motivazione del provvedimento
+            str('ground', 40),
         ],
         indexes: [idx('by_reporter_target', ['reporterId', 'targetId']), idx('by_status', ['status'])],
+    },
+    {
+        // Provvedimenti motivati (DSA art. 17): li legge solo la Function e li mostra a chi li ha ricevuti.
+        id: 'moderation_decisions', name: 'Moderation decisions', permissions: SERVER_ONLY,
+        attributes: [
+            str('userId', 36, { required: true }), str('reportId', 36), str('targetType', 50, { required: true }), str('targetId', 36, { required: true }),
+            str('action', 20, { required: true }), str('ground', 40, { required: true }), str('explanation', 500), str('excerpt', 200),
+            str('decidedAt', 40, { required: true }),
+        ],
+        indexes: [idx('by_user', ['userId'])],
+    },
+    {
+        // Registro delle violazioni dei dati personali (GDPR art. 33.5). Solo amministratori, tramite la Function.
+        id: 'data_breaches', name: 'Data breaches', permissions: SERVER_ONLY,
+        attributes: [
+            str('title', 200, { required: true }), str('description', 4000, { required: true }), str('detectedAt', 40, { required: true }),
+            str('dataCategories', 500), int('affectedCount', { default: 0 }), str('risk', 10, { required: true }), str('status', 10, { required: true }),
+            str('garanteNotifiedAt', 40), str('usersNotifiedAt', 40), str('measures', 4000), str('createdBy', 36), str('updatedBy', 36),
+        ],
+        indexes: [idx('by_status', ['status'])],
     },
     {
         // Aperte dalla Function (host verificato); l'host può chiuderle.

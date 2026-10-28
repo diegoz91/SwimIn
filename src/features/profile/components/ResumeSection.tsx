@@ -7,6 +7,7 @@ import { downloadResume, openResume, resumeFileError, RESUME_MAX_MB } from '@/se
 import { formatFileSize } from '@/services/chatFiles';
 import { formatRelativeTime } from '@/utils/format';
 import { UploadProgress } from '@/components/common/UploadProgress';
+import { SensitiveDataNotice } from '@/components/common/SensitiveDataNotice';
 
 /**
  * Il tuo CV (solo sul tuo profilo): un PDF che vedi solo tu e che alleghi alle candidature.
@@ -81,6 +82,7 @@ export const ResumeSection: React.FC = () => {
             />
 
             {progress !== null && <UploadProgress value={progress} label="Caricamento del CV" className="mb-4" />}
+            <SensitiveDataNotice className="mb-4" />
 
             {resume === undefined ? (
                 <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" aria-label="Caricamento del CV" />

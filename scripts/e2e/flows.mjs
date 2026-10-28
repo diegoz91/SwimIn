@@ -121,6 +121,43 @@ const FLOWS = [
         assert.deepEqual([c.params.inviteCode, c.params.betaAccepted, c.params.acceptedTerms], ['NUOTO2026', true, true]);
         assert.equal(await page.evaluate(() => localStorage.getItem('swimin:invito')), null, 'dopo l’iscrizione il codice si dimentica');
     }],
+    ['recesso da Premium: due passaggi e ricevuta', 'mobile', { loggedIn: true, responses: { getWithdrawal: () => ({ available: true, contract: { id: 's1', provider: 'stripe', period: 'month', startedAt: new Date(Date.now() - 3 * 86400000).toISOString(), deadline: new Date(Date.now() + 11 * 86400000).toISOString() }, receipts: [] }) } }, async (page, state) => {
+        await open(page, '/premium');
+        await page.getByRole('button', { name: 'Recedi qui dal contratto' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Recedi dal contratto' });
+        await dialog.getByText('SwimIn Premium mensile').waitFor({ timeout: 5000 });
+        assert.ok(!state.calls.some((c) => c.action === 'withdrawSubscription'), 'il primo passaggio non invia nulla');
+        await dialog.getByRole('button', { name: 'Conferma recesso' }).click();
+        const c = await called(state, 'withdrawSubscription');
+        assert.deepEqual([c.params.contractId, c.params.confirm], ['s1', true]);
+        await page.getByText(/ricevuta per email/).first().waitFor({ timeout: 5000 });
+    }],
+    ['segnalazione: la rimozione si motiva e l’autore vede perché', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) } }, async (page, state) => {
+        await open(page, '/admin?tab=segnalazioni');
+        await page.getByRole('button', { name: 'Rimuovi contenuto' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Rimuovere il contenuto?' });
+        await dialog.locator('#resolve-explanation').fill('Pubblicità ripetuta di un servizio a pagamento.');
+        await dialog.getByRole('button', { name: 'Rimuovi e invia la motivazione' }).click();
+        const c = await called(state, 'adminResolveReport');
+        assert.deepEqual([c.params.decision, c.params.ground, c.params.explanation], ['remove', 'spam', 'Pubblicità ripetuta di un servizio a pagamento.']);
+        await open(page, '/moderazione/md1');
+        await page.getByRole('heading', { name: 'Abbiamo rimosso un tuo post' }).waitFor({ timeout: 8000 });
+        await page.getByText('Spam o pubblicità non richiesta').waitFor();
+        await page.getByRole('button', { name: 'Contesta la decisione' }).waitFor();
+    }],
+    ['registro delle violazioni: si registra con la scadenza per il Garante', 'desktop', { loggedIn: true, responses: { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) } }, async (page, state) => {
+        await open(page, '/admin?tab=violazioni');
+        await page.getByText(/da avvisare entro il/).first().waitFor({ timeout: 8000 });
+        await page.getByRole('button', { name: 'Registra una violazione' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Registra una violazione' });
+        await dialog.locator('#breach-title').fill('Export dei candidati inviato alla persona sbagliata');
+        await dialog.locator('#breach-description').fill('Un file con nomi ed email di 5 candidati è stato inviato a un indirizzo esterno.');
+        await dialog.getByRole('button', { name: 'Alto' }).click();
+        await dialog.getByRole('button', { name: 'Salva nel registro' }).click();
+        const c = await called(state, 'adminSaveBreach');
+        assert.equal(c.params.risk, 'high');
+        assert.ok(c.params.detectedAt, 'data della scoperta già compilata');
+    }],
     ['registrazione: i campi obbligatori sono segnalati', 'mobile', { loggedIn: false }, async (page, state) => {
         await open(page, '/register');
         await page.getByRole('button', { name: 'Crea account' }).click();

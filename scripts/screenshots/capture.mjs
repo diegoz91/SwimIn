@@ -414,6 +414,11 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile']
         ['premium-struttura', '/premium', { getBillingStatus: () => structureStatus }],
         ['admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }],
         ['scuro-admin-prezzi', '/admin?tab=piani', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }, true],
+        // Conformità: recesso, motivazione di una rimozione, registro delle violazioni.
+        ['premium-recesso', '/premium', { getBillingStatus: () => ({ ...enthusiastStatus, audience: 'person', prices: { month: 499, year: 4790 }, premium: true, premiumUntil: new Date(Date.now() + 27 * 86400000).toISOString(), source: 'stripe', trialAvailable: false, subscription: { provider: 'stripe', status: 'active', period: 'month', currentPeriodEnd: new Date(Date.now() + 27 * 86400000).toISOString(), cancelAtPeriodEnd: false } }), getWithdrawal: () => ({ available: true, contract: { id: 's1', provider: 'stripe', period: 'month', startedAt: new Date(Date.now() - 3 * 86400000).toISOString(), deadline: new Date(Date.now() + 11 * 86400000).toISOString() }, receipts: [] }) }],
+        ['moderazione', '/moderazione/md1', {}],
+        ['admin-violazioni', '/admin?tab=violazioni', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }],
+        ['admin-segnalazioni', '/admin?tab=segnalazioni', { listBlockRelations: () => ({ blocked: [], muted: [], blockedBy: [], isAdmin: true }) }],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
         const page = await context.newPage();

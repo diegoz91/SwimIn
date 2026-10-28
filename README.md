@@ -178,11 +178,16 @@ La mappa completa di dati, accessi, protezione e tempi di conservazione per ogni
   |---|---|
   | Errori dell'app | 30 giorni |
   | Notifiche lette | 90 giorni |
-  | Tutte le notifiche, visite al profilo, comparse nelle ricerche, visualizzazioni degli annunci, segnalazioni chiuse, chat dello staff, registro accessi | 12 mesi |
+  | Tutte le notifiche, provvedimenti di moderazione, visite al profilo, comparse nelle ricerche, visualizzazioni degli annunci, segnalazioni chiuse, chat dello staff, registro accessi | 12 mesi |
   | Candidature di annunci chiusi | 12 mesi dopo la chiusura |
   | Turni | 24 mesi |
+  | Ricevute dei recessi, registro delle violazioni chiuse | 5 anni |
 
   La stessa pulizia toglie anche le righe orfane e gli account di prova rimasti.
+- **Recesso da Premium** (Codice del Consumo, art. 54-bis): pulsante «Recedi qui dal contratto» nei 14 giorni, conferma separata «Conferma recesso», disdetta immediata, rimborso automatico della parte non goduta (Stripe e PayPal; se non riesce gli amministratori ricevono un avviso) e ricevuta con data e ora per email e nell'app.
+- **Dati particolari**: avviso prima del caricamento del CV e in candidatura (niente salute, categorie protette, documenti, dati di terzi) e sezione dedicata nella Privacy.
+- **Moderazione motivata** (Digital Services Act): ogni rimozione o sospensione indica la regola violata, il contenuto e la motivazione, con la pagina `/moderazione/:id` e un'email per contestarla; chi segnala riceve l'esito. Punto di contatto unico nei Termini.
+- **Registro delle violazioni dei dati** (GDPR art. 33): *Admin › Violazioni dei dati*, con la scadenza delle 72 ore per il Garante e l'avviso a tutti gli amministratori. Procedura in [`docs/SETUP-APPWRITE.md` §17](docs/SETUP-APPWRITE.md).
 - **Registro degli accessi dello staff**: ogni azione amministrativa viene registrata in automatico, compresi i tentativi negati. Non contiene mai contenuti e non si può modificare.
 - **Richieste delle autorità**: nessuna conservazione preventiva dei messaggi. Solo dopo un ordine formale, il responsabile (etichette `admin` + `legal`) registra la richiesta e la Function fa una **copia sigillata** dei dati:
   - cifratura AES-256-GCM con chiave RSA-OAEP e impronte SHA-256;

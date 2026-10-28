@@ -13,6 +13,7 @@ import { jobDisplayTitle } from '@/utils/jobs';
 import { requirementsStatus } from '@/utils/swimMatch';
 import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { parseCertifications } from '@/utils/certifications';
+import { SensitiveDataNotice } from '@/components/common/SensitiveDataNotice';
 
 export type View = 'lavoro' | 'myApplications';
 
@@ -169,6 +170,7 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
                             </button>
                         </div>
                     )}
+                    <SensitiveDataNotice className="mt-3" />
                 </section>
 
                 {requirements.length > 0 && (
@@ -189,7 +191,7 @@ export const ApplicationFlowModal: React.FC<ApplicationFlowModalProps> = ({ user
                     </section>
                 )}
 
-                <Field id="apply-letter" label="Messaggio alla struttura" optional count={{ value: letter, max: LETTER_MAX }} hint="Due righe su perché ti interessa e cosa porti: bastano per distinguerti.">
+                <Field id="apply-letter" label="Messaggio alla struttura" optional count={{ value: letter, max: LETTER_MAX }} hint="Due righe su perché ti interessa e cosa porti: bastano per distinguerti. Niente dati sulla salute o su altre persone.">
                     <textarea
                         value={letter}
                         onChange={(e) => setLetter(e.target.value)}

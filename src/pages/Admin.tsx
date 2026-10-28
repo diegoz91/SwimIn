@@ -15,10 +15,13 @@ import { AdminErrors } from '@/features/admin/AdminErrors';
 import { AdminFeedback } from '@/features/admin/AdminFeedback';
 import { AdminAudit } from '@/features/admin/AdminAudit';
 import { AdminBeta } from '@/features/admin/AdminBeta';
+import { AdminBreaches } from '@/features/admin/AdminBreaches';
+import { ResolveReportModal } from '@/features/admin/ResolveReportModal';
+import type { ModerationGround } from '@/data/moderation';
 import { AdminLegal } from '@/features/admin/AdminLegal';
 import { useConfirm } from '@/context/ConfirmContext';
 
-type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato' | 'feedback' | 'accessi' | 'autorita' | 'test';
+type Tab = 'panoramica' | 'segnalazioni' | 'utenti' | 'piani' | 'errori' | 'verifiche' | 'stato' | 'feedback' | 'accessi' | 'autorita' | 'test' | 'violazioni';
 
 const REASONS: Record<string, string> = {
     spam: 'Spam',
@@ -42,7 +45,7 @@ const Admin: React.FC = () => {
     // ?tab=piani apre direttamente una scheda (link dal menu, schermate).
     const [tab, setTab] = useState<Tab>(() => {
         const t = new URLSearchParams(window.location.search).get('tab');
-        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato', 'feedback', 'accessi', 'autorita', 'test'] as const).find((x) => x === t) ?? 'panoramica';
+        return (['panoramica', 'segnalazioni', 'utenti', 'piani', 'errori', 'verifiche', 'stato', 'feedback', 'accessi', 'autorita', 'test', 'violazioni'] as const).find((x) => x === t) ?? 'panoramica';
     });
     const tabsRef = useRef<HTMLDivElement>(null);
     // La scheda scelta resta visibile nella riga che scorre (su smartphone non ci stanno tutte).
@@ -94,12 +97,15 @@ const Admin: React.FC = () => {
         );
     }
 
-    const resolve = async (r: AdminReport, decision: 'dismiss' | 'remove' | 'suspend') => {
-        const question = { dismiss: 'Archiviare la segnalazione senza azioni?', remove: 'Rimuovere il contenuto segnalato? L’autore riceverà una notifica.', suspend: `Sospendere l’account di ${r.target.authorName || 'questo utente'}? Non potrà più accedere.` }[decision];
-        if (!(await confirm({ title: { dismiss: 'Archiviare la segnalazione?', remove: 'Rimuovere il contenuto?', suspend: 'Sospendere l’account?' }[decision], message: question, confirmLabel: { dismiss: 'Archivia', remove: 'Rimuovi', suspend: 'Sospendi' }[decision], tone: decision === 'dismiss' ? 'default' : 'danger' }))) return;
+    // Rimozioni e sospensioni passano dalla finestra con la motivazione; l'archiviazione da una conferma.
+    const [motive, setMotive] = useState<{ report: AdminReport; decision: 'remove' | 'suspend' } | null>(null);
+    const resolve = async (r: AdminReport, decision: 'dismiss' | 'remove' | 'suspend', why?: { ground: ModerationGround; explanation: string }) => {
+        if (decision !== 'dismiss' && !why) return setMotive({ report: r, decision });
+        if (decision === 'dismiss' && !(await confirm({ title: 'Archiviare la segnalazione?', message: 'Nessuna azione sul contenuto: chi ha segnalato riceve l’esito.', confirmLabel: 'Archivia' }))) return;
         setBusy(r.$id);
         try {
-            const res = await databaseService.adminResolveReport(r.$id, decision);
+            const res = await databaseService.adminResolveReport(r.$id, decision, why);
+            setMotive(null);
             setReports((prev) => (prev || []).filter((x) => x.targetId !== r.targetId));
             showToast(res.closed > 1 ? `Fatto: chiuse ${res.closed} segnalazioni sullo stesso contenuto.` : 'Segnalazione chiusa.', 'success');
             setOverview((o) => (o ? { ...o, openReports: Math.max(0, o.openReports - res.closed) } : o));
@@ -141,6 +147,7 @@ const Admin: React.FC = () => {
         { id: 'errori', label: 'Errori', badge: overview?.errors24h },
         { id: 'stato', label: 'Stato del servizio' },
         { id: 'test', label: 'Fase di test' },
+        { id: 'violazioni', label: 'Violazioni dei dati' },
         { id: 'accessi', label: 'Registro accessi' },
         // Solo per il responsabile delle richieste delle autorità (etichette admin + legal, verificate dal server).
         ...(isLegal ? [{ id: 'autorita' as const, label: 'Richieste autorità' }] : []),
@@ -223,7 +230,7 @@ const Admin: React.FC = () => {
                                                     <button disabled={busy === r.$id} onClick={() => resolve(r, 'remove')} className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-900 hover:bg-amber-200 disabled:opacity-50">Rimuovi contenuto</button>
                                                 )}
                                                 {r.target.authorId && !r.target.suspended && (
-                                                    <button disabled={busy === r.$id} onClick={() => resolve(r, 'suspend')} className="px-4 py-2 rounded-full text-sm font-semibold bg-galleggiante text-white hover:bg-red-700 disabled:opacity-50">Sospendi autore</button>
+                                                    <button disabled={busy === r.$id} onClick={() => resolve(r, 'suspend')} className="px-4 py-2 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800 disabled:opacity-50">Sospendi autore</button>
                                                 )}
                                             </div>
                                         ) : (
@@ -242,6 +249,18 @@ const Admin: React.FC = () => {
             {tab === 'piani' && <AdminPlans />}
 
             {tab === 'test' && <AdminBeta />}
+
+            {tab === 'violazioni' && <AdminBreaches />}
+
+            {motive && (
+                <ResolveReportModal
+                    report={motive.report}
+                    decision={motive.decision}
+                    busy={busy === motive.report.$id}
+                    onClose={() => setMotive(null)}
+                    onConfirm={(why) => void resolve(motive.report, motive.decision, why)}
+                />
+            )}
 
             {tab === 'accessi' && <AdminAudit />}
 

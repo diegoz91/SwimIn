@@ -368,7 +368,7 @@ export interface SquadShift extends AppwriteDocument {
 // ----------------------------------------------------
 export interface AppNotification extends AppwriteDocument {
   userId: string;
-  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'application_update' | 'staff_invite' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published' | 'system_alert' | 'feedback';
+  type: 'connection' | 'hired' | 'rejected' | 'general' | 'like' | 'comment' | 'application' | 'application_update' | 'staff_invite' | 'endorsement' | 'sos' | 'shift' | 'repost' | 'profile_view' | 'mention' | 'follow' | 'group' | 'event' | 'job_alert' | 'recommendation' | 'recommendation_request' | 'recommendation_published' | 'system_alert' | 'feedback' | 'moderation' | 'data_breach';
   content: string;
   relatedId?: string;
   isRead: boolean;
