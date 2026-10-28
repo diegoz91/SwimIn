@@ -20,13 +20,14 @@ import { useMyTeams } from '@/hooks/useMyTeams';
 import { useToast } from '@/context/ToastContext';
 import { LIVE_ENABLED } from '@/config/features';
 import { openFeedback } from '@/features/feedback/Feedback';
+import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
 const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/network', label: 'Rete', icon: 'users' },
   { to: '/jobs', label: 'Lavoro', icon: 'briefcase' },
   { to: '/messages', label: 'Messaggi', icon: 'chat-bubble' },
-  LIVE_ENABLED ? { to: '/live', label: 'Live', icon: 'video' } : { to: '/eventi', label: 'Eventi', icon: 'calendar' },
+  ...(LIVE_ENABLED ? [{ to: '/live', label: 'Live', icon: 'video' as IconType }] : []),
 ];
 
 /** Chi nuota per passione vede le piscine al posto della bacheca lavoro. */
@@ -38,9 +39,9 @@ export const navFor = (user: Parameters<typeof isEnthusiast>[0]) =>
  * Su smartphone (barra in fondo, senza "Altro") le stesse voci sono nel menu dell'account.
  */
 export const moreFor = (user: Parameters<typeof isEnthusiast>[0]): { to: string; label: string; icon: IconType }[] => [
-  { to: '/gruppi', label: 'Gruppi', icon: 'users' },
+  { to: GROUPS_PATH, label: 'Gruppi', icon: 'users' },
+  { to: EVENTS_PATH, label: 'Eventi', icon: 'calendar' },
   ...(isEnthusiast(user) ? [] : [{ to: '/strutture', label: 'Piscine e strutture', icon: 'building' as IconType }]),
-  ...(LIVE_ENABLED ? [{ to: '/eventi', label: 'Eventi', icon: 'calendar' as IconType }] : []),
 ];
 
 /** Chiude un menu a tendina al clic fuori o con Esc. */
@@ -187,7 +188,7 @@ const Header: React.FC = () => {
               aria-expanded={openMenu === 'more'}
               aria-haspopup="menu"
               className={`relative flex flex-col items-center justify-center gap-0.5 w-16 md:w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-hidden focus-visible:bg-piastrella ${
-                moreItems.some((m) => location.pathname.startsWith(m.to))
+                moreItems.some((m) => !m.to.includes('?') && location.pathname.startsWith(m.to))
                   ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t-sm after:bg-corsia-600'
                   : 'text-slate-500 hover:text-abisso'
               }`}

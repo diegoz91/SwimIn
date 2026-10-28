@@ -15,6 +15,7 @@ import { UpcomingEventsCard } from '@/features/events/UpcomingEventsCard';
 import { useBlocks } from '@/context/BlocksContext';
 import { LIVE_ENABLED } from '@/config/features';
 import { useMyTeams } from '@/hooks/useMyTeams';
+import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -72,7 +73,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     <span className="text-slate-500">Collegamenti</span>
                     <span className="font-semibold text-corsia-700">{user.connections?.length || 0}</span>
                 </Link>
-                <Link to="/gruppi" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
+                <Link to={GROUPS_PATH} className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
                     <span className="text-slate-500">Gruppi</span>
                     <span className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></span>
                 </Link>
@@ -91,7 +92,7 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     </>
                 ) : isProfessional ? (
                     <>
-                        <RowLink to="/eventi" label="Eventi e corsi" />
+                        <RowLink to={EVENTS_PATH} label="Eventi e corsi" />
                         <RowLink to="/strutture" label="Piscine vicino a te" />
                     </>
                 ) : (

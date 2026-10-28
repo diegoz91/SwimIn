@@ -21,6 +21,7 @@ import { isPremium } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
 import type { EnrichedPost, Group, GroupMember, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
 import { useConfirm } from '@/context/ConfirmContext';
+import { GROUPS_PATH } from '@/config/routes';
 
 type Profile = UserProfile | StructureProfile;
 
@@ -154,7 +155,7 @@ const GroupPage: React.FC = () => {
         try {
             await databaseService.deleteGroup(id);
             showToast('Gruppo eliminato.', 'info');
-            navigate('/gruppi');
+            navigate(GROUPS_PATH);
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Eliminazione non riuscita.', 'error');
         }
@@ -166,7 +167,7 @@ const GroupPage: React.FC = () => {
                 <Icon type="users" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
                 <h1 className="text-3xl font-bold text-abisso">Gruppo non trovato</h1>
                 <p className="text-slate-500 mt-2">Potrebbe essere stato eliminato dagli amministratori.</p>
-                <Link to="/gruppi" className="inline-block mt-5 px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700">Vai ai gruppi</Link>
+                <Link to={GROUPS_PATH} className="inline-block mt-5 px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700">Vai ai gruppi</Link>
             </div>
         );
     }

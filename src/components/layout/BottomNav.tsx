@@ -12,7 +12,7 @@ const ITEMS: { to: string; icon: IconType; label: string; end?: boolean }[] = [
     { to: '/network', icon: 'users', label: 'Rete' },
     { to: '/jobs', icon: 'briefcase', label: 'Lavoro' },
     { to: '/messages', icon: 'chat-bubble', label: 'Messaggi' },
-    LIVE_ENABLED ? { to: '/live', icon: 'video', label: 'Live' } : { to: '/eventi', icon: 'calendar', label: 'Eventi' },
+    ...(LIVE_ENABLED ? [{ to: '/live', icon: 'video' as IconType, label: 'Live' }] : []),
 ];
 
 /** Barra di navigazione inferiore per smartphone. */

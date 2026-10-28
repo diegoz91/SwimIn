@@ -2,9 +2,10 @@ import React from 'react';
 import { Link } from 'react-router';
 import { BrandMark } from '@/components/ui/Brand';
 import { openFeedback } from '@/features/feedback/Feedback';
+import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
 const GROUPS: { title: string; links: { to: string; label: string }[] }[] = [
-    { title: 'Scopri', links: [{ to: '/gruppi', label: 'Gruppi' }, { to: '/eventi', label: 'Eventi' }, { to: '/strutture', label: 'Piscine' }, { to: '/premium', label: 'Premium' }] },
+    { title: 'Scopri', links: [{ to: GROUPS_PATH, label: 'Gruppi' }, { to: EVENTS_PATH, label: 'Eventi' }, { to: '/strutture', label: 'Piscine' }, { to: '/premium', label: 'Premium' }] },
     { title: 'Il tuo account', links: [{ to: '/profile?tab=impostazioni', label: 'Impostazioni' }, { to: '/profile?tab=impostazioni&sezione=aspetto', label: 'Tema chiaro o scuro' }, { to: '/profile?tab=impostazioni&sezione=info', label: 'Assistenza' }] },
     { title: 'Legale', links: [{ to: '/privacy', label: 'Privacy' }, { to: '/termini', label: 'Termini' }, { to: '/cookie', label: 'Cookie' }] },
 ];

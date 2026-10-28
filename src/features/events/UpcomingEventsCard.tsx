@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { DateTile } from './EventCard';
 import { eventTypeOf, timeRange } from '@/data/events';
 import type { SwimMeet } from '@/types/types';
+import { EVENTS_PATH } from '@/config/routes';
 
 /** Colonna destra della home: i prossimi eventi nella tua provincia (o online). */
 export const UpcomingEventsCard: React.FC<{ province?: string; userId: string }> = ({ province, userId }) => {
@@ -38,7 +39,7 @@ export const UpcomingEventsCard: React.FC<{ province?: string; userId: string }>
                     </li>
                 ))}
             </ul>
-            <Link to="/eventi" className="block text-center text-sm font-semibold text-corsia-700 hover:bg-piastrella py-3 border-t border-slate-100">Tutti gli eventi</Link>
+            <Link to={EVENTS_PATH} className="block text-center text-sm font-semibold text-corsia-700 hover:bg-piastrella py-3 border-t border-slate-100">Tutti gli eventi</Link>
         </section>
     );
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
-import { usePageTitle } from '@/hooks/usePageTitle';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
 import { ChoiceChips } from '@/components/form/Field';
@@ -30,9 +29,8 @@ const GroupRow: React.FC<{ group: Group; status?: GroupMember['status'] }> = ({ 
     </Link>
 );
 
-/** Gruppi e community: i miei gruppi e quelli da scoprire. */
-const Groups: React.FC = () => {
-    usePageTitle('Gruppi');
+/** Gruppi e community (scheda della Rete): i miei gruppi e quelli da scoprire. */
+export const GroupsView: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [groups, setGroups] = useState<Group[] | null>(null);
@@ -77,7 +75,7 @@ const Groups: React.FC = () => {
     }, [groups, statusOf, category, search, user?.province]);
 
     return (
-        <div className="pt-4 max-w-5xl mx-auto w-full">
+        <div className="max-w-5xl mx-auto w-full">
             <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
                 <div>
                     <h1 className="text-4xl font-bold text-abisso leading-none">Gruppi</h1>
@@ -142,4 +140,3 @@ const Groups: React.FC = () => {
     );
 };
 
-export default Groups;
