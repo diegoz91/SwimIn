@@ -21,7 +21,7 @@ export const ThemeSegmented: React.FC = () => {
                     role="radio"
                     aria-checked={pref === o.value}
                     onClick={() => setTheme(o.value)}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-400 ${
+                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-400 ${
                         pref === o.value ? 'bg-white text-abisso shadow-xs' : 'text-slate-600 hover:text-abisso'
                     }`}
                 >

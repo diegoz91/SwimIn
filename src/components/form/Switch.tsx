@@ -19,7 +19,7 @@ export const Switch: React.FC<{
         aria-describedby={describedBy}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors duration-150 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-150 outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 disabled:opacity-50 disabled:cursor-not-allowed ${
             checked ? 'bg-corsia-600' : 'bg-slate-300 hover:bg-slate-400'
         }`}
     >

@@ -148,7 +148,7 @@ const Calendar: React.FC<{ value: string; min?: string; max?: string; onPick: (i
                                             disabled={off}
                                             onClick={() => onPick(iso)}
                                             aria-label={new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                                            className={`w-full aspect-square rounded-full text-sm tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-corsia-400 ${
+                                            className={`w-full aspect-square rounded-full text-sm tabular-nums outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-corsia-400 ${
                                                 selected
                                                     ? 'bg-corsia-600 text-white font-semibold'
                                                     : off

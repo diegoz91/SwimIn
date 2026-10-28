@@ -64,7 +64,7 @@ export const ShiftMonth: React.FC<{
                             onClick={() => onSelect(iso)}
                             aria-pressed={isSel}
                             aria-label={`${dayLabel(iso)}${isToday ? ', oggi' : ''}: ${list.length === 0 ? 'nessun turno' : list.length === 1 ? '1 turno' : `${list.length} turni`}${warn ? ', turni sovrapposti' : ''}`}
-                            className={`relative min-h-[3.25rem] sm:min-h-[4.5rem] rounded-xl border p-1 sm:p-1.5 flex flex-col items-center sm:items-start gap-1 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 ${
+                            className={`relative min-h-[3.25rem] sm:min-h-[4.5rem] rounded-xl border p-1 sm:p-1.5 flex flex-col items-center sm:items-start gap-1 text-left transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 ${
                                 isSel ? 'border-corsia-600 bg-corsia-50' : isToday ? 'border-corsia-300 bg-white' : outside ? 'border-transparent bg-piastrella' : 'border-slate-200 bg-white hover:border-slate-300'
                             }`}
                         >

@@ -110,7 +110,7 @@ export const MonthYearPicker: React.FC<
                                     tabIndex={m === focusMonth ? 0 : -1}
                                     disabled={off}
                                     onClick={() => pick(m)}
-                                    className={`py-2.5 rounded-xl text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-corsia-400 ${
+                                    className={`py-2.5 rounded-xl text-sm font-semibold outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-corsia-400 ${
                                         selected ? 'bg-corsia-600 text-white' : off ? 'text-slate-300 cursor-not-allowed' : 'text-abisso hover:bg-piastrella'
                                     } ${key(m) === nowKey && !selected ? 'ring-1 ring-inset ring-cloro-500' : ''}`}
                                 >

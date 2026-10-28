@@ -149,7 +149,7 @@ const Header: React.FC = () => {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `relative flex flex-col items-center justify-center gap-0.5 w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-none focus-visible:bg-piastrella ${
+                `relative flex flex-col items-center justify-center gap-0.5 w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-hidden focus-visible:bg-piastrella ${
                   isActive ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t-sm after:bg-corsia-600' : 'text-slate-500 hover:text-abisso'
                 }`
               }

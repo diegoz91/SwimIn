@@ -30,7 +30,7 @@ interface SelectProps<V extends string> extends A11y {
 }
 
 export const triggerClass = (invalid: boolean, disabled?: boolean, size: 'md' | 'sm' = 'md') =>
-    `w-full flex items-center gap-2 text-left rounded-xl border bg-white outline-none transition-[border-color,box-shadow] duration-150 focus-visible:ring-4 ${
+    `w-full flex items-center gap-2 text-left rounded-xl border bg-white outline-hidden transition-[border-color,box-shadow] duration-150 focus-visible:ring-4 ${
         size === 'sm' ? 'px-3 py-2 text-sm font-semibold' : 'px-4 py-3'
     } ${invalid ? 'border-galleggiante focus-visible:ring-red-100' : 'border-slate-200 hover:border-slate-300 focus-visible:border-corsia-400 focus-visible:ring-corsia-100'} ${
         disabled ? 'opacity-60 bg-slate-50 cursor-not-allowed' : 'cursor-pointer'

@@ -39,7 +39,7 @@ export const AccountTypePicker: React.FC<{ value: AccountChoice; onChange: (c: A
                         aria-checked={selected}
                         onClick={() => onChange(t.id)}
                         disabled={disabled}
-                        className={`text-left p-3 rounded-2xl border-2 transition-all outline-none focus-visible:ring-2 focus-visible:ring-corsia-500 flex sm:block items-center gap-3 ${
+                        className={`text-left p-3 rounded-2xl border-2 transition-all outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500 flex sm:block items-center gap-3 ${
                             selected ? 'border-corsia-600 bg-corsia-50' : 'border-slate-200 hover:border-slate-300 bg-white'
                         }`}
                     >

@@ -223,7 +223,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ profile, isOwnProf
                                         disabled={pending === skill}
                                         aria-pressed={endorsedByMe}
                                         data-html2canvas-ignore="true"
-                                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-bold border transition disabled:opacity-60 ${
+                                        className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-bold border transition disabled:opacity-60 ${
                                             endorsedByMe ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'
                                         }`}
                                     >

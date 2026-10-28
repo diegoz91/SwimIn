@@ -231,7 +231,7 @@ const JobPage: React.FC = () => {
                         {candidateSteps(application.status).map((s, i) => (
                             <li key={s.label} className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
                                 <span
-                                    className={`w-8 h-8 rounded-full grid place-items-center flex-shrink-0 text-sm font-semibold ${
+                                    className={`w-8 h-8 rounded-full grid place-items-center shrink-0 text-sm font-semibold ${
                                         s.state === 'done' ? 'bg-cloro-600 text-white' : s.state === 'current' ? 'bg-corsia-600 text-white ring-4 ring-corsia-100' : s.state === 'stopped' ? 'bg-slate-500 text-white' : 'bg-slate-100 text-slate-500'
                                     }`}
                                     aria-hidden="true"

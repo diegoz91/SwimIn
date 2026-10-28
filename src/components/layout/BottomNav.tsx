@@ -40,7 +40,7 @@ const BottomNav: React.FC = () => {
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) =>
-                        `relative flex-1 flex flex-col items-center justify-center gap-0.5 h-16 text-[11px] font-semibold outline-none ${
+                        `relative flex-1 flex flex-col items-center justify-center gap-0.5 h-16 text-[11px] font-semibold outline-hidden ${
                             isActive ? 'text-abisso before:absolute before:top-0 before:inset-x-5 before:h-[3px] before:rounded-b-sm before:bg-corsia-600' : 'text-slate-500'
                         }`
                     }

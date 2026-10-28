@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/Icon';
 
 /** Classi comuni per input, select e textarea, con stato d'errore. */
 export const fieldClass = (error?: string, extra = '') =>
-    `w-full px-4 py-3 rounded-xl border bg-white text-abisso placeholder:text-slate-400 outline-none transition-[border-color,box-shadow] duration-150 focus:ring-4 disabled:opacity-60 disabled:bg-slate-50 ${
+    `w-full px-4 py-3 rounded-xl border bg-white text-abisso placeholder:text-slate-400 outline-hidden transition-[border-color,box-shadow] duration-150 focus:ring-4 disabled:opacity-60 disabled:bg-slate-50 ${
         error ? 'border-galleggiante focus:ring-red-100' : 'border-slate-200 hover:border-slate-300 focus:border-corsia-400 focus:ring-corsia-100'
     } ${extra}`;
 
@@ -91,7 +91,7 @@ export const Checkbox: React.FC<{ id: string; checked: boolean; onChange: (check
             />
             <span
                 aria-hidden="true"
-                className={`mt-0.5 w-5 h-5 flex-shrink-0 rounded-md border-2 grid place-items-center transition-colors duration-150 peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${
+                className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 grid place-items-center transition-colors duration-150 peer-focus-visible:ring-4 peer-focus-visible:ring-corsia-100 ${
                     checked ? on : invalid ? 'border-galleggiante bg-white' : 'border-slate-300 bg-white group-hover:border-corsia-400'
                 }`}
             >
@@ -134,7 +134,7 @@ export function ChoiceChips<T extends string>({
                         type="button"
                         aria-pressed={on}
                         onClick={() => toggle(o.value)}
-                        className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition-colors outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 ${
+                        className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition-colors outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 ${
                             on ? 'bg-corsia-600 border-corsia-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                         }`}
                     >
