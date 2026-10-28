@@ -350,6 +350,17 @@ export const apiResponses = {
         { id: 'x1', date: `${month}-03`, start: '09:00', end: '13:00', hours: 4, userId: ME, userName: 'Giulia Ferri', role: 'Istruttrice', status: 'confirmed' },
         { id: 'x2', date: `${month}-05`, start: '15:00', end: '19:30', hours: 4.5, userId: 'u_sara', userName: 'Sara Colombo', role: 'Assistente bagnanti', status: 'scheduled' },
     ] }),
+    // Fase di test: inviti con QR e accettazione delle condizioni.
+    checkInvite: ({ code = '' } = {}) => ({ valid: String(code).toUpperCase().replace(/[^A-Z0-9]/g, '') === 'NUOTO2026', inviteOnly: true }),
+    acceptBeta: () => ({ ok: true }),
+    adminListInvites: () => ({ inviteOnly: true, invites: [
+        { $id: 'inv1', code: 'NUOTO2026', label: 'Istruttori Piscina Lido', maxUses: 20, uses: 7, expiresAt: new Date(now + 30 * 86400000).toISOString().slice(0, 10), active: true, createdAt: iso(60 * 24 * 2) },
+        { $id: 'inv2', code: 'MASTER7K', label: 'Gruppo master Navigli', maxUses: 10, uses: 10, expiresAt: '', active: true, createdAt: iso(60 * 24 * 6) },
+        { $id: 'inv3', code: 'PROVA4HT', label: 'Prova interna', maxUses: 5, uses: 1, expiresAt: '', active: false, createdAt: iso(60 * 24 * 9) },
+    ] }),
+    adminCreateInvite: ({ label = '', maxUses = 10, expiresAt = '' } = {}) => ({ $id: 'inv9', code: 'CORSIA42', label, maxUses, uses: 0, expiresAt, active: true, createdAt: new Date().toISOString() }),
+    adminSetInviteActive: ({ inviteId, active } = {}) => ({ $id: inviteId, code: 'PROVA4HT', label: 'Prova interna', maxUses: 5, uses: 1, expiresAt: '', active: !!active, createdAt: iso(60 * 24 * 9) }),
+    adminSetInviteOnly: ({ enabled } = {}) => ({ inviteOnly: !!enabled }),
     health: () => ({ version: 'anteprima', actions: 300, status: { mode: 'ok', message: '', until: '', updatedAt: null } }),
     adminSetAppStatus: ({ mode, message = '', until = '' } = {}) => ({ mode, message: mode === 'ok' ? '' : message, until: mode === 'ok' ? '' : until, updatedAt: new Date().toISOString() }),
     adminListErrors: () => [

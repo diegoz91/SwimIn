@@ -118,6 +118,11 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
 - Piani e prezzi, errori dell'app, stato del servizio (manutenzione o rallentamenti), suggerimenti.
 - **Registro accessi** dello staff.
 - **Richieste delle autorità**: solo per chi ha l'etichetta `legal`.
+- **Fase di test**: iscrizione solo su invito (sì/no) e inviti con QR e link da stampare o condividere, con usi massimi, scadenza e disattivazione.
+
+### Fase di test (prima del lancio)
+- All'ingresso un avviso a tutto schermo spiega che SwimIn è una versione di prova (dati che possono sparire, niente dati sensibili, offerte e turni di prova, limiti di responsabilità): finché non lo si accetta il resto dell'app non risponde. L'accettazione resta sul dispositivo e, per chi ha un account, nei dati privati con data e versione.
+- Iscrizione solo con un codice di invito: il QR o il link (`/?invito=CODICE`) lo compila da solo. Come creare e distribuire gli inviti: [`docs/SETUP-APPWRITE.md` §16](docs/SETUP-APPWRITE.md).
 
 ## Architettura
 
@@ -271,6 +276,7 @@ npm run dev                       # http://localhost:3000
 | `VITE_GOOGLE_AUTH` | `off` spegne l'accesso con Google |
 | `VITE_GOOGLE_CALENDAR_API` | `off` spegne il salvataggio diretto su Google Calendar |
 | `VITE_MAINTENANCE` | `on` mette il sito in manutenzione anche senza Appwrite |
+| `VITE_BETA` | `off` toglie l'avviso della fase di test (da usare al lancio) |
 
 **Rilascio automatico** (GitHub › Settings › Secrets and variables), usati dai workflow *Rilascio* e *Controlli*:
 
@@ -312,6 +318,7 @@ Cose da fare fuori dal codice:
 - **Chiavi in produzione**: Stripe e PayPal live, provider email in Appwrite Messaging (`EMAIL_NOTIFICATIONS=on`), progetto Google OAuth verificato.
 - **Richieste delle autorità**: generare la coppia di chiavi, mettere la privata fuori linea, nominare il responsabile (etichette `admin` + `legal`).
 - **Appwrite**: impostazioni di sicurezza di Auth (password, sessioni), 2FA sugli amministratori, dominio personalizzato (es. `api.swimin.it`), piano Pro per i backup.
+- **Fase di test**: spegnere *Solo su invito* in *Admin › Fase di test* e impostare `VITE_BETA=off`; far rivedere a un legale i testi dell'avviso (`BETA_TERMS` in `src/features/beta/betaConsent.ts`).
 - **GitHub**: secret scanning e push protection. Un monitor esterno (es. UptimeRobot) su `/api/health`.
 
 ## Documentazione

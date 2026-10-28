@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { LEGAL } from '@/config/legal';
 import { LegalPage } from './LegalPage';
+import { BETA_TERMS } from '@/features/beta/betaConsent';
 
 const Terms: React.FC = () => (
     <LegalPage
@@ -20,6 +21,19 @@ const Terms: React.FC = () => (
                         SwimIn permette a professionisti del nuoto e a strutture sportive di creare un profilo, collegarsi, scambiare messaggi,
                         pubblicare contenuti e annunci di lavoro e candidarsi. Il servizio è fornito “così com'è” e può evolvere nel tempo.
                     </p>
+                ),
+            },
+            {
+                title: 'Fase di test',
+                body: (
+                    <>
+                        <p>Fino al lancio SwimIn è in fase di test, aperta solo alle persone invitate. Entrando accetti anche queste condizioni:</p>
+                        <ul>
+                            {BETA_TERMS.map((t) => (
+                                <li key={t.title}><strong>{t.title}.</strong> {t.text}</li>
+                            ))}
+                        </ul>
+                    </>
                 ),
             },
             {

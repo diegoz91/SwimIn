@@ -35,6 +35,7 @@ const Privacy: React.FC = () => (
                         <li><strong>Contenuti</strong>: post, foto e video, commenti, consigli (“like”), annunci di lavoro, candidature e lettere di presentazione, partecipazione a eventi.</li>
                         <li><strong>Messaggi privati</strong> scambiati con altri utenti, visibili solo a mittente e destinatario.</li>
                         <li><strong>Accesso con Google</strong> (facoltativo): nome, email e foto dell'account Google, solo per creare l'account o farti entrare. Se colleghi Google Calendar, SwimIn usa il permesso del calendario solo per aggiungere o aggiornare i turni e gli eventi che scegli di salvare: non legge né cancella gli altri appuntamenti. Puoi scollegare Google da <em>Impostazioni › Accesso e sicurezza</em> o da myaccount.google.com. L'uso dei dati ricevuti dalle API di Google rispetta le Google API Services User Data Policy, inclusi i requisiti di uso limitato.</li>
+                        <li><strong>Fase di test</strong>: data e versione delle condizioni accettate e, se ti sei iscritto con un invito, il codice usato (nei dati privati, mai sul profilo), per sapere chi ha accettato le condizioni e quanti posti di ogni invito sono stati usati.</li>
                         <li><strong>Dati tecnici</strong>: indirizzo IP, tipo di dispositivo e browser, data e ora di accesso, stato online, registri tecnici necessari alla sicurezza.</li>
                     </ul>
                 ),

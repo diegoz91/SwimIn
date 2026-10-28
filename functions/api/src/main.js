@@ -37,6 +37,8 @@ import { feedbackActions } from './feedback.js';
 import { makeSealer } from './seal.js';
 import { auditActions } from './audit.js';
 import { legalActions } from './legal.js';
+import { betaActions } from './beta.js';
+import { randomBytes } from 'node:crypto';
 
 const DB = 'swimwaveup_db';
 const C = {
@@ -64,6 +66,7 @@ const C = {
   auditLog: 'audit_log',
   legalHolds: 'legal_holds',
   heldItems: 'held_items',
+  betaInvites: 'beta_invites',
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
@@ -413,6 +416,9 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   // Copie sigillate (chiave pubblica della società) e registro degli accessi dello staff.
   const sealer = makeSealer(escrowPublicKey);
   const legal = legalActions({ find, get, create, update, list, listAll, removeAll, fail, C, Query, users, isLegal: moderation._isLegal, sealer, conversationIdFor, isoDay });
+  // Fase di test chiusa: inviti e condizioni accettate (beta.js).
+  const savePrivateRow = async (userId, data) => ((await find(C.privateInfo, userId)) ? update(C.privateInfo, userId, data) : create(C.privateInfo, data, [], userId));
+  const beta = betaActions({ find, get, list, create, update, fail, C, Query, isAdmin: moderation._isAdmin, isTestAccount: (id) => ops._isTestAccount(id), randomBytes, savePrivate: savePrivateRow });
   const audit = auditActions({ create, find, list, fail, C, Query, displayName, isAdmin: moderation._isAdmin, isLegal: moderation._isLegal, log });
   const ops = opsActions({ find, create, update, count, fail, C, Query, users, notify, isAdmin: moderation._isAdmin, log, fetchImpl: fetchImpl || (typeof fetch === 'function' ? fetch : null), alertWebhook, alertUserIds });
 
@@ -561,7 +567,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     deleteMyResume: resume.deleteMyResume,
     ...certificateActions({ get, update, list, fail, storage, notify, C, isAdmin: moderation._isAdmin, Query }),
     // ---------------- PROFILI E PAGINE STRUTTURA (profile.js) ----------------
-    ...profileActions({ find, get, create, update, remove, fail, users, endpoint, C, isRecruiterOf, Permission, Role }),
+    ...profileActions({ find, get, create, update, remove, fail, users, endpoint, C, isRecruiterOf, Permission, Role, signup: { check: (me, p) => beta._checkSignup(me, p), done: (me, inv, p) => beta._afterSignup(me, inv, p) } }),
+    ...beta,
     ...reviewActions({ find, get, create, update, remove, list, fail, notify, C }),
 
     // ---------------- MESSAGGI ----------------

@@ -232,7 +232,7 @@ export function cleanCertifications(list, previous = []) {
 /** Una riga "sta scrivendo" per persona (id = utente: ne scrive una conversazione alla volta). */
 const typingKey = (userId) => userId;
 
-export function profileActions({ find, get, create, update, remove = async () => null, fail, users, endpoint, C, isRecruiterOf = async () => false, Permission = null, Role = null }) {
+export function profileActions({ find, get, create, update, remove = async () => null, fail, users, endpoint, C, isRecruiterOf = async () => false, Permission = null, Role = null, signup = null }) {
   /** URL di un'immagine caricata nello storage di questo progetto (no link esterni/traccianti). */
   const storageUrl = (v, label) => {
     if (v == null || v === '') return '';
@@ -319,11 +319,13 @@ export function profileActions({ find, get, create, update, remove = async () =>
 
   return {
     /** Crea il profilo alla registrazione (idempotente). Email e id vengono dall'account. */
-    async initProfile(me, { userType, personType, firstName, lastName, structureName, acceptedTerms, termsVersion }) {
+    async initProfile(me, { userType, personType, firstName, lastName, structureName, acceptedTerms, termsVersion, inviteCode, betaAccepted, betaVersion }) {
       const existing = await find(C.profiles, me);
       if (existing) return existing;
       if (!['professional', 'structure'].includes(userType)) fail(400, 'Tipo di account non valido.');
       if (acceptedTerms !== true) fail(400, 'Per creare l’account devi accettare Termini e Privacy Policy.');
+      // Fase di test: condizioni accettate e, con l'iscrizione su invito, un codice valido (beta.js).
+      const invite = signup ? await signup.check(me, { inviteCode, betaAccepted }) : null;
       // L'email resta nell'account: il profilo è leggibile da tutti gli utenti, l'email no.
       const base = { userId: me, userType, readReceipts: true, isOnline: true, connections: [] };
       const data =
@@ -340,6 +342,7 @@ export function profileActions({ find, get, create, update, remove = async () =>
       const created = await create(C.profiles, data, [Permission.read(Role.users())], me);
       // Prova del consenso (art. 7 GDPR): quando e quale versione dei testi, nei dati privati.
       await savePrivate(me, { termsAcceptedAt: new Date().toISOString(), termsVersion: String(termsVersion || '').slice(0, 40) || null });
+      if (signup) await signup.done(me, invite, { betaVersion });
       return created;
     },
 

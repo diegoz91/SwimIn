@@ -82,6 +82,45 @@ const FLOWS = [
         await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 10_000 });
         assert.ok(state.mfaDone);
     }],
+    ['fase di test: l’avviso blocca l’app finché non si accetta', 'mobile', { loggedIn: true, betaPending: true }, async (page) => {
+        await open(page, '/');
+        const gate = page.getByRole('dialog', { name: 'Benvenuto nella prova di SwimIn' });
+        await gate.waitFor({ timeout: 8000 });
+        assert.equal(await page.locator('#root').getAttribute('inert'), '', 'sotto l’avviso la pagina non deve rispondere');
+        await gate.getByRole('button', { name: 'Accetto ed entro' }).click();
+        await gate.getByText('Per entrare devi accettare le condizioni.').waitFor({ timeout: 3000 });
+        await gate.locator('label[for="beta-accept"]').click();
+        await gate.getByRole('button', { name: 'Accetto ed entro' }).click();
+        await gate.waitFor({ state: 'detached', timeout: 3000 });
+        assert.equal(await page.locator('#root').getAttribute('inert'), null);
+        assert.ok(await page.evaluate(() => localStorage.getItem('swimin:beta')), 'l’accettazione resta sul dispositivo');
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForTimeout(800);
+        assert.equal(await page.getByRole('dialog', { name: 'Benvenuto nella prova di SwimIn' }).count(), 0, 'dopo aver accettato non ricompare');
+    }],
+    ['fase di test: iscrizione con il codice del QR', 'mobile', { loggedIn: false, appStatus: { inviteOnly: true } }, async (page, state) => {
+        await open(page, '/?invito=nuoto-2026');
+        await page.getByText('Sei stato invitato alla fase di test.').waitFor({ timeout: 8000 });
+        await page.getByRole('link', { name: 'Usa l’invito' }).click();
+        await page.waitForURL((u) => u.pathname === '/register', { timeout: 8000 });
+        const code = page.locator('#invite-code');
+        assert.equal(await code.inputValue(), 'NUOTO2026', 'il codice del QR è già compilato');
+        await page.locator('#firstName').fill('Luca');
+        await page.locator('#lastName').fill('Riva');
+        await page.locator('#email').fill('luca.riva@example.com');
+        await page.locator('#password').fill('Bracciata!2026');
+        // Sulla casella, non sul testo: su smartphone il centro dell'etichetta cade sul link ai Termini.
+        await page.locator('label[for="accept-terms"]').click({ position: { x: 12, y: 12 } });
+        await code.fill('SBAGLIATO');
+        await page.getByRole('button', { name: 'Crea account' }).click();
+        await page.getByText('Codice non valido, scaduto o già usato da troppe persone.').waitFor({ timeout: 5000 });
+        assert.ok(!state.accountCalls.includes('POST /account'), 'con un codice non valido non si crea l’account');
+        await code.fill('nuoto2026');
+        await page.getByRole('button', { name: 'Crea account' }).click();
+        const c = await called(state, 'initProfile');
+        assert.deepEqual([c.params.inviteCode, c.params.betaAccepted, c.params.acceptedTerms], ['NUOTO2026', true, true]);
+        assert.equal(await page.evaluate(() => localStorage.getItem('swimin:invito')), null, 'dopo l’iscrizione il codice si dimentica');
+    }],
     ['registrazione: i campi obbligatori sono segnalati', 'mobile', { loggedIn: false }, async (page, state) => {
         await open(page, '/register');
         await page.getByRole('button', { name: 'Crea account' }).click();

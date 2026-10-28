@@ -17,6 +17,8 @@ export interface RegistrationData {
   structureName?: string;
   /** Termini e Privacy accettati (con l'età minima): la Function registra data e versione. */
   acceptedTerms?: boolean;
+  /** Fase di test: codice di invito (QR o link). */
+  inviteCode?: string;
 }
 
 interface AuthContextType {

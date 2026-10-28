@@ -449,6 +449,11 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         ['admin-accessi', '/admin?tab=accessi', { loggedIn: true, responses: asLegal }],
         ['admin-autorita', '/admin?tab=autorita', { loggedIn: true, responses: asLegal }],
         ['scuro-admin-autorita', '/admin?tab=autorita', { loggedIn: true, responses: asLegal }, true],
+        // Fase di test: avviso all'ingresso, iscrizione con il codice del QR, inviti in Admin.
+        ['fase-di-test', '/', { loggedIn: false, betaPending: true }],
+        ['scuro-fase-di-test', '/', { loggedIn: false, betaPending: true }, true],
+        ['iscrizione-invito', '/register?invito=NUOTO2026', { loggedIn: false, appStatus: { inviteOnly: true } }],
+        ['admin-fase-di-test', '/admin?tab=test', { loggedIn: true, responses: asAdmin }],
     ]) {
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce', colorScheme: dark ? 'dark' : 'light' });
         const page = await context.newPage();

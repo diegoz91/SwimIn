@@ -220,11 +220,13 @@ assert.equal(sos.expiresAt,day(2)); assert.equal(sos.isSOS,true);
 
 // Profili: scritture solo dal server, con validazione
 {
-const nuovo=await api.initProfile('zoe',{userType:'professional',personType:'enthusiast',firstName:'Zoe',lastName:"D'Angelo",acceptedTerms:true,termsVersion:'26 ottobre 2026'});
+col('app_status').main={$id:'main',mode:'ok',inviteOnly:false}; // iscrizione aperta: gli inviti hanno il loro test (beta.test.js)
+const nuovo=await api.initProfile('zoe',{userType:'professional',personType:'enthusiast',firstName:'Zoe',lastName:"D'Angelo",acceptedTerms:true,termsVersion:'26 ottobre 2026',betaAccepted:true});
 assert.equal(nuovo.email,undefined); assert.equal(nuovo.personType,'enthusiast'); assert.deepEqual(nuovo.$permissions,['read("users")']);
 assert.equal((await api.initProfile('zoe',{userType:'structure',structureName:'X'})).userType,'professional'); // idempotente
 await rejects(api.initProfile('yan',{userType:'admin'}),400);
-await rejects(api.initProfile('yan',{userType:'professional',firstName:'Y4n',lastName:'Ok',acceptedTerms:true}),400);
+await rejects(api.initProfile('yan',{userType:'professional',firstName:'Y4n',lastName:'Ok',acceptedTerms:true,betaAccepted:true}),400);
+await rejects(api.initProfile('yan',{userType:'professional',firstName:'Yan',lastName:'Ok',acceptedTerms:true}),400); // condizioni della fase di test non accettate
 await rejects(api.initProfile('yan',{userType:'professional',firstName:'Yan',lastName:'Ok'}),400); // termini non accettati
 const up=await api.updateMyProfile('zoe',{city:'segrate',province:'mi',phone:'333 123 4567',website:'zoe.it',connections:['anna'],userType:'structure',bio:' ciao '});
 assert.ok(col('private_info').zoe.termsAcceptedAt); assert.equal(col('private_info').zoe.termsVersion,'26 ottobre 2026');

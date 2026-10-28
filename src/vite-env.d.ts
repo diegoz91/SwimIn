@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_AUTH?: string;
   /** "on" mostra la sezione Live (spenta al lancio: compare "in arrivo"). */
   readonly VITE_LIVE?: string;
+  /** "off" toglie l'avviso della fase di test (al lancio pubblico). */
+  readonly VITE_BETA?: string;
   /** "off" disattiva il salvataggio diretto in Google Calendar (resta il link precompilato). */
   readonly VITE_GOOGLE_CALENDAR_API?: string;
   /** "on" mostra a tutti la pagina di manutenzione (quando Appwrite non risponde e non si può usare il pannello admin). */

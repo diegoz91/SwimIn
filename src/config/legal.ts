@@ -4,6 +4,9 @@
  * sono segnaposto. I testi delle pagine legali sono una bozza da far
  * verificare a un consulente legale.
  */
+/** Versione delle condizioni della fase di test: cambiandola, tutti le rivedono e le accettano di nuovo. */
+export const BETA_VERSION = '2026-10-28';
+
 export const LEGAL = {
     serviceName: 'SwimIn (SwimWaveUp)',
     controllerName: '[Ragione sociale o nome del titolare]',
@@ -11,6 +14,6 @@ export const LEGAL = {
     vatNumber: '[Partita IVA / Codice fiscale]',
     contactEmail: '[email di contatto privacy]',
     dpoEmail: null as string | null, // Responsabile della protezione dei dati, se nominato
-    lastUpdated: '27 ottobre 2026',
+    lastUpdated: '28 ottobre 2026',
     isDraft: true,
 } as const;

@@ -5,6 +5,8 @@ import { useAuth, type RegistrationData } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import { AccountTypePicker, initialChoice, registrationOf, type AccountChoice } from './AccountTypePicker';
 import { AuthDivider, GoogleButton } from './GoogleButton';
+import { InviteField, useInvite } from './InviteField';
+import { clearInvite } from '@/utils/invite';
 import { authErrorMessage } from '@/utils/authErrors';
 import { Checkbox, Field, fieldClass } from '@/components/form/Field';
 import { PasswordMeter } from '@/components/form/PasswordMeter';
@@ -42,14 +44,21 @@ export const RegisterForm: React.FC = () => {
     const form = useForm<Values>({ firstName: '', lastName: '', structureName: '', email: '', password: '', acceptedTerms: false }, validate);
     const { values, errors, bind } = form;
 
+    const invite = useInvite();
     const { register, isLoading } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
 
     const handleSubmit = form.handleSubmit(async (v) => {
         setError(null);
+        // Fase di test: il codice si controlla prima di creare l'account (il server lo ricontrolla).
+        if (!(await invite.verify())) {
+            document.getElementById('invite-code')?.focus();
+            return;
+        }
         try {
-            await register(v.email.trim().toLowerCase(), v.password, { ...registrationOf(choice, v), acceptedTerms: v.acceptedTerms });
+            await register(v.email.trim().toLowerCase(), v.password, { ...registrationOf(choice, v), acceptedTerms: v.acceptedTerms, inviteCode: invite.code || undefined });
+            clearInvite();
             showToast('Account creato. Benvenuto in SwimIn!', 'success');
             navigate('/benvenuto', { replace: true });
         } catch (err) {
@@ -65,6 +74,7 @@ export const RegisterForm: React.FC = () => {
             </div>
 
             <form ref={form.formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
+                <InviteField invite={invite} disabled={isLoading} />
                 <AccountTypePicker value={choice} onChange={setChoice} disabled={isLoading} />
 
                 <GoogleButton intent="register" choice={choice} disabled={isLoading} />

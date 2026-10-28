@@ -9,6 +9,8 @@ import { Checkbox, Field } from '@/components/form/Field';
 import { useForm, type FormErrors } from '@/hooks/useForm';
 import { check, maxLength, minLength, personName, required } from '@/utils/validation';
 import { AccountTypePicker, initialChoice, registrationOf, type AccountChoice } from '@/features/auth/components/AccountTypePicker';
+import { InviteField, useInvite } from '@/features/auth/components/InviteField';
+import { clearInvite } from '@/utils/invite';
 
 type Values = { firstName: string; lastName: string; structureName: string; acceptedTerms: boolean };
 
@@ -25,6 +27,7 @@ const CompleteAccount: React.FC = () => {
     const fromState = (location.state || {}) as { choice?: AccountChoice; returnTo?: string };
     const [choice, setChoice] = useState<AccountChoice>(initialChoice(fromState.choice));
     const [error, setError] = useState<string | null>(null);
+    const invite = useInvite();
 
     const [first = '', ...rest] = (incompleteAccount?.name || '').trim().split(/\s+/);
     const validate = useCallback(
@@ -44,8 +47,13 @@ const CompleteAccount: React.FC = () => {
 
     const submit = form.handleSubmit(async (v) => {
         setError(null);
+        if (!(await invite.verify())) {
+            document.getElementById('invite-code')?.focus();
+            return;
+        }
         try {
-            await completeAccount({ ...registrationOf(choice, v), acceptedTerms: v.acceptedTerms });
+            await completeAccount({ ...registrationOf(choice, v), acceptedTerms: v.acceptedTerms, inviteCode: invite.code || undefined });
+            clearInvite();
             showToast('Account creato. Benvenuto in SwimIn!', 'success');
             navigate('/benvenuto', { replace: true });
         } catch (err) {
@@ -68,6 +76,7 @@ const CompleteAccount: React.FC = () => {
                     </p>
                 </div>
                 <form ref={form.formRef} onSubmit={submit} className="space-y-5" noValidate>
+                    <InviteField invite={invite} disabled={isLoading} />
                     <AccountTypePicker value={choice} onChange={setChoice} disabled={isLoading} legend="Sono qui perché" />
                     {choice === 'struttura' ? (
                         <Field id="structureName" label="Nome della struttura" error={errors.structureName}>
