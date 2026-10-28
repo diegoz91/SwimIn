@@ -38,6 +38,13 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
     const certs = isProfessional ? parseCertifications((user as UserProfile).certificationsList) : [];
     const attention = isProfessional ? certificationsNeedingAttention((user as UserProfile).certificationsList) : [];
     const skills = isProfessional ? (user as UserProfile).skills || [] : [];
+    // Visite al profilo negli ultimi 30 giorni: la scorciatoia alle statistiche (come "Analisi" su LinkedIn).
+    const [views, setViews] = useState<number | null>(null);
+    useEffect(() => {
+        let alive = true;
+        databaseService.listProfileViews().then((v) => alive && setViews(v.total)).catch((err) => console.warn('Visite al profilo:', err));
+        return () => { alive = false; };
+    }, [user.$id]);
 
     return (
         <Panel>
@@ -57,6 +64,10 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                 )}
             </div>
             <div className="border-t border-slate-100 text-sm">
+                <Link to="/statistiche" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
+                    <span className="text-slate-500">Visite al profilo</span>
+                    <span className="font-semibold text-corsia-700 tabular-nums">{views === null ? '–' : views}</span>
+                </Link>
                 <Link to="/network" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
                     <span className="text-slate-500">Collegamenti</span>
                     <span className="font-semibold text-corsia-700">{user.connections?.length || 0}</span>
