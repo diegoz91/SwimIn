@@ -213,9 +213,11 @@ const MyJobs: React.FC = () => {
                                         {c.pending > 0 && <span className="tabular-nums text-xs px-1.5 py-0.5 rounded-full bg-corsia-600 text-white">{c.pending} {c.pending === 1 ? 'nuova' : 'nuove'}</span>}
                                     </Link>
                                 </div>
-                                {c.total > 0 && (
+                                {(c.total > 0 || (job.viewers ?? 0) > 0) && (
                                     <p className="mt-3 text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
-                                        <span>Viste {c.reviewed}</span><span>Selezionate {c.accepted}</span><span>Assunte {c.hired}</span><span>Scartate {c.rejected}</span>
+                                        <span className="font-semibold text-slate-600">{(job.viewers ?? 0) === 1 ? 'Aperto da 1 persona' : `Aperto da ${job.viewers ?? 0} persone`}</span>
+                                        {(job.viewers ?? 0) > 0 && <span>{Math.min(100, Math.round((c.total / (job.viewers ?? 1)) * 100))}% si è candidato</span>}
+                                        {c.total > 0 && <><span>Lette {c.reviewed}</span><span>Selezionate {c.accepted}</span><span>Assunte {c.hired}</span><span>Scartate {c.rejected}</span></>}
                                     </p>
                                 )}
                                 <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-2 text-sm">

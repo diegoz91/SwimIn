@@ -59,6 +59,9 @@ export function cleanupActions({ find, listAll, remove, removeAll, C, Query, use
         (await removeAll(C.notifications, [Query.equal('isRead', true), Query.lessThan('$createdAt', ago(90, now))])) +
         (await removeAll(C.notifications, [Query.lessThan('$createdAt', ago(365, now))])));
       await step('visite', () => removeAll(C.profileViews, [Query.lessThan('$createdAt', ago(365, now))]));
+      // Comparse nelle ricerche e visualizzazioni degli annunci: 12 mesi.
+      await step('comparseRicerche', () => removeAll(C.searchAppearances, [Query.lessThan('day', isoDay(now - 365 * DAY))]));
+      await step('visteAnnunci', () => removeAll(C.jobViews, [Query.lessThan('day', isoDay(now - 365 * DAY))]));
       // Registro degli accessi: 12 mesi; le voci delle richieste delle autorità 5 anni (prova di cosa è stato consegnato).
       await step('registroAccessi', async () =>
         (await removeAll(C.auditLog, [Query.equal('scope', 'admin'), Query.lessThan('$createdAt', ago(365, now))])) +
@@ -93,6 +96,7 @@ export function cleanupActions({ find, listAll, remove, removeAll, C, Query, use
         for (const job of await listAll(C.jobs, [])) {
           if (await structureExists(job.structureId)) continue;
           for (const a of await listAll(C.applications, [Query.equal('jobId', job.$id)])) { await removeApplication(a); n++; }
+          if (C.jobViews) n += await removeAll(C.jobViews, [Query.equal('jobId', job.$id)]);
           await remove(C.jobs, job.$id);
           n++;
         }

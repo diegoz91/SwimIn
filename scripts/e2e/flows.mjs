@@ -437,6 +437,24 @@ const FLOWS = [
         await nav.getByRole('link', { name: 'Eventi' }).waitFor();
         assert.equal(await nav.getByRole('link', { name: 'Live' }).count(), 0);
     }],
+    ['statistiche: chi compare nelle ricerche e chi apre un annuncio viene contato', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/cerca?q=Marco');
+        await page.getByRole('heading', { name: 'Persone' }).first().waitFor({ timeout: 8000 });
+        const s = await called(state, 'recordSearchAppearances');
+        assert.ok(s.params.profileIds.length > 0 && s.params.profileIds.length <= 30, 'i profili mostrati');
+        assert.ok(!s.params.profileIds.includes('u_giulia'), 'mai il proprio profilo');
+        await open(page, '/jobs/j2');
+        const v = await called(state, 'recordJobView');
+        assert.equal(v.params.jobId, 'j2');
+    }],
+    ['statistiche Premium: confronto con il mese prima, ruoli e province', 'mobile', { loggedIn: true, overrides: { profiles: { u_giulia: { premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } } }, async (page) => {
+        await open(page, '/statistiche');
+        await page.getByText('Comparse nelle ricerche').first().waitFor({ timeout: 8000 });
+        await page.getByText('+25%').first().waitFor();
+        await page.getByRole('heading', { name: 'Province' }).waitFor();
+        await page.getByText('Milano', { exact: true }).first().waitFor();
+        await page.getByText(/Nelle ricerche ti hanno trovato 18 strutture/).waitFor();
+    }],
     ['ricerca: recenti e suggerimenti con il campo vuoto', 'mobile', { loggedIn: true }, async (page) => {
         await open(page, '/cerca?q=Marco');
         await page.getByRole('heading', { name: 'Persone' }).first().waitFor({ timeout: 8000 });

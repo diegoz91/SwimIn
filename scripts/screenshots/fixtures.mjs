@@ -375,7 +375,10 @@ export const apiResponses = {
     listStructureJobs: () => collections.jobs.filter((j) => ['j1', 'j4'].includes(j.$id)).map((j) => ({
         ...j,
         applications: j.$id === 'j1' ? { total: 3, pending: 2, reviewed: 1, accepted: 0, hired: 0, rejected: 0 } : { total: 4, pending: 0, reviewed: 1, accepted: 0, hired: 1, rejected: 2 },
+        views: j.$id === 'j1' ? 58 : 31, viewers: j.$id === 'j1' ? 41 : 26,
     })),
+    recordSearchAppearances: ({ profileIds = [] } = {}) => ({ recorded: profileIds.length }),
+    recordJobView: () => ({ recorded: true }),
     getApplicationReviews: () => ({ a5: { rating: 4, note: 'Buona esperienza con i corsi adulti, chiedere disponibilità al sabato.', updatedBy: ME, updatedAt: iso(60 * 5) } }),
     saveApplicationReview: ({ rating = 0, note = '' } = {}) => ({ rating, note, updatedBy: ME, updatedAt: new Date().toISOString() }),
     proposeInterview: ({ applicationId, date, time, mode, place, message } = {}) => ({ ...collections.applications.find((a) => a.$id === applicationId), status: 'accepted', interviewDate: date, interviewTime: time, interviewMode: mode, interviewPlace: place, interviewMessage: message, interviewStatus: 'proposed', interviewReply: '' }),
@@ -393,7 +396,17 @@ export const apiResponses = {
         viewsLast30: 64,
         viewsPerDay: Array.from({ length: 30 }, (_, i) => ({ day: new Date(now - (29 - i) * 86400000).toISOString().slice(0, 10), views: [1, 2, 0, 3, 2, 4, 1, 2, 5, 3, 1, 0, 2, 3, 6, 2, 1, 3, 2, 4, 2, 1, 3, 2, 1, 0, 2, 3, 2, 1][i] })),
         viewersByKind: { strutture: 21, professionisti: 30, appassionati: 9 },
+        viewersByRole: [{ label: 'Piscina comunale', count: 14 }, { label: 'Istruttore FIN', count: 12 }, { label: 'Allenatore', count: 9 }, { label: 'Assistente bagnanti', count: 7 }, { label: 'Centro sportivo', count: 7 }, { label: 'Altri', count: 11 }],
+        viewersByProvince: [{ label: 'MI', count: 31 }, { label: 'MB', count: 11 }, { label: 'BG', count: 6 }, { label: 'TO', count: 4 }, { label: 'RM', count: 2 }, { label: 'Altre', count: 6 }],
         anonymousViews: 4,
+        searchesLast30: 112,
+        searchersByKind: { strutture: 18, professionisti: 25, appassionati: 4 },
+        postsLast30: 2,
+        previous: { views: 51, searches: 120, posts: 2, reactions: 33, comments: 12, reposts: 1 },
+        jobs: [
+            { id: 'j1', title: 'Istruttore di nuoto per corsi bambini', isActive: true, isSOS: false, createdAt: iso(60 * 24 * 4), views: 58, viewers: 41, applications: 3, newApplications: 2 },
+            { id: 'j4', title: 'Assistente bagnanti stagione estiva', isActive: false, isSOS: false, createdAt: iso(60 * 24 * 40), views: 31, viewers: 26, applications: 4, newApplications: 0 },
+        ],
         posts: [
             { id: 'p1', createdAt: iso(45), text: 'Serie della settimana per il gruppo #master: 10x100 stile libero partenza 1’40”, con gli ultimi 25 in apnea controllata. Grazie a @Sara Colombo per l’idea!', reactions: 24, comments: 6, reposts: 2 },
             { id: 'p2', createdAt: iso(60 * 24 * 3), text: '@[Marco Bellini](u_marco) ci vediamo sabato al Lido per il corso BLSD?', reactions: 9, comments: 3, reposts: 0 },

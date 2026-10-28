@@ -28,7 +28,7 @@ export const PLAN_FEATURES: Record<Audience, { label: string; base: string | boo
         { label: 'Candidature in cima alla lista della struttura', base: false, premium: true },
         { label: 'Più in alto quando le strutture cercano personale', base: false, premium: true },
         { label: 'Chi ha visto il tuo profilo', base: 'Ultimi 3', premium: 'Tutti, 30 giorni' },
-        { label: 'Statistiche di profilo e post', base: false, premium: true },
+        { label: 'Statistiche: visite, ricerche, chi ti cerca e consigli', base: false, premium: true },
         { label: 'Messaggi diretti a chi non è un collegamento', base: false, premium: '15 al mese' },
         { label: 'Visite anonime ai profili Base', base: false, premium: true },
         { label: 'Badge Premium sul profilo', base: false, premium: true },
@@ -50,7 +50,7 @@ export const PLAN_FEATURES: Record<Audience, { label: string; base: string | boo
         { label: 'Area staff: bacheca, turni e chat', base: 'Fino a 5 persone', premium: 'Squadra senza limiti' },
         { label: 'Ricerca personale avanzata (disponibilità, verificati, sostituzioni)', base: false, premium: true },
         { label: 'Messaggi diretti ai professionisti', base: false, premium: '40 al mese' },
-        { label: 'Chi ha visto la pagina e statistiche', base: 'Ultimi 3', premium: 'Tutti, con statistiche' },
+        { label: 'Chi ha visto la pagina, statistiche e viste degli annunci', base: 'Ultimi 3', premium: 'Tutti, con statistiche' },
         { label: 'Badge Premium sulla pagina', base: false, premium: true },
     ],
 };

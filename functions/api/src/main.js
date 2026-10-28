@@ -18,6 +18,7 @@ import { teamActions } from './team.js';
 import { resumeActions } from './resume.js';
 import { interviewActions } from './interviews.js';
 import { socialActions } from './social.js';
+import { insightsActions } from './insights.js';
 import { contentActions, extractHashtags, extractMentions, cleanPoll } from './content.js';
 import { groupActions } from './groups.js';
 import { chatActions } from './chat.js';
@@ -70,6 +71,8 @@ const C = {
   privateInfo: 'private_info',
   commentLikes: 'comment_likes',
   profileViews: 'profile_views',
+  searchAppearances: 'search_appearances',
+  jobViews: 'job_views',
   subscriptions: 'subscriptions',
   follows: 'follows',
   pollVotes: 'poll_votes',
@@ -409,6 +412,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const groups = groupActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertClean, storageUrl: storageImage, onGroupDeleted: (id) => events._cancelGroupEvents(id) });
   const events = eventActions({ assertClean, get, list, listAll, create, update, remove, fail, notify, C, Query, Permission, Role, displayName, find, isoDay, groups, storageUrl: storageImage });
   const content_ = contentActions({ find, get, list, listAll, create, update, remove, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
+  const insights = insightsActions({ find, get, list, listAll, create, fail, C, Query, mapLimit, jobManagers });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
   const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
@@ -551,6 +555,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...cleanupActions({ find, listAll, remove, removeAll, C, Query, users, log, isoDay, removeApplication, expireHolds: legal._expireHolds, deleteAccountOf: (id) => actions.deleteAccount(id, { confirmation: DELETE_ACCOUNT_CONFIRMATION }) }),
     ...team,
     ...social,
+    ...insights,
     ...content_,
     ...groups,
     ...chat,
@@ -895,6 +900,10 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.commentLikes, [Query.equal('userId', me)]);
       await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
       await removeAll(C.profileViews, [Query.equal('profileId', me)]);
+      await removeAll(C.searchAppearances, [Query.equal('viewerId', me)]);
+      await removeAll(C.searchAppearances, [Query.equal('profileId', me)]);
+      await removeAll(C.jobViews, [Query.equal('viewerId', me)]);
+      await removeAll(C.jobViews, [Query.equal('structureId', me)]);
       await billingApi._cancelAllFor(me);
       await groups._leaveAll(me);
       await removeAll(C.pollVotes, [Query.equal('userId', me)]);
@@ -1116,7 +1125,8 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
           if (c[app.status] !== undefined) c[app.status] += 1;
         }
       }
-      return jobs.map((j) => ({ ...j, applications: counts[j.$id] || { total: 0, pending: 0, reviewed: 0, accepted: 0, hired: 0, rejected: 0 } }));
+      const views = jobs.length ? await insights._jobViewCounts(jobs.map((j) => j.$id)) : {};
+      return jobs.map((j) => ({ ...j, applications: counts[j.$id] || { total: 0, pending: 0, reviewed: 0, accepted: 0, hired: 0, rejected: 0 }, views: views[j.$id]?.views || 0, viewers: views[j.$id]?.viewers || 0 }));
     },
 
     /** Chiude un annuncio (non riceve più candidature); solo chi lo gestisce. */
