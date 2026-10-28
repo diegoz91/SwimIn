@@ -164,6 +164,22 @@ const FLOWS = [
         await page.locator('[aria-invalid="true"]').first().waitFor({ timeout: 5000 });
         assert.ok(!state.accountCalls.some((c) => c === 'POST /account'), 'senza dati non deve creare l’account');
     }],
+    ['feed: tornando alla home riprendi dallo stesso punto, senza ricaricare', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/');
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+        await page.waitForTimeout(500);
+        await page.evaluate(() => document.getElementById('scroll-root').scrollTo({ top: 700 }));
+        await page.waitForTimeout(300);
+        const before = await page.evaluate(() => document.getElementById('scroll-root').scrollTop);
+        assert.ok(before > 300, `il feed deve poter scorrere (${before})`);
+        await page.getByRole('navigation', { name: 'Navigazione principale' }).getByRole('link', { name: 'Rete' }).click();
+        await page.waitForURL((u) => u.pathname === '/network', { timeout: 6000 });
+        await page.goBack();
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+        await page.waitForTimeout(600);
+        const after = await page.evaluate(() => document.getElementById('scroll-root').scrollTop);
+        assert.ok(Math.abs(after - before) < 60, `stesso punto di lettura (prima ${before}, dopo ${after})`);
+    }],
     ['pubblicare un post', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/');
         await page.getByText('Di cosa vorresti parlare alla rete di SwimIn?').first().click();
@@ -387,6 +403,17 @@ const FLOWS = [
         await page.waitForTimeout(500);
         await state.pushRealtime('posts', 'create', { $id: 'p_new', authorId: 'u_marco', content: 'Nuovo post', groupId: null });
         await page.getByRole('button', { name: '1 nuovo post' }).waitFor({ timeout: 6000 });
+    }],
+    ['feed: un nuovo collegamento non ricarica il feed mentre leggi', 'mobile', { loggedIn: true }, async (page, state) => {
+        await open(page, '/');
+        await page.getByRole('group', { name: 'Ordine del feed' }).waitFor({ timeout: 8000 });
+        await page.waitForTimeout(800);
+        const reads = state.lists?.posts || 0;
+        assert.ok(reads > 0, 'il feed è stato caricato');
+        // Il profilo cambia in tempo reale (es. qualcuno accetta la richiesta di collegamento).
+        await state.pushRealtime('profiles', 'update', { $id: 'u_giulia', connections: ['u_marco', 'u_sara', 'u_lido', 'u_nuovo'] });
+        await page.waitForTimeout(1500);
+        assert.equal(state.lists?.posts || 0, reads, 'nessuna ricarica automatica del feed');
     }],
     ['accesso con Google', 'mobile', { loggedIn: false }, async (page, state) => {
         await open(page, '/login');

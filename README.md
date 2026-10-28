@@ -54,7 +54,7 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
 ### Feed e contenuti
 - Post con testo, foto, video, **video-analisi tecnica** (commenti legati a un istante del video) e sondaggi.
 - Reazioni, commenti con risposte e "mi piace", ripubblicazioni, menzioni `@` e hashtag con pagina dedicata.
-- Feed "Per te" (collegamenti, seguiti, provincia, interazioni) o "Più recenti". I post nuovi non spostano la lettura: compare l'avviso "N nuovi post".
+- Feed "Per te" (collegamenti, seguiti, provincia, interazioni) o "Più recenti". Non si ricarica mai da solo: i post nuovi compaiono come avviso "N nuovi post", si aggiorna trascinando verso il basso in cima (smartphone e tablet), i post successivi si caricano da soli scorrendo e tornando alla home si riprende dallo stesso punto.
 - Salvati, segnalazioni, blocco e silenziamento. Un filtro automatico ferma insulti e spam.
 
 ### Lavoro

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,8 @@ import { MyWorkplaces } from '@/features/team/MyWorkplaces';
 import { useBlocks } from '@/context/BlocksContext';
 import { rankForYou, saveFeedMode, savedFeedMode, type FeedMode } from '@/utils/feedRank';
 import { scrollPageTo } from '@/utils/scroll';
+import { appendUnique, readFeedSnapshot, saveFeedSnapshot } from '@/features/feed/feedCache';
+import { usePullToRefresh, PULL_THRESHOLD } from '@/hooks/usePullToRefresh';
 
 const Home: React.FC = () => {
     usePageTitle('Feed');
@@ -36,6 +38,11 @@ const Home: React.FC = () => {
     // "Per te" ordina per rilevanza una finestra più ampia di post; "Più recenti" è cronologico.
     const [feedMode, setFeedMode] = useState<FeedMode>(savedFeedMode);
     const POSTS_PER_PAGE = feedMode === 'perte' ? 30 : 10;
+    // Il feed si ricarica solo se cambi persona o ordine: nuovi collegamenti (che arrivano in tempo reale
+    // sul profilo) non lo resettano mentre leggi. Li legge al prossimo aggiornamento.
+    const feedKey = user ? `${user.$id}|${feedMode}` : '';
+    const connectionsRef = useRef<string[]>([]);
+    connectionsRef.current = user?.connections || [];
 
     const loadFeed = useCallback(async (offset = 0, append = false) => {
         if (!user) return;
@@ -43,14 +50,14 @@ const Home: React.FC = () => {
         else setIsFetchingMore(true);
 
         try {
-            const connections = user.connections || [];
+            const connections = connectionsRef.current;
             const following = await databaseService.getFollowingIds(user.$id).catch(() => [] as string[]);
             const raw = await databaseService.getFeed(user.$id || user.userId, connections, POSTS_PER_PAGE, offset, following);
             const fetchedPosts = feedMode === 'perte' ? rankForYou(raw, { me: user.$id, connections: new Set(connections), following: new Set(following) }) : raw;
 
             setHasMore(raw.length >= POSTS_PER_PAGE);
             
-            if (append) setPosts(prev => [...prev, ...fetchedPosts]);
+            if (append) setPosts(prev => appendUnique(prev, fetchedPosts));
             else setPosts(fetchedPosts);
             
         } catch (error) {
@@ -62,13 +69,66 @@ const Home: React.FC = () => {
         }
     }, [user, showToast, feedMode, POSTS_PER_PAGE]);
 
-    // Si ricarica solo se cambiano persona, collegamenti o ordine, non a ogni aggiornamento del profilo.
-    const feedKey = user ? `${user.$id}|${(user.connections || []).join(',')}|${feedMode}` : '';
     const loadFeedRef = React.useRef(loadFeed);
     loadFeedRef.current = loadFeed;
+    // Tornando alla home (da un post, un profilo…) il feed riprende dallo stesso punto, senza ricaricare.
+    const restoreTop = useRef<number | null>(null);
     useEffect(() => {
-        if (authenticated && feedKey) { setNewPosts(0); void loadFeedRef.current(); }
+        if (!authenticated || !feedKey) return;
+        setNewPosts(0);
+        const snap = readFeedSnapshot(feedKey);
+        if (snap) {
+            setPosts(snap.posts);
+            setHasMore(snap.hasMore);
+            setIsLoading(false);
+            restoreTop.current = snap.scrollTop;
+            return;
+        }
+        void loadFeedRef.current();
     }, [authenticated, feedKey]);
+    useLayoutEffect(() => {
+        if (restoreTop.current === null || isLoading) return;
+        const top = restoreTop.current;
+        restoreTop.current = null;
+        // Dopo il ritorno all'inizio che fa il cambio di pagina.
+        requestAnimationFrame(() => requestAnimationFrame(() => scrollPageTo(top)));
+    }, [isLoading, posts]);
+    // Uscendo dalla home si ricorda il punto di lettura.
+    const snapRef = useRef({ feedKey, posts, hasMore });
+    snapRef.current = { feedKey, posts, hasMore };
+    const lastTop = useRef(0);
+    useEffect(() => {
+        const root = document.getElementById('scroll-root');
+        const target: HTMLElement | Window = root || window;
+        const onScroll = () => { lastTop.current = root ? root.scrollTop : window.scrollY; };
+        target.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            target.removeEventListener('scroll', onScroll);
+            const s = snapRef.current;
+            if (s.feedKey) saveFeedSnapshot({ key: s.feedKey, posts: s.posts, hasMore: s.hasMore, scrollTop: lastTop.current });
+        };
+    }, []);
+
+    // Scorrendo verso il fondo si caricano da soli i post successivi, come su LinkedIn.
+    const sentinel = useRef<HTMLDivElement>(null);
+    const moreRef = useRef({ hasMore, busy: false, count: 0 });
+    moreRef.current = { hasMore, busy: isFetchingMore || isLoading, count: posts.length };
+    useEffect(() => {
+        const el = sentinel.current;
+        if (!el || typeof IntersectionObserver === 'undefined') return;
+        const io = new IntersectionObserver((entries) => {
+            const m = moreRef.current;
+            if (entries.some((e) => e.isIntersecting) && m.hasMore && !m.busy) void loadFeedRef.current(m.count, true);
+        }, { root: document.getElementById('scroll-root'), rootMargin: '0px 0px 800px 0px' });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [posts.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Trascinando verso il basso in cima (smartphone e tablet) si aggiorna; altrimenti mai da solo.
+    const { pull, refreshing } = usePullToRefresh(async () => {
+        setNewPosts(0);
+        await loadFeedRef.current(0, false);
+    }, authenticated);
 
     // Tempo reale: reazioni, commenti e modifiche aggiornano i post visibili; i post nuovi di
     // altre persone non spostano il feed mentre leggi, ma compaiono come avviso in alto.
@@ -152,6 +212,14 @@ const Home: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-4 relative">
+                    {(pull > 0 || refreshing) && (
+                        <div className="flex justify-center -mb-1" style={{ height: refreshing ? 40 : pull * 0.6 }} role="status" aria-live="polite">
+                            <span className={`inline-flex items-center gap-2 text-sm font-semibold ${pull >= PULL_THRESHOLD || refreshing ? 'text-corsia-700' : 'text-slate-500'}`}>
+                                <Icon type="arrow-path" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }} />
+                                {refreshing ? 'Aggiornamento del feed…' : pull >= PULL_THRESHOLD ? 'Rilascia per aggiornare' : 'Trascina per aggiornare'}
+                            </span>
+                        </div>
+                    )}
                     {newPosts > 0 && !isLoading && (
                         <div className="sticky top-4 z-10 flex justify-center pointer-events-none -mb-2">
                             <button
@@ -188,14 +256,20 @@ const Home: React.FC = () => {
                                     onReposted={(created) => { setPosts((prev) => [created, ...prev]); scrollPageTo(0, true); }}
                                 />
                             ))}
-                            {hasMore && (
-                                <button 
-                                    onClick={() => loadFeed(posts.length, true)} 
+                            <div ref={sentinel} aria-hidden="true" />
+                            {hasMore ? (
+                                // Si caricano da soli scorrendo; il pulsante resta per tastiera e lettori di schermo.
+                                <button
+                                    onClick={() => loadFeed(posts.length, true)}
                                     disabled={isFetchingMore}
-                                    className="w-full py-4 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100 shadow-xs outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+                                    className="w-full py-3 text-sm font-semibold text-corsia-700 rounded-2xl hover:bg-white transition-colors disabled:cursor-default outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500"
                                 >
-                                    {isFetchingMore ? 'Caricamento...' : 'Mostra altri post'}
+                                    {isFetchingMore ? (
+                                        <span className="inline-flex items-center gap-2"><span className="w-4 h-4 border-2 border-corsia-200 border-t-corsia-600 rounded-full animate-spin" aria-hidden="true" /> Caricamento di altri post…</span>
+                                    ) : 'Mostra altri post'}
                                 </button>
+                            ) : (
+                                <p className="text-center text-sm text-slate-500 py-4">Sei in pari: hai visto tutti i post. Trascina in alto o torna più tardi per i nuovi.</p>
                             )}
                         </>
                     ) : (
