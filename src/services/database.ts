@@ -1310,7 +1310,7 @@ export const databaseService = {
             databases.listDocuments<Profile>(databaseId, collections.profiles, [
                 Query.notEqual('userId', currentUserId),
                 Query.orderDesc('$createdAt'),
-                Query.limit(30),
+                Query.limit(100),
             ]),
             databases
                 .listDocuments<Connection>(databaseId, collections.connections, [
@@ -1325,7 +1325,8 @@ export const databaseService = {
                 }),
         ]);
         const excluded = new Set([...currentConnections, ...pending.flatMap((c) => [c.senderId, c.receiverId])]);
-        return res.documents.filter((p) => !excluded.has(p.userId || p.$id)).slice(0, 20);
+        // Tutti i candidati: l'affinità la calcola `rankSuggestions` (features/network/suggestionRank.ts).
+        return res.documents.filter((p) => !excluded.has(p.userId || p.$id));
     },
 
     async getConnectionsProfiles(connectionIds: string[]) {

@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router';
 import { Icon } from '@/components/ui/Icon';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
-import { avatarOf, displayNameOf, headlineOf, isEnthusiast } from '@/utils/profile';
+import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
 import { initialsAvatar } from '@/utils/avatar';
-import { certificationsNeedingAttention, describeExpiry, parseCertifications } from '@/utils/certifications';
+import { certificationsNeedingAttention, describeExpiry } from '@/utils/certifications';
 import type { AuthenticatedUser, Job, LiveRoom, StructureProfile, UserProfile } from '@/types/types';
 import { jobDisplayTitle } from '@/utils/jobs';
 import { emitNetworkChange, useNetworkChange } from '@/utils/networkEvents';
@@ -15,7 +15,7 @@ import { UpcomingEventsCard } from '@/features/events/UpcomingEventsCard';
 import { useBlocks } from '@/context/BlocksContext';
 import { LIVE_ENABLED } from '@/config/features';
 import { useMyTeams } from '@/hooks/useMyTeams';
-import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
+import { GROUPS_PATH } from '@/config/routes';
 
 const Panel: React.FC<{ title?: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <section className={`bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden ${className}`}>
@@ -31,14 +31,9 @@ const RowLink: React.FC<{ to: string; label: string }> = ({ to, label }) => (
     </Link>
 );
 
-/** Colonna sinistra: la tua scheda, con collegamenti e stato dei brevetti. */
+/** Colonna sinistra: la tua scheda con le sole scorciatoie essenziali (visite, collegamenti, gruppi, salvati). */
 export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user }) => {
     const isProfessional = user.userType === 'professional';
-    // Brevetti e competenze contano per chi lavora in vasca, non per gli appassionati.
-    const isWorker = isProfessional && !isEnthusiast(user);
-    const certs = isProfessional ? parseCertifications((user as UserProfile).certificationsList) : [];
-    const attention = isProfessional ? certificationsNeedingAttention((user as UserProfile).certificationsList) : [];
-    const skills = isProfessional ? (user as UserProfile).skills || [] : [];
     // Visite al profilo negli ultimi 30 giorni: la scorciatoia alle statistiche (come "Analisi" su LinkedIn).
     const [views, setViews] = useState<number | null>(null);
     useEffect(() => {
@@ -77,30 +72,6 @@ export const HomeProfileCard: React.FC<{ user: AuthenticatedUser }> = ({ user })
                     <span className="text-slate-500">Gruppi</span>
                     <span className="font-semibold text-corsia-700 flex items-center"><Icon type="chevron-right" className="w-4 h-4" /></span>
                 </Link>
-                {isWorker ? (
-                    <>
-                        <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                            <span className="text-slate-500">Brevetti</span>
-                            <span className={`font-semibold ${attention.length ? 'text-galleggiante-700' : 'text-corsia-700'}`}>
-                                {certs.length}{attention.length ? ` · ${attention.length} da rinnovare` : ''}
-                            </span>
-                        </Link>
-                        <Link to="/profile" className="flex justify-between px-4 py-2.5 hover:bg-piastrella">
-                            <span className="text-slate-500">Competenze</span>
-                            <span className="font-semibold text-corsia-700">{skills.length}</span>
-                        </Link>
-                    </>
-                ) : isProfessional ? (
-                    <>
-                        <RowLink to={EVENTS_PATH} label="Eventi e corsi" />
-                        <RowLink to="/strutture" label="Piscine vicino a te" />
-                    </>
-                ) : (
-                    <>
-                        <RowLink to="/jobs/annunci" label="I miei annunci" />
-                        <RowLink to="/talenti" label="Cerca personale" />
-                    </>
-                )}
                 <RowLink to="/salvati" label="Elementi salvati" />
             </div>
             {isProfessional && (user as UserProfile).availableForEmergencies && (

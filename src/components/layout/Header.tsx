@@ -149,10 +149,10 @@ const Header: React.FC = () => {
 
   return (
     <header className="relative shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 md:gap-6">
+      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3">
+        {/* Solo il simbolo, come su LinkedIn: la ricerca gli sta subito accanto. */}
         <Link to="/" className="shrink-0 rounded-lg outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500" aria-label="SwimIn, vai alla home">
-          <span className="md:hidden"><Brand size="sm" markOnly /></span>
-          <span className="hidden md:inline-flex"><Brand size="md" /></span>
+          <Brand size="md" markOnly />
         </Link>
 
         <div className="flex-1 max-w-sm hidden lg:block">
