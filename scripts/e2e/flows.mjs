@@ -430,12 +430,34 @@ const FLOWS = [
         await page.getByText('Sei in pari: nessuna notifica da leggere.').waitFor({ timeout: 3000 });
         assert.ok(page.url().endsWith('/'), 'si resta sulla pagina: non serve aprire le notifiche');
     }],
-    ['Live in arrivo: nel menu c’è Eventi', 'mobile', { loggedIn: true }, async (page) => {
+    ['Live in arrivo: niente Live nella barra, gli eventi stanno nella Rete', 'mobile', { loggedIn: true }, async (page) => {
         await open(page, '/live');
         await page.getByRole('heading', { name: 'Le dirette arrivano presto' }).waitFor({ timeout: 8000 });
         const nav = page.getByRole('navigation', { name: 'Navigazione principale' });
-        await nav.getByRole('link', { name: 'Eventi' }).waitFor();
+        await nav.getByRole('link', { name: 'Rete' }).waitFor();
         assert.equal(await nav.getByRole('link', { name: 'Live' }).count(), 0);
+        assert.equal(await nav.getByRole('link', { name: 'Eventi' }).count(), 0);
+    }],
+    ['Rete: gruppi ed eventi sono schede della stessa sezione', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/network');
+        const tabs = page.getByRole('navigation', { name: 'Sezioni della rete' });
+        await tabs.getByRole('button', { name: 'Gruppi' }).click();
+        await page.waitForURL(/\/network\?tab=gruppi$/, { timeout: 6000 });
+        await page.getByRole('heading', { name: 'Gruppi', level: 1 }).waitFor({ timeout: 8000 });
+        assert.equal(await tabs.getByRole('button', { name: 'Gruppi' }).getAttribute('aria-current'), 'page');
+        await tabs.getByRole('button', { name: 'Eventi' }).click();
+        await page.getByRole('heading', { name: 'Eventi', level: 1 }).waitFor({ timeout: 8000 });
+        await tabs.getByRole('button', { name: 'Collegamenti' }).click();
+        await page.waitForURL((u) => u.pathname === '/network' && !u.search, { timeout: 6000 });
+        // I vecchi indirizzi portano alle schede; Eventi non è più nella barra ma in Altro.
+        await open(page, '/eventi');
+        await page.waitForURL(/\/network\?tab=eventi$/, { timeout: 6000 });
+        const bar = page.getByRole('navigation', { name: 'Navigazione principale' });
+        assert.equal(await bar.getByRole('link', { name: 'Eventi', exact: true }).count(), 0, 'Eventi non sta nella barra');
+        // Nella barra: la scheda Eventi ha anche un filtro "Altro".
+        await bar.getByRole('button', { name: /^Altro/ }).click();
+        await page.getByRole('menu', { name: 'Altro' }).getByRole('menuitem', { name: 'Eventi' }).click();
+        await page.waitForURL(/tab=eventi$/, { timeout: 6000 });
     }],
     ['statistiche: chi compare nelle ricerche e chi apre un annuncio viene contato', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/cerca?q=Marco');
@@ -544,7 +566,7 @@ const FLOWS = [
         await open(page, '/');
         await page.getByRole('button', { name: 'Menu account' }).click();
         await page.getByRole('menuitem', { name: 'Gruppi' }).click();
-        await page.waitForURL(/\/gruppi$/, { timeout: 6000 });
+        await page.waitForURL(/\/network\?tab=gruppi$/, { timeout: 6000 });
     }],
     ['scrivere un suggerimento dal menu dell’account', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/');

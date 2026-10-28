@@ -81,6 +81,7 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
 - Widget dei messaggi sempre a portata su schermi grandi.
 
 ### Gruppi ed eventi
+- Nella sezione **Rete** come schede accanto ai collegamenti (anche da *Altro* nella barra).
 - **Gruppi** aperti o su approvazione, con regole, moderazione, post e commenti riservati ai membri.
 - **Eventi** in presenza o online: quota, posti limitati con **lista d'attesa** automatica, eventi di gruppo e file `.ics` o Google Calendar.
 - Dirette "Bordo vasca" (sale con palco e chat). Si accendono con `VITE_LIVE=on`.

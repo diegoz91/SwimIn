@@ -27,6 +27,7 @@ import { lazyPage } from '@/utils/lazyPage';
 import { LIVE_ENABLED } from '@/config/features';
 import { captureInviteFromUrl } from '@/utils/invite';
 import { BetaGate } from '@/features/beta/BetaGate';
+import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
 // Widget Chat (sempre presente da loggati, caricato a parte)
 const GlobalChatWidget = lazyPage(() =>
@@ -60,9 +61,7 @@ const Structures = lazyPage(() => import('@/pages/Structures'));
 const Talent = lazyPage(() => import('@/pages/Talent'));
 const Premium = lazyPage(() => import('@/pages/Premium'));
 const Hashtag = lazyPage(() => import('@/pages/Hashtag'));
-const Groups = lazyPage(() => import('@/pages/Groups'));
 const GroupPage = lazyPage(() => import('@/pages/GroupPage'));
-const Events = lazyPage(() => import('@/pages/Events'));
 const EventPage = lazyPage(() => import('@/pages/EventPage'));
 const PublicProfile = lazyPage(() => import('@/pages/PublicProfile'));
 const PublicJob = lazyPage(() => import('@/pages/PublicJob'));
@@ -198,9 +197,9 @@ const AppContent: React.FC = () => {
               <Route path="/talenti" element={<ProtectedRoute><Talent /></ProtectedRoute>} />
               <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
               <Route path="/hashtag/:tag" element={<ProtectedRoute><Hashtag /></ProtectedRoute>} />
-              <Route path="/gruppi" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+              <Route path="/gruppi" element={<Navigate to={GROUPS_PATH} replace />} />
               <Route path="/gruppi/:id" element={<ProtectedRoute><GroupPage /></ProtectedRoute>} />
-              <Route path="/eventi" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+              <Route path="/eventi" element={<Navigate to={EVENTS_PATH} replace />} />
               <Route path="/eventi/:id" element={<ProtectedRoute><EventPage /></ProtectedRoute>} />
               <Route path="/turni" element={<ProtectedRoute><MyShifts /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

@@ -18,6 +18,7 @@ import { isPremium } from '@/utils/premium';
 import { RichText } from '@/utils/richText';
 import type { Group, StructureProfile, SwimMeet, UserProfile } from '@/types/types';
 import { useConfirm } from '@/context/ConfirmContext';
+import { EVENTS_PATH } from '@/config/routes';
 
 type Profile = UserProfile | StructureProfile;
 
@@ -74,7 +75,7 @@ const EventPage: React.FC = () => {
                 <Icon type="calendar" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
                 <h1 className="text-3xl font-bold text-abisso">Evento non trovato</h1>
                 <p className="text-slate-500 mt-2">Il link potrebbe essere sbagliato o l’evento è stato rimosso.</p>
-                <Link to="/eventi" className="inline-block mt-5 px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700">Vai agli eventi</Link>
+                <Link to={EVENTS_PATH} className="inline-block mt-5 px-5 py-2.5 rounded-full font-semibold bg-corsia-600 text-white hover:bg-corsia-700">Vai agli eventi</Link>
             </div>
         );
     }

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
-import { usePageTitle } from '@/hooks/usePageTitle';
 import { useLiveCollection } from '@/hooks/useLiveCollection';
 import { databaseService } from '@/services/database';
 import { Icon } from '@/components/ui/Icon';
@@ -17,8 +16,7 @@ import type { EventType, SwimMeet } from '@/types/types';
 type View = 'tutti' | 'miei' | 'organizzati';
 
 /** Eventi del mondo del nuoto: allenamenti condivisi, gare, corsi, open day, webinar. */
-const Events: React.FC = () => {
-    usePageTitle('Eventi');
+export const EventsView: React.FC = () => {
     const { user } = useAuth();
     const blocks = useBlocks();
     const navigate = useNavigate();
@@ -62,7 +60,7 @@ const Events: React.FC = () => {
     ];
 
     return (
-        <div className="pt-4 max-w-5xl mx-auto w-full">
+        <div className="max-w-5xl mx-auto w-full">
             <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
                 <div>
                     <h1 className="text-4xl font-bold text-abisso leading-none">Eventi</h1>
@@ -134,4 +132,3 @@ const Events: React.FC = () => {
     );
 };
 
-export default Events;

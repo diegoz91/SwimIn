@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Icon } from '@/components/ui/Icon';
+import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
 /** Le dirette arrivano dopo il lancio: intanto una pagina che spiega cosa saranno e dove andare. */
 const LiveComingSoon: React.FC = () => {
@@ -19,10 +20,10 @@ const LiveComingSoon: React.FC = () => {
                         Corsi sulla sicurezza in acqua, lezioni di acquagym e aggiornamenti per istruttori in diretta, dal telefono o con OBS e Prism. Ti avvisiamo quando sono pronte.
                     </p>
                     <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                        <Link to="/eventi" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700">
+                        <Link to={EVENTS_PATH} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-corsia-600 text-white font-semibold hover:bg-corsia-700">
                             <Icon type="calendar" className="w-5 h-5" /> Vedi eventi e corsi
                         </Link>
-                        <Link to="/gruppi" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-slate-300 text-abisso font-semibold hover:bg-slate-50">
+                        <Link to={GROUPS_PATH} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-slate-300 text-abisso font-semibold hover:bg-slate-50">
                             <Icon type="users" className="w-5 h-5" /> Entra in un gruppo
                         </Link>
                     </div>

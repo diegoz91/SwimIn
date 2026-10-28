@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService } from '@/services/database';
 import { useToast } from '@/context/ToastContext';
@@ -11,12 +11,24 @@ import type { UserProfile, StructureProfile } from '@/types/types';
 import type { EnrichedConnectionRequest } from '@/features/network/components/ConnectionRequestCard';
 import { useBlocks } from '@/context/BlocksContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import { GroupsView } from '@/features/groups/GroupsView';
+import { EventsView } from '@/features/events/EventsView';
+import { NETWORK_TABS, networkTabOf, type NetworkTab } from '@/config/routes';
+import type { IconType } from '@/components/ui/Icon';
+
+const TAB_META: Record<NetworkTab, { label: string; icon: IconType; title: string }> = {
+    collegamenti: { label: 'Collegamenti', icon: 'users', title: 'Il mio network' },
+    gruppi: { label: 'Gruppi', icon: 'users', title: 'Gruppi' },
+    eventi: { label: 'Eventi', icon: 'calendar', title: 'Eventi' },
+};
 
 type Profile = UserProfile | StructureProfile;
 
 const Network: React.FC = () => {
     const confirm = useConfirm();
-    usePageTitle('Il mio network');
+    const [params, setParams] = useSearchParams();
+    const tab = networkTabOf(params.get('tab'));
+    usePageTitle(TAB_META[tab].title);
     const { user: currentUser, refreshProfile } = useAuth();
     const blocks = useBlocks();
     const navigate = useNavigate();
@@ -153,22 +165,24 @@ const Network: React.FC = () => {
             
             <div className="flex justify-center mb-6 sm:mb-8">
                 <nav aria-label="Sezioni della rete" className="bg-slate-100 p-1.5 rounded-2xl flex w-full sm:w-auto shadow-inner border border-slate-200">
-                    <span className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-white text-corsia-700 shadow-xs" aria-current="page">
-                        <Icon type="users" className="w-4 h-4 hidden min-[380px]:block" />
-                        <span>Collegamenti</span>
-                    </span>
-                    <Link to="/gruppi" className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
-                        <Icon type="users" className="w-4 h-4 hidden min-[380px]:block" />
-                        <span>Gruppi</span>
-                    </Link>
-                    <Link to="/eventi" className="flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-slate-500 hover:text-slate-700">
-                        <Icon type="calendar" className="w-4 h-4 hidden min-[380px]:block" />
-                        <span>Eventi</span>
-                    </Link>
+                    {NETWORK_TABS.map((t) => (
+                        <button
+                            key={t}
+                            type="button"
+                            onClick={() => setParams(t === 'collegamenti' ? {} : { tab: t })}
+                            aria-current={tab === t ? 'page' : undefined}
+                            className={`flex-1 sm:flex-none justify-center px-3 sm:px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 ${tab === t ? 'bg-white text-corsia-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <Icon type={TAB_META[t].icon} className="w-4 h-4 hidden min-[380px]:block" />
+                            <span>{TAB_META[t].label}</span>
+                        </button>
+                    ))}
                 </nav>
             </div>
 
-                <div className="animate-in fade-in duration-500">
+                {tab === 'gruppi' && <GroupsView />}
+                {tab === 'eventi' && <EventsView />}
+                {tab === 'collegamenti' && <div className="animate-in fade-in duration-500">
                     <NetworkView 
                         currentUser={currentUser}
                         pendingRequests={pendingRequests}
@@ -186,7 +200,7 @@ const Network: React.FC = () => {
                         onRemoveConnection={handleRemoveConnection}
                         onMessage={handleMessage}
                     />
-                </div>
+                </div>}
 
         </div>
     );
