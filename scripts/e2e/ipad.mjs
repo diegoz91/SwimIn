@@ -49,11 +49,13 @@ for (const [name, opts] of CASES) {
     const before = await probe(page);
     await page.screenshot({ path: `${OUT}/${name}-${label}-1.png` });
     // Scorrimento come con il dito e con la rotella.
-    const { width, height } = opts.viewport;
-    await page.touchscreen?.tap?.(width / 2, height / 2).catch?.(() => undefined);
-    await page.mouse.move(width / 2, height * 0.6);
-    for (let i = 0; i < 6; i++) await page.mouse.wheel(0, 500);
-    await page.evaluate(() => window.scrollTo(0, 2000));
+    // Scorrimento come con il dito: si prova sia il contenitore dell'app sia la pagina intera.
+    await page.evaluate(() => {
+      const root = document.getElementById('scroll-root');
+      if (root) root.scrollTop = 2000;
+      window.scrollTo(0, 2000);
+      document.scrollingElement && (document.scrollingElement.scrollTop = 2000);
+    });
     await page.waitForTimeout(600);
     const after = await probe(page);
     await page.screenshot({ path: `${OUT}/${name}-${label}-2.png` });
