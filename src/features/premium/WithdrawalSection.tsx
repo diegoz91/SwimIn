@@ -72,7 +72,7 @@ export const WithdrawalSection: React.FC<{ onDone: () => void }> = ({ onDone }) 
             {c && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
                     <p className="text-sm text-slate-600 max-w-xl">
-                        Puoi recedere dall’abbonamento entro il {formatDate(c.deadline.slice(0, 10), 'long')}: Premium si chiude subito e ti rimborsiamo la parte non goduta.
+                        Puoi recedere dall’abbonamento entro {[8, 11].includes(Number(c.deadline.slice(8, 10))) ? 'l’' : 'il '}{formatDate(c.deadline.slice(0, 10), 'long')}: Premium si chiude subito e ti rimborsiamo la parte non goduta.
                     </p>
                     <Button variant="secondary" onClick={() => setOpen(true)}>Recedi qui dal contratto</Button>
                 </div>
