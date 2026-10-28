@@ -14,7 +14,6 @@ import type { AppNotification } from '@/types/types';
 import { isEnthusiast } from '@/utils/profile';
 import { useBlocks } from '@/context/BlocksContext';
 import { SearchTypeahead } from '@/components/layout/SearchTypeahead';
-import { ThemeSegmented } from '@/components/common/ThemePicker';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 import { useMyTeams } from '@/hooks/useMyTeams';
@@ -33,6 +32,16 @@ const NAV: { to: string; label: string; icon: IconType; end?: boolean }[] = [
 /** Chi nuota per passione vede le piscine al posto della bacheca lavoro. */
 export const navFor = (user: Parameters<typeof isEnthusiast>[0]) =>
   isEnthusiast(user) ? NAV.map((n) => (n.to === '/jobs' ? { to: '/strutture', label: 'Piscine', icon: 'building' as IconType } : n)) : NAV;
+
+/**
+ * "Altro" nella barra in alto: le sezioni da esplorare che non stanno nella barra.
+ * Su smartphone (barra in fondo, senza "Altro") le stesse voci sono nel menu dell'account.
+ */
+export const moreFor = (user: Parameters<typeof isEnthusiast>[0]): { to: string; label: string; icon: IconType }[] => [
+  { to: '/gruppi', label: 'Gruppi', icon: 'users' },
+  ...(isEnthusiast(user) ? [] : [{ to: '/strutture', label: 'Piscine e strutture', icon: 'building' as IconType }]),
+  ...(LIVE_ENABLED ? [{ to: '/eventi', label: 'Eventi', icon: 'calendar' as IconType }] : []),
+];
 
 /** Chiude un menu a tendina al clic fuori o con Esc. */
 function useDismiss(open: boolean, close: () => void) {
@@ -67,12 +76,15 @@ const Header: React.FC = () => {
   const location = useLocation();
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [openMenu, setOpenMenu] = useState<'notifications' | 'account' | null>(null);
+  const [openMenu, setOpenMenu] = useState<'notifications' | 'account' | 'more' | null>(null);
   const unreadMessages = useUnreadMessages(user?.$id);
 
   const close = React.useCallback(() => setOpenMenu(null), []);
   const notifRef = useDismiss(openMenu === 'notifications', close);
   const accountRef = useDismiss(openMenu === 'account', close);
+  const moreRef = useDismiss(openMenu === 'more', close);
+  // Il menu si chiude quando si cambia pagina (anche con indietro/avanti).
+  useEffect(() => setOpenMenu(null), [location.pathname]);
 
   useEffect(close, [location.pathname, close]);
 
@@ -97,6 +109,10 @@ const Header: React.FC = () => {
   if (!user) return null;
 
   const isProfessional = user.userType === 'professional';
+  const moreItems = moreFor(user);
+  const isWorker = isProfessional && !isEnthusiast(user);
+  const managesStructure = user.userType === 'structure' || (teams || []).some((t) => t.role === 'admin');
+  const menuItem = 'flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella outline-hidden focus-visible:bg-piastrella';
   const displayName = isProfessional
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Il mio profilo'
     : user.structureName || 'La mia struttura';
@@ -164,6 +180,31 @@ const Header: React.FC = () => {
               {item.label}
             </NavLink>
           ))}
+          <div className="relative flex" ref={moreRef}>
+            <button
+              type="button"
+              onClick={() => setOpenMenu(openMenu === 'more' ? null : 'more')}
+              aria-expanded={openMenu === 'more'}
+              aria-haspopup="menu"
+              className={`relative flex flex-col items-center justify-center gap-0.5 w-16 md:w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-hidden focus-visible:bg-piastrella ${
+                moreItems.some((m) => location.pathname.startsWith(m.to))
+                  ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t-sm after:bg-corsia-600'
+                  : 'text-slate-500 hover:text-abisso'
+              }`}
+            >
+              <Icon type="bars" className="w-6 h-6" />
+              <span className="flex items-center gap-0.5">Altro <Icon type="chevron-right" className={`w-3 h-3 transition-transform ${openMenu === 'more' ? '-rotate-90' : 'rotate-90'}`} /></span>
+            </button>
+            {openMenu === 'more' && (
+              <div role="menu" aria-label="Altro" className="absolute right-0 top-full mt-1 w-64 bg-white rounded-2xl shadow-lift border border-slate-100 py-2 animate-in fade-in zoom-in-95 duration-150 origin-top-right z-50">
+                {moreItems.map((m) => (
+                  <Link key={m.to} to={m.to} role="menuitem" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-abisso hover:bg-piastrella outline-hidden focus-visible:bg-piastrella">
+                    <Icon type={m.icon} className="w-5 h-5 text-slate-500" /> {m.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2 ml-auto sm:ml-0 sm:pl-2 md:pl-4 sm:border-l border-slate-200 h-10">
@@ -258,78 +299,55 @@ const Header: React.FC = () => {
                 <Link to="/premium" role="menuitem" className="flex items-center gap-3 mx-3 mb-2 px-3 py-2.5 rounded-xl bg-oro-50 text-sm font-semibold text-abisso hover:bg-oro-100">
                   <PremiumBadge /> {isPremium(user) ? 'Il tuo Premium' : user?.premiumTrialUsed ? 'Passa a Premium' : 'Prova Premium gratis'}
                 </Link>
-                <div className="px-3 pb-2">
-                  <ThemeSegmented />
-                </div>
-                {teams && teams.length > 0 && (
-                  <div className="border-t border-slate-100 py-1" role="group" aria-labelledby="menu-teams">
-                    <p id="menu-teams" className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-500">Lavori presso</p>
-                    {teams.slice(0, 5).map((t) => (
-                      <Link key={t.structureId} to={`/profile/${t.structureId}?area=staff`} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-piastrella">
-                        <img src={t.logo || initialsAvatar(t.name)} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-100 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate font-medium text-abisso">{t.name}</span>
+                {/* Solo ciò che non è già nella barra: il proprio lavoro, i salvati, account. */}
+                {(isWorker || managesStructure || (teams && teams.length > 0)) && (
+                  <div className="border-t border-slate-100 py-1" role="group" aria-label="Il tuo lavoro">
+                    {isWorker && (
+                      <Link to="/jobs/candidature" role="menuitem" className={menuItem}>
+                        <Icon type="send" className="w-5 h-5 text-slate-400" /> Le mie candidature
                       </Link>
-                    ))}
-                    <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                      <Icon type="calendar" className="w-5 h-5 text-slate-400" /> Calendario dei turni
-                    </Link>
+                    )}
+                    {(isWorker || (teams && teams.length > 0)) && (
+                      <Link to="/turni" role="menuitem" className={menuItem}>
+                        <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
+                      </Link>
+                    )}
+                    {managesStructure && (
+                      <>
+                        <Link to="/jobs/annunci" role="menuitem" className={menuItem}>
+                          <Icon type="briefcase" className="w-5 h-5 text-slate-400" /> I miei annunci
+                        </Link>
+                        <Link to="/talenti" role="menuitem" className={menuItem}>
+                          <Icon type="search" className="w-5 h-5 text-slate-400" /> Cerca personale
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
                 <div className="border-t border-slate-100 py-1">
-                  <Link to="/statistiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                    <Icon type="chart" className="w-5 h-5 text-slate-400" /> Statistiche
-                  </Link>
-                  <Link to="/profile?tab=impostazioni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                    <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
-                  </Link>
-                  {user?.userType === 'professional' && !isEnthusiast(user) && (
-                    <>
-                      <Link to="/jobs/candidature" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                        <Icon type="send" className="w-5 h-5 text-slate-400" /> Le mie candidature
-                      </Link>
-                      {!(teams && teams.length > 0) && (
-                        <Link to="/turni" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                          <Icon type="calendar" className="w-5 h-5 text-slate-400" /> I miei turni
-                        </Link>
-                      )}
-                    </>
-                  )}
-                  {(user?.userType === 'structure' || (teams || []).some((t) => t.role === 'admin')) && (
-                    <>
-                      <Link to="/jobs/annunci" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                        <Icon type="briefcase" className="w-5 h-5 text-slate-400" /> I miei annunci
-                      </Link>
-                      <Link to="/talenti" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                        <Icon type="search" className="w-5 h-5 text-slate-400" /> Cerca personale
-                      </Link>
-                    </>
-                  )}
-                  {!isEnthusiast(user) && (
-                    <Link to="/strutture" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                      <Icon type="building" className="w-5 h-5 text-slate-400" /> Piscine e strutture
-                    </Link>
-                  )}
-                  <Link to="/gruppi" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                    <Icon type="users" className="w-5 h-5 text-slate-400" /> Gruppi
-                  </Link>
-                  <Link to="/eventi" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                    <Icon type="calendar" className="w-5 h-5 text-slate-400" /> Eventi
-                  </Link>
-                  <Link to="/salvati" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                  <Link to="/salvati" role="menuitem" className={menuItem}>
                     <Icon type="bookmark" className="w-5 h-5 text-slate-400" /> Elementi salvati
                   </Link>
+                  {/* Su smartphone la barra in fondo non ha "Altro": qui le stesse voci. */}
+                  {moreItems.map((m) => (
+                    <Link key={m.to} to={m.to} role="menuitem" className={`${menuItem} sm:hidden`}>
+                      <Icon type={m.icon} className="w-5 h-5 text-slate-400" /> {m.label}
+                    </Link>
+                  ))}
                   {isAdmin && (
-                    <Link to="/admin" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                    <Link to="/admin" role="menuitem" className={menuItem}>
                       <Icon type="shield" className="w-5 h-5 text-slate-400" /> Amministrazione
                     </Link>
                   )}
-                  <Link to="/notifiche" role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
-                    <Icon type="bell" className="w-5 h-5 text-slate-400" /> Notifiche
+                </div>
+                <div className="border-t border-slate-100 py-1">
+                  <Link to="/profile?tab=impostazioni" role="menuitem" className={menuItem}>
+                    <Icon type="settings" className="w-5 h-5 text-slate-400" /> Impostazioni e privacy
                   </Link>
-                  <button type="button" onClick={() => { setOpenMenu(null); openFeedback(); }} role="menuitem" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                  <button type="button" onClick={() => { setOpenMenu(null); openFeedback(); }} role="menuitem" className={`w-full ${menuItem}`}>
                     <Icon type="chat-bubble" className="w-5 h-5 text-slate-400" /> Scrivici un suggerimento
                   </button>
-                  <button onClick={logout} role="menuitem" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-piastrella">
+                  <button type="button" onClick={logout} role="menuitem" className={`w-full ${menuItem}`}>
                     <Icon type="logout" className="w-5 h-5 text-slate-400" /> Esci
                   </button>
                 </div>

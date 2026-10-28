@@ -469,6 +469,26 @@ const FLOWS = [
         await page.getByRole('button', { name: 'Chiudi l’avviso' }).click();
         await banner.waitFor({ state: 'detached', timeout: 4000 });
     }],
+    ['menu essenziale: Altro nella barra, nessun doppione nel menu dell’account', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/');
+        await page.getByRole('button', { name: /^Altro/ }).click();
+        const altro = page.getByRole('menu', { name: 'Altro' });
+        await altro.getByRole('menuitem', { name: 'Gruppi' }).waitFor({ timeout: 4000 });
+        await altro.getByRole('menuitem', { name: 'Piscine e strutture' }).click();
+        await page.waitForURL(/\/strutture$/, { timeout: 6000 });
+        await page.getByRole('button', { name: 'Menu account' }).click();
+        const names = (await page.getByRole('menuitem').allInnerTexts()).map((t) => t.trim());
+        for (const doppione of ['Eventi', 'Gruppi', 'Statistiche', 'Notifiche', 'Piscine e strutture']) {
+            assert.ok(!names.some((n) => n === doppione), `"${doppione}" non deve stare nel menu dell'account (${names.join(', ')})`);
+        }
+        assert.ok(names.includes('Elementi salvati') && names.includes('Impostazioni e privacy') && names.includes('Esci'), names.join(', '));
+    }],
+    ['su smartphone Gruppi e Piscine sono nel menu dell’account', 'mobile', { loggedIn: true }, async (page) => {
+        await open(page, '/');
+        await page.getByRole('button', { name: 'Menu account' }).click();
+        await page.getByRole('menuitem', { name: 'Gruppi' }).click();
+        await page.waitForURL(/\/gruppi$/, { timeout: 6000 });
+    }],
     ['scrivere un suggerimento dal menu dell’account', 'desktop', { loggedIn: true }, async (page, state) => {
         await open(page, '/');
         await page.getByRole('button', { name: 'Menu account' }).click();

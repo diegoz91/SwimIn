@@ -9,29 +9,6 @@ const OPTIONS: { value: ThemePref; label: string; icon: IconType }[] = [
     { value: 'system', label: 'Automatico', icon: 'computer' },
 ];
 
-/** Scelta compatta del tema (menu dell'avatar). */
-export const ThemeSegmented: React.FC = () => {
-    const { pref, setTheme } = useTheme();
-    return (
-        <div role="radiogroup" aria-label="Tema" className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
-            {OPTIONS.map((o) => (
-                <button
-                    key={o.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={pref === o.value}
-                    onClick={() => setTheme(o.value)}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-400 ${
-                        pref === o.value ? 'bg-white text-abisso shadow-xs' : 'text-slate-600 hover:text-abisso'
-                    }`}
-                >
-                    <Icon type={o.icon} className="w-4 h-4" /> {o.label}
-                </button>
-            ))}
-        </div>
-    );
-};
-
 /** Anteprima di una pagina nel tema indicato (impostazioni › Aspetto). */
 const Preview: React.FC<{ mode: 'light' | 'dark' | 'split' }> = ({ mode }) => {
     const pane = (dark: boolean) => (

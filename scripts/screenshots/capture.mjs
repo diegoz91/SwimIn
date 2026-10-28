@@ -86,6 +86,8 @@ const PRIVATE_INTERACTIONS = [
     ['form-referenza', '/profile/u_marco', (p) => p.getByRole('button', { name: /Scrivi una referenza|Modifica la tua referenza/ }).click()],
     ['referenze', '/profile?sezione=referenze', async (p) => { await p.locator('#recs-title').scrollIntoViewIfNeeded(); }],
     ['ricerca-suggerimenti', '/', async (p) => { const box = p.locator('#global-search'); if (await box.isVisible()) { await box.click(); await p.keyboard.type('ma'); await p.waitForTimeout(900); } }],
+    ['menu-account', '/', (p) => p.getByRole('button', { name: 'Menu account' }).click()],
+    ['menu-altro', '/', async (p) => { const b = p.getByRole('button', { name: /^Altro/ }); if (await b.isVisible()) await b.click(); }],
     ['chat-menu', '/messages', async (p) => { await p.getByText('Marco Bellini').first().click(); await p.waitForTimeout(500); await p.getByRole('button', { name: 'Azioni sul messaggio' }).last().click(); }],
     ['piede-pagina', '/', async (p) => { await p.evaluate(() => { const r = document.getElementById('scroll-root'); r?.scrollTo({ top: r.scrollHeight }); }); }],
     ['referenze-da-approvare', '/profile', async (p) => { await p.locator('#pending-recs-title').scrollIntoViewIfNeeded(); await p.mouse.wheel(0, -120); }],
