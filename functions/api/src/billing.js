@@ -34,6 +34,18 @@ export const BASE_ALERTS = 2;
 export const PREMIUM_ALERTS = 10;
 
 const DAY = 86_400_000;
+/** Diritto di recesso (Codice del Consumo, art. 52 e 54-bis): 14 giorni dalla conclusione del contratto. */
+export const WITHDRAWAL_DAYS = 14;
+const ACTIVE = ['active', 'trialing', 'past_due'];
+
+/** Quota da rimborsare: la parte di periodo pagato non ancora goduta (centesimi, mai negativa). */
+export const proratedRefund = (amountPaid, startMs, endMs, nowMs = Date.now()) => {
+  if (!(amountPaid > 0) || !(endMs > startMs)) return 0;
+  const left = Math.min(Math.max(endMs - nowMs, 0), endMs - startMs);
+  return Math.round((amountPaid * left) / (endMs - startMs));
+};
+const euro = (cents) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
+const romeTime = (iso) => new Date(iso).toLocaleString('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'long', timeStyle: 'medium' });
 
 export const isPremium = (profile, now = Date.now()) => !!profile?.premiumUntil && new Date(profile.premiumUntil).getTime() > now;
 export const audienceOf = (profile) =>
@@ -61,7 +73,7 @@ const form = (obj, prefix = '') =>
     return [`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`];
   });
 
-export function billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin, config = {}, fetchImpl = fetch, log = () => {} }) {
+export function billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin, config = {}, fetchImpl = fetch, log = () => {}, sendEmail = null, sendAlert = null }) {
   const { stripe = {}, paypal = {}, appUrl = '' } = config;
   // Prezzi e piani mancanti (es. un prezzo appena cambiato dal pannello) si creano al primo pagamento.
   const stripeReady = !!stripe.secretKey;
@@ -282,7 +294,106 @@ export function billingActions({ find, get, list, create, update, fail, C, Query
   const latestSubscription = async (me) =>
     (await list(C.subscriptions, [Query.equal('userId', me), Query.orderDesc('$updatedAt'), Query.limit(5)])).documents.find((s) => s.status !== 'incomplete') || null;
 
+  // ---------------- Recesso ----------------
+  /** Il contratto per cui si può ancora recedere: abbonamento attivo concluso da meno di 14 giorni. */
+  const withdrawable = async (me) => {
+    const subs = (await list(C.subscriptions, [Query.equal('userId', me), Query.orderDesc('$createdAt'), Query.limit(5)])).documents;
+    const now = Date.now();
+    for (const sub of subs) {
+      if (!ACTIVE.includes(sub.status) || !sub.$createdAt) continue;
+      const deadline = new Date(sub.$createdAt).getTime() + WITHDRAWAL_DAYS * DAY;
+      if (deadline > now && !(await find(C.withdrawals, sub.$id))) return { sub, deadline: new Date(deadline).toISOString() };
+    }
+    return null;
+  };
+
+  /** Rimborso della parte non goduta: se il fornitore non risponde resta da fare a mano (avviso agli admin). */
+  const refund = async (sub) => {
+    const start = new Date(sub.$createdAt).getTime();
+    const end = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).getTime() : 0;
+    try {
+      if (sub.provider === 'stripe' && stripeReady) {
+        const inv = (await stripeCall('GET', `/invoices?subscription=${encodeURIComponent(sub.externalId)}&limit=1`)).data?.[0];
+        const amount = proratedRefund(inv?.amount_paid || 0, start, end);
+        if (!amount) return { amount: 0, status: 'none' };
+        const pi = typeof inv.payment_intent === 'string' ? inv.payment_intent : inv.payment_intent?.id;
+        const charge = typeof inv.charge === 'string' ? inv.charge : inv.charge?.id;
+        if (!pi && !charge) return { amount, status: 'manual' };
+        await stripeCall('POST', '/refunds', { ...(pi ? { payment_intent: pi } : { charge }), amount, reason: 'requested_by_customer', metadata: { reason: 'recesso' } });
+        return { amount, status: 'refunded' };
+      }
+      if (sub.provider === 'paypal' && paypalReady) {
+        const from = new Date(start - DAY).toISOString();
+        const to = new Date().toISOString();
+        const { transactions = [] } = await paypalCall('GET', `/v1/billing/subscriptions/${encodeURIComponent(sub.externalId)}/transactions?start_time=${from}&end_time=${to}`);
+        const tx = transactions.find((t) => t.status === 'COMPLETED');
+        const gross = tx?.amount_with_breakdown?.gross_amount;
+        const amount = proratedRefund(Math.round(Number(gross?.value || 0) * 100), start, end);
+        if (!amount) return { amount: 0, status: 'none' };
+        await paypalCall('POST', `/v2/payments/captures/${encodeURIComponent(tx.id)}/refund`, { amount: { value: (amount / 100).toFixed(2), currency_code: gross.currency_code || 'EUR' }, note_to_payer: 'Recesso da SwimIn Premium' });
+        return { amount, status: 'refunded' };
+      }
+    } catch (e) {
+      log(`rimborso ${sub.provider} ${sub.externalId}: ${e?.message || e}`);
+    }
+    return { amount: 0, status: 'manual' };
+  };
+
   const api = {
+    /** Recesso: c'è un contratto per cui si può ancora recedere? (pulsante "Recedi qui dal contratto"). */
+    async getWithdrawal(me) {
+      const w = await withdrawable(me);
+      const past = (await list(C.withdrawals, [Query.equal('userId', me), Query.orderDesc('$createdAt'), Query.limit(5)])).documents;
+      return {
+        available: !!w,
+        contract: w ? { id: w.sub.$id, provider: w.sub.provider, period: w.sub.period, startedAt: w.sub.$createdAt, deadline: w.deadline } : null,
+        receipts: past.map((r) => ({ id: r.$id, requestedAt: r.requestedAt, statement: r.statement, refundAmount: r.refundAmount || 0, refundStatus: r.refundStatus })),
+      };
+    },
+
+    /**
+     * Conferma del recesso (secondo passaggio, "Conferma recesso"): disdice subito l'abbonamento,
+     * chiude il Premium, rimborsa la parte non goduta e invia la ricevuta con data e ora.
+     */
+    async withdrawSubscription(me, { contractId, confirm } = {}) {
+      if (confirm !== true) fail(400, 'Per recedere conferma con "Conferma recesso".');
+      const w = await withdrawable(me);
+      if (!w || w.sub.$id !== contractId) fail(409, 'Il termine di 14 giorni per recedere da questo contratto è scaduto o il recesso è già stato inviato.');
+      const { sub } = w;
+      const requestedAt = new Date().toISOString();
+      const profile = await get(C.profiles, me);
+      const plan = `${PLAN_LABEL[sub.audience] || PLAN_LABEL[audienceOf(profile)]} ${sub.period === 'year' ? 'annuale' : 'mensile'}`;
+      const statement = `Con la presente recedo dal contratto "${plan}" concluso il ${romeTime(sub.$createdAt)} (pagamento con ${sub.provider === 'stripe' ? 'carta' : 'PayPal'}).`;
+      // Prima la ricevuta del recesso (vale da sola), poi disdetta e rimborso.
+      await create(C.withdrawals, { userId: me, subscriptionId: sub.$id, provider: sub.provider, externalId: sub.externalId, statement, requestedAt, refundStatus: 'pending', refundAmount: 0 }, [], sub.$id);
+      try {
+        if (sub.provider === 'stripe' && stripeReady) await stripeCall('DELETE', `/subscriptions/${encodeURIComponent(sub.externalId)}`);
+        if (sub.provider === 'paypal' && paypalReady) await paypalCall('POST', `/v1/billing/subscriptions/${encodeURIComponent(sub.externalId)}/cancel`, { reason: 'Recesso del consumatore' });
+      } catch (e) {
+        log(`disdetta per recesso ${sub.externalId}: ${e?.message || e}`);
+        await sendAlert?.(`Recesso di ${me}: disdetta ${sub.provider} da completare a mano (${sub.externalId}).`).catch(() => null);
+      }
+      const r = await refund(sub);
+      await update(C.withdrawals, sub.$id, { refundStatus: r.status, refundAmount: r.amount });
+      if (r.status === 'manual') await sendAlert?.(`Recesso di ${me}: rimborso ${sub.provider} da fare a mano (${sub.externalId}).`).catch(() => null);
+      await update(C.subscriptions, sub.$id, { status: 'canceled', cancelAtPeriodEnd: false });
+      await update(C.profiles, me, { premiumUntil: requestedAt, premiumSource: 'withdrawn' });
+
+      const refundLine = r.status === 'refunded' ? `Rimborso di ${euro(r.amount)} avviato sul metodo di pagamento usato.` : r.status === 'none' ? 'Nessun importo da rimborsare.' : 'Il rimborso della parte non goduta ti arriverà entro 14 giorni sul metodo di pagamento usato.';
+      const body = `${statement}\n\nRecesso ricevuto il ${romeTime(requestedAt)}.\n${refundLine}`;
+      let emailed = false;
+      if (sendEmail) {
+        try {
+          await sendEmail(me, 'Ricevuta del recesso da SwimIn Premium', body);
+          emailed = true;
+        } catch (e) {
+          log(`ricevuta del recesso non inviata: ${e?.message || e}`);
+        }
+      }
+      await notify(me, 'general', `Recesso ricevuto il ${romeTime(requestedAt)}. ${refundLine}`, '');
+      return { requestedAt, statement, refundAmount: r.amount, refundStatus: r.status, emailed };
+    },
+
     async getBillingStatus(me) {
       const profile = await get(C.profiles, me);
       const audience = audienceOf(profile);

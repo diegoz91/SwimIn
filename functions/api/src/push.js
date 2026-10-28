@@ -65,6 +65,8 @@ export function targetUrl(type, relatedId) {
     case 'staff_chat': return relatedId ? `/profile/${relatedId}?area=chat-staff` : '/';
     case 'system_alert': return '/admin?tab=errori';
     case 'feedback': return '/admin?tab=feedback';
+    case 'moderation': return relatedId ? `/moderazione/${relatedId}` : '/';
+    case 'data_breach': return '/admin?tab=violazioni';
     case 'recommendation': return '/profile?referenze=approva';
     case 'recommendation_published': return relatedId ? `/profile/${relatedId}?sezione=referenze` : '/profile';
     case 'recommendation_request': return relatedId ? `/profile/${relatedId}?referenza=scrivi` : '/profile';

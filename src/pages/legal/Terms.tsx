@@ -77,9 +77,11 @@ const Terms: React.FC = () => (
                             i vantaggi restano attivi fino alla fine del periodo già pagato.
                         </li>
                         <li>
-                            Diritto di recesso: hai 14 giorni dall'acquisto per recedere scrivendo a {LEGAL.contactEmail}. Iniziando a usare subito
-                            le funzioni Premium accetti che il servizio sia erogato prima della scadenza di questo termine; in caso di recesso è
-                            rimborsata la parte di periodo non goduta.
+                            Diritto di recesso: hai 14 giorni dalla sottoscrizione per recedere senza dare motivi con il pulsante
+                            «Recedi qui dal contratto» nella pagina <Link to="/premium">Premium</Link> (oppure scrivendo a {LEGAL.contactEmail}).
+                            Dopo la conferma («Conferma recesso») ricevi una ricevuta con data e ora. Iniziando a usare subito le funzioni Premium
+                            accetti che il servizio sia erogato prima della scadenza di questo termine; in caso di recesso Premium si chiude subito ed
+                            è rimborsata la parte di periodo non goduta, entro 14 giorni, con lo stesso metodo di pagamento.
                         </li>
                         <li>I dati di pagamento sono trattati direttamente da Stripe e PayPal: SwimIn non li riceve né li conserva.</li>
                         <li>Eliminando l'account, gli abbonamenti attivi vengono disdetti automaticamente.</li>
@@ -105,12 +107,14 @@ const Terms: React.FC = () => (
                 ),
             },
             {
-                title: 'Segnalazioni e sospensioni',
+                title: 'Segnalazioni, rimozioni e punto di contatto',
                 body: (
-                    <p>
-                        Puoi segnalare contenuti o profili che violano questi termini. Possiamo rimuovere contenuti e sospendere o chiudere
-                        account in caso di violazioni, informandoti quando possibile.
-                    </p>
+                    <ul>
+                        <li>Puoi segnalare contenuti o profili che violano questi termini o la legge con la funzione «Segnala»: chi esamina la segnalazione è una persona dello staff, non un sistema automatico, e ti comunichiamo l'esito.</li>
+                        <li>Se rimuoviamo un tuo contenuto o sospendiamo il tuo account ti spieghiamo perché: la regola violata, il contenuto interessato, la motivazione e come contestare la decisione. La ricevi nell'app e per email.</li>
+                        <li>Puoi contestare una decisione rispondendo con «Scrivici» o scrivendo a {LEGAL.contactEmail}; la riesaminiamo con una persona diversa quando possibile. Restano disponibili gli organismi di risoluzione extragiudiziale delle controversie e l'autorità giudiziaria.</li>
+                        <li>Punto di contatto unico per utenti e autorità (Regolamento UE 2022/2065, Digital Services Act, art. 11 e 12): {LEGAL.contactEmail}, in italiano o in inglese.</li>
+                    </ul>
                 ),
             },
             {

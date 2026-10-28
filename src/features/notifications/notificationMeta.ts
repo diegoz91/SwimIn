@@ -59,6 +59,10 @@ export function notificationMeta(n: AppNotification): NotificationMeta {
             return { icon: 'chat-bubble', tone: 'bg-corsia-100 text-corsia-700', href: '/admin?tab=feedback' };
         case 'system_alert':
             return { icon: 'alert-triangle', tone: 'bg-red-100 text-galleggiante-700', href: '/admin?tab=errori' };
+        case 'moderation':
+            return { icon: 'shield', tone: 'bg-amber-100 text-amber-800', href: n.relatedId ? `/moderazione/${n.relatedId}` : '/notifiche' };
+        case 'data_breach':
+            return { icon: 'shield', tone: 'bg-red-100 text-galleggiante-700', href: '/admin?tab=violazioni' };
         case 'rejected':
             return { icon: 'briefcase', tone: 'bg-slate-100 text-slate-500', href: n.relatedId ? `/jobs/${n.relatedId}` : '/jobs/candidature' };
         default:

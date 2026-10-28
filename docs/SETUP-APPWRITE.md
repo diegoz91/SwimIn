@@ -244,6 +244,20 @@ Durante la fase di test l'iscrizione è **solo su invito** (`inviteOnly` sulla r
 
 Chi ha già un account entra normalmente; gli account della prova automatica (`swimin-e2e+…`) non hanno bisogno del codice. Data e versione delle condizioni accettate e codice usato restano in `private_info`. Se cambi i testi delle condizioni, aggiorna `BETA_VERSION` in `src/config/legal.ts`: l'avviso ricompare a tutti.
 
+## 17. Recesso, moderazione e violazioni dei dati
+
+**Recesso da Premium** (Codice del Consumo, art. 54-bis, obbligatorio per i contratti conclusi dal 19 giugno 2026). Nei 14 giorni dalla sottoscrizione la pagina `/premium` mostra «Recedi qui dal contratto»; la conferma «Conferma recesso» disdice subito l'abbonamento, chiude Premium, rimborsa la parte non goduta (Stripe: rimborso sull'ultima fattura; PayPal: rimborso dell'ultima transazione) e invia la ricevuta con data e ora.
+- La ricevuta per email richiede `EMAIL_NOTIFICATIONS=on` (Appwrite Messaging con un provider email). Senza, resta nell'app e si può scaricare.
+- Se il rimborso automatico non riesce, la riga in `withdrawals` resta `manual` e gli amministratori ricevono un avviso: il rimborso va fatto dalla dashboard di Stripe o PayPal entro 14 giorni.
+
+**Moderazione motivata** (Digital Services Act, art. 16 e 17). In *Admin › Segnalazioni*, «Rimuovi contenuto» e «Sospendi autore» chiedono la regola violata e una motivazione. L'autore riceve una notifica che apre `/moderazione/:id` e un'email con il testo completo (anche se sospeso). Chi ha segnalato riceve l'esito. Le contestazioni arrivano da «Scrivici» o all'email di contatto: vanno riesaminate da una persona, se possibile diversa da chi ha deciso. Il punto di contatto unico è l'email in `src/config/legal.ts` (Termini › Segnalazioni).
+
+**Violazioni dei dati personali** (GDPR art. 33 e 34). Quando dati personali vengono persi, esposti o modificati senza permesso:
+1. Registra subito l'episodio in *Admin › Violazioni dei dati* (anche se sembra innocuo): tutti gli amministratori ricevono un avviso e parte il conto alla rovescia di 72 ore.
+2. Ferma la causa (revoca link o chiavi, correggi i permessi, sospendi l'account compromesso) e annota le misure.
+3. Valuta il rischio per le persone. Rischio medio o alto: notifica al Garante entro 72 ore dalla scoperta con il servizio online del Garante, poi segna data e ora nel registro. Rischio alto: avvisa anche le persone coinvolte senza ritardo (email da Appwrite Messaging o comunicazione nell'app).
+4. Chiudi la voce solo con gli avvisi dovuti registrati: il pannello non lo permette altrimenti.
+
 ## Modello di sicurezza (in breve)
 
 | Collezione | Chi legge | Chi crea | Chi modifica |

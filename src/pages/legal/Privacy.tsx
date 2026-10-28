@@ -95,13 +95,30 @@ const Privacy: React.FC = () => (
                 ),
             },
             {
+                title: 'Dati particolari: salute, categorie protette, condanne',
+                body: (
+                    <>
+                        <p>
+                            SwimIn non ti chiede dati sulla salute o sull'invalidità, sull'appartenenza a categorie protette, sulle convinzioni religiose,
+                            politiche o sindacali né su condanne penali (art. 9 e 10 GDPR): non servono per usare il servizio né per candidarsi.
+                        </p>
+                        <p>
+                            Ti chiediamo di non inserirli nel profilo, nel CV o nei messaggi alle strutture. Se lo fai comunque, li inserisci per tua scelta e
+                            puoi toglierli in qualsiasi momento. I brevetti e i certificati che carichi per la verifica restano privati e li vedono solo gli
+                            amministratori che li controllano.
+                        </p>
+                    </>
+                ),
+            },
+            {
                 title: 'Per quanto tempo conserviamo i dati',
                 body: (
                     <ul>
                         <li>I dati dell'account e del profilo per tutta la durata dell'account.</li>
                         <li>Se elimini l'account, cancelliamo profilo, post, commenti, consigli, candidature, collegamenti e notifiche; i messaggi già inviati restano visibili al destinatario, senza il collegamento al tuo profilo.</li>
                         <li>I registri tecnici di sicurezza per un periodo limitato, non superiore a 12 mesi salvo obblighi di legge; i registri degli errori dell'app per 30 giorni.</li>
-                        <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; le visite al profilo, le comparse nelle ricerche, le visualizzazioni degli annunci e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
+                        <li>La ricevuta di un recesso da Premium (dichiarazione, data e ora, esito del rimborso) per 5 anni, anche dopo l'eliminazione dell'account, come prova dei tuoi e dei nostri diritti.</li>
+                        <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; i provvedimenti di moderazione, le visite al profilo, le comparse nelle ricerche, le visualizzazioni degli annunci e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
                         <li>Le candidature (con il CV allegato e le valutazioni di chi seleziona) fino a 12 mesi dopo la chiusura dell'annuncio; le segnalazioni chiuse e la chat dello staff per 12 mesi; i turni di lavoro per 24 mesi.</li>
                         <li>La data in cui hai accettato Termini e Privacy, per tutta la durata dell'account.</li>
                         <li>

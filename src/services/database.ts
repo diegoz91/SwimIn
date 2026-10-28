@@ -222,6 +222,22 @@ interface LegalExportPage { manifest: Record<string, unknown> & { items: unknown
 export interface AdminUserRow { $id: string; name: string; email: string; userType: string; personType?: string; city?: string; suspended: boolean }
 
 
+/** Recesso da Premium (Codice del Consumo art. 54-bis). */
+export interface WithdrawalReceipt { id: string; requestedAt: string; statement: string; refundAmount: number; refundStatus: 'pending' | 'refunded' | 'none' | 'manual' }
+export interface WithdrawalInfo {
+    available: boolean;
+    contract: { id: string; provider: 'stripe' | 'paypal'; period: string; startedAt: string; deadline: string } | null;
+    receipts: WithdrawalReceipt[];
+}
+/** Provvedimento motivato su un proprio contenuto o account (Digital Services Act art. 17). */
+export interface ModerationDecision { id: string; action: 'remove' | 'suspend'; targetType: string; ground: string; groundLabel: string; explanation: string; excerpt: string; decidedAt: string; automated: boolean }
+/** Voce del registro delle violazioni dei dati (GDPR art. 33.5). */
+export interface DataBreach {
+    $id: string; title: string; description: string; detectedAt: string; dataCategories: string; affectedCount: number;
+    risk: 'low' | 'medium' | 'high'; status: 'open' | 'closed'; garanteNotifiedAt: string; usersNotifiedAt: string; measures: string;
+    createdAt: string; due: string; required: boolean; overdue: boolean;
+}
+export type BreachInput = Pick<DataBreach, 'title' | 'description' | 'detectedAt' | 'dataCategories' | 'affectedCount' | 'risk' | 'status' | 'garanteNotifiedAt' | 'usersNotifiedAt' | 'measures'> & { breachId?: string };
 export interface BillingStatus {
     premium: boolean;
     premiumUntil: string | null;
@@ -478,8 +494,9 @@ export const databaseService = {
     async adminListReports(status: 'open' | 'resolved' | 'dismissed' = 'open') {
         return await callApi<AdminReport[]>('adminListReports', { status });
     },
-    async adminResolveReport(reportId: string, decision: 'dismiss' | 'remove' | 'suspend', note = '') {
-        return await callApi<{ ok: boolean; closed: number }>('adminResolveReport', { reportId, decision, note });
+    /** `ground` e `explanation`: regola violata e motivazione, inviate a chi riceve il provvedimento. */
+    async adminResolveReport(reportId: string, decision: 'dismiss' | 'remove' | 'suspend', motive: { ground?: string; explanation?: string } = {}) {
+        return await callApi<{ ok: boolean; closed: number; decisionId: string | null }>('adminResolveReport', { reportId, decision, ...motive });
     },
     async adminSetSuspended(userId: string, suspended: boolean) {
         return await callApi('adminSetSuspended', { userId, suspended });
@@ -1010,6 +1027,22 @@ export const databaseService = {
     },
     async confirmPaypal(subscriptionId: string) {
         return await callApi<{ status: string }>('confirmPaypal', { subscriptionId });
+    },
+    async getWithdrawal() {
+        return await callApi<WithdrawalInfo>('getWithdrawal');
+    },
+    /** Secondo passaggio del recesso ("Conferma recesso"). */
+    async withdrawSubscription(contractId: string) {
+        return await callApi<{ requestedAt: string; statement: string; refundAmount: number; refundStatus: WithdrawalReceipt['refundStatus']; emailed: boolean }>('withdrawSubscription', { contractId, confirm: true });
+    },
+    async getModerationDecision(decisionId: string) {
+        return await callApi<ModerationDecision>('getModerationDecision', { decisionId });
+    },
+    async adminListBreaches() {
+        return await callApi<DataBreach[]>('adminListBreaches');
+    },
+    async adminSaveBreach(data: BreachInput) {
+        return await callApi<DataBreach>('adminSaveBreach', { ...data });
     },
     async manageSubscription(cancel = false) {
         return await callApi<{ url?: string; cancelled?: boolean }>('manageSubscription', { cancel });

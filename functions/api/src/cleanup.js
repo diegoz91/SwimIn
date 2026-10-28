@@ -80,6 +80,10 @@ export function cleanupActions({ find, listAll, remove, removeAll, C, Query, use
         }
         return n;
       });
+      // Recessi e registro delle violazioni: 5 anni (prova verso consumatori e Garante).
+      if (C.moderationDecisions) await step('provvedimenti', () => removeAll(C.moderationDecisions, [Query.lessThan('$createdAt', ago(365, now))]));
+      if (C.withdrawals) await step('recessi', () => removeAll(C.withdrawals, [Query.lessThan('$createdAt', ago(1825, now))]));
+      if (C.dataBreaches) await step('violazioniChiuse', () => removeAll(C.dataBreaches, [Query.equal('status', 'closed'), Query.lessThan('$updatedAt', ago(1825, now))]));
       await step('suggerimenti', () => removeAll(C.feedback, [Query.equal('status', 'done'), Query.lessThan('$updatedAt', ago(365, now))]));
 
       // Righe orfane.

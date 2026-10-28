@@ -13,6 +13,8 @@ export const AUDIT_LABELS: Record<string, string> = {
     adminListAudit: 'Ha consultato il registro accessi',
     adminListReports: 'Ha consultato le segnalazioni',
     adminResolveReport: 'Ha deciso una segnalazione',
+    adminListBreaches: 'Ha consultato il registro delle violazioni',
+    adminSaveBreach: 'Ha registrato o aggiornato una violazione dei dati',
     adminSearchUsers: 'Ha cercato utenti',
     adminSetSuspended: 'Ha sospeso o riattivato un account',
     adminGrantPremium: 'Ha regalato Premium',

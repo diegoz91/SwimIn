@@ -52,6 +52,7 @@ const Landing = lazyPage(() => import('@/pages/Landing'));
 const Onboarding = lazyPage(() => import('@/pages/Onboarding'));
 const PostPage = lazyPage(() => import('@/pages/PostPage'));
 const Notifications = lazyPage(() => import('@/pages/Notifications'));
+const ModerationDecision = lazyPage(() => import('@/pages/ModerationDecision'));
 const Search = lazyPage(() => import('@/pages/Search'));
 const Saved = lazyPage(() => import('@/pages/Saved'));
 const Stats = lazyPage(() => import('@/pages/Stats'));
@@ -189,6 +190,7 @@ const AppContent: React.FC = () => {
               <Route path="/live" element={<ProtectedRoute><Live /></ProtectedRoute>} />
               <Route path="/post/:id" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
               <Route path="/notifiche" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/moderazione/:id" element={<ProtectedRoute><ModerationDecision /></ProtectedRoute>} />
               <Route path="/cerca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
               <Route path="/benvenuto" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/salvati" element={<ProtectedRoute><Saved /></ProtectedRoute>} />

@@ -10,6 +10,7 @@ import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { PLAN_FEATURES, PLAN_NAME, euro, type Audience } from '@/utils/premium';
 import { formatDate } from '@/utils/dates';
 import { useConfirm } from '@/context/ConfirmContext';
+import { WithdrawalSection } from '@/features/premium/WithdrawalSection';
 
 const HERO: Record<Audience, { title: string; text: string }> = {
     person: {
@@ -26,7 +27,7 @@ const HERO: Record<Audience, { title: string; text: string }> = {
     },
 };
 
-const SOURCE: Record<string, string> = { trial: 'prova gratuita', stripe: 'carta', paypal: 'PayPal', admin: 'omaggio SwimIn' };
+const SOURCE: Record<string, string> = { trial: 'prova gratuita', stripe: 'carta', paypal: 'PayPal', admin: 'omaggio SwimIn', withdrawn: 'recesso' };
 
 /** SwimIn Premium: confronto dei piani, prova gratuita, abbonamento e gestione. */
 const Premium: React.FC = () => {
@@ -181,6 +182,8 @@ const Premium: React.FC = () => {
                     </div>
                 </section>
             )}
+
+            <WithdrawalSection onDone={() => void load()} />
 
             {!renewing && (
                 <div className="flex justify-center mb-5">

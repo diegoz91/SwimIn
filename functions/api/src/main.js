@@ -39,6 +39,7 @@ import { makeSealer } from './seal.js';
 import { auditActions } from './audit.js';
 import { legalActions } from './legal.js';
 import { betaActions } from './beta.js';
+import { breachActions } from './breaches.js';
 import { randomBytes } from 'node:crypto';
 
 const DB = 'swimwaveup_db';
@@ -74,6 +75,9 @@ const C = {
   searchAppearances: 'search_appearances',
   jobViews: 'job_views',
   subscriptions: 'subscriptions',
+  withdrawals: 'withdrawals',
+  moderationDecisions: 'moderation_decisions',
+  dataBreaches: 'data_breaches',
   follows: 'follows',
   pollVotes: 'poll_votes',
   groups: 'groups',
@@ -381,7 +385,11 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const addToArray = (arr = [], value) => (arr.includes(value) ? arr : [...arr, value]);
   const removeFromArray = (arr = [], value) => arr.filter((v) => v !== value);
 
-  const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log });
+  /** Email in testo semplice sempre recapitata (ricevute e motivazioni: non dipende dalle preferenze). */
+  const sendPlainEmail = messaging ? (userId, subject, text) => messaging.createEmail({ messageId: ID.unique(), subject, content: text, users: [userId], html: false }) : null;
+  const billingApi = billingActions({ find, get, list, create, update, fail, C, Query, users, notify, isAdmin: (id) => moderation._isAdmin(id), config: { ...billing, appUrl }, fetchImpl: fetchImpl || fetch, log,
+    sendEmail: sendPlainEmail,
+    sendAlert: (text) => ops._sendAlert(text) });
   /** Immagine caricata nello storage di SwimIn (niente link esterni). */
   const storageImage = (v, label) => {
     if (v == null || v === '') return '';
@@ -415,7 +423,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
   const insights = insightsActions({ find, get, list, listAll, create, fail, C, Query, mapLimit, jobManagers });
   const social = socialActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, C, Query, Permission, Role, displayName, assertNotBlocked: (a, b) => moderation._assertNotBlocked(a, b) });
   const team = teamActions({ find, get, list, listAll, create, update, remove, removeAll, count, fail, notify, deliver: (...a) => push._deliver(...a), C, Query, displayName });
-  const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName });
+  const moderation = moderationActions({ find, get, create, update, remove, list, listAll, removeAll, count, fail, users, notify, C, displayName, sendEmail: sendPlainEmail });
   const assertNotBlocked = moderation._assertNotBlocked;
   // Copie sigillate (chiave pubblica della società) e registro degli accessi dello staff.
   const sealer = makeSealer(escrowPublicKey);
@@ -556,6 +564,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
     ...team,
     ...social,
     ...insights,
+    ...breachActions({ find, create, update, list, fail, C, Query, isAdmin: (id) => moderation._isAdmin(id), sendAlert: (text, type) => ops._sendAlert(text, type) }),
     ...content_,
     ...groups,
     ...chat,
@@ -900,6 +909,7 @@ const createApi = (db, { users = null, storage = null, endpoint = '', messaging 
       await removeAll(C.commentLikes, [Query.equal('userId', me)]);
       await removeAll(C.profileViews, [Query.equal('viewerId', me)]);
       await removeAll(C.profileViews, [Query.equal('profileId', me)]);
+      await removeAll(C.moderationDecisions, [Query.equal('userId', me)]);
       await removeAll(C.searchAppearances, [Query.equal('viewerId', me)]);
       await removeAll(C.searchAppearances, [Query.equal('profileId', me)]);
       await removeAll(C.jobViews, [Query.equal('viewerId', me)]);

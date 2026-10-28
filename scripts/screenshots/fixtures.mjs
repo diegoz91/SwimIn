@@ -316,6 +316,19 @@ export const apiResponses = {
     ],
     getTrends: () => [{ tag: 'master', posts: 8 }, { tag: 'salvamento', posts: 5 }, { tag: 'scuolanuoto', posts: 4 }, { tag: 'soglia', posts: 2 }],
     getBillingStatus: () => ({ premium: false, premiumUntil: null, source: null, trialAvailable: true, trialDays: 30, audience: 'person', prices: { month: 499, year: 4790 }, providers: { stripe: true, paypal: true }, inmailCredits: 0, subscription: null }),
+    // Conformità: recesso da Premium, provvedimenti motivati, registro delle violazioni.
+    getWithdrawal: () => ({ available: false, contract: null, receipts: [] }),
+    withdrawSubscription: () => ({ requestedAt: new Date().toISOString(), statement: 'Con la presente recedo dal contratto "SwimIn Premium mensile".', refundAmount: 449, refundStatus: 'refunded', emailed: true }),
+    getModerationDecision: ({ decisionId } = {}) => ({ id: decisionId, action: 'remove', targetType: 'post', ground: 'spam', groundLabel: 'Spam o pubblicità non richiesta', explanation: 'Il post pubblicizza più volte un servizio a pagamento estraneo al nuoto.', excerpt: 'Compra follower veri a 9,90 €! Scrivimi in privato.', decidedAt: iso(90), automated: false }),
+    adminListReports: () => [
+        { $id: 'rp1', $createdAt: iso(40), reporterId: 'u_sara', reporterName: 'Sara Colombo', targetType: 'post', targetId: 'p9', reason: 'spam', details: 'Lo pubblica in tutti i gruppi.', status: 'open', target: { exists: true, authorId: 'u_marco', authorName: 'Marco Bellini', suspended: false, text: 'Compra follower veri a 9,90 €! Scrivimi in privato.' } },
+    ],
+    adminResolveReport: ({ decision } = {}) => ({ ok: true, closed: 1, decisionId: decision === 'dismiss' ? null : 'md1' }),
+    adminListBreaches: () => [
+        { $id: 'db1', title: 'CV visibili tramite un link condiviso per errore', description: 'Un link di download di un CV è stato inoltrato in un gruppo WhatsApp di istruttori. Il link scadeva dopo un’ora.', detectedAt: iso(60 * 30), dataCategories: 'nome, CV', affectedCount: 1, risk: 'medium', status: 'open', garanteNotifiedAt: '', usersNotifiedAt: '', measures: 'Link revocato.', createdAt: iso(60 * 30), due: new Date(now + 42 * 3600000).toISOString(), required: true, overdue: false },
+        { $id: 'db2', title: 'Email di prova inviata alla lista sbagliata', description: 'Un’email di prova con solo il nome è arrivata a 3 indirizzi interni.', detectedAt: iso(60 * 24 * 20), dataCategories: 'nome', affectedCount: 3, risk: 'low', status: 'closed', garanteNotifiedAt: '', usersNotifiedAt: '', measures: 'Lista corretta.', createdAt: iso(60 * 24 * 20), due: iso(60 * 24 * 17), required: false, overdue: false },
+    ],
+    adminSaveBreach: (p = {}) => ({ $id: p.breachId || 'db9', ...p, createdAt: new Date().toISOString(), due: new Date(now + 72 * 3600000).toISOString(), required: p.risk !== 'low', overdue: false }),
     adminOverview: () => ({ people: 1284, structures: 96, posts: 5310, openReports: 2, errors24h: 0, pendingCerts: 3 }),
     adminGetPlans: () => {
         const plan = (audience, period, amount, defaultAmount, subscribers) => ({ key: `${audience}_${period}`, audience, period, amount, defaultAmount, updatedAt: amount !== defaultAmount ? new Date(now - 3 * 86400000).toISOString() : null, subscribers, stripe: true, paypal: true });
