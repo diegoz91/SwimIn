@@ -132,24 +132,24 @@ const Header: React.FC = () => {
 
   return (
     <header className="relative shrink-0 z-50 bg-white/95 backdrop-blur-md" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 sm:gap-6">
+      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 md:gap-6">
         <Link to="/" className="shrink-0 rounded-lg outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-500" aria-label="SwimIn, vai alla home">
-          <span className="sm:hidden"><Brand size="sm" markOnly /></span>
-          <span className="hidden sm:inline-flex"><Brand size="md" /></span>
+          <span className="md:hidden"><Brand size="sm" markOnly /></span>
+          <span className="hidden md:inline-flex"><Brand size="md" /></span>
         </Link>
 
         <div className="flex-1 max-w-sm hidden lg:block">
           <SearchTypeahead />
         </div>
 
-        <nav className="hidden md:flex items-stretch h-full ml-auto" aria-label="Navigazione principale">
+        <nav className="hidden sm:flex items-stretch h-full ml-auto" aria-label="Navigazione principale" data-nav="top">
           {navFor(user).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `relative flex flex-col items-center justify-center gap-0.5 w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-hidden focus-visible:bg-piastrella ${
+                `relative flex flex-col items-center justify-center gap-0.5 w-16 md:w-[4.5rem] lg:w-20 text-[11px] font-semibold transition-colors outline-hidden focus-visible:bg-piastrella ${
                   isActive ? 'text-abisso after:absolute after:bottom-0 after:inset-x-3 after:h-[3px] after:rounded-t-sm after:bg-corsia-600' : 'text-slate-500 hover:text-abisso'
                 }`
               }
@@ -166,7 +166,7 @@ const Header: React.FC = () => {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-2 ml-auto md:ml-0 md:pl-4 md:border-l border-slate-200 h-10">
+        <div className="flex items-center gap-1 sm:gap-2 ml-auto sm:ml-0 sm:pl-2 md:pl-4 sm:border-l border-slate-200 h-10">
           <Link to="/cerca" className="lg:hidden p-2 text-slate-500 hover:text-abisso rounded-full" aria-label="Cerca">
             <Icon type="search" className="w-6 h-6" />
           </Link>

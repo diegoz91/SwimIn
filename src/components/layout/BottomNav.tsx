@@ -30,9 +30,10 @@ const BottomNav: React.FC = () => {
 
     return (
         <nav
-            className="md:hidden relative shrink-0 z-40 bg-white border-t border-slate-200 flex"
+            className="sm:hidden relative shrink-0 z-40 bg-white border-t border-slate-200 flex"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             aria-label="Navigazione principale"
+            data-nav="bottom"
         >
             {(isEnthusiast(user) ? ITEMS.map((n) => (n.to === '/jobs' ? { to: '/strutture', icon: 'building' as IconType, label: 'Piscine' } : n)) : ITEMS).map((item) => (
                 <NavLink

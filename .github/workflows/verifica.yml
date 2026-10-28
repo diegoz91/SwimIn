@@ -2,7 +2,7 @@
 # (chiamata da rilascio.yml). Due fasi:
 #   1. build  – lockfile, vulnerabilità, tema, tipi, test unitari, build, test di Function, Vercel e anagrafica
 #   2. qualità – schermate in 6 formati, controllo del layout, accessibilità, 45 percorsi end-to-end,
-#                budget del bundle; rapporti sul branch ci-screenshots/<branch>
+#                navigazione su tablet e telefoni con WebKit (Safari, Chrome su iPad), budget del bundle; rapporti sul branch ci-screenshots/<branch>
 name: Verifica
 
 on:
@@ -113,7 +113,7 @@ jobs:
         run: |
           npm ci
           npm install --no-save --no-audit --no-fund playwright@1.48.2 axe-core@4.10.2
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
 
       - uses: actions/download-artifact@v8
         with:
@@ -133,6 +133,9 @@ jobs:
           node scripts/e2e/flows.mjs http://localhost:4173 screenshots/e2e 2>&1 | tee screenshots/e2e.txt; echo "${PIPESTATUS[0]}" > screenshots/e2e.status
           cp screenshots/e2e/e2e.md screenshots/e2e.md 2>/dev/null || true
           node scripts/quality/bundle-budget.mjs dist screenshots/perf.md 2>&1 | tee screenshots/budget.txt; echo "${PIPESTATUS[0]}" > screenshots/budget.status
+          # Tablet e telefoni con WebKit (Safari, e Chrome su iPad e iPhone).
+          node scripts/e2e/tablet.mjs http://localhost:4173 screenshots/tablet 2>&1 | tee screenshots/tablet.txt; echo "${PIPESTATUS[0]}" > screenshots/tablet.status
+          cp screenshots/tablet/tablet.md screenshots/tablet.md 2>/dev/null || true
 
       # Rapporti e schermate sul branch ci-screenshots/<branch> (Dependabot ha un token in sola lettura).
       - name: Pubblica i rapporti
@@ -159,5 +162,6 @@ jobs:
           fi
           if grep -q "^♿" screenshots/log.txt; then echo "::error::Problemi di accessibilità gravi o critici (a11y.md)."; grep -E "^♿" screenshots/log.txt; fail=1; fi
           if [ "$(cat screenshots/e2e.status 2>/dev/null)" != "0" ]; then echo "::error::Test end-to-end non riusciti (e2e.md)."; grep -E "^✗" screenshots/e2e.txt; fail=1; fi
+          if [ "$(cat screenshots/tablet.status 2>/dev/null)" != "0" ]; then echo "::error::Navigazione su tablet o telefono non corretta (tablet.md)."; grep -E "^✗" screenshots/tablet.txt; fail=1; fi
           if [ "$(cat screenshots/budget.status 2>/dev/null)" != "0" ]; then echo "::error::Bundle oltre il budget (perf.md)."; grep -E "^✗" screenshots/budget.txt; fail=1; fi
           exit $fail
