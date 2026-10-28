@@ -1,0 +1,3 @@
+✓ JS iniziale: 153.8 KB (budget 160 KB)
+✓ CSS iniziale: 19.5 KB (budget 20 KB)
+✓ Chunk più pesante (ApplicationsChart-BOrOyuNp.js): 100 KB (budget 130 KB)
