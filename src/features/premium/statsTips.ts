@@ -19,7 +19,7 @@ export function statsTips(profile: UserProfile | StructureProfile, s: ProfileSta
     const headline = structure ? profile.structureType : profile.title;
     if (!photo || !headline || !profile.bio || !profile.province) {
         const missing = [!photo && (structure ? 'il logo' : 'la foto'), !headline && (structure ? 'il tipo di struttura' : 'la qualifica'), !profile.bio && 'la presentazione', !profile.province && 'la provincia'].filter(Boolean);
-        tips.push({ id: 'profilo', title: 'Completa il profilo', text: `Mancano ${missing.join(', ')}: i profili completi compaiono prima nelle ricerche e vengono aperti più spesso.`, to: '/profile', action: 'Completa il profilo' });
+        tips.push({ id: 'profilo', title: 'Completa il profilo', text: `${missing.length === 1 ? 'Manca' : 'Mancano'} ${missing.join(', ')}: i profili completi compaiono prima nelle ricerche e vengono aperti più spesso.`, to: '/profile', action: 'Completa il profilo' });
     }
 
     // Compare nelle ricerche ma pochi aprono il profilo: conta la prima impressione.
