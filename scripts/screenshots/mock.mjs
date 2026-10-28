@@ -159,6 +159,9 @@ export async function mockAppwrite(page, state) {
         }
         const list = path.match(/^\/databases\/[^/]+\/collections\/([^/]+)\/documents$/);
         if (list && method === 'GET') {
+            // Quante volte la pagina ha letto ogni tabella (es. il feed non deve ricaricarsi da solo).
+            state.lists ??= {};
+            state.lists[list[1]] = (state.lists[list[1]] || 0) + 1;
             const queries = [...url.searchParams.entries()].filter(([k]) => k.startsWith('queries')).map(([, v]) => v);
             const rows = applyQueries(withOverrides(list[1], state), queries);
             return json(route, { total: rows.length, documents: rows });
