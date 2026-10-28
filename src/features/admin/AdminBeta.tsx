@@ -150,8 +150,8 @@ export const AdminBeta: React.FC = () => {
             </section>
 
             <form onSubmit={create} className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem_12rem_auto] sm:items-end">
-                <Field id="invite-label" label="Per chi è" hint="Es. Istruttori Piscina Lido, gruppo master.">
-                    <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} />
+                <Field id="invite-label" label="Per chi è">
+                    <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} placeholder="Es. Istruttori Piscina Lido" />
                 </Field>
                 <Field id="invite-max" label="Usi massimi">
                     <input type="number" inputMode="numeric" min={1} max={1000} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
