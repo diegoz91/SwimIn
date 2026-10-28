@@ -454,7 +454,8 @@ const FLOWS = [
         await page.waitForURL(/\/network\?tab=eventi$/, { timeout: 6000 });
         const bar = page.getByRole('navigation', { name: 'Navigazione principale' });
         assert.equal(await bar.getByRole('link', { name: 'Eventi', exact: true }).count(), 0, 'Eventi non sta nella barra');
-        await page.getByRole('button', { name: /^Altro/ }).click();
+        // Nella barra: la scheda Eventi ha anche un filtro "Altro".
+        await bar.getByRole('button', { name: /^Altro/ }).click();
         await page.getByRole('menu', { name: 'Altro' }).getByRole('menuitem', { name: 'Eventi' }).click();
         await page.waitForURL(/tab=eventi$/, { timeout: 6000 });
     }],
