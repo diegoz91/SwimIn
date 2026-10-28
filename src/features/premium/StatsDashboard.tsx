@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Icon, type IconType } from '@/components/ui/Icon';
-import { databaseService, type ProfileStats } from '@/services/database';
+import { databaseService, type KindCounts, type ProfileStats } from '@/services/database';
+import { useAuth } from '@/hooks/useAuth';
+import { provinceName } from '@/data/italy';
 import { MONTHS } from '@/utils/dates';
+import { changeOf, statsTips } from './statsTips';
 import { cutText, plainText } from '@/utils/richText';
 import { PremiumBadge } from './PremiumBadge';
 
@@ -17,6 +20,7 @@ export const StatsDashboard: React.FC<{ premium: boolean; /** Dove vedere l'elen
     const [stats, setStats] = useState<ProfileStats | null>(null);
     const [baseViews, setBaseViews] = useState<number | null>(null);
     const [error, setError] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
         let alive = true;
@@ -35,16 +39,18 @@ export const StatsDashboard: React.FC<{ premium: boolean; /** Dove vedere l'elen
     return (
         <div className="space-y-5">
             <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <Kpi icon="user-circle" label="Visite al profilo" value={stats.viewsLast30} />
-                <Kpi icon="like" label="Reazioni ai post" value={stats.totals.reactions} />
-                <Kpi icon="comment" label="Commenti" value={stats.totals.comments} />
-                <Kpi icon="share" label="Ripubblicazioni" value={stats.totals.reposts} />
+                <Kpi icon="user-circle" label="Visite al profilo" value={stats.viewsLast30} previous={stats.previous.views} />
+                <Kpi icon="search" label="Comparse nelle ricerche" value={stats.searchesLast30} previous={stats.previous.searches} />
+                <Kpi icon="like" label="Interazioni con i post" value={stats.totals.reactions + stats.totals.comments + stats.totals.reposts} previous={stats.previous.reactions + stats.previous.comments + stats.previous.reposts} />
+                <Kpi icon="document" label="Post pubblicati" value={stats.postsLast30} previous={stats.previous.posts} />
             </dl>
+            {user && <Tips tips={statsTips(user, stats)} />}
             <ViewsChart days={stats.viewsPerDay} total={stats.viewsLast30} />
             <div className="grid lg:grid-cols-5 gap-5">
                 <Visitors stats={stats} viewersLink={viewersLink} />
                 <Posts posts={stats.posts} />
             </div>
+            {user?.userType === 'structure' && <Jobs jobs={stats.jobs} />}
         </div>
     );
 };
@@ -59,14 +65,47 @@ const Card: React.FC<{ title: string; aside?: React.ReactNode; children: React.R
     </section>
 );
 
-const Kpi: React.FC<{ icon: IconType; label: string; value: number }> = ({ icon, label, value }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5">
+/** Confronto con i 30 giorni precedenti, in parole (il colore aiuta, non è l'unico segnale). */
+const Delta: React.FC<{ value: number; previous: number }> = ({ value, previous }) => {
+    const change = changeOf(value, previous);
+    if (change === null) return <span className="text-slate-500">{value > 0 ? 'nuovo rispetto ai 30 giorni prima' : 'nessun dato prima'}</span>;
+    if (change === 0) return <span className="text-slate-500">come nei 30 giorni prima</span>;
+    return (
+        <span className={change > 0 ? 'text-cloro-700 font-semibold' : 'text-slate-600 font-semibold'}>
+            {change > 0 ? '+' : '−'}{Math.abs(change)}% <span className="font-normal text-slate-500">rispetto ai 30 giorni prima</span>
+        </span>
+    );
+};
+
+const Kpi: React.FC<{ icon: IconType; label: string; value: number; previous: number }> = ({ icon, label, value, previous }) => (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 min-w-0">
         <dt className="flex items-center gap-2 text-sm text-slate-600">
-            <Icon type={icon} className="w-4 h-4 text-corsia-600" /> {label}
+            <Icon type={icon} className="w-4 h-4 text-corsia-600 shrink-0" /> {label}
         </dt>
-        <dd className="font-display text-4xl font-bold text-abisso mt-1 tabular-nums">{value.toLocaleString('it-IT')}</dd>
+        <dd className="mt-1">
+            <span className="block font-display text-4xl font-bold text-abisso tabular-nums">{value.toLocaleString('it-IT')}</span>
+            <span className="block text-xs mt-1 leading-snug"><Delta value={value} previous={previous} /></span>
+        </dd>
     </div>
 );
+
+/** "Cosa puoi fare": i consigli più utili adesso, ognuno con il suo pulsante. */
+const Tips: React.FC<{ tips: ReturnType<typeof statsTips> }> = ({ tips }) => {
+    if (!tips.length) return null;
+    return (
+        <Card id="stats-tips" title="Cosa puoi fare" aside={<p className="text-sm text-slate-500">Consigli dalle tue statistiche</p>}>
+            <ul className={`grid gap-3 ${tips.length > 1 ? 'md:grid-cols-2' : ''} ${tips.length > 2 ? 'lg:grid-cols-3' : ''}`}>
+                {tips.map((t) => (
+                    <li key={t.id} className="rounded-2xl bg-piastrella border border-slate-200 p-4 flex flex-col">
+                        <p className="font-semibold text-abisso">{t.title}</p>
+                        <p className="text-sm text-slate-600 mt-1 flex-1">{t.text}</p>
+                        <Link to={t.to} className="mt-3 self-start py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">{t.action}</Link>
+                    </li>
+                ))}
+            </ul>
+        </Card>
+    );
+};
 
 /** Visite al giorno: barre in HTML (restano leggibili a ogni larghezza), date ogni settimana, giorno migliore evidenziato. */
 const ViewsChart: React.FC<{ days: ProfileStats['viewsPerDay']; total: number }> = ({ days, total }) => {
@@ -110,7 +149,38 @@ const ViewsChart: React.FC<{ days: ProfileStats['viewsPerDay']; total: number }>
     );
 };
 
+const kindText = (k: KindCounts) => [
+    k.strutture && `${k.strutture} ${k.strutture === 1 ? 'struttura' : 'strutture'}`,
+    k.professionisti && `${k.professionisti} ${k.professionisti === 1 ? 'professionista' : 'professionisti'}`,
+    k.appassionati && `${k.appassionati} ${k.appassionati === 1 ? 'appassionato' : 'appassionati'}`,
+].filter(Boolean).join(', ');
+
+/** Elenco breve con barre: ruoli o province di chi visita. */
+const TopList: React.FC<{ title: string; rows: { label: string; count: number }[] }> = ({ title, rows }) => {
+    const max = Math.max(1, ...rows.map((r) => r.count));
+    return (
+        <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-abisso mb-2">{title}</h3>
+            <ul className="space-y-2">
+                {rows.map((r) => (
+                    <li key={r.label} className="text-sm">
+                        <div className="flex justify-between gap-3">
+                            <span className="text-slate-700 min-w-0 break-words">{r.label}</span>
+                            <span className="text-slate-600 tabular-nums shrink-0">{r.count}</span>
+                        </div>
+                        <div className="h-1.5 mt-1 rounded-full bg-slate-100 overflow-hidden" aria-hidden="true">
+                            <div className="h-full rounded-full bg-corsia-500" style={{ width: `${(r.count / max) * 100}%` }} />
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 const Visitors: React.FC<{ stats: ProfileStats; viewersLink: string | null }> = ({ stats, viewersLink }) => {
+    const provinces = stats.viewersByProvince.filter((p) => p.label).map((p) => ({ label: provinceName(p.label) || p.label, count: p.count }));
+    const searchers = kindText(stats.searchersByKind);
     const rows = [
         { label: 'Strutture', value: stats.viewersByKind.strutture, color: 'bg-corsia-600' },
         { label: 'Professionisti', value: stats.viewersByKind.professionisti, color: 'bg-cloro-600' },
@@ -140,9 +210,46 @@ const Visitors: React.FC<{ stats: ProfileStats; viewersLink: string | null }> = 
                     })}
                 </ul>
             )}
+            {(stats.viewersByRole.length > 0 || provinces.length > 0) && (
+                <div className="mt-6 pt-5 border-t border-slate-100 grid sm:grid-cols-2 lg:grid-cols-1 gap-5">
+                    {stats.viewersByRole.length > 0 && <TopList title="Ruoli" rows={stats.viewersByRole} />}
+                    {provinces.length > 0 && <TopList title="Province" rows={provinces} />}
+                </div>
+            )}
+            <p className="mt-5 pt-4 border-t border-slate-100 text-sm text-slate-600">
+                {stats.searchesLast30 === 0 ? 'Nessuna comparsa nelle ricerche negli ultimi 30 giorni.' : `Nelle ricerche ti hanno trovato ${searchers || 'alcune persone'}.`}
+            </p>
         </Card>
     );
 };
+
+/** Strutture: come vanno gli ultimi annunci (persone che li hanno aperti e candidature). */
+const Jobs: React.FC<{ jobs: ProfileStats['jobs'] }> = ({ jobs }) => (
+    <Card id="stats-jobs" title="I tuoi annunci" aside={<Link to="/jobs/annunci" className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Gestisci gli annunci</Link>}>
+        {jobs.length === 0 ? (
+            <p className="text-slate-500">Pubblica un annuncio per vedere quante persone lo aprono e quante si candidano.</p>
+        ) : (
+            <ul className="divide-y divide-slate-100 -my-2">
+                {jobs.map((j) => {
+                    const rate = j.viewers ? Math.min(100, Math.round((j.applications / j.viewers) * 100)) : null;
+                    return (
+                        <li key={j.id} className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <Link to={`/jobs/${j.id}`} className="min-w-0 flex-1 group">
+                                <span className="block font-semibold text-abisso group-hover:text-corsia-700 break-words">{j.title}</span>
+                                <span className="block text-sm text-slate-500">{[j.isSOS ? 'SOS' : '', j.isActive ? 'Aperto' : 'Chiuso'].filter(Boolean).join(' · ')}</span>
+                            </Link>
+                            <dl className="grid grid-cols-3 gap-4 text-sm shrink-0 sm:w-80">
+                                <div><dt className="text-slate-500">Aperto da</dt><dd className="font-semibold text-abisso tabular-nums">{j.viewers} {j.viewers === 1 ? 'persona' : 'persone'}</dd></div>
+                                <div><dt className="text-slate-500">Candidature</dt><dd className="font-semibold text-abisso tabular-nums">{j.applications}{j.newApplications > 0 && <span className="font-normal text-corsia-700"> · {j.newApplications} {j.newApplications === 1 ? 'nuova' : 'nuove'}</span>}</dd></div>
+                                <div><dt className="text-slate-500">Si candida</dt><dd className="font-semibold text-abisso tabular-nums">{rate === null ? '–' : `${rate}%`}</dd></div>
+                            </dl>
+                        </li>
+                    );
+                })}
+            </ul>
+        )}
+    </Card>
+);
 
 const Posts: React.FC<{ posts: ProfileStats['posts'] }> = ({ posts }) => {
     const [order, setOrder] = useState<'top' | 'recent'>('top');
@@ -196,7 +303,7 @@ const PremiumInvite: React.FC<{ views: number | null; viewersLink: string | null
             <p className="flex items-center gap-2 text-sm font-semibold text-oro-700"><PremiumBadge /> Incluse in SwimIn Premium</p>
             <h2 className="text-2xl font-bold text-abisso mt-2">Scopri chi ti cerca e cosa funziona</h2>
             <ul className="mt-4 space-y-2.5 text-slate-700">
-                {['Visite al profilo giorno per giorno, ultimi 30 giorni', 'Quante strutture, professionisti e appassionati ti visitano', 'Reazioni, commenti e ripubblicazioni di ogni post', 'L’elenco completo di chi ha visto il tuo profilo'].map((t) => (
+                {['Visite e comparse nelle ricerche, confrontate con il mese prima', 'Chi ti visita: tipo, ruolo e provincia', 'Consigli pratici per farti trovare', 'Reazioni, commenti e ripubblicazioni di ogni post', 'Per le strutture: quante persone aprono ogni annuncio e quante si candidano'].map((t) => (
                     <li key={t} className="flex gap-2.5"><Icon type="check" className="w-5 h-5 text-cloro-700 shrink-0 mt-0.5" /> {t}</li>
                 ))}
             </ul>

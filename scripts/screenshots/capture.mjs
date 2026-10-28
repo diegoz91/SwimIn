@@ -370,11 +370,13 @@ const asStructure = {
     profiles: { [ME]: { userType: 'structure', structureName: 'Piscina Lido di Milano', structureType: 'Piscina comunale', firstName: '', lastName: '', title: '', openingHours: ['07:00-22:00', '07:00-13:00,15:00-21:00', '', '', '', '', 'chiuso'] } },
     jobs: { j1: { structureId: ME } },
 };
+const asPremiumStructure = { ...asStructure, profiles: { [ME]: { ...asStructure.profiles[ME], premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } };
 for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile', 'mobile-piccolo'].includes(n))) {
     if (ONLY.length && !ONLY.includes(vpName)) continue;
     const touch = !!viewport.hasTouch;
-    for (const [name, path, act] of [
+    for (const [name, path, act, overrides] of [
         ['annunci', '/jobs/annunci'],
+        ['statistiche-struttura', '/statistiche', null, asPremiumStructure],
         ['annunci-candidati', '/jobs/j1?candidati=nuove', async (p) => { await p.getByRole('button', { name: /^Valuta/ }).first().click(); }],
         ['lavoro-struttura', '/jobs'],
         ['struttura-propria', '/profile'],
@@ -385,7 +387,7 @@ for (const [vpName, viewport] of VIEWPORTS.filter(([n]) => ['desktop', 'mobile',
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: viewport.deviceScaleFactor || 1, isMobile: !!viewport.isMobile, hasTouch: touch, locale: 'it-IT', timezoneId: 'Europe/Rome', reducedMotion: 'reduce' });
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${vpName}] ${e.message}`));
-        await mockAppwrite(page, { loggedIn: true, overrides: asStructure });
+        await mockAppwrite(page, { loggedIn: true, overrides: overrides || asStructure });
         try {
             await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
             await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);

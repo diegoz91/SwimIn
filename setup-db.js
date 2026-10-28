@@ -178,6 +178,18 @@ const schema = [
         indexes: [idx('by_profile', ['profileId']), idx('by_viewer', ['viewerId'])],
     },
     {
+        // Comparse nei risultati di /cerca: una riga per chi cerca, profilo e giorno. Solo la Function.
+        id: 'search_appearances', name: 'Search appearances', permissions: SERVER_ONLY,
+        attributes: [str('profileId', 36, { required: true }), str('viewerId', 36, { required: true }), str('day', 10, { required: true }), str('at', 40, { required: true })],
+        indexes: [idx('by_profile_day', ['profileId', 'day']), idx('by_viewer', ['viewerId']), idx('by_day', ['day'])],
+    },
+    {
+        // Visualizzazioni degli annunci: una riga per persona, annuncio e giorno. Solo la Function.
+        id: 'job_views', name: 'Job views', permissions: SERVER_ONLY,
+        attributes: [str('jobId', 36, { required: true }), str('structureId', 36, { required: true }), str('viewerId', 36, { required: true }), str('day', 10, { required: true }), str('at', 40, { required: true })],
+        indexes: [idx('by_job', ['jobId']), idx('by_structure', ['structureId']), idx('by_viewer', ['viewerId']), idx('by_day', ['day'])],
+    },
+    {
         // Creati dalla Function (struttura verificata); chi pubblica può modificarli.
         id: 'jobs', name: 'Jobs', permissions: READ_ONLY,
         attributes: [

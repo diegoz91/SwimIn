@@ -61,6 +61,13 @@ const JobPage: React.FC = () => {
     useSignal(`job:${id}`, () => { void load(); void apply.reload(); });
 
     const isManager = !!job && (managed || []).some((s) => s.id === job.structureId);
+
+    // Statistiche dell'annuncio: una visualizzazione al giorno per persona (il server esclude chi lo gestisce).
+    const jobId = job?.$id;
+    useEffect(() => {
+        if (!jobId || !user || isManager) return;
+        databaseService.recordJobView(jobId).catch((err) => console.warn('Visualizzazione non registrata:', err));
+    }, [jobId, user, isManager]);
     const application = job ? apply.applicationFor(job.$id) : null;
     const open = job ? isJobOpen(job) : false;
     const expired = !!job?.expiresAt && job.expiresAt < new Date().toISOString().slice(0, 10);

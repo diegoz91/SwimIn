@@ -120,6 +120,9 @@ const Search: React.FC = () => {
                 hashtags: hashtags.status === 'fulfilled' ? hashtags.value : [],
             });
             setIsLoading(false);
+            // Statistiche: chi compare nei risultati (persone e strutture, una volta al giorno per chi cerca).
+            const shown = net.profiles.map((p) => p.userId || p.$id).filter((id) => id !== user.$id).slice(0, 30);
+            if (shown.length) databaseService.recordSearchAppearances(shown).catch((err) => console.warn('Comparse nelle ricerche non registrate:', err));
         });
         return () => {
             cancelled = true;

@@ -35,6 +35,7 @@ const Privacy: React.FC = () => (
                         <li><strong>Contenuti</strong>: post, foto e video, commenti, consigli (“like”), annunci di lavoro, candidature e lettere di presentazione, partecipazione a eventi.</li>
                         <li><strong>Messaggi privati</strong> scambiati con altri utenti, visibili solo a mittente e destinatario.</li>
                         <li><strong>Accesso con Google</strong> (facoltativo): nome, email e foto dell'account Google, solo per creare l'account o farti entrare. Se colleghi Google Calendar, SwimIn usa il permesso del calendario solo per aggiungere o aggiornare i turni e gli eventi che scegli di salvare: non legge né cancella gli altri appuntamenti. Puoi scollegare Google da <em>Impostazioni › Accesso e sicurezza</em> o da myaccount.google.com. L'uso dei dati ricevuti dalle API di Google rispetta le Google API Services User Data Policy, inclusi i requisiti di uso limitato.</li>
+                        <li><strong>Statistiche</strong>: quando visiti un profilo, apri un annuncio o un profilo compare tra i risultati di una tua ricerca, registriamo chi, cosa e il giorno. Chi riceve la visita vede solo i conteggi e, con Premium, chi l’ha visitato (salvo la navigazione anonima); le comparse nelle ricerche e le visualizzazioni degli annunci sono mostrate solo come numeri, mai con i nomi.</li>
                         <li><strong>Fase di test</strong>: data e versione delle condizioni accettate e, se ti sei iscritto con un invito, il codice usato (nei dati privati, mai sul profilo), per sapere chi ha accettato le condizioni e quanti posti di ogni invito sono stati usati.</li>
                         <li><strong>Dati tecnici</strong>: indirizzo IP, tipo di dispositivo e browser, data e ora di accesso, stato online, registri tecnici necessari alla sicurezza.</li>
                     </ul>
@@ -100,7 +101,7 @@ const Privacy: React.FC = () => (
                         <li>I dati dell'account e del profilo per tutta la durata dell'account.</li>
                         <li>Se elimini l'account, cancelliamo profilo, post, commenti, consigli, candidature, collegamenti e notifiche; i messaggi già inviati restano visibili al destinatario, senza il collegamento al tuo profilo.</li>
                         <li>I registri tecnici di sicurezza per un periodo limitato, non superiore a 12 mesi salvo obblighi di legge; i registri degli errori dell'app per 30 giorni.</li>
-                        <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; le visite al profilo e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
+                        <li>Le notifiche già lette per 90 giorni, le altre al massimo 12 mesi; le visite al profilo, le comparse nelle ricerche, le visualizzazioni degli annunci e i suggerimenti inviati con "Scrivici" (dopo che li abbiamo gestiti) per 12 mesi.</li>
                         <li>Le candidature (con il CV allegato e le valutazioni di chi seleziona) fino a 12 mesi dopo la chiusura dell'annuncio; le segnalazioni chiuse e la chat dello staff per 12 mesi; i turni di lavoro per 24 mesi.</li>
                         <li>La data in cui hai accettato Termini e Privacy, per tutta la durata dell'account.</li>
                         <li>

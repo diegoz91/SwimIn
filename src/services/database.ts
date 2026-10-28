@@ -159,7 +159,7 @@ export class ApiOutdatedError extends Error {
 
 /** Permessi di un documento creato dal client: leggibile dagli utenti, modificabile solo dal proprietario. */
 export interface ApplicationCounts { total: number; pending: number; reviewed: number; accepted: number; hired: number; rejected: number }
-export type ManagedJob = Job & { applications: ApplicationCounts };
+export type ManagedJob = Job & { applications: ApplicationCounts; /** Visualizzazioni (una al giorno per persona) e persone diverse. */ views?: number; viewers?: number };
 export type MyApplication = Application & { job: Job | null };
 export interface AdminPlan {
     key: string;
@@ -234,13 +234,23 @@ export interface BillingStatus {
     inmailCredits: number;
     subscription: { provider: 'stripe' | 'paypal'; status: string; period: 'month' | 'year' | ''; currentPeriodEnd: string; cancelAtPeriodEnd: boolean } | null;
 }
+export type KindCounts = { strutture: number; professionisti: number; appassionati: number };
+export interface StatsJob { id: string; title: string; isActive: boolean; isSOS: boolean; createdAt: string; views: number; viewers: number; applications: number; newApplications: number }
+/** Statistiche degli ultimi 30 giorni (`previous`: i 30 giorni prima, per il confronto). */
 export interface ProfileStats {
     viewsLast30: number;
     viewsPerDay: { day: string; views: number }[];
-    viewersByKind: { strutture: number; professionisti: number; appassionati: number };
+    viewersByKind: KindCounts;
+    viewersByRole: { label: string; count: number }[];
+    viewersByProvince: { label: string; count: number }[];
     anonymousViews: number;
+    searchesLast30: number;
+    searchersByKind: KindCounts;
     posts: { id: string; createdAt: string; text: string; reactions: number; comments: number; reposts: number }[];
+    postsLast30: number;
     totals: { reactions: number; comments: number; reposts: number };
+    previous: { views: number; searches: number; posts: number; reactions: number; comments: number; reposts: number };
+    jobs: StatsJob[];
 }
 export interface PublicJob {
     id: string; title: string; description: string; role: string; contractType: string; city: string; province: string;
@@ -1006,6 +1016,14 @@ export const databaseService = {
     },
     async getMyStats() {
         return await callApi<ProfileStats>('getMyStats');
+    },
+    /** Profili comparsi nei risultati di una ricerca (statistiche di chi viene cercato). */
+    async recordSearchAppearances(profileIds: string[]) {
+        return await callApi<{ recorded: number }>('recordSearchAppearances', { profileIds: profileIds.slice(0, 30) });
+    },
+    /** Qualcuno ha aperto un annuncio (chi lo gestisce non conta). */
+    async recordJobView(jobId: string) {
+        return await callApi<{ recorded: boolean }>('recordJobView', { jobId });
     },
     async adminGrantPremium(userId: string, days: number) {
         return await callApi<{ premiumUntil: string }>('adminGrantPremium', { userId, days });

@@ -48,7 +48,8 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
 - **CV in PDF** privato: lo vede solo chi valuta una tua candidatura, e solo se lo alleghi.
 - **Referenze scritte** da colleghi, strutture o selezionatori: le pubblichi tu, oppure restano nascoste.
 - Profilo pubblico facoltativo (`/u/:id`) con anteprima per i social. Le strutture sono sempre pubbliche.
-- Visite al profilo, statistiche, segui e collegamenti.
+- Visite al profilo, segui e collegamenti.
+- **Statistiche** (`/statistiche`, Premium): visite e comparse nelle ricerche confrontate con i 30 giorni prima, chi ti visita per tipo, ruolo e provincia, consigli pratici ("Cosa puoi fare"), post; per le strutture quante persone aprono ogni annuncio e quante si candidano (anche in *I miei annunci*).
 
 ### Feed e contenuti
 - Post con testo, foto, video, **video-analisi tecnica** (commenti legati a un istante del video) e sondaggi.
@@ -176,7 +177,7 @@ La mappa completa di dati, accessi, protezione e tempi di conservazione per ogni
   |---|---|
   | Errori dell'app | 30 giorni |
   | Notifiche lette | 90 giorni |
-  | Tutte le notifiche, visite al profilo, segnalazioni chiuse, chat dello staff, registro accessi | 12 mesi |
+  | Tutte le notifiche, visite al profilo, comparse nelle ricerche, visualizzazioni degli annunci, segnalazioni chiuse, chat dello staff, registro accessi | 12 mesi |
   | Candidature di annunci chiusi | 12 mesi dopo la chiusura |
   | Turni | 24 mesi |
 
