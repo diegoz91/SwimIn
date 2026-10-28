@@ -230,7 +230,7 @@ const Admin: React.FC = () => {
                                                     <button disabled={busy === r.$id} onClick={() => resolve(r, 'remove')} className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-900 hover:bg-amber-200 disabled:opacity-50">Rimuovi contenuto</button>
                                                 )}
                                                 {r.target.authorId && !r.target.suspended && (
-                                                    <button disabled={busy === r.$id} onClick={() => resolve(r, 'suspend')} className="px-4 py-2 rounded-full text-sm font-semibold bg-galleggiante text-white hover:bg-red-700 disabled:opacity-50">Sospendi autore</button>
+                                                    <button disabled={busy === r.$id} onClick={() => resolve(r, 'suspend')} className="px-4 py-2 rounded-full text-sm font-semibold bg-galleggiante-700 text-white hover:bg-red-800 disabled:opacity-50">Sospendi autore</button>
                                                 )}
                                             </div>
                                         ) : (
