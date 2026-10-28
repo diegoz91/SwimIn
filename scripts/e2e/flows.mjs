@@ -481,9 +481,12 @@ const FLOWS = [
         const panel = page.getByRole('complementary', { name: 'Potresti conoscere' });
         await panel.waitFor();
         const connect = panel.getByRole('button', { name: /^Collegati con / }).first();
+        const label = await connect.getAttribute('aria-label');
         await connect.click();
         await called(state, 'sendConnectionRequest');
-        await panel.getByRole('button', { name: /^Richiesta inviata a / }).first().waitFor({ timeout: 4000 });
+        // Inviata la richiesta, il suggerimento lascia il posto al successivo.
+        await page.getByText('Richiesta inviata.').first().waitFor({ timeout: 4000 });
+        await panel.getByRole('button', { name: label }).waitFor({ state: 'detached', timeout: 4000 });
     }],
     ['home: la scheda del profilo ha solo le scorciatoie essenziali', 'desktop', { loggedIn: true }, async (page) => {
         await open(page, '/');
