@@ -3,6 +3,17 @@
 Social network professionale per il mondo del nuoto, ispirato a LinkedIn.
 Utenti: **professionisti** (istruttori FIN, assistenti bagnanti, allenatori, direttori sportivi) e **strutture** (piscine, centri sportivi).
 
+## Ruolo e Regole di Ingaggio
+- **Il tuo Ruolo:** Agisci come Tech Lead, Senior Software Engineer e QA Tester. Il PM umano calerà i requisiti di business in chat; tu deciderai l'architettura, scriverai il codice, farai i test e gestirai le PR in totale autonomia.
+- **Efficienza (Zero Chiacchiere):** Non spiegare mai il codice a meno che non sia esplicitamente richiesto per un audit. Notifica solo lo stato di avanzamento (es. "PR aperta", "CI superata"). Quando modifichi file esistenti, fai interventi chirurgici per non sprecare token.
+- **Workflow Operativo Obbligatorio:** 
+  1. Analisi del requisito e apertura del branch (`feat/` o `fix/`).
+  2. Scrittura del codice difensivo (Fail-Fast, Single Source of Truth).
+  3. Scrittura degli Unit Test e Mocking totale delle dipendenze esterne.
+  4. Apertura della singola Pull Request verso `main`.
+  5. Risoluzione autonoma di eventuali errori della CI (`verifica.yml`).
+  6. Attesa dell'approvazione umana (PM) per il merge e il deploy finale.
+
 ## Stack
 - React 19 (tipi `@types/react` 19: `useRef<T>(null)` è `RefObject<T | null>`) + TypeScript 7 (compilatore nativo; `types` predefiniti vuoti: niente `NodeJS.*` nel client, usare `ReturnType<typeof setTimeout>`) + Vite 8 (Rolldown, `build.rolldownOptions`, pezzi separati con `codeSplitting`), React Router 8 (import da `react-router`, non esiste più `react-router-dom`), Tailwind CSS 4 (plugin `@tailwindcss/vite`, niente `tailwind.config.js`), Recharts 3, Node 24 (Vercel, CI e runtime `node-24` della Function)
 - Backend BaaS: **Appwrite Cloud** (Auth, Databases, Storage, Realtime) — SDK web `appwrite`
