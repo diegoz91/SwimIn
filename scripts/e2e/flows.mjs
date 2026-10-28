@@ -525,6 +525,17 @@ const FLOWS = [
         const v = await called(state, 'recordJobView');
         assert.equal(v.params.jobId, 'j2');
     }],
+    ['statistiche: "Vedi chi" apre i visitatori senza lasciare la pagina', 'desktop', { loggedIn: true, overrides: { profiles: { u_giulia: { premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } } }, async (page) => {
+        await open(page, '/statistiche');
+        await page.getByRole('button', { name: 'Vedi chi' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Chi ha visto il tuo profilo' });
+        await dialog.waitFor({ timeout: 5000 });
+        assert.equal(new URL(page.url()).pathname, '/statistiche', 'si resta sulle statistiche');
+        await page.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'detached', timeout: 4000 });
+        assert.equal(new URL(page.url()).pathname, '/statistiche');
+        await page.getByRole('heading', { name: 'Chi ti visita' }).waitFor();
+    }],
     ['statistiche Premium: confronto con il mese prima, ruoli e province', 'mobile', { loggedIn: true, overrides: { profiles: { u_giulia: { premiumUntil: new Date(Date.now() + 20 * 86400000).toISOString() } } } }, async (page) => {
         await open(page, '/statistiche');
         await page.getByText('Comparse nelle ricerche').first().waitFor({ timeout: 8000 });

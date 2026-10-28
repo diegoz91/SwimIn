@@ -636,7 +636,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                 )}
 
                 {/* 4. STATISTICHE (solo amministratori): solo dati reali */}
-                {activeTab === 'analytics' && isOwner && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} viewersLink={null} /></div>}
+                {activeTab === 'analytics' && isOwner && <div className="mb-6"><StatsDashboard premium={isPremium(facility)} showViewers={false} /></div>}
                 {activeTab === 'analytics' && isOwner && (
                     <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden p-6 animate-in fade-in duration-300">
                         <div className="mb-6">

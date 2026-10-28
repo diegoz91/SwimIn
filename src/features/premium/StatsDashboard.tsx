@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { provinceName } from '@/data/italy';
 import { MONTHS } from '@/utils/dates';
 import { changeOf, statsTips } from './statsTips';
+import { ProfileViewersModal } from './ProfileViewersModal';
 import { cutText, plainText } from '@/utils/richText';
 import { PremiumBadge } from './PremiumBadge';
 
@@ -16,7 +17,10 @@ const engagement = (p: ProfileStats['posts'][number]) => p.reactions + p.comment
  * Statistiche del proprio profilo (Premium): visite giorno per giorno, chi visita e come vanno i post.
  * Con il piano Base spiega cosa contiene e mostra comunque il numero di visite.
  */
-export const StatsDashboard: React.FC<{ premium: boolean; /** Dove vedere l'elenco dei visitatori (null: nessun elenco, es. strutture). */ viewersLink?: string | null }> = ({ premium, viewersLink = '/profile?visite=1' }) => {
+export const StatsDashboard: React.FC<{ premium: boolean; /** Elenco dei visitatori nella finestra sopra la pagina (le strutture non ce l'hanno). */ showViewers?: boolean }> = ({ premium, showViewers = true }) => {
+    const [viewersOpen, setViewersOpen] = useState(false);
+    const openViewers = showViewers ? () => setViewersOpen(true) : null;
+    const viewers = showViewers ? <ProfileViewersModal open={viewersOpen} onClose={() => setViewersOpen(false)} /> : null;
     const [stats, setStats] = useState<ProfileStats | null>(null);
     const [baseViews, setBaseViews] = useState<number | null>(null);
     const [error, setError] = useState(false);
@@ -32,7 +36,7 @@ export const StatsDashboard: React.FC<{ premium: boolean; /** Dove vedere l'elen
         return () => { alive = false; };
     }, [premium]);
 
-    if (!premium) return <PremiumInvite views={baseViews} viewersLink={viewersLink} />;
+    if (!premium) return <><PremiumInvite views={baseViews} onViewers={openViewers} />{viewers}</>;
     if (error) return <EmptyCard icon="chart" title="Statistiche non disponibili" text="Non siamo riusciti a caricarle. Riprova tra qualche minuto." />;
     if (!stats) return <DashboardSkeleton />;
 
@@ -47,10 +51,11 @@ export const StatsDashboard: React.FC<{ premium: boolean; /** Dove vedere l'elen
             {user && <Tips tips={statsTips(user, stats)} />}
             <ViewsChart days={stats.viewsPerDay} total={stats.viewsLast30} />
             <div className="grid lg:grid-cols-5 gap-5">
-                <Visitors stats={stats} viewersLink={viewersLink} />
+                <Visitors stats={stats} onViewers={openViewers} />
                 <Posts posts={stats.posts} />
             </div>
             {user?.userType === 'structure' && <Jobs jobs={stats.jobs} />}
+            {viewers}
         </div>
     );
 };
@@ -178,7 +183,7 @@ const TopList: React.FC<{ title: string; rows: { label: string; count: number }[
     );
 };
 
-const Visitors: React.FC<{ stats: ProfileStats; viewersLink: string | null }> = ({ stats, viewersLink }) => {
+const Visitors: React.FC<{ stats: ProfileStats; onViewers: (() => void) | null }> = ({ stats, onViewers }) => {
     const provinces = stats.viewersByProvince.filter((p) => p.label).map((p) => ({ label: provinceName(p.label) || p.label, count: p.count }));
     const searchers = kindText(stats.searchersByKind);
     const rows = [
@@ -189,7 +194,7 @@ const Visitors: React.FC<{ stats: ProfileStats; viewersLink: string | null }> = 
     ];
     const total = rows.reduce((n, r) => n + r.value, 0);
     return (
-        <Card id="stats-visitors" title="Chi ti visita" className="lg:col-span-2" aside={viewersLink ? <Link to={viewersLink} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Vedi chi</Link> : undefined}>
+        <Card id="stats-visitors" title="Chi ti visita" className="lg:col-span-2" aside={onViewers ? <button type="button" onClick={onViewers} className="py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Vedi chi</button> : undefined}>
             {total === 0 ? (
                 <p className="text-slate-500">Ancora nessuna visita. Un profilo completo e qualche post aiutano a farsi trovare dalle strutture.</p>
             ) : (
@@ -297,7 +302,7 @@ const Posts: React.FC<{ posts: ProfileStats['posts'] }> = ({ posts }) => {
     );
 };
 
-const PremiumInvite: React.FC<{ views: number | null; viewersLink: string | null }> = ({ views, viewersLink }) => (
+const PremiumInvite: React.FC<{ views: number | null; onViewers: (() => void) | null }> = ({ views, onViewers }) => (
     <div className="grid lg:grid-cols-5 gap-5">
         <section className="lg:col-span-3 bg-white rounded-2xl border border-oro-300 shadow-xs p-6 sm:p-8">
             <p className="flex items-center gap-2 text-sm font-semibold text-oro-700"><PremiumBadge /> Incluse in SwimIn Premium</p>
@@ -313,7 +318,7 @@ const PremiumInvite: React.FC<{ views: number | null; viewersLink: string | null
             <h2 className="text-xl font-bold text-abisso">Visite al profilo</h2>
             <p className="font-display text-5xl font-bold text-abisso mt-3 tabular-nums">{views === null ? '–' : views}</p>
             <p className="text-sm text-slate-500 mt-1">negli ultimi 30 giorni</p>
-            {viewersLink && <Link to={viewersLink} className="inline-block mt-4 py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Vedi gli ultimi visitatori</Link>}
+            {onViewers && <button type="button" onClick={onViewers} className="inline-block mt-4 py-1 -my-1 text-sm font-semibold text-corsia-700 hover:underline">Vedi gli ultimi visitatori</button>}
         </section>
     </div>
 );
