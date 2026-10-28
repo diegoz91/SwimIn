@@ -71,7 +71,7 @@ export const ConversationListItem: React.FC<ConversationItemProps> = memo(({
 
   return (
     <div 
-      className={`flex items-center p-3 sm:p-4 cursor-pointer transition-colors border-l-4 outline-none focus-visible:bg-slate-50 focus-visible:border-slate-300 ${
+      className={`flex items-center p-3 sm:p-4 cursor-pointer transition-colors border-l-4 outline-hidden focus-visible:bg-slate-50 focus-visible:border-slate-300 ${
         isSelected ? 'bg-blue-50 border-blue-600' : 'bg-white border-transparent hover:bg-slate-50'
       }`}
       onClick={onSelect}

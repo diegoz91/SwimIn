@@ -41,7 +41,7 @@ const AvailabilityGrid: React.FC<{ value: string[]; onToggle?: (slot: string) =>
                                                 aria-pressed={on}
                                                 aria-label={label}
                                                 onClick={() => onToggle(key)}
-                                                className={`w-full h-11 rounded-lg border transition-all duration-150 outline-none focus-visible:ring-4 focus-visible:ring-corsia-100 active:scale-95 ${
+                                                className={`w-full h-11 rounded-lg border transition-all duration-150 outline-hidden focus-visible:ring-4 focus-visible:ring-corsia-100 active:scale-95 ${
                                                     on ? 'bg-cloro-500 border-cloro-500 text-abisso' : 'bg-white border-slate-200 hover:border-cloro-400'
                                                 }`}
                                             >

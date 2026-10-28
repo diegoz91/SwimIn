@@ -39,14 +39,24 @@ const md = ['# Budget del bundle (gzip)', '', '| Voce | Dimensione | Budget | Es
     ...checks.map(([n, v, b]) => `| ${n} | ${v} KB | ${b} KB | ${v <= b ? 'ok' : '**oltre**'} |`),
     '', '## File iniziali', '', ...initial.map((f) => `- ${f}: ${kb(sizes[f] || 0)} KB`),
     '', '## Chunk a richiesta più grandi', '', ...lazy.slice(0, 15).map((f) => `- ${f}: ${kb(sizes[f])} KB`)];
+// Compatibilità: niente condizioni "a intervallo" (width >= 48rem) che Safari < 16.4 ignora.
+const RANGE = /@media[^{]*\((?:\s*[\d.]+[a-z]*\s*[<>]=?\s*(?:width|height)|\s*(?:width|height)\s*[<>]=?)/;
+const rangeFiles = assets.filter((f) => f.endsWith('.css') && RANGE.test(readFileSync(join(DIST, f), 'utf8')));
+md.push('', '## Compatibilità dei browser', '', rangeFiles.length
+    ? `**Problema**: condizioni @media a intervallo (Safari < 16.4 le ignora) in ${rangeFiles.join(', ')}. Controlla build.cssTarget in vite.config.ts.`
+    : 'ok: nessuna condizione @media a intervallo (CSS compatibile con Safari/iPadOS 15.4+).');
 if (OUT) writeFileSync(OUT, md.join('\n') + '\n');
 let failed = 0;
+if (rangeFiles.length) {
+    failed++;
+    console.log(`✗ Compatibilità: condizioni @media a intervallo in ${rangeFiles.join(', ')}`);
+}
 for (const [n, v, b] of checks) {
     const ok = v <= b;
     if (!ok) failed++;
     console.log(`${ok ? '✓' : '✗'} ${n}: ${v} KB (budget ${b} KB)`);
 }
 if (failed) {
-    console.log(`::error::Bundle oltre il budget in ${failed} voci (vedi perf.md sul branch ci-screenshots).`);
+    console.log(`::error::Bundle oltre il budget o non compatibile in ${failed} voci (vedi perf.md sul branch ci-screenshots).`);
     process.exit(1);
 }

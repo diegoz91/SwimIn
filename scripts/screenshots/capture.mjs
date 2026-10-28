@@ -140,6 +140,8 @@ const VIEWPORTS = [
     ['desktop', { width: 1440, height: 900 }],
     ['laptop', { width: 1280, height: 720 }, { interactions: false }],
     ['tablet', { width: 820, height: 1180, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+    // iPad con "Testo più grande" o in Split View: navigazione già nell'intestazione (da 640 px).
+    ['tablet-piccolo', { width: 700, height: 1000, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { interactions: false }],
     ['tablet-orizzontale', { width: 1180, height: 820, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { interactions: false }],
     ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
     ['mobile-piccolo', { width: 360, height: 740, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],

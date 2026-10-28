@@ -96,7 +96,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ files, setFiles, d
                          <button
                             onClick={() => !disabled && fileInputRef.current?.click()}
                             disabled={disabled}
-                            className={`w-full p-3 rounded-lg border-2 border-dashed text-slate-600 flex items-center justify-center font-semibold outline-none focus-visible:ring-2 focus-visible:ring-slate-500 ${
+                            className={`w-full p-3 rounded-lg border-2 border-dashed text-slate-600 flex items-center justify-center font-semibold outline-hidden focus-visible:ring-2 focus-visible:ring-slate-500 ${
                                 disabled 
                                     ? 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-50' 
                                     : 'bg-slate-100 hover:bg-slate-200 border-slate-300 cursor-pointer'

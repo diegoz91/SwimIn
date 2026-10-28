@@ -59,6 +59,11 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // CSS anche per tablet e telefoni non aggiornatissimi (Safari/iPadOS 15.4+, Chrome e Firefox 100+):
+    // Lightning CSS riscrive le condizioni di Tailwind 4 come "@media (width >= 48rem)" in min-width,
+    // che Safari capisce solo dalla 16.4 (senza, su iPad meno recenti sparivano barra di navigazione e colonne).
+    // Il controllo in scripts/quality/bundle-budget.mjs fallisce se nel CSS restano queste forme.
+    cssTarget: ['chrome100', 'edge100', 'firefox100', 'safari15.4', 'ios15.4'],
     // Vite 8 (Rolldown): minificazione con Oxc e CSS con Lightning CSS, i predefiniti.
     sourcemap: false,
     rolldownOptions: {

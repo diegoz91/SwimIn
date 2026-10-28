@@ -172,7 +172,7 @@ const Search: React.FC = () => {
                             role="tab"
                             aria-selected={tab === t.id}
                             onClick={() => setTab(t.id)}
-                            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition ${
+                            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition ${
                                 tab === t.id ? 'bg-abisso text-white border-abisso' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                             }`}
                         >

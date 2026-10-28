@@ -79,7 +79,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
                                                 type="button"
                                                 onClick={() => open(s.id)}
                                                 aria-current={active && current ? 'page' : undefined}
-                                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-corsia-400 ${
+                                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-corsia-400 ${
                                                     current ? 'md:bg-corsia-50 md:text-corsia-800' : ''
                                                 } hover:bg-piastrella text-abisso`}
                                             >
@@ -108,7 +108,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onNavigate, onL
                     >
                         <Icon type="arrow-left" className="w-4 h-4" /> Impostazioni
                     </button>
-                    <div className="[&_h2]:outline-none" key={shown}>
+                    <div className="[&_h2]:outline-hidden" key={shown}>
                         {shown === 'account' && <AccountSection user={currentUser} onEditProfile={() => onNavigate('profile')} onLogout={onLogout} />}
                         {shown === 'sicurezza' && <SecuritySection user={currentUser} />}
                         {shown === 'notifiche' && <NotificationsTab />}
