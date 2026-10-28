@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { UserProfile, StructureProfile } from '@/types/types';
 import { ConnectionRequestCard, type EnrichedConnectionRequest } from './ConnectionRequestCard';
 import { ConnectionSuggestionCard } from './ConnectionSuggestionCard';
 import { Icon } from '@/components/ui/Icon';
-import { initialsAvatar } from '@/utils/avatar';
+import { avatarOf, displayNameOf, headlineOf } from '@/utils/profile';
+import type { RankedSuggestion } from '../suggestionRank';
 
 type Profile = UserProfile | StructureProfile;
 
 interface NetworkViewProps {
     currentUser: UserProfile | StructureProfile;
     pendingRequests: EnrichedConnectionRequest[];
-    suggestions: Profile[];
+    /** Già ordinati per affinità (`rankSuggestions`). */
+    suggestions: RankedSuggestion[];
     activeConnections: Profile[];
     searchQuery: string;
     setSearchQuery: (query: string) => void;
@@ -83,161 +85,161 @@ export const NetworkView: React.FC<NetworkViewProps> = ({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                
-                {/* 📇 COLONNA SINISTRA: RUBRICA COLLEGAMENTI */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden lg:sticky lg:top-6">
-                        <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Icon type="users" className="w-5 h-5 text-blue-600" /> I tuoi collegamenti
-                            </h2>
-                            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">{activeConnections.length}</span>
-                        </div>
-                        
-                        <div className="p-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            {activeConnections.length > 0 ? (
-                                <div className="space-y-1">
-                                    {activeConnections.map(conn => {
-                                        const id = conn.userId || conn.$id;
-                                        const isProf = conn.userType === 'professional';
-                                        const name = isProf ? `${(conn as UserProfile).firstName} ${(conn as UserProfile).lastName}`.trim() : (conn as StructureProfile).structureName;
-                                        const role = isProf ? (conn as UserProfile).title : (conn as StructureProfile).structureType;
-                                        const avatar = (isProf ? (conn as UserProfile).avatar : (conn as StructureProfile).logo) || initialsAvatar(name || 'U');
-
-                                        return (
-                                            <div key={id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors group">
-                                                <img 
-                                                    src={avatar} 
-                                                    alt={name}
-                                                    className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-xs cursor-pointer" 
-                                                    onClick={() => onSelectProfile(id)}
-                                                />
-                                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelectProfile(id)}>
-                                                    <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">{name}</h4>
-                                                    <p className="text-xs text-slate-500 truncate">{role || 'Membro SwimIn'}</p>
-                                                </div>
-                                                {/* Azioni Rapide Hover */}
-                                                <div className="flex items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity gap-1">
-                                                    <button onClick={() => onMessage(id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg outline-hidden" title="Invia messaggio">
-                                                        <Icon type="chat-bubble" className="w-4 h-4"/>
-                                                    </button>
-                                                    <button onClick={() => onRemoveConnection(id)} className="p-2 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg outline-hidden" title="Rimuovi">
-                                                        <Icon type="user-minus" className="w-4 h-4"/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 px-4">
-                                    <div className="bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <Icon type="users" className="w-6 h-6 text-slate-300" />
-                                    </div>
-                                    <p className="text-sm font-bold text-slate-600">Nessun collegamento</p>
-                                    <p className="text-xs text-slate-500 mt-1">Usa la barra di ricerca o i suggerimenti per espandere la tua rete.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 🎯 COLONNA DESTRA: RISULTATI, RICHIESTE E SUGGERIMENTI */}
-                <div className="lg:col-span-2 space-y-6">
-                    
-                    {/* 1. RISULTATI RICERCA */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+                <div className="lg:col-span-2 space-y-6 min-w-0">
+                    {/* Risultati della ricerca */}
                     {searchQuery.trim().length >= 2 && (
-                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 animate-in slide-in-from-top-4">
-                            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Icon type="search" className="w-5 h-5 text-blue-600" />
-                                Risultati per "{searchQuery}"
+                        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6" aria-labelledby="network-results">
+                            <h2 id="network-results" className="text-lg font-bold text-abisso mb-4 flex items-center gap-2">
+                                <Icon type="search" className="w-5 h-5 text-corsia-600" /> Risultati per “{searchQuery}”
                             </h2>
-
                             {!hasSearchResults && !isSearching ? (
-                                <p className="text-slate-500 text-center py-6 font-medium">Nessun risultato trovato.</p>
+                                <p className="text-slate-500 text-center py-6">Nessun risultato trovato.</p>
                             ) : (
-                                <div className="space-y-6">
-                                    {/* Profili Trovati */}
-                                    {searchResults.profiles.length > 0 && (
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-slate-500 mb-3 pl-2">Persone</h3>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {searchResults.profiles.map(prof => (
-                                                    <ConnectionSuggestionCard 
-                                                        key={prof.userId || prof.$id}
-                                                        user={prof}
-                                                        onSelectProfile={onSelectProfile}
-                                                        onConnect={onSendRequest}
-                                                        isAlreadyConnected={myConnectionIds.includes(prof.userId || prof.$id)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* 2. RICHIESTE IN SOSPESO (Nascoste se c'è una ricerca attiva) */}
-                    {!searchQuery && pendingRequests.length > 0 && (
-                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6">
-                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Icon type="users" className="w-5 h-5 text-blue-600" />
-                                Richieste in sospeso ({pendingRequests.length})
-                            </h2>
-                            <div className="space-y-3">
-                                {pendingRequests.map(req => (
-                                    <div key={req.$id} className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
-                                        <ConnectionRequestCard 
-                                            request={req}
-                                            onSelectProfile={onSelectProfile}
-                                            onAccept={onAcceptRequest}
-                                            onReject={onRejectRequest}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 3. SUGGERIMENTI INTELLIGENTI (Nascosti se c'è una ricerca attiva) */}
-                    {!searchQuery && (
-                        <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6">
-                            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Icon type="sparkles" className="w-5 h-5 text-amber-500" />
-                                Potresti conoscere...
-                            </h2>
-                            
-                            {suggestions.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {suggestions.map(prof => (
-                                        <ConnectionSuggestionCard 
+                                    {searchResults.profiles.map((prof) => (
+                                        <ConnectionSuggestionCard
                                             key={prof.userId || prof.$id}
                                             user={prof}
                                             onSelectProfile={onSelectProfile}
                                             onConnect={onSendRequest}
+                                            isAlreadyConnected={myConnectionIds.includes(prof.userId || prof.$id)}
                                         />
                                     ))}
                                 </div>
-                            ) : (
-                                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-xs border border-slate-100">
-                                        <Icon type="globe" className="w-8 h-8 text-slate-300" />
-                                    </div>
-                                    <p className="text-slate-600 font-bold text-lg">Hai raggiunto il bordo vasca!</p>
-                                    <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto">
-                                        Non ci sono nuovi suggerimenti al momento. Usa la barra di ricerca per trovare colleghi o strutture specifiche.
-                                    </p>
-                                </div>
                             )}
-                        </div>
+                        </section>
                     )}
 
+                    {/* Richieste in sospeso */}
+                    {!searchQuery && pendingRequests.length > 0 && (
+                        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 p-6" aria-labelledby="network-requests">
+                            <h2 id="network-requests" className="text-lg font-bold text-abisso mb-4">Richieste in sospeso ({pendingRequests.length})</h2>
+                            <div className="space-y-3">
+                                {pendingRequests.map((req) => (
+                                    <div key={req.$id} className="bg-piastrella rounded-2xl border border-slate-100 overflow-hidden">
+                                        <ConnectionRequestCard request={req} onSelectProfile={onSelectProfile} onAccept={onAcceptRequest} onReject={onRejectRequest} />
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* I tuoi collegamenti: il contenuto principale della pagina */}
+                    {!searchQuery && (
+                        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden" aria-labelledby="network-connections">
+                            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-3">
+                                <h2 id="network-connections" className="text-lg font-bold text-abisso flex items-center gap-2">
+                                    <Icon type="users" className="w-5 h-5 text-corsia-600" /> I tuoi collegamenti
+                                </h2>
+                                <span className="bg-corsia-50 text-corsia-700 text-sm font-semibold px-2.5 py-0.5 rounded-full tabular-nums">{activeConnections.length}</span>
+                            </div>
+                            {activeConnections.length > 0 ? (
+                                <ul className="grid sm:grid-cols-2 gap-px bg-slate-100">
+                                    {activeConnections.map((conn) => {
+                                        const id = conn.userId || conn.$id;
+                                        const name = displayNameOf(conn);
+                                        return (
+                                            <li key={id} className="bg-white flex items-center gap-3 p-4 min-w-0">
+                                                <button type="button" onClick={() => onSelectProfile(id)} tabIndex={-1} aria-hidden="true" className="shrink-0">
+                                                    <img src={avatarOf(conn)} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
+                                                </button>
+                                                <button type="button" onClick={() => onSelectProfile(id)} className="flex-1 min-w-0 text-left group">
+                                                    <span className="block font-semibold text-abisso truncate group-hover:text-corsia-700">{name}</span>
+                                                    <span className="block text-sm text-slate-500 truncate">{headlineOf(conn) || 'Membro SwimIn'}</span>
+                                                </button>
+                                                <button type="button" onClick={() => onMessage(id)} className="p-2 text-corsia-700 hover:bg-corsia-50 rounded-full" aria-label={`Scrivi a ${name}`} title="Invia messaggio">
+                                                    <Icon type="chat-bubble" className="w-5 h-5" />
+                                                </button>
+                                                <button type="button" onClick={() => onRemoveConnection(id)} className="p-2 text-slate-500 hover:text-galleggiante-700 hover:bg-red-50 rounded-full" aria-label={`Rimuovi ${name} dai collegamenti`} title="Rimuovi">
+                                                    <Icon type="user-minus" className="w-5 h-5" />
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            ) : (
+                                <div className="text-center py-12 px-4">
+                                    <Icon type="users" className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                                    <p className="font-semibold text-abisso">Ancora nessun collegamento</p>
+                                    <p className="text-sm text-slate-500 mt-1">Cerca colleghi e strutture qui sopra o parti dai suggerimenti.</p>
+                                </div>
+                            )}
+                        </section>
+                    )}
                 </div>
+
+                {/* Suggerimenti più affini al profilo, in un riquadro compatto */}
+                <aside className="lg:sticky lg:top-6 min-w-0" aria-labelledby="network-suggestions">
+                    <SuggestionsPanel suggestions={suggestions} onSelectProfile={onSelectProfile} onConnect={onSendRequest} />
+                </aside>
             </div>
         </div>
+    );
+};
+
+const SHOWN = 5;
+
+/** Riquadro "Potresti conoscere": i più affini, con il motivo e il pulsante per collegarsi. */
+const SuggestionsPanel: React.FC<{ suggestions: RankedSuggestion[]; onSelectProfile: (id: string) => void; onConnect: (id: string) => Promise<void> }> = ({ suggestions, onSelectProfile, onConnect }) => {
+    const [expanded, setExpanded] = useState(false);
+    const [sent, setSent] = useState<Set<string>>(() => new Set());
+    const [busy, setBusy] = useState<string | null>(null);
+    const list = suggestions.slice(0, expanded ? SHOWN * 3 : SHOWN);
+    const connect = async (id: string) => {
+        setBusy(id);
+        try {
+            await onConnect(id);
+            setSent((s) => new Set(s).add(id));
+        } catch (err) {
+            console.error('Richiesta di collegamento:', err);
+        } finally {
+            setBusy(null);
+        }
+    };
+    return (
+        <section className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
+            <h2 id="network-suggestions" className="px-5 pt-5 pb-2 text-lg font-bold text-abisso flex items-center gap-2">
+                <Icon type="sparkles" className="w-5 h-5 text-cloro-700" /> Potresti conoscere
+            </h2>
+            {list.length === 0 ? (
+                <p className="px-5 pb-5 text-sm text-slate-500">Nessun nuovo suggerimento: cerca colleghi o strutture con la barra qui sopra.</p>
+            ) : (
+                <ul className="pb-2">
+                    {list.map(({ profile, reason }) => {
+                        const id = profile.userId || profile.$id;
+                        const name = displayNameOf(profile);
+                        const done = sent.has(id);
+                        return (
+                            <li key={id} className="flex items-center gap-3 px-5 py-2.5 min-w-0">
+                                <button type="button" onClick={() => onSelectProfile(id)} tabIndex={-1} aria-hidden="true" className="shrink-0">
+                                    <img src={avatarOf(profile)} alt="" className="w-11 h-11 rounded-full object-cover border border-slate-200" />
+                                </button>
+                                <button type="button" onClick={() => onSelectProfile(id)} className="flex-1 min-w-0 text-left group">
+                                    <span className="block font-semibold text-abisso truncate group-hover:text-corsia-700">{name}</span>
+                                    <span className="block text-sm text-slate-500 truncate">{headlineOf(profile)}</span>
+                                    {reason && <span className="block text-xs text-cloro-800 truncate">{reason}</span>}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void connect(id)}
+                                    disabled={done || busy === id}
+                                    aria-label={done ? `Richiesta inviata a ${name}` : `Collegati con ${name}`}
+                                    title={done ? 'Richiesta inviata' : 'Collegati'}
+                                    className={`shrink-0 w-10 h-10 rounded-full border grid place-items-center ${done ? 'border-cloro-200 bg-cloro-50 text-cloro-800' : 'border-corsia-200 text-corsia-700 hover:bg-corsia-50'} disabled:cursor-default`}
+                                >
+                                    <Icon type={done ? 'check' : 'plus'} className="w-5 h-5" />
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+            {suggestions.length > SHOWN && (
+                <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="w-full border-t border-slate-100 py-3 text-sm font-semibold text-corsia-700 hover:bg-piastrella">
+                    {expanded ? 'Mostra meno' : 'Mostra altri suggerimenti'}
+                </button>
+            )}
+        </section>
     );
 };

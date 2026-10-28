@@ -14,6 +14,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { GroupsView } from '@/features/groups/GroupsView';
 import { EventsView } from '@/features/events/EventsView';
 import { NETWORK_TABS, networkTabOf, type NetworkTab } from '@/config/routes';
+import { rankSuggestions } from '@/features/network/suggestionRank';
 import type { IconType } from '@/components/ui/Icon';
 
 const TAB_META: Record<NetworkTab, { label: string; icon: IconType; title: string }> = {
@@ -186,7 +187,7 @@ const Network: React.FC = () => {
                     <NetworkView 
                         currentUser={currentUser}
                         pendingRequests={pendingRequests}
-                        suggestions={suggestions.filter((p) => !blocks.isHidden(p.userId || p.$id))}
+                        suggestions={rankSuggestions(currentUser, suggestions.filter((p) => !blocks.isHidden(p.userId || p.$id)))}
                         activeConnections={activeConnections}
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}

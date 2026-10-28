@@ -475,6 +475,22 @@ const FLOWS = [
         assert.equal(await nav.getByRole('link', { name: 'Live' }).count(), 0);
         assert.equal(await nav.getByRole('link', { name: 'Eventi' }).count(), 0);
     }],
+    ['Rete: prima i collegamenti, accanto i suggerimenti più affini', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/network');
+        await page.getByRole('heading', { name: 'I tuoi collegamenti' }).waitFor({ timeout: 8000 });
+        const panel = page.getByRole('complementary', { name: 'Potresti conoscere' });
+        await panel.waitFor();
+        const connect = panel.getByRole('button', { name: /^Collegati con / }).first();
+        await connect.click();
+        await called(state, 'sendConnectionRequest');
+        await panel.getByRole('button', { name: /^Richiesta inviata a / }).first().waitFor({ timeout: 4000 });
+    }],
+    ['home: la scheda del profilo ha solo le scorciatoie essenziali', 'desktop', { loggedIn: true }, async (page) => {
+        await open(page, '/');
+        await page.getByRole('link', { name: /Visite al profilo/ }).first().waitFor({ timeout: 8000 });
+        for (const name of ['Collegamenti', 'Gruppi', 'Elementi salvati']) await page.getByRole('link', { name: new RegExp(`^${name}`) }).first().waitFor();
+        for (const name of ['Brevetti', 'Competenze']) assert.equal(await page.getByRole('link', { name: new RegExp(`^${name}`) }).count(), 0, name);
+    }],
     ['Rete: gruppi ed eventi sono schede della stessa sezione', 'desktop', { loggedIn: true }, async (page) => {
         await open(page, '/network');
         const tabs = page.getByRole('navigation', { name: 'Sezioni della rete' });
