@@ -33,7 +33,7 @@ import { StatsDashboard } from '@/features/premium/StatsDashboard';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
 import { isPremium } from '@/utils/premium';
 import { useConfirm } from '@/context/ConfirmContext';
-import { openChat } from '@/features/messaging/openChat';
+import { openChat as openChatWith } from '@/features/messaging/openChat';
 
 // Recharts pesa: lo scarichiamo solo quando si apre la scheda Statistiche.
 const ApplicationsChart = lazyPage(() => import('./ApplicationsChart'));
@@ -342,7 +342,7 @@ export const FacilityView: React.FC<FacilityViewProps> = ({
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={() => openChat(facilityId, navigate)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 inline-flex items-center gap-1.5">
+                                    <button onClick={() => openChatWith(facilityId, navigate)} className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white border border-corsia-200 text-corsia-700 hover:border-corsia-400 inline-flex items-center gap-1.5">
                                         <Icon type="chat-bubble" className="w-4 h-4" /> Messaggio
                                     </button>
                                     <ConnectButton profileId={facilityId} />
