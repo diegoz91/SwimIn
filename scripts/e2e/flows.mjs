@@ -207,6 +207,26 @@ const FLOWS = [
         const c = await called(state, 'sendMessage');
         assert.match(c.params.content, /domani alle 7/);
     }],
+    ['widget dei messaggi: chat in una finestra senza lasciare la pagina', 'desktop', { loggedIn: true }, async (page, state) => {
+        const step = async (label, fn) => { try { await fn(); } catch (e) { throw new Error(`${label}: ${String(e?.message || e).split('\n')[0]}`); } };
+        await open(page, '/network');
+        const dock = page.locator('[data-chat-dock]');
+        await step('dock visibile', () => dock.waitFor({ timeout: 8000 }));
+        await step('apri elenco', async () => { const t = dock.getByRole('button', { name: 'Apri i messaggi' }); if (await t.isVisible()) await t.click({ timeout: 5000 }); });
+        await step('apri conversazione', () => dock.getByRole('button', { name: /Marco Bellini/ }).first().click({ timeout: 8000 }));
+        const win = dock.locator('section[aria-label="Chat con Marco Bellini"]');
+        await step('finestra aperta', () => win.waitFor({ timeout: 8000 }));
+        assert.equal(new URL(page.url()).pathname, '/network', 'la pagina resta la stessa');
+        const box = win.getByPlaceholder('Scrivi un messaggio…');
+        await step('scrivi', async () => { await box.fill('Ciao dal widget', { timeout: 8000 }); await box.press('Enter'); });
+        const c = await called(state, 'sendMessage');
+        assert.match(c.params.content, /dal widget/);
+        await step('riduci', () => win.getByRole('button', { name: 'Riduci la chat con Marco Bellini' }).click({ timeout: 5000 }));
+        await step('ridotta', () => box.waitFor({ state: 'hidden', timeout: 5000 }));
+        await step('riapri', () => win.getByRole('button', { name: 'Apri la chat con Marco Bellini' }).first().click({ timeout: 5000 }));
+        await step('chiudi', () => win.getByRole('button', { name: 'Chiudi la chat con Marco Bellini' }).click({ timeout: 5000 }));
+        await step('chiusa', () => win.waitFor({ state: 'detached', timeout: 5000 }));
+    }],
     ['candidarsi a un’offerta', 'mobile', { loggedIn: true }, async (page, state) => {
         await open(page, '/jobs');
         await page.getByRole('button', { name: /Candidati/ }).first().click();

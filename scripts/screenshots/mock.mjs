@@ -29,6 +29,13 @@ export function applyQueries(rows, rawQueries) {
                 return Array.isArray(v) ? v.some((x) => q.values.includes(x)) : typeof v === 'string' && q.values.some((x) => v.toLowerCase().includes(String(x).toLowerCase()));
             });
         }
+        if (q.method === 'or' && Array.isArray(q.values)) {
+            // Solo "uno di questi uguali" (es. messaggi mandati o ricevuti); gli altri "or" restano ignorati.
+            const subs = q.values.map((v) => (typeof v === 'string' ? JSON.parse(v) : v));
+            if (subs.length && subs.every((sq) => sq.method === 'equal' && sq.attribute && !sq.attribute.startsWith('$'))) {
+                out = out.filter((r) => subs.some((sq) => sq.values.includes(r[sq.attribute])));
+            }
+        }
         if (q.method === 'limit') out = out.slice(0, q.values[0]);
     }
     return out;

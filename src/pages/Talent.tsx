@@ -17,6 +17,7 @@ import type { UserProfile } from '@/types/types';
 import { isPremium } from '@/utils/premium';
 import { requestPremium } from '@/services/premiumPrompt';
 import { PremiumBadge } from '@/features/premium/PremiumBadge';
+import { openChat } from '@/features/messaging/openChat';
 
 type Candidate = {
     profile: UserProfile;
@@ -93,7 +94,7 @@ const Talent: React.FC = () => {
         [rows, category, verifiedOnly, blocks]
     );
 
-    const message = (id: string) => navigate('/messages', { state: { startChatWithUserId: id } });
+    const message = (id: string) => openChat(id, navigate);
 
     return (
         <div className="pt-4 max-w-5xl mx-auto w-full">

@@ -422,6 +422,15 @@ export const databaseService = {
         }
     },
 
+    /** Ultimi messaggi mandati o ricevuti (i più recenti prima): base dell'elenco delle conversazioni. */
+    async listMyRecentMessages(currentUserId: string, limit = 300) {
+        const res = await databases.listDocuments<Message>(databaseId, collections.messages, [
+            Query.or([Query.equal('senderId', currentUserId), Query.equal('receiverId', currentUserId)]),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+        ]);
+        return res.documents;
+    },
     async markMessagesAsRead(conversationId: string, currentUserId: string) {
         try {
             // Controllo locale (economico) prima di invocare la Function.

@@ -29,9 +29,9 @@ import { captureInviteFromUrl } from '@/utils/invite';
 import { BetaGate } from '@/features/beta/BetaGate';
 import { EVENTS_PATH, GROUPS_PATH } from '@/config/routes';
 
-// Widget Chat (sempre presente da loggati, caricato a parte)
-const GlobalChatWidget = lazyPage(() =>
-  import('@/features/messaging/components/GlobalChatWidget').then((m) => ({ default: m.GlobalChatWidget }))
+// Messaggi come su LinkedIn (elenco e finestre in basso a destra, da 1280 px), caricato a parte.
+const MessagingDock = lazyPage(() =>
+  import('@/features/messaging/components/MessagingDock').then((m) => ({ default: m.MessagingDock }))
 );
 
 // Pagine: ognuna è un chunk separato, scaricato solo quando serve.
@@ -220,7 +220,7 @@ const AppContent: React.FC = () => {
       {showChrome && <BottomNav />}
       {showChrome && (
         <Suspense fallback={null}>
-          <GlobalChatWidget />
+          <MessagingDock />
         </Suspense>
       )}
     </div>

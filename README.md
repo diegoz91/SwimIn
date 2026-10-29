@@ -78,7 +78,7 @@ Una struttura è sempre un account Struttura. Il titolare può nominare fino a 5
 ### Messaggi
 - Chat in tempo reale con allegati (foto e documenti), risposte, reazioni ed eliminazione per tutti.
 - Indicatore "sta scrivendo" e conferme di lettura (disattivabili).
-- Widget dei messaggi sempre a portata su schermi grandi.
+- Messaggi come su LinkedIn su schermi grandi: elenco delle conversazioni in basso a destra e più chat aperte in finestre che si riducono, senza lasciare la pagina.
 
 ### Gruppi ed eventi
 - Nella sezione **Rete** come schede accanto ai collegamenti (anche da *Altro* nella barra).
