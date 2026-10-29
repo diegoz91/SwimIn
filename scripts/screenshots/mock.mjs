@@ -30,12 +30,11 @@ export function applyQueries(rows, rawQueries) {
             });
         }
         if (q.method === 'or' && Array.isArray(q.values)) {
+            // Solo "uno di questi uguali" (es. messaggi mandati o ricevuti); gli altri "or" restano ignorati.
             const subs = q.values.map((v) => (typeof v === 'string' ? JSON.parse(v) : v));
-            out = out.filter((r) => subs.some((sq) => sq.method === 'equal' && sq.values.includes(r[sq.attribute])));
-        }
-        if ((q.method === 'orderDesc' || q.method === 'orderAsc') && q.attribute) {
-            const dir = q.method === 'orderDesc' ? -1 : 1;
-            out = [...out].sort((a, b) => (String(a[q.attribute] ?? '') < String(b[q.attribute] ?? '') ? -dir : String(a[q.attribute] ?? '') > String(b[q.attribute] ?? '') ? dir : 0));
+            if (subs.length && subs.every((sq) => sq.method === 'equal' && sq.attribute && !sq.attribute.startsWith('$'))) {
+                out = out.filter((r) => subs.some((sq) => sq.values.includes(r[sq.attribute])));
+            }
         }
         if (q.method === 'limit') out = out.slice(0, q.values[0]);
     }

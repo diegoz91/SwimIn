@@ -264,6 +264,8 @@ for (const [vpName, viewport, opts = {}] of VIEWPORTS) {
         }
         for (const [name, path, act] of opts.interactions === false ? [] : loggedIn ? PRIVATE_INTERACTIONS : PUBLIC_INTERACTIONS) {
             try {
+                // Le finestre di chat aperte da una schermata non devono coprire le successive.
+                await page.evaluate(() => sessionStorage.removeItem('swimin:chat-dock')).catch(() => undefined);
                 await page.goto(BASE + path, { waitUntil: 'load', timeout: 30_000 });
                 await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => undefined);
                 await page.waitForTimeout(600);
