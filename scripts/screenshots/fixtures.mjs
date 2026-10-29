@@ -291,6 +291,10 @@ export const collections = {
 
 /** Risposte della Function `api` per azione (le altre restituiscono un oggetto vuoto). */
 export const apiResponses = {
+    sendMessage: (p) => ({
+        $id: `m_${Date.now()}`, $createdAt: new Date().toISOString(), $updatedAt: new Date().toISOString(), $permissions: [],
+        conversationId: [ME, p.receiverId].sort().join('_'), senderId: ME, receiverId: p.receiverId, content: p.content || '', isRead: false, attachments: [],
+    }),
     publicJob: () => ({
         id: 'j1', title: 'Assistente bagnanti turni serali', role: 'assistente bagnanti', contractType: 'part-time', city: 'Milano', province: 'MI',
         description: 'Cerchiamo due assistenti bagnanti per i turni serali (18–22) nella vasca coperta da 25 metri, da novembre a maggio.\nAmbiente giovane, turni concordati con anticipo.',

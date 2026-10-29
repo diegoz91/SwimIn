@@ -305,6 +305,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     try {
       setIsSending(true);
       const saved = await databaseService.sendMessage(conversationId, currentUserId, participantId, trimmedText, { attachments, replyToId: reply?.$id });
+      if (!saved?.$id || !saved.$createdAt) throw new Error('Risposta del server non valida.');
       setMessages(prev => (prev.some(m => m.$id === saved.$id) ? prev.filter(m => m.$id !== tempId) : prev.map(m => (m.$id === tempId ? saved : m))));
       sent.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
     } catch (error) {
