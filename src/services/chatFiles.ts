@@ -4,6 +4,8 @@ import { sessionJwt, uploadFile, type ProgressFn } from '@/services/upload';
 import { APPWRITE_CONFIG } from '@/config/constants';
 import { compressImage } from '@/utils/image';
 import type { ChatAttachment } from '@/types/types';
+// Funzioni pure (senza Appwrite), in un modulo a parte così si possono provare nei test.
+export { isImageAttachment, parseAttachments, messagePreview } from '@/utils/chatPreview';
 
 /**
  * Allegati dei messaggi, nel bucket privato `chat_files`.
@@ -24,20 +26,6 @@ const DOC_TYPES: Record<string, string> = {
 };
 const bucket = APPWRITE_CONFIG.buckets.chatFiles;
 
-export const isImageAttachment = (a: Pick<ChatAttachment, 'mime'>) => a.mime.startsWith('image/');
-
-export function parseAttachments(raw?: string[] | null): ChatAttachment[] {
-    const out: ChatAttachment[] = [];
-    for (const r of raw || []) {
-        try {
-            const a = JSON.parse(r) as ChatAttachment;
-            if (a && typeof a.fileId === 'string') out.push(a);
-        } catch (err) {
-            console.warn('Allegato non leggibile:', err);
-        }
-    }
-    return out;
-}
 
 export const formatFileSize = (bytes: number) =>
     bytes >= MB ? `${(bytes / MB).toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(bytes / 1024))} kB`;
@@ -101,11 +89,3 @@ export async function downloadChatFile(a: ChatAttachment) {
 }
 
 /** Testo breve per l'elenco delle conversazioni (allegati ed eliminati compresi). */
-export function messagePreview(m: { content?: string | null; attachments?: string[] | null; deleted?: boolean | null }): string {
-    if (m.deleted) return 'Messaggio eliminato';
-    if (m.content) return m.content;
-    const files = parseAttachments(m.attachments);
-    if (!files.length) return '';
-    if (files.length === 1) return isImageAttachment(files[0]) ? 'Foto' : files[0].name;
-    return `${files.length} allegati`;
-}

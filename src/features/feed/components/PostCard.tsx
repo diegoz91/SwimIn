@@ -22,6 +22,7 @@ import { PollView } from './PollView';
 import { MentionTextarea, fromEditable, toEditable, type MentionMap } from '@/components/form/MentionTextarea';
 import { isPremium } from '@/utils/premium';
 import { useConfirm } from '@/context/ConfirmContext';
+import { openChat } from '@/features/messaging/openChat';
 
 interface PostCardProps {
     post: EnrichedPost;
@@ -513,7 +514,7 @@ const PostCardBody: React.FC<PostCardProps> = ({ post, onSelectPost, onDeleted, 
 
             {isReportOpen && <ReportModal targetType="post" targetId={post.$id} onClose={() => setIsReportOpen(false)} />}
             {isLikesModalOpen && (
-                <LikesModal postId={post.$id} onClose={() => setIsLikesModalOpen(false)} onNavigate={(view, id) => (view === 'messages' ? navigate('/messages', { state: { startChatWithUserId: id } }) : navigate(`/profile/${id}`))} />
+                <LikesModal postId={post.$id} onClose={() => setIsLikesModalOpen(false)} onNavigate={(view, id) => (view === 'messages' ? openChat(id, navigate) : navigate(`/profile/${id}`))} />
             )}
         </article>
     );

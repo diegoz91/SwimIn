@@ -9,6 +9,7 @@ import { FacilityView } from '@/features/profile/components/FacilityView';
 import { Settings } from '@/features/profile/components/Settings';
 import { PageLoader } from '@/components/common/PageLoader';
 import type { UserProfile, StructureProfile, Job } from '@/types/types';
+import { openChat } from '@/features/messaging/openChat';
 
 // Due tipi di profilo: persona (professionista o appassionato) e account Struttura.
 type ProfileType = UserProfile | StructureProfile;
@@ -79,7 +80,7 @@ const ProfilePage: React.FC = () => {
     if (!viewedProfile || !currentUser) return null;
 
     const handleContact = (userId: string) => {
-        navigate(`/messages`, { state: { startChatWithUserId: userId } });
+        openChat(userId, navigate);
     };
 
     const handleProfileUpdate = (updatedProfile: ProfileType) => {

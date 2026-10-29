@@ -207,6 +207,28 @@ const FLOWS = [
         const c = await called(state, 'sendMessage');
         assert.match(c.params.content, /domani alle 7/);
     }],
+    ['widget dei messaggi: chat in una finestra senza lasciare la pagina', 'desktop', { loggedIn: true }, async (page, state) => {
+        await open(page, '/network');
+        const dock = page.locator('[data-chat-dock]');
+        await dock.waitFor();
+        const toggle = dock.getByRole('button', { name: 'Apri i messaggi' });
+        if (await toggle.isVisible()) await toggle.click();
+        await dock.getByRole('button', { name: /Marco Bellini/ }).first().click();
+        const win = dock.getByRole('region', { name: 'Chat con Marco Bellini' });
+        await win.waitFor();
+        assert.equal(new URL(page.url()).pathname, '/network', 'la pagina resta la stessa');
+        const box = win.getByPlaceholder('Scrivi un messaggio…');
+        await box.fill('Ciao dal widget');
+        await box.press('Enter');
+        const c = await called(state, 'sendMessage');
+        assert.match(c.params.content, /dal widget/);
+        await win.getByRole('button', { name: 'Riduci la chat con Marco Bellini' }).click();
+        await box.waitFor({ state: 'hidden' });
+        await win.getByRole('button', { name: 'Apri la chat con Marco Bellini' }).first().click();
+        await box.waitFor();
+        await win.getByRole('button', { name: 'Chiudi la chat con Marco Bellini' }).click();
+        await win.waitFor({ state: 'detached' });
+    }],
     ['candidarsi a un’offerta', 'mobile', { loggedIn: true }, async (page, state) => {
         await open(page, '/jobs');
         await page.getByRole('button', { name: /Candidati/ }).first().click();

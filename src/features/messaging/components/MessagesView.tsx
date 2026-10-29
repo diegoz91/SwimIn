@@ -1,28 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Query } from 'appwrite';
+import React, { useState, useEffect } from 'react';
 import { ChatWindow } from './ChatWindow';
-import { messagePreview } from '@/services/chatFiles';
-import { useTypingUsers } from '@/hooks/useTypingUsers';
 import { ConversationListItem } from './ConversationListItem';
-import { databaseService } from '@/services/database'; 
-import { databases, client } from '@/services/appwrite';
-import { APPWRITE_CONFIG } from '@/config/constants';
-import type { UserProfile, StructureProfile, Message } from '@/types/types';
+import { databaseService } from '@/services/database';
+import type { UserProfile, StructureProfile } from '@/types/types';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/context/ToastContext';
-import { useBlocks } from '@/context/BlocksContext';
-
-interface Conversation {
-  conversationId: string;
-  participant: UserProfile | StructureProfile;
-  lastMessage: {
-    content: string;
-    sentAt: string;
-    senderId: string;
-  };
-  unreadCount: number;
-  isParticipantTyping?: boolean;
-}
+import { useAuth } from '@/hooks/useAuth';
+import { useConversations } from '../useConversations';
+import { conversationIdOf, filterConversations } from '../conversations';
 
 interface MessagesViewProps {
   currentUserId: string;
@@ -35,135 +20,31 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   startChatWithUserId,
   onProfileClick 
 }) => {
-  const typingUsers = useTypingUsers(currentUserId);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-    const blocks = useBlocks();
+  const { user } = useAuth();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [newChatParticipant, setNewChatParticipant] = useState<UserProfile | StructureProfile | null>(null);
+  const [query, setQuery] = useState('');
   const { showToast } = useToast();
-
-  const loadConversations = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // 💡 Recupera i collegamenti AGGIORNATI dal DB
-      const currentUserProfile = await databaseService.getProfile(currentUserId);
-      const safeConnections = (currentUserProfile.connections || []).slice(0, 100);
-
-      let initialConvs: Conversation[] = [];
-
-      if (safeConnections.length > 0) {
-          const res = await databases.listDocuments<UserProfile | StructureProfile>(
-              APPWRITE_CONFIG.databaseId,
-              APPWRITE_CONFIG.collections.profiles,
-              [Query.equal('$id', safeConnections), Query.limit(100)]
-          );
-          
-          initialConvs = res.documents.map(profile => ({
-              conversationId: [currentUserId, profile.userId || profile.$id].sort().join('_'),
-              participant: profile,
-              lastMessage: { content: 'Clicca per chattare...', sentAt: '', senderId: '' },
-              unreadCount: 0,
-              isParticipantTyping: false
-          }));
-      }
-      
-      const unreadRes = await databases.listDocuments<Message>(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.collections.messages,
-        [Query.equal('receiverId', currentUserId), Query.equal('isRead', false)]
-      );
-
-      // Elimina silenziosamente i messaggi non letti provenienti da utenti non collegati (Anti-Spam)
-      unreadRes.documents.forEach(msg => {
-          const conv = initialConvs.find(c => c.conversationId === msg.conversationId);
-          if (conv) {
-              conv.unreadCount += 1;
-              if (msg.$createdAt > conv.lastMessage.sentAt) {
-                 conv.lastMessage = { content: messagePreview(msg), sentAt: msg.$createdAt, senderId: msg.senderId };
-              }
-          }
-      });
-
-      initialConvs.sort((a, b) => {
-          if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
-          return new Date(b.lastMessage.sentAt).getTime() - new Date(a.lastMessage.sentAt).getTime();
-      });
-      
-      setConversations(initialConvs);
-    } catch (err) {
-      console.error('Error loading conversations:', err);
-      setError('Impossibile caricare le conversazioni. Riprova più tardi.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentUserId]);
-
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+  // Stesso elenco del widget: tutte le conversazioni (anche con chi non è un collegamento), poi i collegamenti.
+  const { conversations, loading: isLoading, error: loadError, markRead } = useConversations(
+    currentUserId, user?.connections || [], true, selectedConversationId ? [selectedConversationId] : [],
+  );
+  const error = loadError ? 'Impossibile caricare le conversazioni. Riprova più tardi.' : null;
 
   useEffect(() => {
     if (startChatWithUserId && startChatWithUserId !== currentUserId) {
-      startNewChat(startChatWithUserId);
+      void startNewChat(startChatWithUserId);
     }
-  }, [startChatWithUserId]);
-
-  useEffect(() => {
-    const channelMsgs = `databases.${APPWRITE_CONFIG.databaseId}.collections.${APPWRITE_CONFIG.collections.messages}.documents`;
-    const unsubscribeMsgs = client.subscribe(channelMsgs, (response: any) => {
-        const payload = response.payload as Message;
-        const isCreation = response.events.some((e: string) => e.includes('.create'));
-        const isUpdate = response.events.some((e: string) => e.includes('.update'));
-
-        setConversations(prev => {
-            const convIndex = prev.findIndex(c => c.conversationId === payload.conversationId);
-            
-            if (convIndex === -1) {
-                if (isCreation) loadConversations();
-                return prev;
-            }
-            
-            const newConvs = [...prev];
-            
-            if (isCreation) {
-                newConvs[convIndex].lastMessage = { 
-                    content: messagePreview(payload), 
-                    sentAt: payload.$createdAt, 
-                    senderId: payload.senderId 
-                };
-                
-                if (payload.receiverId === currentUserId && selectedConversationId !== payload.conversationId) {
-                    newConvs[convIndex].unreadCount += 1;
-                }
-
-                const [updatedConv] = newConvs.splice(convIndex, 1);
-                newConvs.unshift(updatedConv);
-            } else if (isUpdate && payload.isRead) {
-                newConvs[convIndex].unreadCount = 0;
-            }
-            
-            return newConvs;
-        });
-    });
-
-    return () => {
-        unsubscribeMsgs();
-    };
-  }, [currentUserId, selectedConversationId, loadConversations]);
+  }, [startChatWithUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectConversation = (convId: string) => {
-    setConversations(prev => prev.map(c => c.conversationId === convId ? { ...c, unreadCount: 0 } : c));
     setSelectedConversationId(convId);
-    databaseService.markMessagesAsRead(convId, currentUserId);
+    markRead(convId);
   };
 
   const startNewChat = async (userId: string) => {
     try {
-      const conversationId = [currentUserId, userId].sort().join('_');
+      const conversationId = conversationIdOf(currentUserId, userId);
       const existingConv = conversations.find(c => c.conversationId === conversationId);
       
       if (existingConv) {
@@ -191,8 +72,13 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
     <div className="flex h-[calc(100dvh-11rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-8.5rem)] max-w-6xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in duration-500">
       
       <div className={`w-full md:w-80 lg:w-[380px] shrink-0 flex-col bg-slate-50 border-r border-slate-200 ${showList ? 'flex' : 'hidden md:flex'}`}>
-        <div className="p-5 border-b border-slate-200 bg-white">
+        <div className="p-5 border-b border-slate-200 bg-white space-y-3">
           <h2 className="text-2xl font-bold text-slate-800">Messaggi</h2>
+          <label className="relative block">
+            <span className="sr-only">Cerca nei messaggi</span>
+            <Icon type="search" className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca per nome o messaggio" className="w-full pl-9 pr-3 py-2 rounded-full bg-piastrella border border-transparent focus:border-corsia-300 text-sm outline-hidden" />
+          </label>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -212,10 +98,10 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {conversations.filter((conv) => !blocks.isHidden(conv.participant?.userId || conv.participant?.$id)).map(conv => (
+              {filterConversations(conversations, query).map(conv => (
                 <ConversationListItem
                   key={conv.conversationId}
-                  conversation={{ ...conv, isParticipantTyping: typingUsers.has(conv.participant.userId || conv.participant.$id) }}
+                  conversation={conv}
                   currentUserId={currentUserId}
                   isSelected={conv.conversationId === selectedConversationId}
                   onSelect={() => handleSelectConversation(conv.conversationId)}

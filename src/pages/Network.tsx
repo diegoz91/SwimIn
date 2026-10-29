@@ -16,6 +16,7 @@ import { EventsView } from '@/features/events/EventsView';
 import { NETWORK_TABS, networkTabOf, type NetworkTab } from '@/config/routes';
 import { rankSuggestions } from '@/features/network/suggestionRank';
 import type { IconType } from '@/components/ui/Icon';
+import { openChat } from '@/features/messaging/openChat';
 
 const TAB_META: Record<NetworkTab, { label: string; icon: IconType; title: string }> = {
     collegamenti: { label: 'Collegamenti', icon: 'users', title: 'Il mio network' },
@@ -157,7 +158,7 @@ const Network: React.FC = () => {
     };
 
     const handleSelectProfile = (userId: string) => navigate(`/profile/${userId}`);
-    const handleMessage = (userId: string) => navigate(`/messages`, { state: { startChatWithUserId: userId } });
+    const handleMessage = (userId: string) => openChat(userId, navigate);
 
     if (!currentUser) return null;
 

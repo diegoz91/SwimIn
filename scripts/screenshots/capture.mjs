@@ -80,6 +80,7 @@ const PRIVATE_INTERACTIONS = [
     ['visite-profilo', '/profile', (p) => p.getByRole('button', { name: /visite al profilo/ }).first().click()],
     ['collegamenti', '/profile', (p) => p.getByRole('button', { name: /collegament/ }).first().click()],
     ['chat', '/messages', (p) => p.getByText('Marco Bellini').first().click()],
+    ['widget-messaggi', '/', async (p) => { const d = p.locator('[data-chat-dock]'); if (!(await d.isVisible())) return; const t = d.getByRole('button', { name: 'Apri i messaggi' }); if (await t.isVisible()) await t.click(); await d.getByRole('button', { name: /Marco Bellini/ }).first().click(); await p.waitForTimeout(700); }],
     ['squadra-staff', '/profile/u_lido?area=staff', async (p) => { await p.getByRole('tab', { name: /^Squadra/ }).click(); await p.getByText('Sara Colombo').first().waitFor(); }],
     ['chat-staff', '/profile/u_lido?area=chat-staff', async (p) => { await p.getByText('Grazie Giulia!').waitFor(); await p.waitForTimeout(900); }],
     ['gruppo-membri', '/gruppi/g1', (p) => p.getByRole('button', { name: /^Membri/ }).click()],

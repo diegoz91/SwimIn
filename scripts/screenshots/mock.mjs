@@ -29,6 +29,14 @@ export function applyQueries(rows, rawQueries) {
                 return Array.isArray(v) ? v.some((x) => q.values.includes(x)) : typeof v === 'string' && q.values.some((x) => v.toLowerCase().includes(String(x).toLowerCase()));
             });
         }
+        if (q.method === 'or' && Array.isArray(q.values)) {
+            const subs = q.values.map((v) => (typeof v === 'string' ? JSON.parse(v) : v));
+            out = out.filter((r) => subs.some((sq) => sq.method === 'equal' && sq.values.includes(r[sq.attribute])));
+        }
+        if ((q.method === 'orderDesc' || q.method === 'orderAsc') && q.attribute) {
+            const dir = q.method === 'orderDesc' ? -1 : 1;
+            out = [...out].sort((a, b) => (String(a[q.attribute] ?? '') < String(b[q.attribute] ?? '') ? -dir : String(a[q.attribute] ?? '') > String(b[q.attribute] ?? '') ? dir : 0));
+        }
         if (q.method === 'limit') out = out.slice(0, q.values[0]);
     }
     return out;

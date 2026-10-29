@@ -20,9 +20,12 @@ interface ChatWindowProps {
   currentUserId: string;
   participant: UserProfile | StructureProfile;
   conversationId: string;
-  onBack: () => void;
+  /** Torna all'elenco (pagina Messaggi su smartphone); nelle finestre del widget non serve. */
+  onBack?: () => void;
   onProfileClick?: (userId: string) => void;
   isWidget?: boolean;
+  /** Pulsanti a destra nell'intestazione (riduci, apri a tutta pagina, chiudi). */
+  headerActions?: React.ReactNode;
 }
 
 /** Reazioni ammesse sui messaggi (allineate a MESSAGE_REACTIONS nella Function). */
@@ -110,7 +113,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   conversationId,
   onBack,
   onProfileClick,
-  isWidget = false
+  isWidget = false,
+  headerActions,
 }) => {
     const confirm = useConfirm();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -385,14 +389,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0 min-w-0 w-full">
-      <div className="flex items-center p-3 sm:p-4 border-b border-slate-200 bg-white sticky top-0 z-10 shadow-xs">
-        <button
-            onClick={onBack}
-            aria-label="Torna alle conversazioni"
-            className={`${isWidget ? 'block' : 'md:hidden'} mr-3 p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500`}
-        >
-          <Icon type="arrow-left" className="w-6 h-6" />
-        </button>
+      <div className={`flex items-center border-b border-slate-200 bg-white sticky top-0 z-10 shadow-xs ${isWidget ? 'px-2 py-1.5' : 'p-3 sm:p-4'}`}>
+        {onBack && (
+          <button
+              onClick={onBack}
+              aria-label="Torna alle conversazioni"
+              className={`${isWidget ? 'block' : 'md:hidden'} mr-3 p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500`}
+          >
+            <Icon type="arrow-left" className="w-6 h-6" />
+          </button>
+        )}
 
         <div
           className="flex items-center cursor-pointer hover:bg-slate-50 rounded-xl p-2 -ml-2 transition-colors flex-1 min-w-0 outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -401,7 +407,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter') onProfileClick?.(participantId); }}
         >
-          <img src={getParticipantAvatar()} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border border-slate-100 shadow-xs bg-white" />
+          <img src={getParticipantAvatar()} alt="" className={`${isWidget ? 'w-9 h-9' : 'w-10 h-10 sm:w-12 sm:h-12'} rounded-full object-cover mr-3 border border-slate-100 shadow-xs bg-white`} />
           <div className="min-w-0">
             <p className="font-bold text-slate-800 leading-tight text-sm sm:text-base truncate">{getParticipantName()}</p>
             {isParticipantTyping ? (
@@ -413,6 +419,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             )}
           </div>
         </div>
+        {headerActions && <div className="flex items-center shrink-0 ml-1">{headerActions}</div>}
       </div>
 
       <div
